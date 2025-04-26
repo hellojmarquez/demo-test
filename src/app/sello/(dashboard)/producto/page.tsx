@@ -7,9 +7,9 @@ import FormSello from './FormSello';
 import FormRelease from './FormRelease';
 
 const opciones = [
-	{ value: 'artista', label: 'Artista' },
+	// { value: 'artista', label: 'Artista' },
 	{ value: 'release', label: 'Release' },
-	{ value: 'sello', label: 'Sello' },
+	// { value: 'sello', label: 'Sello' },
 	{ value: 'single', label: 'Single' },
 ];
 
@@ -47,13 +47,13 @@ export default function CrearProductoMusica() {
 
 			{/* Render de formularios */}
 			<div className="animate-fade-in">
-				{tipoProducto === 'artista' && (
+				{/* {tipoProducto === 'artista' && (
 					<FormArtista tipoProducto={tipoProducto} />
-				)}
+				)} */}
 				{tipoProducto === 'release' && (
 					<FormRelease tipoProducto={tipoProducto} />
 				)}
-				{tipoProducto === 'sello' && <FormSello />}
+				{/* {tipoProducto === 'sello' && <FormSello />} */}
 				{tipoProducto === 'single' && (
 					<FormSingle tipoProducto={tipoProducto} />
 				)}

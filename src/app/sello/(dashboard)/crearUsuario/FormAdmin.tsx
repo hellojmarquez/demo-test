@@ -7,32 +7,22 @@ interface FormData {
 	name: string;
 	email: string;
 	password: string;
-	role: string;
 	picture: File | null;
 	picturePreview: string;
-	primary_genre: string | null;
-	year: string;
-	catalog_num: string;
 }
 
-const FormSello = () => {
+const FormAdmin = () => {
 	const [formData, setFormData] = useState<FormData>({
 		name: '',
 		email: '',
 		password: '',
-		role: '',
 		picture: null,
 		picturePreview: '',
-		primary_genre: null,
-		year: '',
-		catalog_num: '',
 	});
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
 
-	const handleChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-	) => {
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
 		setFormData(prev => ({
 			...prev,
@@ -64,12 +54,7 @@ const FormSello = () => {
 		submitData.append('name', formData.name);
 		submitData.append('email', formData.email);
 		submitData.append('password', formData.password);
-		submitData.append('role', formData.role);
-		if (formData.primary_genre) {
-			submitData.append('primary_genre', formData.primary_genre);
-		}
-		submitData.append('year', formData.year);
-		submitData.append('catalog_num', formData.catalog_num);
+		submitData.append('role', 'admin');
 		if (formData.picture) {
 			submitData.append('picture', formData.picture);
 		}
@@ -81,25 +66,22 @@ const FormSello = () => {
 			});
 			const data = await res.json();
 			if (data.success) {
-				alert('Usuario creado exitosamente');
+				alert('Administrador creado exitosamente');
+				// Reset form
 				setFormData({
 					name: '',
 					email: '',
 					password: '',
-					role: '',
 					picture: null,
 					picturePreview: '',
-					primary_genre: null,
-					year: '',
-					catalog_num: '',
 				});
 				router.refresh();
 			} else {
-				alert(data.message || 'Error al crear el usuario');
+				alert(data.message || 'Error al crear el administrador');
 			}
 		} catch (error) {
-			console.error('Error al crear usuario:', error);
-			alert('Error al crear usuario');
+			console.error('Error al crear administrador:', error);
+			alert('Error al crear administrador');
 		} finally {
 			setLoading(false);
 		}
@@ -109,7 +91,7 @@ const FormSello = () => {
 		<form onSubmit={handleSubmit} className="space-y-6">
 			<div>
 				<label className="block text-sm font-medium text-gray-700 mb-2">
-					Foto o logo
+					Foto de perfil
 				</label>
 				<input
 					type="file"
@@ -138,7 +120,7 @@ const FormSello = () => {
 					value={formData.name}
 					onChange={handleChange}
 					required
-					className="w-full border border-gray-300 p-2 rounded-lg"
+					className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
 				/>
 			</div>
 
@@ -152,7 +134,7 @@ const FormSello = () => {
 					value={formData.email}
 					onChange={handleChange}
 					required
-					className="w-full border border-gray-300 p-2 rounded-lg"
+					className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
 				/>
 			</div>
 
@@ -166,63 +148,7 @@ const FormSello = () => {
 					value={formData.password}
 					onChange={handleChange}
 					required
-					className="w-full border border-gray-300 p-2 rounded-lg"
-				/>
-			</div>
-
-			<div>
-				<label className="block text-sm font-medium text-gray-700 mb-1">
-					Rol
-				</label>
-				<select
-					name="role"
-					value={formData.role}
-					onChange={handleChange}
-					required
-					className="w-full border border-gray-300 p-2 rounded-lg"
-				>
-					<option value="">Selecciona una opción</option>
-					<option value="sello">Sello</option>
-					<option value="artista">Artista</option>
-				</select>
-			</div>
-
-			<div>
-				<label className="block text-sm font-medium text-gray-700 mb-1">
-					Género principal
-				</label>
-				<input
-					type="text"
-					name="primary_genre"
-					value={formData.primary_genre || ''}
-					onChange={handleChange}
-					className="w-full border border-gray-300 p-2 rounded-lg"
-				/>
-			</div>
-
-			<div>
-				<label className="block text-sm font-medium text-gray-700 mb-1">
-					Año
-				</label>
-				<input
-					type="text"
-					name="year"
-					value={formData.year}
-					onChange={handleChange}
-					className="w-full border border-gray-300 p-2 rounded-lg"
-				/>
-			</div>
-
-			<div>
-				<label className="block text-sm font-medium text-gray-700 mb-1">
-					Número de catálogo
-				</label>
-				<input
-					type="text"
-					name="catalog_num"
-					value={formData.catalog_num}
-					onChange={handleChange}
-					className="w-full border border-gray-300 p-2 rounded-lg"
+					className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
 				/>
 			</div>
 
@@ -231,10 +157,10 @@ const FormSello = () => {
 				disabled={loading}
 				className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
 			>
-				{loading ? 'Creando...' : 'Crear'}
+				{loading ? 'Creando...' : 'Crear Administrador'}
 			</button>
 		</form>
 	);
 };
 
-export default FormSello;
+export default FormAdmin;

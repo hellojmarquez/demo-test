@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Pencil, XCircle, PlusCircle } from 'lucide-react';
+import { Pencil } from 'lucide-react';
+import Link from 'next/link';
 
 interface User {
 	_id: string;
@@ -66,6 +67,14 @@ export default function UsuariosPage() {
 			<h2 className="text-2xl font-bold text-blue-700">Gestión de Usuarios</h2>
 
 			<div className="overflow-auto max-h-[60vh] border rounded shadow">
+				<div className="flex justify-end pb-4">
+					<Link
+						href="/sello/crearUsuario"
+						className="bg-green-500 py-2 px-4 rounded-lg text-white hover:bg-green-600 transition-colors"
+					>
+						Crear usuario
+					</Link>
+				</div>
 				<table className="min-w-full text-sm text-gray-800">
 					<thead className="sticky top-0 bg-blue-600 text-white z-10">
 						<tr>

@@ -65,8 +65,11 @@ export default function DashboardLayout({
 							<a href="/admin/mensajes" className="block hover:text-[#0f4ccc]">
 								Mensajes
 							</a>
-							<Link href="/sello/tracks" className="block hover:text-[#0f4ccc]">
-								Tracks
+							<Link
+								href="/sello/catalogo"
+								className="block hover:text-[#0f4ccc]"
+							>
+								Catálogo
 							</Link>
 							<a href="/admin/config" className="block hover:text-[#0f4ccc]">
 								Configuraciones
@@ -81,7 +84,7 @@ export default function DashboardLayout({
 						</nav>
 					</aside>
 					<main className="flex-1 p-4 md:p-8 bg-[#f0ecf1]">
-						<header className=" flex justify-between items-center mb-2">
+						<header className=" flex justify-between items-center mb-4">
 							<h1 className="text-2xl font-bold text-[#0f4ccc]">
 								Bienvenido {user?.name}{' '}
 								{currentAccount &&

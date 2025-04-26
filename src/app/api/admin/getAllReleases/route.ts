@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 				base64: Buffer.from(release.picture).toString('base64'),
 			},
 		}));
-
+		console.log(releases);
 		return NextResponse.json({
 			success: true,
 			data: releasesWithBase64,

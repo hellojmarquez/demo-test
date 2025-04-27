@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Save, XCircle } from 'lucide-react';
 
 interface Release {
 	_id: string;
@@ -23,14 +23,14 @@ interface Release {
 	youtube_declaration: boolean;
 }
 
-interface EditReleaseModalProps {
+interface UpdateReleaseModalProps {
 	release: Release;
 	isOpen: boolean;
 	onClose: () => void;
 	onSave: (updatedRelease: Release) => void;
 }
 
-const EditReleaseModal: React.FC<EditReleaseModalProps> = ({
+const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 	release,
 	isOpen,
 	onClose,
@@ -329,15 +329,21 @@ const EditReleaseModal: React.FC<EditReleaseModalProps> = ({
 						<button
 							type="button"
 							onClick={onClose}
-							className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+							className="px-4 py-2 rounded-md flex items-center gap-2 group"
 						>
-							Cancelar
+							<XCircle className="h-4 w-4 text-brand-light  group-hover:text-brand-dark" />
+							<span className="text-brand-light group-hover:text-brand-dark">
+								Cancelar
+							</span>
 						</button>
 						<button
 							type="submit"
-							className="px-4 py-2 bg-brand-dark text-white rounded-md hover:bg-brand-dark/90"
+							className="px-4 py-2 rounded-md flex items-center gap-2 group"
 						>
-							Guardar cambios
+							<Save className="text-brand-light  h-4 w-4 group-hover:text-brand-dark" />
+							<span className="text-brand-light  group-hover:text-brand-dark">
+								Guardar cambios
+							</span>
 						</button>
 					</div>
 				</form>
@@ -346,4 +352,4 @@ const EditReleaseModal: React.FC<EditReleaseModalProps> = ({
 	);
 };
 
-export default EditReleaseModal;
+export default UpdateReleaseModal;

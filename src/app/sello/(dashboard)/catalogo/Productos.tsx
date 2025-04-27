@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
-import UpdateReleaseModal from '@/app/components/UpdateReleaseModal';
+import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Tipamos el objeto de release

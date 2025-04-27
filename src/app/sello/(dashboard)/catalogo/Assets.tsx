@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 
-// Tipamos los datos del track
 interface Artist {
 	name: string;
 }
@@ -29,7 +28,7 @@ interface Track {
 	label_share: string;
 	language: string;
 	order: number | null;
-	publishers: any[]; // Mejorable si sabes qué tipo tienen los publishers
+	publishers: any[];
 	release: string | null;
 	resource: string;
 	sample_start: string;
@@ -39,7 +38,7 @@ interface Track {
 	vocals: string;
 }
 
-const Assets: React.FC = () => {
+const Assets = () => {
 	const [assets, setAssets] = useState<Track[]>([]);
 
 	useEffect(() => {

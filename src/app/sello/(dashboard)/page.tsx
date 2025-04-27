@@ -16,13 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function SelloHome() {
-	const {
-		user,
-		loading,
-		currentAccount,
-		showAccountSelector,
-		setShowAccountSelector,
-	} = useAuth();
+	const { user, loading, currentAccount, setShowAccountSelector } = useAuth();
 
 	const [userData, setUserData] = useState<any>(null);
 	const router = useRouter();

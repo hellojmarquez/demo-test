@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
-import EditReleaseModal from '@/components/EditReleaseModal';
+import UpdateReleaseModal from '@/app/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Tipamos el objeto de release
@@ -285,7 +285,7 @@ const Productos: React.FC = () => {
 			)}
 
 			{selectedRelease && (
-				<EditReleaseModal
+				<UpdateReleaseModal
 					release={{
 						...selectedRelease,
 						updatedAt: selectedRelease.updatedAt || new Date().toISOString(),

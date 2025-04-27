@@ -42,6 +42,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 			? `data:image/jpeg;base64,${release.picture.base64}`
 			: null
 	);
+	const [isLoading, setIsLoading] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleChange = (
@@ -77,9 +78,14 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		}
 	};
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		onSave(formData);
+		setIsLoading(true);
+		try {
+			await onSave(formData);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	if (!isOpen) return null;
@@ -329,21 +335,30 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 						<button
 							type="button"
 							onClick={onClose}
-							className="px-4 py-2 rounded-md flex items-center gap-2 group"
+							disabled={isLoading}
+							className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							<XCircle className="h-4 w-4 text-brand-light  group-hover:text-brand-dark" />
-							<span className="text-brand-light group-hover:text-brand-dark">
-								Cancelar
-							</span>
+							<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
+							<span className="group-hover:text-brand-dark">Cancelar</span>
 						</button>
 						<button
 							type="submit"
-							className="px-4 py-2 rounded-md flex items-center gap-2 group"
+							disabled={isLoading}
+							className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							<Save className="text-brand-light  h-4 w-4 group-hover:text-brand-dark" />
-							<span className="text-brand-light  group-hover:text-brand-dark">
-								Guardar cambios
-							</span>
+							{isLoading ? (
+								<>
+									<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+									<span>Guardando...</span>
+								</>
+							) : (
+								<>
+									<Save className="h-4 w-4 group-hover:text-brand-dark" />
+									<span className="group-hover:text-brand-dark">
+										Guardar cambios
+									</span>
+								</>
+							)}
 						</button>
 					</div>
 				</form>

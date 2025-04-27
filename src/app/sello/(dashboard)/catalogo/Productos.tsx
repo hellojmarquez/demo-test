@@ -71,6 +71,8 @@ const Productos: React.FC = () => {
 						release._id === updatedRelease._id ? updatedRelease : release
 					)
 				);
+				const r = await response.json();
+				console.log(r);
 				setIsEditModalOpen(false);
 				setSelectedRelease(null);
 			} else {

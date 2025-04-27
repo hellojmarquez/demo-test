@@ -32,7 +32,7 @@ interface Track {
 	label_share: string;
 	language: string;
 	order: number | null;
-	publishers: any[];
+	publishers: string[];
 	release: string | null;
 	resource: string;
 	sample_start: string;
@@ -75,28 +75,41 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		arrayName: 'artists' | 'contributors' | 'publishers',
 		index: number,
 		field: string,
-		value: string
+		value: string | number
 	) => {
-		setFormData(prev => ({
-			...prev,
-			[arrayName]: prev[arrayName].map((item, i) =>
-				i === index ? { ...item, [field]: value } : item
-			),
-		}));
+		setFormData(prev => {
+			const newArray = [...prev[arrayName]];
+			if (arrayName === 'publishers') {
+				newArray[index] = value as string;
+			} else {
+				const currentItem = newArray[index] as Artist | Contributor;
+				newArray[index] = {
+					...currentItem,
+					[field]: value,
+				} as Artist | Contributor;
+			}
+			return {
+				...prev,
+				[arrayName]: newArray,
+			};
+		});
 	};
 
 	const addArrayItem = (
 		arrayName: 'artists' | 'contributors' | 'publishers'
 	) => {
-		setFormData(prev => ({
-			...prev,
-			[arrayName]: [
-				...prev[arrayName],
+		setFormData(prev => {
+			const newItem =
 				arrayName === 'contributors'
 					? { id: 0, contributor: 1, role: 22, order: 2 }
-					: { name: '' },
-			],
-		}));
+					: arrayName === 'artists'
+					? { name: '' }
+					: '';
+			return {
+				...prev,
+				[arrayName]: [...prev[arrayName], newItem],
+			};
+		});
 	};
 
 	const removeArrayItem = (
@@ -449,7 +462,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												'contributors',
 												index,
 												'id',
-												e.target.value
+												parseInt(e.target.value)
 											)
 										}
 										className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
@@ -463,7 +476,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												'contributors',
 												index,
 												'contributor',
-												e.target.value
+												parseInt(e.target.value)
 											)
 										}
 										className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
@@ -477,7 +490,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												'contributors',
 												index,
 												'role',
-												e.target.value
+												parseInt(e.target.value)
 											)
 										}
 										className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
@@ -492,7 +505,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 													'contributors',
 													index,
 													'order',
-													e.target.value
+													parseInt(e.target.value)
 												)
 											}
 											className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"

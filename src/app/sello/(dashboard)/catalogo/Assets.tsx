@@ -8,7 +8,10 @@ interface Artist {
 }
 
 interface Contributor {
-	name: string;
+	id: number;
+	contributor: number;
+	role: number;
+	order: number;
 }
 
 interface Track {
@@ -31,7 +34,7 @@ interface Track {
 	label_share: string;
 	language: string;
 	order: number | null;
-	publishers: any[];
+	publishers: string[];
 	release: string | null;
 	resource: string;
 	sample_start: string;
@@ -310,7 +313,9 @@ const Assets = () => {
 													Contributors:
 												</span>
 												<span className="text-gray-600">
-													{track.contributors.map(c => c.name).join(', ')}
+													{track.contributors
+														.map(c => `ID: ${c.id}, Role: ${c.role}`)
+														.join(', ')}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

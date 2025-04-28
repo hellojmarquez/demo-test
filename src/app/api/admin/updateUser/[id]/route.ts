@@ -12,6 +12,12 @@ export async function PUT(
 	try {
 		const body = await req.json();
 		console.log(params.id);
+
+		// Si hay una imagen en base64, convertirla a Buffer
+		if (body.picture && body.picture.base64) {
+			body.picture = Buffer.from(body.picture.base64, 'base64');
+		}
+
 		const updatedUser = await User.findByIdAndUpdate(params.id, body, {
 			new: true,
 			runValidators: true,

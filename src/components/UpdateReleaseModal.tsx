@@ -349,13 +349,13 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							{isLoading ? (
 								<>
 									<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-									<span>Guardando...</span>
+									<span>Actualizando...</span>
 								</>
 							) : (
 								<>
 									<Save className="h-4 w-4 group-hover:text-brand-dark" />
 									<span className="group-hover:text-brand-dark">
-										Guardar cambios
+										Actualizar
 									</span>
 								</>
 							)}

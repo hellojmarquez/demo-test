@@ -56,7 +56,6 @@ const Productos: React.FC = () => {
 		fetch('/api/admin/getAllReleases')
 			.then(res => res.json())
 			.then(response => {
-				console.log(response.data);
 				setReleases(response.data as Release[]);
 			})
 			.catch(error => console.error('Error fetching releases:', error));

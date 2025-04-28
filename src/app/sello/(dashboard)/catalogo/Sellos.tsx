@@ -47,7 +47,7 @@ const Sellos = () => {
 		fetch('/api/admin/getAllSellos')
 			.then(res => res.json())
 			.then(response => {
-				console.log('Sellos recibidos:', response);
+				console.log(response);
 				setSellos(response);
 			})
 			.catch(error => console.error('Error fetching sellos:', error));

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
 	Building2,
-	Music,
+	Trash2,
 	Calendar,
 	Tag,
 	CheckCircle,
@@ -41,6 +41,7 @@ const Sellos = () => {
 	const [selectedSello, setSelectedSello] = useState<Sello | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
 	useEffect(() => {
 		fetch('/api/admin/getAllSellos')
@@ -96,6 +97,37 @@ const Sellos = () => {
 		}
 	};
 
+	const handleDelete = async (e: React.MouseEvent, sello: Sello) => {
+		e.stopPropagation();
+
+		if (!confirm(`¿Estás seguro de que deseas eliminar "${sello.name}"?`)) {
+			return;
+		}
+
+		setIsDeleting(sello._id);
+
+		try {
+			const response = await fetch(`/api/admin/deleteSello/${sello._id}`, {
+				method: 'DELETE',
+			});
+
+			const data = await response.json();
+
+			if (response.ok) {
+				setSellos(prev => prev.filter(s => s._id !== sello._id));
+				setShowSuccessMessage(true);
+				setTimeout(() => setShowSuccessMessage(false), 3000);
+			} else {
+				alert(data.message || 'Error al eliminar el sello');
+			}
+		} catch (error) {
+			console.error('Error deleting sello:', error);
+			alert('Error al eliminar el sello');
+		} finally {
+			setIsDeleting(null);
+		}
+	};
+
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);
 		return date.toLocaleDateString('es-ES', {
@@ -116,7 +148,7 @@ const Sellos = () => {
 					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
 				>
 					<CheckCircle size={18} />
-					<span>Sello actualizado exitosamente</span>
+					<span>Sello eliminado exitosamente</span>
 				</motion.div>
 			)}
 
@@ -175,7 +207,7 @@ const Sellos = () => {
 									</div>
 								</div>
 							</div>
-							<div className="flex items-center gap-2">
+							<div className="flex items-center">
 								<motion.button
 									key={`edit-btn-${sello._id}`}
 									whileHover={{ scale: 1.05 }}
@@ -185,15 +217,29 @@ const Sellos = () => {
 										setSelectedSello(sello);
 										setIsEditModalOpen(true);
 									}}
-									className="p-2.5 flex gap-x-2 items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+									className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 								>
 									<Pencil
-										className="text-brand-light group-hover:text-brand-dark"
+										className="text-brand-light hover:text-brand-dark"
 										size={18}
 									/>
-									<span className="text-brand-light group-hover:text-brand-dark font-medium">
-										Editar
-									</span>
+								</motion.button>
+								<motion.button
+									key={`delete-btn-${sello._id}`}
+									whileHover={{ scale: 1.05 }}
+									whileTap={{ scale: 0.95 }}
+									onClick={e => handleDelete(e, sello)}
+									disabled={isDeleting === sello._id}
+									className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+								>
+									{isDeleting === sello._id ? (
+										<div className="h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+									) : (
+										<Trash2
+											className="text-red-500 hover:text-red-700"
+											size={18}
+										/>
+									)}
 								</motion.button>
 								{expandedSello === sello._id ? (
 									<ChevronUp className="h-5 w-5 text-gray-400" />

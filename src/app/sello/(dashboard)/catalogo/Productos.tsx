@@ -10,6 +10,7 @@ import {
 	Users,
 	Disc,
 	Youtube,
+	Trash2,
 	CheckCircle,
 	XCircle,
 	Hash,
@@ -20,11 +21,10 @@ import {
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Tipamos el objeto de release
 interface Release {
 	_id: string;
 	__v: number;
-	artists: any[]; // Puedes tiparlo mejor si sabes qué estructura tiene
+	artists: any[];
 	auto_detect_language: boolean;
 	backcatalog: boolean;
 	countries: string[];
@@ -39,7 +39,7 @@ interface Release {
 	picture: {
 		base64: string;
 	} | null;
-	tracks: any[]; // Igual aquí, si quieres lo tipamos más estricto
+	tracks: any[];
 	youtube_declaration: boolean;
 }
 
@@ -49,6 +49,7 @@ const Productos: React.FC = () => {
 	const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
 	useEffect(() => {
 		fetch('/api/admin/getAllReleases')
@@ -101,6 +102,37 @@ const Productos: React.FC = () => {
 		}
 	};
 
+	const handleDelete = async (e: React.MouseEvent, release: Release) => {
+		e.stopPropagation();
+
+		if (!confirm(`¿Estás seguro de que deseas eliminar "${release.name}"?`)) {
+			return;
+		}
+
+		setIsDeleting(release._id);
+
+		try {
+			const response = await fetch(`/api/admin/deleteRelease/${release._id}`, {
+				method: 'DELETE',
+			});
+
+			const data = await response.json();
+
+			if (response.ok) {
+				setReleases(prev => prev.filter(r => r._id !== release._id));
+				setShowSuccessMessage(true);
+				setTimeout(() => setShowSuccessMessage(false), 3000);
+			} else {
+				alert(data.message || 'Error al eliminar el producto');
+			}
+		} catch (error) {
+			console.error('Error deleting release:', error);
+			alert('Error al eliminar el producto');
+		} finally {
+			setIsDeleting(null);
+		}
+	};
+
 	return (
 		<div className="space-y-6">
 			{showSuccessMessage && (
@@ -111,7 +143,7 @@ const Productos: React.FC = () => {
 					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
 				>
 					<CheckCircle size={18} />
-					<span>Producto actualizado exitosamente</span>
+					<span>Producto eliminado exitosamente</span>
 				</motion.div>
 			)}
 			{releases.length === 0 ? (
@@ -173,20 +205,33 @@ const Productos: React.FC = () => {
 										</div>
 									</div>
 								</div>
-								<div className="flex items-center gap-3">
+								<div className="flex items-center ">
 									<motion.button
 										whileHover={{ scale: 1.05 }}
 										whileTap={{ scale: 0.95 }}
 										onClick={e => handleEdit(e, release)}
-										className="p-2.5 flex gap-x-2 items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+										className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 									>
 										<Pencil
-											className="text-brand-light group-hover:text-brand-dark"
+											className="text-brand-light hover:text-brand-dark"
 											size={18}
 										/>
-										<span className="text-brand-light group-hover:text-brand-dark font-medium">
-											Editar
-										</span>
+									</motion.button>
+									<motion.button
+										whileHover={{ scale: 1.05 }}
+										whileTap={{ scale: 0.95 }}
+										onClick={e => handleDelete(e, release)}
+										disabled={isDeleting === release._id}
+										className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+									>
+										{isDeleting === release._id ? (
+											<div className="h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+										) : (
+											<Trash2
+												className="text-red-500 hover:text-red-700"
+												size={18}
+											/>
+										)}
 									</motion.button>
 									{expandedRelease === release._id ? (
 										<ChevronUp className="h-5 w-5 text-gray-400" />
@@ -343,7 +388,7 @@ const Productos: React.FC = () => {
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Youtube className="h-4 w-4 text-brand-light" />{' '}
-													YouTube:
+													YouTube declaration:
 												</span>
 												<span className="text-gray-600">
 													{release.youtube_declaration ? (

@@ -1,30 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-	X,
-	Building2,
-	XCircle,
-	Save,
-	Upload,
-	Image as ImageIcon,
-} from 'lucide-react';
-
-interface Logo {
-	thumb_medium: string;
-	thumb_small: string;
-	full_size: string;
-}
+import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
 
 interface Sello {
+	_id: string;
+	assigned_artists: string[];
 	catalog_num: number;
-	company: string;
 	contract_received: boolean;
-	id: number;
+	created_at: string;
 	information_accepted: boolean;
 	label_approved: boolean;
-	logo: Logo;
 	name: string;
-	primary_genre: string;
+	picture?: string;
+	status: string;
+	updatedAt: string;
 	year: number;
 }
 
@@ -32,7 +21,7 @@ interface UpdateSelloModalProps {
 	sello: Sello;
 	isOpen: boolean;
 	onClose: () => void;
-	onSave: (updatedSello: Sello) => void;
+	onSave: (sello: Sello) => void;
 }
 
 const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
@@ -41,19 +30,17 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	onClose,
 	onSave,
 }) => {
-	const [formData, setFormData] = useState<Sello>(sello);
+	const [formData, setFormData] = useState<Sello>({ ...sello });
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
-		sello.logo?.thumb_medium || null
+		sello.picture ? `data:image/jpeg;base64,${sello.picture}` : null
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	useEffect(() => {
-		setFormData(sello);
-	}, [sello]);
-
 	const handleChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+		e: React.ChangeEvent<
+			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+		>
 	) => {
 		const { name, value, type } = e.target;
 
@@ -77,18 +64,16 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				const base64String = reader.result as string;
-				// Remove the data:image/jpeg;base64, prefix
-				const base64Data = base64String.split(',')[1];
+				// Mantener el prefijo data:image/jpeg;base64, para la vista previa
 				setImagePreview(base64String);
-				setFormData(prev => ({
-					...prev,
-					logo: {
-						...prev.logo,
-						thumb_medium: base64String,
-						thumb_small: base64String,
-						full_size: base64String,
-					},
-				}));
+
+				// Para enviar a la API, usar solo la parte base64 sin el prefijo
+				const base64Data = base64String.split(',')[1];
+				setFormData({
+					...formData,
+					picture: base64Data,
+				});
+				console.log('Imagen procesada:', base64Data.substring(0, 50) + '...');
 			};
 			reader.readAsDataURL(file);
 		}
@@ -99,11 +84,15 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		setIsSubmitting(true);
 
 		try {
-			// Here you would typically make an API call to update the sello
-			// For now, we'll just call the onSave function with the updated data
+			console.log('Enviando datos:', {
+				...formData,
+				picture: formData.picture
+					? formData.picture.substring(0, 50) + '...'
+					: 'No hay imagen',
+			});
 			await onSave(formData);
 		} catch (error) {
-			console.error('Error updating sello:', error);
+			console.error('Error saving sello:', error);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -112,36 +101,87 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	return (
 		<AnimatePresence>
 			{isOpen && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+					className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+					onClick={onClose}
+				>
 					<motion.div
-						initial={{ opacity: 0, scale: 0.9 }}
-						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.9 }}
-						transition={{ duration: 0.2 }}
+						initial={{ scale: 0.9, opacity: 0 }}
+						animate={{ scale: 1, opacity: 1 }}
+						exit={{ scale: 0.9, opacity: 0 }}
+						transition={{ type: 'spring', damping: 25, stiffness: 300 }}
 						className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+						onClick={e => e.stopPropagation()}
 					>
 						<div className="p-6 border-b border-gray-200 flex justify-between items-center">
-							<h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-								<Building2 className="h-5 w-5 text-brand-light" />
+							<h2 className="text-xl font-semibold text-gray-800">
 								Editar Sello
 							</h2>
 							<button
 								onClick={onClose}
-								className="text-gray-500 hover:text-gray-700 transition-colors"
+								className="p-1 rounded-full hover:bg-gray-100 transition-colors"
 							>
-								<X size={20} />
+								<X size={20} className="text-gray-500" />
 							</button>
 						</div>
 
 						<form onSubmit={handleSubmit} className="p-6">
+							<div className="space-y-2 mb-6">
+								<label className="block text-sm font-medium text-gray-700">
+									Logo del Sello
+								</label>
+								<div className="flex items-center gap-4">
+									<div className="w-32 h-32 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+										{imagePreview ? (
+											<img
+												src={imagePreview}
+												alt="Preview"
+												className="w-full h-full object-cover"
+											/>
+										) : (
+											<div className="text-center">
+												<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
+												<span className="mt-1 block text-xs text-gray-500">
+													Sin imagen
+												</span>
+											</div>
+										)}
+									</div>
+									<div>
+										<input
+											type="file"
+											ref={fileInputRef}
+											onChange={handleImageChange}
+											accept="image/*"
+											className="hidden"
+										/>
+										<button
+											type="button"
+											onClick={() => fileInputRef.current?.click()}
+											className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+										>
+											<Upload className="h-4 w-4 mr-2" />
+											Cambiar imagen
+										</button>
+									</div>
+								</div>
+							</div>
+
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<div className="space-y-4">
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
+										<label
+											htmlFor="name"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
 											Nombre
 										</label>
 										<input
 											type="text"
+											id="name"
 											name="name"
 											value={formData.name}
 											onChange={handleChange}
@@ -151,25 +191,15 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 									</div>
 
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Empresa
-										</label>
-										<input
-											type="text"
-											name="company"
-											value={formData.company}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
-											required
-										/>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
+										<label
+											htmlFor="catalog_num"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
 											Número de Catálogo
 										</label>
 										<input
 											type="number"
+											id="catalog_num"
 											name="catalog_num"
 											value={formData.catalog_num}
 											onChange={handleChange}
@@ -179,27 +209,15 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 									</div>
 
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Género Principal
-										</label>
-										<input
-											type="text"
-											name="primary_genre"
-											value={formData.primary_genre}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
-											required
-										/>
-									</div>
-								</div>
-
-								<div className="space-y-4">
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
+										<label
+											htmlFor="year"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
 											Año
 										</label>
 										<input
 											type="number"
+											id="year"
 											name="year"
 											value={formData.year}
 											onChange={handleChange}
@@ -208,105 +226,108 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 										/>
 									</div>
 
-									<div className="space-y-2">
-										<div className="flex items-center">
-											<input
-												type="checkbox"
-												id="contract_received"
-												name="contract_received"
-												checked={formData.contract_received}
-												onChange={handleChange}
-												className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
-											/>
-											<label
-												htmlFor="contract_received"
-												className="ml-2 block text-sm text-gray-700"
-											>
-												Contrato Recibido
-											</label>
-										</div>
+									<div>
+										<label
+											htmlFor="status"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
+											Estado
+										</label>
+										<select
+											id="status"
+											name="status"
+											value={formData.status}
+											onChange={handleChange}
+											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+										>
+											<option value="active">Activo</option>
+											<option value="inactive">Inactivo</option>
+										</select>
+									</div>
+								</div>
 
-										<div className="flex items-center">
-											<input
-												type="checkbox"
-												id="information_accepted"
-												name="information_accepted"
-												checked={formData.information_accepted}
-												onChange={handleChange}
-												className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
-											/>
-											<label
-												htmlFor="information_accepted"
-												className="ml-2 block text-sm text-gray-700"
-											>
-												Información Aceptada
-											</label>
-										</div>
-
-										<div className="flex items-center">
-											<input
-												type="checkbox"
-												id="label_approved"
-												name="label_approved"
-												checked={formData.label_approved}
-												onChange={handleChange}
-												className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
-											/>
-											<label
-												htmlFor="label_approved"
-												className="ml-2 block text-sm text-gray-700"
-											>
-												Label Aprobado
-											</label>
-										</div>
+								<div className="space-y-4">
+									<div className="flex items-center">
+										<input
+											type="checkbox"
+											id="contract_received"
+											name="contract_received"
+											checked={formData.contract_received}
+											onChange={handleChange}
+											className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
+										/>
+										<label
+											htmlFor="contract_received"
+											className="ml-2 block text-sm text-gray-700"
+										>
+											Contrato Recibido
+										</label>
 									</div>
 
-									{formData.logo && (
-										<div>
-											<label className="block text-sm font-medium text-gray-700 mb-1">
-												Logo Actual
-											</label>
-											<div className="flex items-center gap-4">
-												<div className="w-32 h-32 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-													{imagePreview ? (
-														<img
-															src={imagePreview}
-															alt="Logo del sello"
-															className="w-full h-full object-contain"
-														/>
-													) : (
-														<div className="text-center">
-															<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
-															<span className="mt-1 block text-xs text-gray-500">
-																Sin imagen
-															</span>
-														</div>
-													)}
-												</div>
-												<div>
-													<input
-														type="file"
-														ref={fileInputRef}
-														onChange={handleImageChange}
-														accept="image/*"
-														className="hidden"
-													/>
-													<button
-														type="button"
-														onClick={() => fileInputRef.current?.click()}
-														className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-													>
-														<Upload className="h-4 w-4 mr-2" />
-														Cambiar logo
-													</button>
-												</div>
-											</div>
-										</div>
-									)}
+									<div className="flex items-center">
+										<input
+											type="checkbox"
+											id="information_accepted"
+											name="information_accepted"
+											checked={formData.information_accepted}
+											onChange={handleChange}
+											className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
+										/>
+										<label
+											htmlFor="information_accepted"
+											className="ml-2 block text-sm text-gray-700"
+										>
+											Información Aceptada
+										</label>
+									</div>
+
+									<div className="flex items-center">
+										<input
+											type="checkbox"
+											id="label_approved"
+											name="label_approved"
+											checked={formData.label_approved}
+											onChange={handleChange}
+											className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
+										/>
+										<label
+											htmlFor="label_approved"
+											className="ml-2 block text-sm text-gray-700"
+										>
+											Label Aprobado
+										</label>
+									</div>
+
+									<div>
+										<label
+											htmlFor="assigned_artists"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
+											Artistas Asignados
+										</label>
+										<textarea
+											id="assigned_artists"
+											name="assigned_artists"
+											value={formData.assigned_artists.join(', ')}
+											onChange={e => {
+												const artists = e.target.value
+													.split(',')
+													.map(artist => artist.trim())
+													.filter(artist => artist !== '');
+												setFormData({
+													...formData,
+													assigned_artists: artists,
+												});
+											}}
+											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+											rows={3}
+											placeholder="Ingresa los artistas separados por comas"
+										/>
+									</div>
 								</div>
 							</div>
 
-							<div className="mt-8 flex justify-end gap-3">
+							<div className="flex justify-end space-x-3 mt-6">
 								<button
 									type="button"
 									onClick={onClose}
@@ -338,7 +359,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 							</div>
 						</form>
 					</motion.div>
-				</div>
+				</motion.div>
 			)}
 		</AnimatePresence>
 	);

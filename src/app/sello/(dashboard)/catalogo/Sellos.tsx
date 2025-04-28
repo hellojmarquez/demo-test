@@ -14,31 +14,30 @@ import {
 	FileText,
 	ClipboardCheck,
 	Award,
+	Users,
+	Image as ImageIcon,
+	Clock,
 } from 'lucide-react';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 
-interface Logo {
-	thumb_medium: string;
-	thumb_small: string;
-	full_size: string;
-}
-
 interface Sello {
+	_id: string;
+	assigned_artists: string[];
 	catalog_num: number;
-	company: string;
 	contract_received: boolean;
-	id: number;
+	created_at: string;
 	information_accepted: boolean;
 	label_approved: boolean;
-	logo: Logo;
 	name: string;
-	primary_genre: string;
+	picture?: string;
+	status: string;
+	updatedAt: string;
 	year: number;
 }
 
 const Sellos = () => {
 	const [sellos, setSellos] = useState<Sello[]>([]);
-	const [expandedSello, setExpandedSello] = useState<number | null>(null);
+	const [expandedSello, setExpandedSello] = useState<string | null>(null);
 	const [selectedSello, setSelectedSello] = useState<Sello | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -47,42 +46,70 @@ const Sellos = () => {
 		fetch('/api/admin/getAllSellos')
 			.then(res => res.json())
 			.then(response => {
-				console.log(response.data);
-				setSellos(response.data);
+				console.log('Sellos recibidos:', response);
+				setSellos(response);
 			})
 			.catch(error => console.error('Error fetching sellos:', error));
 	}, []);
 
-	const toggleExpand = (selloId: number) => {
+	const toggleExpand = (selloId: string) => {
 		setExpandedSello(expandedSello === selloId ? null : selloId);
 	};
 
-	const handleEdit = (e: React.MouseEvent, sello: Sello) => {
-		e.stopPropagation();
-		setSelectedSello(sello);
-		setIsEditModalOpen(true);
-	};
-
-	const handleSaveEdit = async (updatedSello: Sello) => {
+	const handleEdit = async (sello: Sello) => {
 		try {
-			// Here you would typically make an API call to update the sello
-			// For now, we'll just update the local state
-			setSellos(prev =>
-				prev.map(sello => (sello.id === updatedSello.id ? updatedSello : sello))
+			console.log('Enviando sello a la API:', {
+				...sello,
+				picture: sello.picture
+					? sello.picture.substring(0, 50) + '...'
+					: 'No hay imagen',
+			});
+
+			const response = await fetch(`/api/admin/updateSello/${sello._id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(sello),
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to update sello');
+			}
+
+			const updatedSello = await response.json();
+			console.log('Sello actualizado recibido:', updatedSello);
+
+			// Actualizar el estado con el sello actualizado
+			setSellos(prevSellos =>
+				prevSellos.map(s => (s._id === updatedSello._id ? updatedSello : s))
 			);
-			setIsEditModalOpen(false);
-			setSelectedSello(null);
+
 			setShowSuccessMessage(true);
 			setTimeout(() => setShowSuccessMessage(false), 3000);
+
+			// Cerrar el modal después de una actualización exitosa
+			setIsEditModalOpen(false);
+			setSelectedSello(null);
 		} catch (error) {
 			console.error('Error updating sello:', error);
 		}
+	};
+
+	const formatDate = (dateString: string) => {
+		const date = new Date(dateString);
+		return date.toLocaleDateString('es-ES', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+		});
 	};
 
 	return (
 		<div className="space-y-6">
 			{showSuccessMessage && (
 				<motion.div
+					key="success-message"
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
 					exit={{ opacity: 0, y: -20 }}
@@ -95,6 +122,7 @@ const Sellos = () => {
 
 			{sellos.length === 0 ? (
 				<motion.div
+					key="empty-state"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					className="text-gray-500 text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
@@ -108,22 +136,23 @@ const Sellos = () => {
 			) : (
 				sellos.map(sello => (
 					<motion.div
-						key={sello.id}
+						key={`sello-${sello._id}`}
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.3 }}
 						className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
 					>
 						<div
-							onClick={() => toggleExpand(sello.id)}
+							onClick={() => toggleExpand(sello._id)}
 							className="p-5 cursor-pointer flex items-center justify-between"
 						>
 							<div className="flex-1 flex items-center gap-5">
-								{sello.logo && sello.logo.thumb_medium ? (
+								{sello.picture ? (
 									<motion.img
+										key={`logo-${sello._id}`}
 										whileHover={{ scale: 1.05 }}
 										transition={{ duration: 0.2 }}
-										src={sello.logo.thumb_medium}
+										src={`data:image/jpeg;base64,${sello.picture}`}
 										alt={sello.name}
 										className="w-20 h-20 object-cover rounded-lg shadow-sm"
 									/>
@@ -137,8 +166,8 @@ const Sellos = () => {
 										{sello.name}
 									</h2>
 									<div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
-										<Building2 className="h-4 w-4 text-brand-light" />
-										<span>{sello.company}</span>
+										<Hash className="h-4 w-4 text-brand-light" />
+										<span>Catálogo: {sello.catalog_num}</span>
 									</div>
 									<div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
 										<Calendar className="h-3 w-3" />
@@ -146,11 +175,16 @@ const Sellos = () => {
 									</div>
 								</div>
 							</div>
-							<div className="flex items-center gap-3">
+							<div className="flex items-center gap-2">
 								<motion.button
+									key={`edit-btn-${sello._id}`}
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.95 }}
-									onClick={e => handleEdit(e, sello)}
+									onClick={e => {
+										e.stopPropagation();
+										setSelectedSello(sello);
+										setIsEditModalOpen(true);
+									}}
 									className="p-2.5 flex gap-x-2 items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 								>
 									<Pencil
@@ -161,7 +195,7 @@ const Sellos = () => {
 										Editar
 									</span>
 								</motion.button>
-								{expandedSello === sello.id ? (
+								{expandedSello === sello._id ? (
 									<ChevronUp className="h-5 w-5 text-gray-400" />
 								) : (
 									<ChevronDown className="h-5 w-5 text-gray-400" />
@@ -170,8 +204,9 @@ const Sellos = () => {
 						</div>
 
 						<AnimatePresence>
-							{expandedSello === sello.id && (
+							{expandedSello === sello._id && (
 								<motion.div
+									key={`expanded-${sello._id}`}
 									initial={{ height: 0, opacity: 0 }}
 									animate={{ height: 'auto', opacity: 1 }}
 									exit={{ height: 0, opacity: 0 }}
@@ -184,7 +219,7 @@ const Sellos = () => {
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Hash className="h-4 w-4 text-brand-light" /> ID:
 												</span>
-												<span className="text-gray-600">{sello.id}</span>
+												<span className="text-gray-600">{sello._id}</span>
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
@@ -196,17 +231,20 @@ const Sellos = () => {
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Music className="h-4 w-4 text-brand-light" /> Género:
-												</span>
-												<span className="text-gray-600">
-													{sello.primary_genre}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Calendar className="h-4 w-4 text-brand-light" /> Año:
 												</span>
 												<span className="text-gray-600">{sello.year}</span>
+											</p>
+											<p className="flex items-center gap-2">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Users className="h-4 w-4 text-brand-light" />{' '}
+													Artistas:
+												</span>
+												<span className="text-gray-600">
+													{sello.assigned_artists.length > 0
+														? sello.assigned_artists.join(', ')
+														: 'No hay artistas asignados'}
+												</span>
 											</p>
 										</div>
 										<div className="space-y-3">
@@ -261,18 +299,37 @@ const Sellos = () => {
 													)}
 												</span>
 											</p>
-											{sello.logo && sello.logo.full_size && (
-												<div className="mt-4">
-													<p className="font-medium text-gray-700 mb-2">
-														Logo:
-													</p>
-													<img
-														src={sello.logo.full_size}
-														alt={`Logo de ${sello.name}`}
-														className="max-w-full h-auto rounded-lg shadow-sm"
-													/>
-												</div>
-											)}
+											<p className="flex items-center gap-2">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Clock className="h-4 w-4 text-brand-light" /> Creado:
+												</span>
+												<span className="text-gray-600">
+													{formatDate(sello.created_at)}
+												</span>
+											</p>
+											<p className="flex items-center gap-2">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Clock className="h-4 w-4 text-brand-light" />{' '}
+													Actualizado:
+												</span>
+												<span className="text-gray-600">
+													{formatDate(sello.updatedAt)}
+												</span>
+											</p>
+											<p className="flex items-center gap-2">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Tag className="h-4 w-4 text-brand-light" /> Estado:
+												</span>
+												<span
+													className={`px-2 py-1 rounded-full text-xs font-medium ${
+														sello.status === 'active'
+															? 'bg-green-100 text-green-800'
+															: 'bg-gray-100 text-gray-800'
+													}`}
+												>
+													{sello.status === 'active' ? 'Activo' : sello.status}
+												</span>
+											</p>
 										</div>
 									</div>
 								</motion.div>
@@ -290,7 +347,7 @@ const Sellos = () => {
 						setIsEditModalOpen(false);
 						setSelectedSello(null);
 					}}
-					onSave={handleSaveEdit}
+					onSave={handleEdit}
 				/>
 			)}
 		</div>

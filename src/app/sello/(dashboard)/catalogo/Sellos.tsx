@@ -15,6 +15,7 @@ import {
 	ClipboardCheck,
 	Award,
 } from 'lucide-react';
+import UpdateSelloModal from '@/components/UpdateSelloModal';
 
 interface Logo {
 	thumb_medium: string;
@@ -38,6 +39,8 @@ interface Sello {
 const Sellos = () => {
 	const [sellos, setSellos] = useState<Sello[]>([]);
 	const [expandedSello, setExpandedSello] = useState<number | null>(null);
+	const [selectedSello, setSelectedSello] = useState<Sello | null>(null);
+	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
 	useEffect(() => {
@@ -56,10 +59,24 @@ const Sellos = () => {
 
 	const handleEdit = (e: React.MouseEvent, sello: Sello) => {
 		e.stopPropagation();
-		// Implement edit functionality here
-		console.log('Edit sello:', sello);
-		setShowSuccessMessage(true);
-		setTimeout(() => setShowSuccessMessage(false), 3000);
+		setSelectedSello(sello);
+		setIsEditModalOpen(true);
+	};
+
+	const handleSaveEdit = async (updatedSello: Sello) => {
+		try {
+			// Here you would typically make an API call to update the sello
+			// For now, we'll just update the local state
+			setSellos(prev =>
+				prev.map(sello => (sello.id === updatedSello.id ? updatedSello : sello))
+			);
+			setIsEditModalOpen(false);
+			setSelectedSello(null);
+			setShowSuccessMessage(true);
+			setTimeout(() => setShowSuccessMessage(false), 3000);
+		} catch (error) {
+			console.error('Error updating sello:', error);
+		}
 	};
 
 	return (
@@ -263,6 +280,18 @@ const Sellos = () => {
 						</AnimatePresence>
 					</motion.div>
 				))
+			)}
+
+			{selectedSello && (
+				<UpdateSelloModal
+					sello={selectedSello}
+					isOpen={isEditModalOpen}
+					onClose={() => {
+						setIsEditModalOpen(false);
+						setSelectedSello(null);
+					}}
+					onSave={handleSaveEdit}
+				/>
 			)}
 		</div>
 	);

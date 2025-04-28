@@ -46,23 +46,23 @@ interface Track {
 	ISRC: string;
 	__v: number;
 	album_only: boolean;
-	artists: Artist[];
-	contributors: Contributor[];
+	artists: { artist: number; kind: string; order: number }[];
+	contributors: { contributor: number; role: number; order: number }[];
 	copyright_holder: string;
 	copyright_holder_year: string;
 	createdAt: string;
 	dolby_atmos_resource: string;
 	explicit_content: boolean;
 	generate_isrc: boolean;
-	genre: string;
+	genre: number;
 	label_share: string;
 	language: string;
-	order: number | null;
-	publishers: string[];
-	release: string | null;
+	order: number;
+	publishers: { publisher: number; author: string; order: number }[];
+	release: string;
 	resource: string;
 	sample_start: string;
-	subgenre: string;
+	subgenre: number;
 	track_lenght: string;
 	updatedAt: string;
 	vocals: string;
@@ -98,7 +98,7 @@ const Assets = () => {
 	const handleSaveEdit = async (updatedTrack: Track) => {
 		try {
 			const response = await fetch(
-				`/api/admin/updateTrack/${updatedTrack._id}`,
+				`/api/admin/updateSingle/${updatedTrack._id}`,
 				{
 					method: 'PUT',
 					headers: {
@@ -394,7 +394,9 @@ const Assets = () => {
 													Artists:
 												</span>
 												<span className="text-gray-600">
-													{track.artists.map(a => a.name).join(', ')}
+													{track.artists
+														.map(a => `Artist ID: ${a.artist}, Kind: ${a.kind}`)
+														.join(', ')}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -404,7 +406,10 @@ const Assets = () => {
 												</span>
 												<span className="text-gray-600">
 													{track.contributors
-														.map(c => `ID: ${c.id}, Role: ${c.role}`)
+														.map(
+															c =>
+																`Contributor ID: ${c.contributor}, Role: ${c.role}`
+														)
 														.join(', ')}
 												</span>
 											</p>
@@ -415,7 +420,12 @@ const Assets = () => {
 												</span>
 												<span className="text-gray-600">
 													{track.publishers.length > 0
-														? track.publishers.join(', ')
+														? track.publishers
+																.map(
+																	p =>
+																		`Publisher ID: ${p.publisher}, Author: ${p.author}`
+																)
+																.join(', ')
 														: 'No especificados'}
 												</span>
 											</p>

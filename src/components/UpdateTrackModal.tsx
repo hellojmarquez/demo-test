@@ -1,15 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save, XCircle, Plus, Trash2 } from 'lucide-react';
 
 interface Artist {
+	id: number;
 	name: string;
+	artist: number;
+	kind: string;
+	order: number;
 }
 
 interface Contributor {
 	id: number;
+	name: string;
 	contributor: number;
 	role: number;
 	order: number;
+}
+
+interface Publisher {
+	publisher: number;
+	author: string;
+	order: number;
+}
+
+interface Role {
+	id: number;
+	name: string;
+}
+
+interface Release {
+	_id: string;
+	name: string;
+	picture: {
+		base64: string;
+	};
 }
 
 interface Track {
@@ -20,23 +44,23 @@ interface Track {
 	ISRC: string;
 	__v: number;
 	album_only: boolean;
-	artists: Artist[];
-	contributors: Contributor[];
+	artists: { artist: number; kind: string; order: number }[];
+	contributors: { contributor: number; role: number; order: number }[];
 	copyright_holder: string;
 	copyright_holder_year: string;
 	createdAt: string;
 	dolby_atmos_resource: string;
 	explicit_content: boolean;
 	generate_isrc: boolean;
-	genre: string;
+	genre: number;
 	label_share: string;
 	language: string;
-	order: number | null;
-	publishers: string[];
-	release: string | null;
+	order: number;
+	publishers: { publisher: number; author: string; order: number }[];
+	release: string;
 	resource: string;
 	sample_start: string;
-	subgenre: string;
+	subgenre: number;
 	track_lenght: string;
 	updatedAt: string;
 	vocals: string;
@@ -55,8 +79,78 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	onClose,
 	onSave,
 }) => {
-	const [formData, setFormData] = useState<Track>(track);
+	const [formData, setFormData] = useState<Track>({
+		...track,
+		release: track.release || '',
+		language: track.language || '',
+		artists: track.artists.map(artist => ({
+			...artist,
+			artist: artist.artist || 0,
+			kind: artist.kind || '',
+			order: artist.order || 0,
+		})),
+		contributors: track.contributors.map(contributor => ({
+			...contributor,
+			contributor: contributor.contributor || 0,
+			role: contributor.role || 0,
+			order: contributor.order || 0,
+		})),
+		publishers: track.publishers.map(publisher => ({
+			...publisher,
+			publisher: publisher.publisher || 0,
+			author: publisher.author || '',
+			order: publisher.order || 0,
+		})),
+	});
 	const [isLoading, setIsLoading] = useState(false);
+	const [artists, setArtists] = useState<Artist[]>([]);
+	const [contributors, setContributors] = useState<Contributor[]>([]);
+	const [publishers, setPublishers] = useState<Publisher[]>([]);
+	const [roles, setRoles] = useState<Role[]>([]);
+	const [releases, setReleases] = useState<Release[]>([]);
+
+	useEffect(() => {
+		// Cargar datos necesarios
+		fetch('/api/admin/getContributorRoles')
+			.then(res => res.json())
+			.then(r => {
+				if (r?.data) {
+					setRoles(r.data);
+				}
+			});
+
+		fetch('/api/admin/getAllContributor')
+			.then(res => res.json())
+			.then(r => {
+				if (r?.data) {
+					setContributors(r.data);
+				}
+			});
+
+		fetch('/api/admin/getAllPublishers')
+			.then(res => res.json())
+			.then(r => {
+				if (r?.data) {
+					setPublishers(r.data);
+				}
+			});
+
+		fetch('/api/admin/getAllArtists')
+			.then(res => res.json())
+			.then(r => {
+				if (r?.data) {
+					setArtists(r.data);
+				}
+			});
+
+		fetch('/api/admin/getAllReleases')
+			.then(res => res.json())
+			.then(r => {
+				if (r?.data) {
+					setReleases(r.data);
+				}
+			});
+	}, []);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -64,61 +158,115 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		>
 	) => {
 		const { name, value, type } = e.target;
+		if (type === 'checkbox') {
+			const checkbox = e.target as HTMLInputElement;
+			setFormData(prev => ({
+				...prev,
+				[name]: checkbox.checked,
+			}));
+		} else {
+			setFormData(prev => ({
+				...prev,
+				[name]: value,
+			}));
+		}
+	};
+
+	const handleAddArtist = () => {
 		setFormData(prev => ({
 			...prev,
-			[name]:
-				type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+			artists: [
+				...prev.artists,
+				{
+					artist: 0,
+					kind: '',
+					order: prev.artists.length + 1,
+				},
+			],
 		}));
 	};
 
-	const handleArrayChange = (
-		arrayName: 'artists' | 'contributors' | 'publishers',
+	const handleAddContributor = () => {
+		const newContributor = {
+			contributor: 0,
+			role: 0,
+			order: formData.contributors.length,
+		};
+		setFormData(prev => ({
+			...prev,
+			contributors: [...prev.contributors, newContributor],
+		}));
+	};
+
+	const handleAddPublisher = () => {
+		const newPublisher = {
+			publisher: 0,
+			author: '',
+			order: formData.publishers.length,
+		};
+		setFormData(prev => ({
+			...prev,
+			publishers: [...prev.publishers, newPublisher],
+		}));
+	};
+
+	const handleRemoveArtist = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			artists: prev.artists.filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleRemoveContributor = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			contributors: prev.contributors.filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleRemovePublisher = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			publishers: prev.publishers.filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleArtistChange = (
 		index: number,
 		field: string,
 		value: string | number
 	) => {
-		setFormData(prev => {
-			const newArray = [...prev[arrayName]];
-			if (arrayName === 'publishers') {
-				newArray[index] = value as string;
-			} else {
-				const currentItem = newArray[index] as Artist | Contributor;
-				newArray[index] = {
-					...currentItem,
-					[field]: value,
-				} as Artist | Contributor;
-			}
-			return {
-				...prev,
-				[arrayName]: newArray,
-			};
-		});
+		setFormData(prev => ({
+			...prev,
+			artists: prev.artists.map((artist, i) =>
+				i === index ? { ...artist, [field]: value } : artist
+			),
+		}));
 	};
 
-	const addArrayItem = (
-		arrayName: 'artists' | 'contributors' | 'publishers'
-	) => {
-		setFormData(prev => {
-			const newItem =
-				arrayName === 'contributors'
-					? { id: 0, contributor: 1, role: 22, order: 2 }
-					: arrayName === 'artists'
-					? { name: '' }
-					: '';
-			return {
-				...prev,
-				[arrayName]: [...prev[arrayName], newItem],
-			};
-		});
-	};
-
-	const removeArrayItem = (
-		arrayName: 'artists' | 'contributors' | 'publishers',
-		index: number
+	const handleContributorChange = (
+		index: number,
+		field: string,
+		value: string | number
 	) => {
 		setFormData(prev => ({
 			...prev,
-			[arrayName]: prev[arrayName].filter((_, i) => i !== index),
+			contributors: prev.contributors.map((contributor, i) =>
+				i === index ? { ...contributor, [field]: value } : contributor
+			),
+		}));
+	};
+
+	const handlePublisherChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData(prev => ({
+			...prev,
+			publishers: prev.publishers.map((publisher, i) =>
+				i === index ? { ...publisher, [field]: value } : publisher
+			),
 		}));
 	};
 
@@ -148,6 +296,42 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-6">
+					<div className="flex flex-col gap-2">
+						<select
+							value={formData.release}
+							onChange={e =>
+								setFormData(prev => ({ ...prev, release: e.target.value }))
+							}
+							className="w-full mb-2 border rounded px-3 py-2 text-sm"
+						>
+							<option value="">Seleccionar lanzamiento</option>
+							{releases.map(release => (
+								<option key={release._id} value={release._id}>
+									{release.name}
+								</option>
+							))}
+						</select>
+
+						{formData.release && (
+							<div className="flex items-center gap-2 mb-2">
+								{releases.find(r => r._id === formData.release)?.picture
+									?.base64 && (
+									<img
+										src={`data:image/jpeg;base64,${
+											releases.find(r => r._id === formData.release)?.picture
+												?.base64
+										}`}
+										alt="Release cover"
+										className="w-12 h-12 object-cover rounded"
+									/>
+								)}
+								<span className="text-sm">
+									{releases.find(r => r._id === formData.release)?.name}
+								</span>
+							</div>
+						)}
+					</div>
+
 					<div className="grid grid-cols-2 gap-4">
 						<div>
 							<label className="block text-sm font-medium text-gray-700">
@@ -399,7 +583,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 							<h3 className="text-lg font-medium text-gray-900">Artistas</h3>
 							<button
 								type="button"
-								onClick={() => addArrayItem('artists')}
+								onClick={handleAddArtist}
 								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
 							>
 								<Plus size={20} />
@@ -407,27 +591,55 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 						</div>
 						<div className="space-y-4">
 							{formData.artists.map((artist, index) => (
-								<div key={index} className="flex items-center gap-4">
-									<input
-										type="text"
-										value={artist.name}
+								<div key={index} className="flex items-center gap-2">
+									<select
+										value={artist.artist}
 										onChange={e =>
-											handleArrayChange(
-												'artists',
+											handleArtistChange(
 												index,
-												'name',
-												e.target.value
+												'artist',
+												parseInt(e.target.value)
 											)
 										}
-										className="flex-1 border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										placeholder="Nombre del artista"
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Select Artist</option>
+										{artists.map(a => (
+											<option key={a.id} value={a.id}>
+												{a.name}
+											</option>
+										))}
+									</select>
+									<select
+										value={artist.kind}
+										onChange={e =>
+											handleArtistChange(index, 'kind', e.target.value)
+										}
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Select Kind</option>
+										<option value="main">Main</option>
+										<option value="featuring">Featuring</option>
+										<option value="remixer">Remixer</option>
+									</select>
+									<input
+										type="number"
+										value={artist.order}
+										onChange={e =>
+											handleArtistChange(
+												index,
+												'order',
+												parseInt(e.target.value)
+											)
+										}
+										className="w-20 p-2 border rounded"
+										placeholder="Order"
 									/>
 									<button
-										type="button"
-										onClick={() => removeArrayItem('artists', index)}
-										className="p-2 text-red-500 hover:text-red-700 rounded-full"
+										onClick={() => handleRemoveArtist(index)}
+										className="p-2 text-red-600 hover:text-red-800"
 									>
-										<Trash2 size={20} />
+										Remove
 									</button>
 								</div>
 							))}
@@ -442,7 +654,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 							</h3>
 							<button
 								type="button"
-								onClick={() => addArrayItem('contributors')}
+								onClick={handleAddContributor}
 								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
 							>
 								<Plus size={20} />
@@ -450,75 +662,62 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 						</div>
 						<div className="space-y-4">
 							{formData.contributors.map((contributor, index) => (
-								<div
-									key={index}
-									className="grid grid-cols-4 gap-4 items-center"
-								>
-									<input
-										type="number"
-										value={contributor.id}
-										onChange={e =>
-											handleArrayChange(
-												'contributors',
-												index,
-												'id',
-												parseInt(e.target.value)
-											)
-										}
-										className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										placeholder="ID"
-									/>
-									<input
-										type="number"
+								<div key={index} className="flex items-center gap-2">
+									<select
 										value={contributor.contributor}
 										onChange={e =>
-											handleArrayChange(
-												'contributors',
+											handleContributorChange(
 												index,
 												'contributor',
 												parseInt(e.target.value)
 											)
 										}
-										className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										placeholder="Contributor"
-									/>
-									<input
-										type="number"
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Select Contributor</option>
+										{contributors.map(c => (
+											<option key={c.id} value={c.id}>
+												{c.name}
+											</option>
+										))}
+									</select>
+									<select
 										value={contributor.role}
 										onChange={e =>
-											handleArrayChange(
-												'contributors',
+											handleContributorChange(
 												index,
 												'role',
 												parseInt(e.target.value)
 											)
 										}
-										className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										placeholder="Role"
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Select Role</option>
+										{roles.map(r => (
+											<option key={r.id} value={r.id}>
+												{r.name}
+											</option>
+										))}
+									</select>
+									<input
+										type="number"
+										value={contributor.order}
+										onChange={e =>
+											handleContributorChange(
+												index,
+												'order',
+												parseInt(e.target.value)
+											)
+										}
+										className="w-20 p-2 border rounded"
+										placeholder="Order"
 									/>
-									<div className="flex items-center gap-2">
-										<input
-											type="number"
-											value={contributor.order}
-											onChange={e =>
-												handleArrayChange(
-													'contributors',
-													index,
-													'order',
-													parseInt(e.target.value)
-												)
-											}
-											className="border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-											placeholder="Order"
-										/>
-										<button
-											type="button"
-											onClick={() => removeArrayItem('contributors', index)}
-											className="p-2 text-red-500 hover:text-red-700 rounded-full"
-										>
-											<Trash2 size={20} />
-										</button>
-									</div>
+									<button
+										onClick={() => handleRemoveContributor(index)}
+										className="p-2 text-red-600 hover:text-red-800"
+									>
+										Remove
+									</button>
 								</div>
 							))}
 						</div>
@@ -530,7 +729,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 							<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
 							<button
 								type="button"
-								onClick={() => addArrayItem('publishers')}
+								onClick={handleAddPublisher}
 								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
 							>
 								<Plus size={20} />
@@ -541,16 +740,16 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								<div key={index} className="flex items-center gap-4">
 									<input
 										type="text"
-										value={publisher}
+										value={publisher.author}
 										onChange={e =>
-											handleArrayChange('publishers', index, '', e.target.value)
+											handlePublisherChange(index, 'author', e.target.value)
 										}
 										className="flex-1 border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 										placeholder="Publisher"
 									/>
 									<button
 										type="button"
-										onClick={() => removeArrayItem('publishers', index)}
+										onClick={() => handleRemovePublisher(index)}
 										className="p-2 text-red-500 hover:text-red-700 rounded-full"
 									>
 										<Trash2 size={20} />

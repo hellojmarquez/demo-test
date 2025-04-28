@@ -24,6 +24,21 @@ type Genre = {
 	name: string;
 	subgenres: Subgenre[];
 };
+
+interface Artist {
+	id: number;
+	name: string;
+	artist: number;
+	kind: string;
+}
+
+interface Contributor {
+	id: number;
+	name: string;
+	contributor: number;
+	role: number;
+}
+
 const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 	const [artists, setartists] = useState<Role[]>([]);
 	const [releases, setReleases] = useState<Release[]>([]);
@@ -51,20 +66,18 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 	const [isrc, setIsrc] = useState('');
 	const [daIsrc, setDaIsrc] = useState('');
 	const [trackLength, setTrackLength] = useState('');
-	const [singleArtists, setSingleArtists] = useState([
-		{ artist: 0, kind: '', order: 0 },
+	const [singleArtists, setSingleArtists] = useState<Artist[]>([
+		{ id: 0, name: '', artist: 0, kind: '' },
 	]);
 
-	const [singlePublishers, setSinglePublishers] = useState([
-		{ publisher: 0, author: '', order: 0 },
-	]);
+	const [singlePublishers, setSinglePublishers] = useState<Role[]>([]);
 	const [checkboxState, setCheckboxState] = useState({
 		albumOnly: false,
 		explicitContent: false,
 		generateIsrc: false,
 	});
-	const [singleContributors, setSingleContributors] = useState([
-		{ contributor: 0, role: 0, order: 0 },
+	const [singleContributors, setSingleContributors] = useState<Contributor[]>([
+		{ id: 0, name: '', contributor: 0, role: 0 },
 	]);
 	const handleChangeSingleArray = (
 		type: ArrayType,
@@ -111,11 +124,12 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 		type: 'artists' | 'publishers' | 'contributors',
 		newItem: any
 	) => {
-		if (type === 'artists') setSingleArtists([...singleArtists, newItem]);
+		if (type === 'artists')
+			setSingleArtists([...singleArtists, newItem as Artist]);
 		if (type === 'publishers')
-			setSinglePublishers([...singlePublishers, newItem]);
+			setSinglePublishers([...singlePublishers, newItem as Role]);
 		if (type === 'contributors')
-			setSingleContributors([...singleContributors, newItem]);
+			setSingleContributors([...singleContributors, newItem as Contributor]);
 	};
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -141,7 +155,7 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 		const formData = new FormData();
 
 		formData.append('order', singleOrder.toString());
-		formData.append('release', singleRelease);
+		formData.append('release', '');
 		formData.append('name', singlename);
 		formData.append('mix_name', singleMixname);
 		formData.append('language', singleLang);
@@ -379,8 +393,8 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 					onClick={() =>
 						handleAddToSingleArray('artists', {
 							id: 0,
+							name: '',
 							artist: 0,
-							order: 0,
 							kind: 'featured', // Cambiado de 'main' a 'featured'
 						})
 					}
@@ -394,7 +408,7 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 				{singlePublishers &&
 					singlePublishers.map((item, index) => (
 						<div
-							key={`publisher-${item.publisher}-${index}`}
+							key={`publisher-${item.id}-${index}`}
 							className="grid grid-cols-3 gap-2 mb-2"
 						>
 							<div className="flex flex-col">
@@ -406,12 +420,12 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 								</label>
 								<select
 									id={`publisher-${index}`}
-									value={item.publisher}
+									value={item.id}
 									onChange={e =>
 										handleChangeSingleArray(
 											'publishers',
 											index,
-											'publisher',
+											'id',
 											Number(e.target.value)
 										)
 									}
@@ -437,12 +451,12 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 									id={`author-${index}`}
 									type="text"
 									placeholder="Autor"
-									value={item.author}
+									value={item.name}
 									onChange={e =>
 										handleChangeSingleArray(
 											'publishers',
 											index,
-											'author',
+											'name',
 											e.target.value
 										)
 									}
@@ -460,12 +474,12 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 									id={`order-${index}`}
 									type="number"
 									placeholder="Orden"
-									value={item.order}
+									value={item.id}
 									onChange={e =>
 										handleChangeSingleArray(
 											'publishers',
 											index,
-											'order',
+											'id',
 											Number(e.target.value)
 										)
 									}
@@ -546,12 +560,12 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 							<input
 								type="number"
 								placeholder="order"
-								value={item.order}
+								value={item.id}
 								onChange={e =>
 									handleChangeSingleArray(
 										'contributors',
 										index,
-										'order',
+										'id',
 										Number(e.target.value)
 									)
 								}
@@ -574,9 +588,10 @@ const FormSingle = ({ tipoProducto }: FormProductsProps) => {
 				<button
 					onClick={() =>
 						handleAddToSingleArray('contributors', {
+							id: 0,
+							name: '',
 							contributor: 0,
 							role: 0,
-							order: 0,
 						})
 					}
 					className="text-blue-500 text-sm mt-1"

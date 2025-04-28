@@ -1,6 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Music, Pencil } from 'lucide-react';
+import {
+	ChevronDown,
+	ChevronUp,
+	Music,
+	Pencil,
+	Calendar,
+	Globe,
+	Tag,
+	Users,
+	Disc,
+	Youtube,
+	CheckCircle,
+	XCircle,
+	Hash,
+	Languages,
+	Archive,
+	Barcode,
+	Clock,
+	Mic,
+	Volume2,
+	FileMusic,
+	Copyright,
+	Share2,
+	Headphones,
+} from 'lucide-react';
 import UpdateTrackModal from '@/components/UpdateTrackModal';
 
 interface Artist {
@@ -103,54 +127,75 @@ const Assets = () => {
 	};
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-6">
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
 					exit={{ opacity: 0, y: -20 }}
-					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
 				>
-					Track actualizado exitosamente
+					<CheckCircle size={18} />
+					<span>Track actualizado exitosamente</span>
 				</motion.div>
 			)}
 			{assets.length === 0 ? (
-				<p>No hay assets disponibles.</p>
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					className="text-gray-500 text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
+				>
+					<Music className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+					<p className="text-xl font-medium">No hay assets disponibles.</p>
+					<p className="text-sm text-gray-400 mt-2">
+						Agrega un nuevo track para comenzar.
+					</p>
+				</motion.div>
 			) : (
 				assets.map(track => (
 					<motion.div
 						key={track._id}
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
+						transition={{ duration: 0.3 }}
+						className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
 					>
 						<div
 							onClick={() => toggleExpand(track._id)}
-							className="p-4 cursor-pointer flex items-center justify-between"
+							className="p-5 cursor-pointer flex items-center justify-between"
 						>
-							<div className="flex-1 flex items-center gap-3">
-								<Music className="h-5 w-5 text-brand-dark" />
+							<div className="flex-1 flex items-center gap-5">
+								<div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-lg shadow-sm">
+									<Music className="h-8 w-8 text-gray-400" />
+								</div>
 								<div>
-									<h2 className="text-lg font-medium text-gray-900">
+									<h2 className="text-xl font-semibold text-gray-900 mb-1">
 										{track.name}
 									</h2>
-									<p className="text-sm text-gray-500">
-										Artista: {track.vocals}
-									</p>
+									<div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
+										<Mic className="h-4 w-4 text-brand-light" />
+										<span>Artista: {track.vocals}</span>
+									</div>
+									<div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+										<Calendar className="h-3 w-3" />
+										<span>
+											Creado: {new Date(track.createdAt).toLocaleDateString()}
+										</span>
+									</div>
 								</div>
 							</div>
-							<div className="flex items-center gap-2">
+							<div className="flex items-center gap-3">
 								<motion.button
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.95 }}
 									onClick={e => handleEdit(e, track)}
-									className="p-2 flex gap-x-2 items-center text-gray-600 rounded-md transition-colors group hover:text-brand-dark"
+									className="p-2.5 flex gap-x-2 items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 								>
 									<Pencil
 										className="text-brand-light group-hover:text-brand-dark"
 										size={18}
 									/>
-									<span className="text-brand-light group-hover:text-brand-dark">
+									<span className="text-brand-light group-hover:text-brand-dark font-medium">
 										Editar
 									</span>
 								</motion.button>
@@ -171,26 +216,32 @@ const Assets = () => {
 									transition={{ duration: 0.2 }}
 									className="border-t border-gray-100"
 								>
-									<div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-										<div className="space-y-2">
+									<div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+										<div className="space-y-3">
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">ID:</span>
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Hash className="h-4 w-4 text-brand-light" /> ID:
+												</span>
 												<span className="text-gray-600">{track._id}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">Mix:</span>
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<FileMusic className="h-4 w-4 text-brand-light" />{' '}
+													Mix:
+												</span>
 												<span className="text-gray-600">{track.mix_name}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Género:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Tag className="h-4 w-4 text-brand-light" /> Género:
 												</span>
 												<span className="text-gray-600">
 													{track.genre} / {track.subgenre}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Clock className="h-4 w-4 text-brand-light" />{' '}
 													Duración:
 												</span>
 												<span className="text-gray-600">
@@ -198,27 +249,39 @@ const Assets = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Languages className="h-4 w-4 text-brand-light" />{' '}
 													Idioma:
 												</span>
 												<span className="text-gray-600">{track.language}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Mic className="h-4 w-4 text-brand-light" />{' '}
 													Vocalista:
 												</span>
 												<span className="text-gray-600">{track.vocals}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Volume2 className="h-4 w-4 text-brand-light" />{' '}
 													Explícito:
 												</span>
 												<span className="text-gray-600">
-													{track.explicit_content ? 'Sí' : 'No'}
+													{track.explicit_content ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Copyright className="h-4 w-4 text-brand-light" />{' '}
 													Copyright:
 												</span>
 												<span className="text-gray-600">
@@ -227,15 +290,17 @@ const Assets = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Label Share:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Share2 className="h-4 w-4 text-brand-light" /> Label
+													Share:
 												</span>
 												<span className="text-gray-600">
 													{track.label_share}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Headphones className="h-4 w-4 text-brand-light" />{' '}
 													Dolby Atmos:
 												</span>
 												<span className="text-gray-600">
@@ -243,65 +308,89 @@ const Assets = () => {
 												</span>
 											</p>
 										</div>
-										<div className="space-y-2">
+										<div className="space-y-3">
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">ISRC:</span>
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Barcode className="h-4 w-4 text-brand-light" /> ISRC:
+												</span>
 												<span className="text-gray-600">{track.ISRC}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													DA ISRC:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Barcode className="h-4 w-4 text-brand-light" /> DA
+													ISRC:
 												</span>
 												<span className="text-gray-600">{track.DA_ISRC}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Album Only:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Archive className="h-4 w-4 text-brand-light" /> Album
+													Only:
 												</span>
 												<span className="text-gray-600">
-													{track.album_only ? 'Sí' : 'No'}
+													{track.album_only ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Barcode className="h-4 w-4 text-brand-light" />{' '}
 													Generate ISRC:
 												</span>
 												<span className="text-gray-600">
-													{track.generate_isrc ? 'Sí' : 'No'}
+													{track.generate_isrc ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<FileMusic className="h-4 w-4 text-brand-light" />{' '}
 													Resource:
 												</span>
 												<span className="text-gray-600">{track.resource}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Sample Start:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Clock className="h-4 w-4 text-brand-light" /> Sample
+													Start:
 												</span>
 												<span className="text-gray-600">
 													{track.sample_start}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Order:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Tag className="h-4 w-4 text-brand-light" /> Order:
 												</span>
 												<span className="text-gray-600">
 													{track.order || 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Release:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Disc className="h-4 w-4 text-brand-light" /> Release:
 												</span>
 												<span className="text-gray-600">
 													{track.release || 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Users className="h-4 w-4 text-brand-light" />{' '}
 													Artists:
 												</span>
 												<span className="text-gray-600">
@@ -309,7 +398,8 @@ const Assets = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Users className="h-4 w-4 text-brand-light" />{' '}
 													Contributors:
 												</span>
 												<span className="text-gray-600">
@@ -319,7 +409,8 @@ const Assets = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Copyright className="h-4 w-4 text-brand-light" />{' '}
 													Publishers:
 												</span>
 												<span className="text-gray-600">
@@ -329,7 +420,8 @@ const Assets = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Calendar className="h-4 w-4 text-brand-light" />{' '}
 													Creado:
 												</span>
 												<span className="text-gray-600">
@@ -337,7 +429,8 @@ const Assets = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Calendar className="h-4 w-4 text-brand-light" />{' '}
 													Actualizado:
 												</span>
 												<span className="text-gray-600">

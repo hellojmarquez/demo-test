@@ -1,5 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import {
+	Pencil,
+	ChevronDown,
+	ChevronUp,
+	Music,
+	Calendar,
+	Globe,
+	Tag,
+	Users,
+	Disc,
+	Youtube,
+	CheckCircle,
+	XCircle,
+	Hash,
+	Languages,
+	Archive,
+	Barcode,
+} from 'lucide-react';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -85,25 +102,32 @@ const Productos: React.FC = () => {
 	};
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-6">
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
 					exit={{ opacity: 0, y: -20 }}
-					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
 				>
-					Producto actualizado exitosamente
+					<CheckCircle size={18} />
+					<span>Producto actualizado exitosamente</span>
 				</motion.div>
 			)}
 			{releases.length === 0 ? (
-				<motion.p
+				<motion.div
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
-					className="text-gray-500 text-center py-8"
+					className="text-gray-500 text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
 				>
-					No hay lanzamientos disponibles.
-				</motion.p>
+					<Music className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+					<p className="text-xl font-medium">
+						No hay lanzamientos disponibles.
+					</p>
+					<p className="text-sm text-gray-400 mt-2">
+						Agrega un nuevo lanzamiento para comenzar.
+					</p>
+				</motion.div>
 			) : (
 				releases.map(release => (
 					<motion.div
@@ -111,53 +135,65 @@ const Productos: React.FC = () => {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.3 }}
-						className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
+						className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
 					>
 						<div
-							className="p-4 cursor-pointer"
+							className="p-5 cursor-pointer"
 							onClick={() => toggleExpand(release._id)}
 						>
 							<div className="flex items-center justify-between">
-								<div className="flex items-center gap-4">
+								<div className="flex items-center gap-5">
 									{release.picture && release.picture.base64 ? (
 										<motion.img
 											whileHover={{ scale: 1.05 }}
 											transition={{ duration: 0.2 }}
 											src={`data:image/jpeg;base64,${release.picture.base64}`}
 											alt={release.name}
-											className="w-16 h-16 object-cover rounded-lg"
+											className="w-20 h-20 object-cover rounded-lg shadow-sm"
 										/>
 									) : (
-										<div className="w-16 h-16 bg-gray-100 flex items-center justify-center rounded-lg">
-											<span className="text-gray-400 text-xs">Sin imagen</span>
+										<div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-lg shadow-sm">
+											<Music className="h-8 w-8 text-gray-400" />
 										</div>
 									)}
 									<div>
-										<h2 className="text-lg font-medium text-gray-900">
+										<h2 className="text-xl font-semibold text-gray-900 mb-1">
 											{release.name}
 										</h2>
-										<p className="text-sm text-gray-500">
-											Label: {release.label}
-										</p>
-										<p className="text-xs text-gray-400">
-											Creado: {new Date(release.createdAt).toLocaleDateString()}
-										</p>
+										<div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
+											<Tag className="h-4 w-4 text-brand-light" />
+											<span>{release.label}</span>
+										</div>
+										<div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+											<Calendar className="h-3 w-3" />
+											<span>
+												Creado:{' '}
+												{new Date(release.createdAt).toLocaleDateString()}
+											</span>
+										</div>
 									</div>
 								</div>
-								<motion.button
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-									onClick={e => handleEdit(e, release)}
-									className="p-2 flex gap-x-2 items-center text-gray-600 rounded-md transition-colors group hover:text-brand-dark"
-								>
-									<Pencil
-										className="text-brand-light group-hover:text-brand-dark"
-										size={18}
-									/>
-									<span className="text-brand-light group-hover:text-brand-dark">
-										Editar
-									</span>
-								</motion.button>
+								<div className="flex items-center gap-3">
+									<motion.button
+										whileHover={{ scale: 1.05 }}
+										whileTap={{ scale: 0.95 }}
+										onClick={e => handleEdit(e, release)}
+										className="p-2.5 flex gap-x-2 items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+									>
+										<Pencil
+											className="text-brand-light group-hover:text-brand-dark"
+											size={18}
+										/>
+										<span className="text-brand-light group-hover:text-brand-dark font-medium">
+											Editar
+										</span>
+									</motion.button>
+									{expandedRelease === release._id ? (
+										<ChevronUp className="h-5 w-5 text-gray-400" />
+									) : (
+										<ChevronDown className="h-5 w-5 text-gray-400" />
+									)}
+								</div>
 							</div>
 						</div>
 
@@ -170,26 +206,29 @@ const Productos: React.FC = () => {
 									transition={{ duration: 0.2 }}
 									className="border-t border-gray-100"
 								>
-									<div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-										<div className="space-y-2">
+									<div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+										<div className="space-y-3">
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">ID:</span>
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Hash className="h-4 w-4 text-brand-light" /> ID:
+												</span>
 												<span className="text-gray-600">{release._id}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Nombre:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Disc className="h-4 w-4 text-brand-light" /> Nombre:
 												</span>
 												<span className="text-gray-600">{release.name}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Label:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Tag className="h-4 w-4 text-brand-light" /> Label:
 												</span>
 												<span className="text-gray-600">{release.label}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Languages className="h-4 w-4 text-brand-light" />{' '}
 													Idioma:
 												</span>
 												<span className="text-gray-600">
@@ -197,21 +236,24 @@ const Productos: React.FC = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">Tipo:</span>
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Disc className="h-4 w-4 text-brand-light" /> Tipo:
+												</span>
 												<span className="text-gray-600">{release.kind}</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Países:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Globe className="h-4 w-4 text-brand-light" /> Países:
 												</span>
 												<span className="text-gray-600">
 													{release.countries.join(', ')}
 												</span>
 											</p>
 										</div>
-										<div className="space-y-2">
+										<div className="space-y-3">
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Users className="h-4 w-4 text-brand-light" />{' '}
 													Artistas:
 												</span>
 												<span className="text-gray-600">
@@ -221,8 +263,8 @@ const Productos: React.FC = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Pistas:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Music className="h-4 w-4 text-brand-light" /> Pistas:
 												</span>
 												<span className="text-gray-600">
 													{release.tracks.length > 0
@@ -231,47 +273,93 @@ const Productos: React.FC = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Dolby Atmos:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Disc className="h-4 w-4 text-brand-light" /> Dolby
+													Atmos:
 												</span>
 												<span className="text-gray-600">
-													{release.dolby_atmos ? 'Sí' : 'No'}
+													{release.dolby_atmos ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Archive className="h-4 w-4 text-brand-light" />{' '}
 													Backcatalog:
 												</span>
 												<span className="text-gray-600">
-													{release.backcatalog ? 'Sí' : 'No'}
+													{release.backcatalog ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
-													Auto detectar idioma:
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Globe className="h-4 w-4 text-brand-light" /> Auto
+													detectar idioma:
 												</span>
 												<span className="text-gray-600">
-													{release.auto_detect_language ? 'Sí' : 'No'}
+													{release.auto_detect_language ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Barcode className="h-4 w-4 text-brand-light" />{' '}
 													Generar EAN:
 												</span>
 												<span className="text-gray-600">
-													{release.generate_ean ? 'Sí' : 'No'}
+													{release.generate_ean ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Youtube className="h-4 w-4 text-brand-light" />{' '}
 													YouTube:
 												</span>
 												<span className="text-gray-600">
-													{release.youtube_declaration ? 'Sí' : 'No'}
+													{release.youtube_declaration ? (
+														<span className="flex items-center gap-1 text-green-600">
+															<CheckCircle className="h-4 w-4" /> Sí
+														</span>
+													) : (
+														<span className="flex items-center gap-1 text-red-500">
+															<XCircle className="h-4 w-4" /> No
+														</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Calendar className="h-4 w-4 text-brand-light" />{' '}
 													Creado:
 												</span>
 												<span className="text-gray-600">
@@ -279,7 +367,8 @@ const Productos: React.FC = () => {
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700">
+												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+													<Calendar className="h-4 w-4 text-brand-light" />{' '}
 													Actualizado:
 												</span>
 												<span className="text-gray-600">

@@ -6,8 +6,5 @@ module.exports = {
 				hostname: '**',
 			},
 		],
-		experimental: {
-			excludeDefaultMomentLocales: true,
-		},
 	},
 };

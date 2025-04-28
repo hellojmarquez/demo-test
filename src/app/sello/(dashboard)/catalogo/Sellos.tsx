@@ -233,7 +233,7 @@ const Sellos = () => {
 									className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 								>
 									{isDeleting === sello._id ? (
-										<div className="h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+										<div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
 									) : (
 										<Trash2
 											className="text-red-500 hover:text-red-700"

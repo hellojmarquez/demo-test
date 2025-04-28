@@ -1,8 +1,8 @@
 // models/SingleTrack.ts
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
 
 // Esquema para cada artista asociado
-const ArtistSchema = new Schema(
+const ArtistSchema = new mongoose.Schema(
 	{
 		id: { type: Number, required: true },
 		artist: { type: Number, required: true },
@@ -13,7 +13,7 @@ const ArtistSchema = new Schema(
 );
 
 // Esquema para cada publisher asociado
-const PublisherSchema = new Schema(
+const PublisherSchema = new mongoose.Schema(
 	{
 		id: { type: Number, required: true },
 		publisher: { type: Number, required: true },
@@ -24,7 +24,7 @@ const PublisherSchema = new Schema(
 );
 
 // Esquema para cada contributor asociado
-const ContributorSchema = new Schema(
+const ContributorSchema = new mongoose.Schema(
 	{
 		id: { type: Number, required: true },
 		contributor: { type: Number, required: true },
@@ -35,14 +35,33 @@ const ContributorSchema = new Schema(
 );
 
 // Esquema principal
-const SingleTrackSchema = new Schema(
+const SingleTrackSchema = new mongoose.Schema(
 	{
-		order: { type: Number },
-		release: { type: Number },
-		name: { type: String },
-		mix_name: { type: String },
-		language: { type: String },
-		vocals: { type: String },
+		order: {
+			type: Number,
+			default: null,
+		},
+		release: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: 'Release',
+			default: null,
+		},
+		name: {
+			type: String,
+			required: true,
+		},
+		mix_name: {
+			type: String,
+			default: null,
+		},
+		language: {
+			type: String,
+			required: true,
+		},
+		vocals: {
+			type: String,
+			default: null,
+		},
 
 		// Arrays de objetos con tipos específicos
 		artists: {
@@ -58,20 +77,62 @@ const SingleTrackSchema = new Schema(
 			default: [],
 		},
 
-		label_share: { type: String },
-		genre: { type: String },
-		subgenre: { type: String },
-		resource: { type: String },
-		dolby_atmos_resource: { type: String },
-		copyright_holder: { type: String },
-		copyright_holder_year: { type: String },
-		album_only: { type: Boolean },
-		sample_start: { type: String },
-		explicit_content: { type: Boolean },
-		ISRC: { type: String },
-		generate_isrc: { type: Boolean },
-		DA_ISRC: { type: String },
-		track_lenght: { type: String },
+		label_share: {
+			type: String,
+			default: null,
+		},
+		genre: {
+			type: String,
+			default: null,
+		},
+		subgenre: {
+			type: String,
+			default: null,
+		},
+		resource: {
+			type: String,
+			default: null,
+		},
+		dolby_atmos_resource: {
+			type: String,
+			default: null,
+		},
+		copyright_holder: {
+			type: String,
+			default: null,
+		},
+		copyright_holder_year: {
+			type: String,
+			default: null,
+		},
+		album_only: {
+			type: Boolean,
+			default: false,
+		},
+		sample_start: {
+			type: String,
+			default: null,
+		},
+		explicit_content: {
+			type: Boolean,
+			default: false,
+		},
+		ISRC: {
+			type: String,
+			default: null,
+		},
+		generate_isrc: {
+			type: Boolean,
+			default: false,
+		},
+		DA_ISRC: {
+			type: String,
+			default: null,
+		},
+		track_lenght: {
+			type: String,
+			default: null,
+		},
 	},
 	{ timestamps: true }
 );

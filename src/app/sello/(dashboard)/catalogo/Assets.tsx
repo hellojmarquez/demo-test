@@ -39,6 +39,14 @@ interface Contributor {
 	order: number;
 }
 
+interface Release {
+	_id: string;
+	name: string;
+	picture: {
+		base64: string;
+	};
+}
+
 interface Track {
 	_id: string;
 	name: string;
@@ -71,6 +79,7 @@ interface Track {
 
 const Assets = () => {
 	const [assets, setAssets] = useState<Track[]>([]);
+	const [releases, setReleases] = useState<Release[]>([]);
 	const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
 	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -85,6 +94,15 @@ const Assets = () => {
 				setAssets(response.singleTracks as Track[]);
 			})
 			.catch(error => console.error('Error fetching tracks:', error));
+
+		fetch('/api/admin/getAllReleases')
+			.then(res => res.json())
+			.then(response => {
+				if (response.success && response.data) {
+					setReleases(response.data);
+				}
+			})
+			.catch(error => console.error('Error fetching releases:', error));
 	}, []);
 
 	const toggleExpand = (trackId: string) => {
@@ -157,6 +175,15 @@ const Assets = () => {
 		} catch (error) {
 			console.error('Error updating track:', error);
 		}
+	};
+
+	const getReleaseName = (releaseId: string | undefined | null): string => {
+		if (!releaseId) return 'No especificado';
+
+		const release = releases.find(r => r._id === releaseId);
+		if (!release) return 'Release no encontrado';
+
+		return release.name;
 	};
 
 	return (
@@ -431,7 +458,7 @@ const Assets = () => {
 													<Disc className="h-4 w-4 text-brand-light" /> Release:
 												</span>
 												<span className="text-gray-600">
-													{track.release || 'No especificado'}
+													{getReleaseName(track.release)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

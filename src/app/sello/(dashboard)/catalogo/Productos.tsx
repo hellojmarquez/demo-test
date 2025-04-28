@@ -17,6 +17,7 @@ import {
 	Languages,
 	Archive,
 	Barcode,
+	Plus,
 } from 'lucide-react';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -135,6 +136,13 @@ const Productos: React.FC = () => {
 
 	return (
 		<div className="space-y-6">
+			<div className="flex justify-end mb-4">
+				<button className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group">
+					<Plus size={18} className="text-brand-light group-hover:text-white" />
+					<span className="font-medium">Crear Producto</span>
+				</button>
+			</div>
+
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
@@ -148,6 +156,7 @@ const Productos: React.FC = () => {
 			)}
 			{releases.length === 0 ? (
 				<motion.div
+					key="no-releases"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					className="text-gray-500 text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
@@ -303,7 +312,16 @@ const Productos: React.FC = () => {
 												</span>
 												<span className="text-gray-600">
 													{release.artists.length > 0
-														? JSON.stringify(release.artists)
+														? release.artists.map(
+																(artist: any, index: number) => (
+																	<span
+																		key={`${release._id}-artist-${index}`}
+																		className="flex items-center gap-2"
+																	>
+																		{JSON.stringify(artist)}
+																	</span>
+																)
+														  )
 														: 'No hay artistas'}
 												</span>
 											</p>
@@ -311,10 +329,22 @@ const Productos: React.FC = () => {
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Music className="h-4 w-4 text-brand-light" /> Pistas:
 												</span>
-												<span className="text-gray-600">
-													{release.tracks.length > 0
-														? JSON.stringify(release.tracks)
-														: 'No hay pistas'}
+												<span className="flex flex-col gap-1">
+													{release.tracks.length > 0 ? (
+														release.tracks.map((track: any, index: number) => (
+															<span
+																key={`${release._id}-track-${
+																	track.id || index
+																}`}
+																className="flex items-center gap-2 text-gray-600"
+															>
+																<Music className="h-3 w-3 text-gray-400" />
+																<span>{track.name}</span>
+															</span>
+														))
+													) : (
+														<span className="text-gray-400">No hay pistas</span>
+													)}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

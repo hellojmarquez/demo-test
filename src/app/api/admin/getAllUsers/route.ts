@@ -10,19 +10,25 @@ export async function GET(req: NextRequest) {
 		await dbConnect();
 
 		// Obtener todos los usuarios de la base de datos
-		const users = await User.find({}).lean();
+		const users = await User.find({}).select('-password');
 		const sanitizedUsers = users.map(user => {
+			const userObj = user.toObject(); // Convertir a objeto plano
 			return {
-				...user,
-				password: '',
-				subcuentas: user.subcuentas
-					? user.subcuentas.map((sub: any) => ({
+				...userObj,
+				picture: userObj.picture
+					? {
+							base64: userObj.picture.toString('base64'),
+					  }
+					: null,
+				subcuentas: userObj.subcuentas
+					? userObj.subcuentas.map((sub: any) => ({
 							...sub,
 							password: '',
 					  }))
 					: [],
 			};
 		});
+
 		// Puedes devolver directamente los usuarios
 		return NextResponse.json({
 			success: true,

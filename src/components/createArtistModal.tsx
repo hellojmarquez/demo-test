@@ -13,15 +13,17 @@ interface CreateArtistModalProps {
 		apple_identifier: string;
 		deezer_identifier: string;
 		spotify_identifier: string;
-		picture?: { base64: string };
+		picture?: {
+			base64: string;
+		};
 	}) => Promise<void>;
 }
 
-const CreateArtistModal: React.FC<CreateArtistModalProps> = ({
+function CreateArtistModal({
 	isOpen,
 	onClose,
 	onSave,
-}) => {
+}: CreateArtistModalProps): JSX.Element {
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
@@ -35,6 +37,7 @@ const CreateArtistModal: React.FC<CreateArtistModalProps> = ({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [error, setError] = useState('');
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -71,12 +74,72 @@ const CreateArtistModal: React.FC<CreateArtistModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
+		setError('');
 
 		try {
-			await onSave(formData);
+			const formDataToSend = new FormData();
+			formDataToSend.append('name', formData.name);
+			formDataToSend.append('email', formData.email);
+			formDataToSend.append('password', formData.password);
+			formDataToSend.append(
+				'amazon_music_identifier',
+				formData.amazon_music_identifier || ''
+			);
+			formDataToSend.append(
+				'apple_identifier',
+				formData.apple_identifier || ''
+			);
+			formDataToSend.append(
+				'deezer_identifier',
+				formData.deezer_identifier || ''
+			);
+			formDataToSend.append(
+				'spotify_identifier',
+				formData.spotify_identifier || ''
+			);
+
+			if (formData.picture?.base64) {
+				// Convertir base64 a Blob
+				const base64Data = formData.picture.base64;
+				const byteCharacters = atob(base64Data);
+				const byteArrays = [];
+
+				for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+					const slice = byteCharacters.slice(offset, offset + 512);
+					const byteNumbers = new Array(slice.length);
+
+					for (let i = 0; i < slice.length; i++) {
+						byteNumbers[i] = slice.charCodeAt(i);
+					}
+
+					const byteArray = new Uint8Array(byteNumbers);
+					byteArrays.push(byteArray);
+				}
+
+				const blob = new Blob(byteArrays, { type: 'image/jpeg' });
+				const file = new File([blob], 'artist-picture.jpg', {
+					type: 'image/jpeg',
+				});
+				formDataToSend.append('picture', file);
+			}
+
+			const response = await fetch('/api/admin/createArtist', {
+				method: 'POST',
+				body: formDataToSend,
+				// No es necesario establecer Content-Type para FormData
+				// El navegador lo establecerá automáticamente con el boundary correcto
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.message || 'Error al crear el artista');
+			}
+
+			const data = await response.json();
+			await onSave(data.artist);
 			onClose();
-		} catch (error) {
-			console.error('Error creating artist:', error);
+		} catch (err: any) {
+			setError(err.message || 'Error al crear el artista');
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -320,6 +383,6 @@ const CreateArtistModal: React.FC<CreateArtistModalProps> = ({
 			)}
 		</AnimatePresence>
 	);
-};
+}
 
 export default CreateArtistModal;

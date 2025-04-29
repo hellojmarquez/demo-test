@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import UpdateArtistaModal from '@/components/updateArtistaModal';
 
 interface User {
 	_id: string;
@@ -12,8 +13,6 @@ interface User {
 	role: string;
 	picture?: { base64: string };
 	status?: string;
-	lastConnection?: string;
-	lastConnectionIP?: string;
 	permissions?: string[];
 	subaccounts?: any[];
 	artists?: any[];
@@ -25,6 +24,8 @@ export default function UsuariosPage() {
 	const [editingUserId, setEditingUserId] = useState<string | null>(null);
 	const [editedUser, setEditedUser] = useState<User | null>(null);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
+	const [showArtistModal, setShowArtistModal] = useState(false);
+	const [selectedArtist, setSelectedArtist] = useState<User | null>(null);
 
 	useEffect(() => {
 		const fetchUsers = async () => {
@@ -39,8 +40,23 @@ export default function UsuariosPage() {
 	}, []);
 
 	const handleEdit = (user: User) => {
-		setEditingUserId(user._id);
-		setEditedUser({ ...user });
+		console.log('Editando usuario:', user);
+		console.log('Rol del usuario:', user.role);
+
+		// Verificar si el rol es "artist" o "artista" (ignorando mayúsculas/minúsculas)
+		if (
+			user.role &&
+			(user.role.toLowerCase() === 'artist' ||
+				user.role.toLowerCase() === 'artista')
+		) {
+			console.log('Es un artista, abriendo modal de artista');
+			setSelectedArtist(user);
+			setShowArtistModal(true);
+		} else {
+			console.log('No es un artista, usando edición normal');
+			setEditingUserId(user._id);
+			setEditedUser({ ...user });
+		}
 	};
 
 	const handleCancel = () => {
@@ -93,6 +109,33 @@ export default function UsuariosPage() {
 			alert('Error al eliminar el usuario');
 		} finally {
 			setIsDeleting(null);
+		}
+	};
+
+	const handleArtistSave = async (updatedArtist: any) => {
+		try {
+			// Asegurarse de que el artista tenga el rol 'artist'
+			const artistToSave = {
+				...updatedArtist,
+				role: 'artist',
+			};
+
+			const res = await fetch(`/api/admin/updateUser/${artistToSave._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(artistToSave),
+			});
+			const data = await res.json();
+			if (data.success) {
+				setUsers(
+					users.map(u => (u._id === artistToSave._id ? artistToSave : u))
+				);
+				setShowArtistModal(false);
+				setSelectedArtist(null);
+			}
+		} catch (error) {
+			console.error('Error updating artist:', error);
+			alert('Error al actualizar el artista');
 		}
 	};
 
@@ -231,64 +274,20 @@ export default function UsuariosPage() {
 				</div>
 			</div>
 
-			{editedUser && (
-				<div className="border p-6 rounded-md bg-white shadow space-y-4">
-					<h3 className="text-xl font-semibold text-blue-700">
-						Editar Usuario
-					</h3>
-
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						{Object.entries(editedUser).map(([key, value]) => {
-							if (['_id', 'createdAt', 'updatedAt', '__v'].includes(key))
-								return null;
-
-							if (typeof value === 'string' || typeof value === 'number') {
-								return (
-									<div key={key}>
-										<label className="block text-sm font-medium text-gray-600 capitalize">
-											{key}
-										</label>
-										<input
-											className="w-full border px-3 py-2 rounded-md text-sm"
-											value={value}
-											onChange={e => handleChange(key, e.target.value)}
-										/>
-									</div>
-								);
-							}
-
-							if (typeof value === 'boolean') {
-								return (
-									<div key={key} className="flex items-center gap-2">
-										<input
-											type="checkbox"
-											checked={value}
-											onChange={e => handleChange(key, e.target.checked)}
-										/>
-										<label className="text-sm text-gray-600">{key}</label>
-									</div>
-								);
-							}
-
-							return null;
-						})}
-					</div>
-
-					<div className="flex gap-4 pt-4">
-						<button
-							onClick={handleSave}
-							className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-						>
-							Guardar
-						</button>
-						<button
-							onClick={handleCancel}
-							className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium"
-						>
-							Cancelar
-						</button>
-					</div>
-				</div>
+			{showArtistModal && selectedArtist && (
+				<>
+					{console.log('Renderizando modal de artista')}
+					<UpdateArtistaModal
+						artista={selectedArtist}
+						isOpen={showArtistModal}
+						onClose={() => {
+							console.log('Cerrando modal de artista');
+							setShowArtistModal(false);
+							setSelectedArtist(null);
+						}}
+						onSave={handleArtistSave}
+					/>
+				</>
 			)}
 		</div>
 	);

@@ -35,14 +35,7 @@ const UserSchema = new mongoose.Schema({
 		type: Date,
 		default: Date.now,
 	},
-	lastConnection: {
-		type: Date,
-		default: Date.now,
-	},
-	lastConnectionIP: {
-		type: String,
-		default: '',
-	},
+
 	role: {
 		type: String,
 		default: 'user',
@@ -58,6 +51,22 @@ const UserSchema = new mongoose.Schema({
 	artists: {
 		type: Array,
 		default: [],
+	},
+	amazon_music_identifier: {
+		type: String,
+		default: '',
+	},
+	apple_identifier: {
+		type: String,
+		default: '',
+	},
+	deezer_identifier: {
+		type: String,
+		default: '',
+	},
+	spotify_identifier: {
+		type: String,
+		default: '',
 	},
 });
 

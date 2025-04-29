@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import UpdateArtistaModal from '@/components/updateArtistaModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
+import UpdateAdminModal from '@/components/UpdateAdminModal';
 
 interface User {
 	_id: string;
@@ -38,6 +39,8 @@ export default function UsuariosPage() {
 	const [selectedArtist, setSelectedArtist] = useState<User | null>(null);
 	const [showSelloModal, setShowSelloModal] = useState(false);
 	const [selectedSello, setSelectedSello] = useState<User | null>(null);
+	const [showAdminModal, setShowAdminModal] = useState(false);
+	const [selectedAdmin, setSelectedAdmin] = useState<User | null>(null);
 
 	useEffect(() => {
 		const fetchUsers = async () => {
@@ -85,8 +88,14 @@ export default function UsuariosPage() {
 			// Usar any para evitar problemas de tipo
 			setSelectedSello(adaptedSelloData as any);
 			setShowSelloModal(true);
+		}
+		// Verificar si el rol es "admin"
+		else if (user.role && user.role.toLowerCase() === 'admin') {
+			console.log('Es un administrador, abriendo modal de admin');
+			setSelectedAdmin(user);
+			setShowAdminModal(true);
 		} else {
-			console.log('No es un artista ni un sello, usando edición normal');
+			console.log('No es un artista, sello ni admin, usando edición normal');
 			setEditingUserId(user._id);
 			setEditedUser({ ...user });
 		}
@@ -95,25 +104,6 @@ export default function UsuariosPage() {
 	const handleCancel = () => {
 		setEditingUserId(null);
 		setEditedUser(null);
-	};
-
-	const handleChange = (key: string, value: any) => {
-		if (!editedUser) return;
-		setEditedUser({ ...editedUser, [key]: value });
-	};
-
-	const handleSave = async () => {
-		if (!editedUser) return;
-		const res = await fetch(`/api/admin/updateUser/${editedUser._id}`, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(editedUser),
-		});
-		const data = await res.json();
-		if (data.success) {
-			setUsers(users.map(u => (u._id === editedUser._id ? editedUser : u)));
-			handleCancel();
-		}
 	};
 
 	const handleDelete = async (e: React.MouseEvent, user: User) => {
@@ -200,6 +190,37 @@ export default function UsuariosPage() {
 		} catch (error) {
 			console.error('Error updating sello:', error);
 			alert('Error al actualizar el sello');
+		}
+	};
+
+	const handleAdminSave = async (updatedAdmin: any) => {
+		try {
+			const res = await fetch(`/api/admin/updateUser/${updatedAdmin._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(updatedAdmin),
+			});
+			const data = await res.json();
+			if (data.success) {
+				// Mantener los campos originales del usuario y actualizar con los nuevos datos
+				setUsers(
+					users.map(u => {
+						if (u._id === updatedAdmin._id) {
+							return {
+								...u, // Mantener todos los campos originales
+								...updatedAdmin, // Actualizar con los nuevos datos
+								role: 'admin', // Asegurar que el rol se mantenga como 'admin'
+							};
+						}
+						return u;
+					})
+				);
+				setShowAdminModal(false);
+				setSelectedAdmin(null);
+			}
+		} catch (error) {
+			console.error('Error updating admin:', error);
+			alert('Error al actualizar el administrador');
 		}
 	};
 
@@ -366,6 +387,22 @@ export default function UsuariosPage() {
 							setSelectedSello(null);
 						}}
 						onSave={handleSelloSave}
+					/>
+				</>
+			)}
+
+			{showAdminModal && selectedAdmin && (
+				<>
+					{console.log('Renderizando modal de admin')}
+					<UpdateAdminModal
+						admin={selectedAdmin}
+						isOpen={showAdminModal}
+						onClose={() => {
+							console.log('Cerrando modal de admin');
+							setShowAdminModal(false);
+							setSelectedAdmin(null);
+						}}
+						onSave={handleAdminSave}
 					/>
 				</>
 			)}

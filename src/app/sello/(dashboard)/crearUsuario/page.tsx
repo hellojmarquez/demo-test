@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import CreateAdminModal from '@/components/createAdminModal';
 import CreateArtistModal from '@/components/createArtistModal';
 import CreateSelloModal from '@/components/createSelloModal';
+import CreateContributorModal from '@/components/CreateContributorModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -155,6 +156,46 @@ export default function CrearUsuarioPage() {
 						}}
 					/>
 				);
+			case 'contribuidor':
+				return (
+					<CreateContributorModal
+						isOpen={true}
+						onClose={() => setUserType('')}
+						onSave={async contributorData => {
+							try {
+								const response = await fetch('/api/admin/createContributor', {
+									method: 'POST',
+									headers: {
+										'Content-Type': 'application/json',
+									},
+									body: JSON.stringify(contributorData),
+								});
+
+								if (!response.ok) {
+									const error = await response.json();
+									throw new Error(
+										error.message || 'Error al crear el contribuidor'
+									);
+								}
+
+								setShowSuccessMessage(true);
+								setTimeout(() => {
+									setShowSuccessMessage(false);
+									setUserType('');
+								}, 3000);
+								router.refresh();
+							} catch (error) {
+								console.error('Error creating contributor:', error);
+								toast.error(
+									error instanceof Error
+										? error.message
+										: 'Error al crear el contribuidor'
+								);
+								throw error;
+							}
+						}}
+					/>
+				);
 			default:
 				return (
 					<div className="text-center py-8">
@@ -181,6 +222,8 @@ export default function CrearUsuarioPage() {
 							? 'Administrador creado exitosamente'
 							: userType === 'sello'
 							? 'Sello creado exitosamente'
+							: userType === 'contribuidor'
+							? 'Contribuidor creado exitosamente'
 							: 'Artista creado exitosamente'}
 					</span>
 				</motion.div>
@@ -248,10 +291,11 @@ export default function CrearUsuarioPage() {
 							onChange={e => setUserType(e.target.value)}
 							className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
 						>
-							<option value="">Selecciona un tipo de usuario</option>
+							<option value="">Seleccionar tipo de usuario</option>
 							<option value="admin">Administrador</option>
 							<option value="sello">Sello</option>
 							<option value="artista">Artista</option>
+							<option value="contribuidor">Contribuidor</option>
 						</select>
 					</div>
 

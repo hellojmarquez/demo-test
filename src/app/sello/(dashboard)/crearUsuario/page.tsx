@@ -4,18 +4,61 @@ import { useState } from 'react';
 import FormAdmin from './FormAdmin';
 import FormSello from './FormSello';
 import FormArtista from './FormArtista';
+import CreateAdminModal from '@/components/createAdminModal';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { CheckCircle } from 'lucide-react';
 
 export default function CrearUsuarioPage() {
 	const [userType, setUserType] = useState<string>('');
+	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const router = useRouter();
 
 	const renderForm = () => {
 		switch (userType) {
 			case 'admin':
-				return <FormAdmin />;
+				return (
+					<CreateAdminModal
+						isOpen={true}
+						onClose={() => setUserType('')}
+						onSave={async adminData => {
+							try {
+								const response = await fetch('/api/admin/createAdmin', {
+									method: 'POST',
+									headers: {
+										'Content-Type': 'application/json',
+									},
+									body: JSON.stringify(adminData),
+								});
+
+								if (!response.ok) {
+									const error = await response.json();
+									throw new Error(
+										error.message || 'Error al crear el administrador'
+									);
+								}
+
+								setShowSuccessMessage(true);
+								setTimeout(() => setShowSuccessMessage(false), 3000);
+								setUserType('');
+								router.refresh();
+							} catch (error) {
+								console.error('Error creating admin:', error);
+								toast.error(
+									error instanceof Error
+										? error.message
+										: 'Error al crear el administrador'
+								);
+								throw error;
+							}
+						}}
+					/>
+				);
 			case 'sello':
-				return <FormSello />;
+				return;
 			case 'artista':
-				return <FormArtista />;
+				return;
 			default:
 				return (
 					<div className="text-center py-8">
@@ -29,6 +72,18 @@ export default function CrearUsuarioPage() {
 
 	return (
 		<div className="container mx-auto p-6">
+			{showSuccessMessage && (
+				<motion.div
+					initial={{ opacity: 0, y: -20 }}
+					animate={{ opacity: 1, y: 0 }}
+					exit={{ opacity: 0, y: -20 }}
+					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
+				>
+					<CheckCircle size={18} />
+					<span>Administrador creado exitosamente</span>
+				</motion.div>
+			)}
+
 			<h1 className="text-2xl font-bold text-blue-700 mb-6">
 				Crear Nuevo Usuario
 			</h1>

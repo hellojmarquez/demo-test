@@ -19,21 +19,7 @@ import {
 	Clock,
 } from 'lucide-react';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
-
-interface Sello {
-	_id: string;
-	assigned_artists: string[];
-	catalog_num: number;
-	contract_received: boolean;
-	created_at: string;
-	information_accepted: boolean;
-	label_approved: boolean;
-	name: string;
-	picture?: string;
-	status: string;
-	updatedAt: string;
-	year: number;
-}
+import { Sello } from '@/types/sello';
 
 const Sellos = () => {
 	const [sellos, setSellos] = useState<Sello[]>([]);
@@ -184,7 +170,7 @@ const Sellos = () => {
 										key={`logo-${sello._id}`}
 										whileHover={{ scale: 1.05 }}
 										transition={{ duration: 0.2 }}
-										src={`data:image/jpeg;base64,${sello.picture}`}
+										src={`data:image/jpeg;base64,${sello.picture.base64}`}
 										alt={sello.name}
 										className="w-20 h-20 object-cover rounded-lg shadow-sm"
 									/>

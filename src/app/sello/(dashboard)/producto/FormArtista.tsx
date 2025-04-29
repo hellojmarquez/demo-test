@@ -7,7 +7,7 @@ type FormProductsProps = {
 	tipoProducto: string;
 };
 
-type Sello = {
+type SelloFormData = {
 	id: number;
 	name: string;
 };
@@ -26,7 +26,7 @@ interface FormData {
 
 export default function FormArtista({ tipoProducto }: FormProductsProps) {
 	const router = useRouter();
-	const [sellos, setSellos] = useState<Sello[]>([]);
+	const [sellos, setSellos] = useState<SelloFormData[]>([]);
 	const [artistData, setArtistData] = useState<FormData>({
 		name: '',
 		avatar: null,
@@ -48,7 +48,7 @@ export default function FormArtista({ tipoProducto }: FormProductsProps) {
 				}
 				return res.json();
 			})
-			.then(response => setSellos(response.data as Sello[]));
+			.then(response => setSellos(response.data as SelloFormData[]));
 	}, []);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

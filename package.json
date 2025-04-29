@@ -38,6 +38,7 @@
 		"react-chartjs-2": "^5.2.0",
 		"react-dom": "^18",
 		"react-hook-form": "^7.53.0",
+		"react-hot-toast": "^2.4.1",
 		"rimraf": "^5.0.7",
 		"yup": "^1.4.0"
 	},

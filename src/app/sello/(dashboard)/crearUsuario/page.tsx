@@ -1,10 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import FormAdmin from './FormAdmin';
-import FormSello from './FormSello';
-import FormArtista from './FormArtista';
 import CreateAdminModal from '@/components/createAdminModal';
+import CreateArtistModal from '@/components/createArtistModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -58,7 +56,41 @@ export default function CrearUsuarioPage() {
 			case 'sello':
 				return;
 			case 'artista':
-				return;
+				return (
+					<CreateArtistModal
+						isOpen={true}
+						onClose={() => setUserType('')}
+						onSave={async artistData => {
+							try {
+								const response = await fetch('/api/admin/createArtist', {
+									method: 'POST',
+									headers: {
+										'Content-Type': 'application/json',
+									},
+									body: JSON.stringify(artistData),
+								});
+
+								if (!response.ok) {
+									const error = await response.json();
+									throw new Error(error.message || 'Error al crear el artista');
+								}
+
+								setShowSuccessMessage(true);
+								setTimeout(() => setShowSuccessMessage(false), 3000);
+								setUserType('');
+								router.refresh();
+							} catch (error) {
+								console.error('Error creating artist:', error);
+								toast.error(
+									error instanceof Error
+										? error.message
+										: 'Error al crear el artista'
+								);
+								throw error;
+							}
+						}}
+					/>
+				);
 			default:
 				return (
 					<div className="text-center py-8">
@@ -80,7 +112,11 @@ export default function CrearUsuarioPage() {
 					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
 				>
 					<CheckCircle size={18} />
-					<span>Administrador creado exitosamente</span>
+					<span>
+						{userType === 'admin'
+							? 'Administrador creado exitosamente'
+							: 'Artista creado exitosamente'}
+					</span>
 				</motion.div>
 			)}
 

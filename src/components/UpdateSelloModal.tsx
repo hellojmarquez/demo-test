@@ -22,9 +22,20 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		sello.picture ? `data:image/jpeg;base64,${sello.picture.base64}` : null
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	// Actualizar la previsualización cuando cambia el sello seleccionado
 	useEffect(() => {
-		console.log(sello);
-	}, []);
+		if (sello.picture) {
+			setImagePreview(`data:image/jpeg;base64,${sello.picture.base64}`);
+		} else {
+			setImagePreview(null);
+		}
+	}, [sello]);
+
+	useEffect(() => {
+		console.log('Sello recibido en modal:', sello);
+		console.log('Previsualización de imagen:', imagePreview);
+	}, [sello, imagePreview]);
 
 	const handleChange = (
 		e: React.ChangeEvent<

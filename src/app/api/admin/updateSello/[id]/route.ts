@@ -22,11 +22,27 @@ export async function PUT(
 		let pictureBinary = null;
 		if (data.picture) {
 			try {
+				// Obtener el base64 de la imagen
+				let base64Data;
+
+				// Verificar si picture es un objeto con propiedad base64 o un string
+				if (typeof data.picture === 'object' && data.picture.base64) {
+					base64Data = data.picture.base64;
+				} else if (typeof data.picture === 'string') {
+					base64Data = data.picture;
+				} else {
+					throw new Error('Formato de imagen no válido');
+				}
+
 				// Asegurarse de que la imagen esté en el formato correcto
 				// Si la imagen ya comienza con /9j/, no añadir el prefijo
-				const base64Data = data.picture.startsWith('/9j/')
-					? data.picture
-					: data.picture;
+				if (!base64Data.startsWith('/9j/')) {
+					// Si no comienza con /9j/, podría ser que ya tenga el prefijo data:image/jpeg;base64,
+					// en ese caso, extraer solo la parte base64
+					if (base64Data.includes('base64,')) {
+						base64Data = base64Data.split('base64,')[1];
+					}
+				}
 
 				pictureBinary = Binary.createFromBase64(base64Data);
 				console.log('Imagen convertida a Binary correctamente');

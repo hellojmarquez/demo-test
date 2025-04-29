@@ -33,8 +33,33 @@ const Sellos = () => {
 		fetch('/api/admin/getAllSellos')
 			.then(res => res.json())
 			.then(response => {
-				console.log(response);
-				setSellos(response);
+				console.log('Respuesta completa de la API:', response);
+
+				// Verificar la estructura de los datos
+				if (Array.isArray(response)) {
+					// Si la respuesta es un array, verificar cada sello
+					response.forEach((sello, index) => {
+						console.log(`Sello ${index}:`, sello);
+						console.log(`Sello ${index} picture:`, sello.picture);
+					});
+
+					// Asegurarse de que cada sello tenga la estructura correcta
+					const sellosFormateados = response.map(sello => {
+						// Si picture es un string, convertirlo a objeto con base64
+						if (sello.picture && typeof sello.picture === 'string') {
+							return {
+								...sello,
+								picture: { base64: sello.picture },
+							};
+						}
+						return sello;
+					});
+
+					setSellos(sellosFormateados);
+				} else {
+					console.error('La respuesta no es un array:', response);
+					setSellos([]);
+				}
 			})
 			.catch(error => console.error('Error fetching sellos:', error));
 	}, []);
@@ -48,16 +73,22 @@ const Sellos = () => {
 			console.log('Enviando sello a la API:', {
 				...sello,
 				picture: sello.picture
-					? sello.picture.substring(0, 50) + '...'
+					? sello.picture.base64.substring(0, 50) + '...'
 					: 'No hay imagen',
 			});
+
+			// Asegurarse de que el objeto picture tenga el formato correcto
+			const selloToUpdate = {
+				...sello,
+				picture: sello.picture ? { base64: sello.picture.base64 } : undefined,
+			};
 
 			const response = await fetch(`/api/admin/updateSello/${sello._id}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify(sello),
+				body: JSON.stringify(selloToUpdate),
 			});
 
 			if (!response.ok) {
@@ -170,9 +201,19 @@ const Sellos = () => {
 										key={`logo-${sello._id}`}
 										whileHover={{ scale: 1.05 }}
 										transition={{ duration: 0.2 }}
-										src={`data:image/jpeg;base64,${sello.picture.base64}`}
+										src={
+											typeof sello.picture === 'string'
+												? `data:image/jpeg;base64,${sello.picture}`
+												: `data:image/jpeg;base64,${sello.picture.base64}`
+										}
 										alt={sello.name}
 										className="w-20 h-20 object-cover rounded-lg shadow-sm"
+										onError={e => {
+											console.error('Error al cargar la imagen:', e);
+											console.error('Estructura del sello:', sello);
+											// Opcionalmente, establecer una imagen de respaldo
+											// e.currentTarget.src = '/images/fallback-image.png';
+										}}
 									/>
 								) : (
 									<div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-lg shadow-sm">

@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import UpdateArtistaModal from '@/components/updateArtistaModal';
+import UpdateSelloModal from '@/components/UpdateSelloModal';
 
 interface User {
 	_id: string;
@@ -16,6 +17,15 @@ interface User {
 	permissions?: string[];
 	subaccounts?: any[];
 	artists?: any[];
+	catalog_num?: number;
+	year?: number;
+	contract_received?: boolean;
+	information_accepted?: boolean;
+	label_approved?: boolean;
+	assigned_artists?: string[];
+	createdAt?: string;
+	updatedAt?: string;
+	created_at?: string;
 	[key: string]: any;
 }
 
@@ -26,6 +36,8 @@ export default function UsuariosPage() {
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [showArtistModal, setShowArtistModal] = useState(false);
 	const [selectedArtist, setSelectedArtist] = useState<User | null>(null);
+	const [showSelloModal, setShowSelloModal] = useState(false);
+	const [selectedSello, setSelectedSello] = useState<User | null>(null);
 
 	useEffect(() => {
 		const fetchUsers = async () => {
@@ -40,7 +52,6 @@ export default function UsuariosPage() {
 	}, []);
 
 	const handleEdit = (user: User) => {
-		console.log('Editando usuario:', user);
 		console.log('Rol del usuario:', user.role);
 
 		// Verificar si el rol es "artist" o "artista" (ignorando mayúsculas/minúsculas)
@@ -52,8 +63,30 @@ export default function UsuariosPage() {
 			console.log('Es un artista, abriendo modal de artista');
 			setSelectedArtist(user);
 			setShowArtistModal(true);
+		}
+		// Verificar si el rol es "sello"
+		else if (user.role && user.role.toLowerCase() === 'sello') {
+			console.log('Es un sello, abriendo modal de sello');
+			// Adaptar los datos del usuario al formato esperado por UpdateSelloModal
+			const adaptedSelloData = {
+				_id: user._id,
+				name: user.name,
+				picture: user.picture || { base64: '' },
+				catalog_num: user.catalog_num || 0,
+				year: user.year || 0,
+				status: user.status || 'active',
+				contract_received: user.contract_received || false,
+				information_accepted: user.information_accepted || false,
+				label_approved: user.label_approved || false,
+				assigned_artists: user.assigned_artists || [],
+				created_at: user.createdAt || new Date().toISOString(),
+				updatedAt: user.updatedAt || new Date().toISOString(),
+			};
+			// Usar any para evitar problemas de tipo
+			setSelectedSello(adaptedSelloData as any);
+			setShowSelloModal(true);
 		} else {
-			console.log('No es un artista, usando edición normal');
+			console.log('No es un artista ni un sello, usando edición normal');
 			setEditingUserId(user._id);
 			setEditedUser({ ...user });
 		}
@@ -136,6 +169,37 @@ export default function UsuariosPage() {
 		} catch (error) {
 			console.error('Error updating artist:', error);
 			alert('Error al actualizar el artista');
+		}
+	};
+
+	const handleSelloSave = async (updatedSello: any) => {
+		try {
+			const res = await fetch(`/api/admin/updateUser/${updatedSello._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(updatedSello),
+			});
+			const data = await res.json();
+			if (data.success) {
+				// Mantener los campos originales del usuario y actualizar con los nuevos datos
+				setUsers(
+					users.map(u => {
+						if (u._id === updatedSello._id) {
+							return {
+								...u, // Mantener todos los campos originales
+								...updatedSello, // Actualizar con los nuevos datos
+								role: 'sello', // Asegurar que el rol se mantenga como 'sello'
+							};
+						}
+						return u;
+					})
+				);
+				setShowSelloModal(false);
+				setSelectedSello(null);
+			}
+		} catch (error) {
+			console.error('Error updating sello:', error);
+			alert('Error al actualizar el sello');
 		}
 	};
 
@@ -286,6 +350,22 @@ export default function UsuariosPage() {
 							setSelectedArtist(null);
 						}}
 						onSave={handleArtistSave}
+					/>
+				</>
+			)}
+
+			{showSelloModal && selectedSello && (
+				<>
+					{console.log('Renderizando modal de sello')}
+					<UpdateSelloModal
+						sello={selectedSello as any}
+						isOpen={showSelloModal}
+						onClose={() => {
+							console.log('Cerrando modal de sello');
+							setShowSelloModal(false);
+							setSelectedSello(null);
+						}}
+						onSave={handleSelloSave}
 					/>
 				</>
 			)}

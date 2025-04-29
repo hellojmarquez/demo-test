@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
 
@@ -11,7 +11,7 @@ interface Sello {
 	information_accepted: boolean;
 	label_approved: boolean;
 	name: string;
-	picture?: string;
+	picture?: { base64: string };
 	status: string;
 	updatedAt: string;
 	year: number;
@@ -33,9 +33,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const [formData, setFormData] = useState<Sello>({ ...sello });
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
-		sello.picture ? `data:image/jpeg;base64,${sello.picture}` : null
+		sello.picture ? `data:image/jpeg;base64,${sello.picture.base64}` : null
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	useEffect(() => {
+		console.log(sello);
+	}, []);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -71,7 +74,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				const base64Data = base64String.split(',')[1];
 				setFormData({
 					...formData,
-					picture: base64Data,
+					picture: { base64: base64Data },
 				});
 				console.log('Imagen procesada:', base64Data.substring(0, 50) + '...');
 			};
@@ -87,7 +90,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			console.log('Enviando datos:', {
 				...formData,
 				picture: formData.picture
-					? formData.picture.substring(0, 50) + '...'
+					? formData.picture.base64.substring(0, 50) + '...'
 					: 'No hay imagen',
 			});
 			await onSave(formData);

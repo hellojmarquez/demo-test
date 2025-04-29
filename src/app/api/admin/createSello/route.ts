@@ -1,168 +1,109 @@
-// app/api/admin/createProduct/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
-import SelloModel from '@/models/SelloModel';
-import { jwtVerify } from 'jose';
+import dbConnect from '@/lib/mongodb';
+import User from '@/models/UserModel';
+import bcrypt from 'bcryptjs';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
 	console.log('create sello request received');
-	try {
-		const token = req.cookies.get('loginToken')?.value;
-		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
-		console.log(moveMusicAccessToken);
-		if (!token) {
-			return NextResponse.json(
-				{ success: false, error: 'Not authenticated' },
-				{ status: 401 }
-			);
-		}
+	console.log('Content-Type:', request.headers.get('content-type'));
 
-		// Verificar JWT
-		try {
-			const { payload: verifiedPayload } = await jwtVerify(
-				token,
-				new TextEncoder().encode(process.env.JWT_SECRET)
-			);
-		} catch (err) {
-			console.error('JWT verification failed', err);
-			return NextResponse.json(
-				{ success: false, error: 'Invalid token' },
-				{ status: 401 }
-			);
-		}
+	try {
 		await dbConnect();
 
-		// Obtener los datos como JSON
-		const formData = await req.formData();
+		// Verificar si es FormData
+		const contentType = request.headers.get('content-type');
+		if (!contentType?.includes('multipart/form-data')) {
+			return NextResponse.json(
+				{ message: 'Se requiere enviar los datos como FormData' },
+				{ status: 400 }
+			);
+		}
 
-		// Extraer valores del FormData
+		const formData = await request.formData();
+		console.log('Received form data fields:', Array.from(formData.keys()));
+
+		// Extraer los campos del FormData
 		const name = formData.get('name') as string;
-		const logo = formData.get('picture') as File;
-		const year = formData.get('year') as string;
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
-		const role = formData.get('role') as string;
-		const catalogNum = formData.get('catalog_num') as string;
-		const primaryGenreStr = formData.get('primary_genre');
+		const primary_genre = formData.get('primary_genre') as string;
+		const year = formData.get('year') as string;
+		const catalog_num = formData.get('catalog_num') as string;
+		const picture = formData.get('picture') as File | null;
 
-		//obtener el objeto de genero musical
-		let primaryGenre = null;
-		if (primaryGenreStr && typeof primaryGenreStr === 'string') {
-			try {
-				primaryGenre = JSON.parse(primaryGenreStr);
-			} catch (error) {
-				console.error('Error al parsear el género:', error);
-			}
+		console.log('Extracted fields:', {
+			name,
+			email,
+			hasPassword: !!password,
+			hasPicture: !!picture,
+			primary_genre,
+			year,
+			catalog_num,
+		});
+
+		// Validar campos requeridos
+		if (!name) {
+			return NextResponse.json(
+				{ message: 'Nombre, email y contraseña son requeridos' },
+				{ status: 400 }
+			);
 		}
 
-		// solicitar subida de logo
-		const uploadLogoReq = await fetch(
-			`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${logo.name}&filetype=${logo.type}&upload_type=label.logo`,
-			{
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-			}
-		);
-		const uploadLogoRes = await uploadLogoReq.json();
+		// Verificar si el email ya existe
+		const existingUser = await User.findOne({ email });
+		if (existingUser) {
+			return NextResponse.json(
+				{ message: 'El email ya está registrado' },
+				{ status: 400 }
+			);
+		}
 
-		// Extraer la URL y los campos del objeto firmado
-		const { url, fields } = uploadLogoRes.signed_url;
-
-		// Crear un objeto FormData y agregar los campos y el archivo
-		const logoFormData = new FormData();
-		Object.entries(fields).forEach(([key, value]) => {
-			if (typeof value === 'string' || value instanceof Blob) {
-				logoFormData.append(key, value);
-			} else {
-				console.warn(
-					`El valor de '${key}' no es un tipo válido para FormData:`,
-					value
+		// Procesar la imagen si existe
+		let pictureBuffer = null;
+		if (picture) {
+			try {
+				const arrayBuffer = await picture.arrayBuffer();
+				pictureBuffer = Buffer.from(arrayBuffer);
+				console.log('Image converted to buffer successfully');
+			} catch (error) {
+				console.error('Error converting image to buffer:', error);
+				return NextResponse.json(
+					{ message: 'Error al procesar la imagen' },
+					{ status: 400 }
 				);
 			}
-		});
-
-		logoFormData.append('file', logo); // 'logo' es el archivo que deseas subir
-
-		// Realizar la solicitud POST a la URL firmada
-		const uploadResponse = await fetch(url, {
-			method: 'POST',
-			body: logoFormData,
-		});
-
-		// Verificar si la subida fue exitosa
-		if (!uploadResponse.ok) {
-			console.error(
-				'Error al subir el logo a S3:',
-				await uploadResponse.text()
-			);
-			return NextResponse.json(
-				{ success: false, error: 'Error al subir el logo a S3' },
-				{ status: 500 }
-			);
 		}
 
-		// Obtener la URL pública del logo subido
-		const logoUrl = uploadLogoRes.url;
-		const fileName = logoUrl.split('/').pop();
-
-		// Crear un objeto limpio con solo los datos necesarios para la API externa
-		const selloDataForApi = {
-			name,
-			logo: `label/logo/${fileName}`,
-			year: parseInt(year) || null,
-			primary_genre: primaryGenre.name,
-			catalog_num: catalogNum,
-		};
-		// Enviar datos a la API externa
-		const selloToApi = await fetch(`${process.env.MOVEMUSIC_API}/labels/`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-				Referer: process.env.MOVEMUSIC_REFERER || '',
-				Authorization: `JWT ${moveMusicAccessToken}`,
-			},
-			body: JSON.stringify(selloDataForApi),
-		});
-
-		const apiResponse = await selloToApi.json();
-		console.log(apiResponse);
-
-		const externalId =
-			typeof apiResponse.id === 'string'
-				? parseInt(apiResponse.id, 10)
-				: apiResponse.id;
-
-		// Crear un objeto para MongoDB que puede incluir más información
-		const selloDataForDDBB = {
-			external_id: externalId,
+		// Crear el nuevo sello
+		const newSello = await User.create({
 			name,
 			email,
 			password,
-			role,
-			picture: logoUrl,
-			primary_genre_id: primaryGenre.id,
-			primary_genre_name: primaryGenre.name,
+			picture: pictureBuffer,
+			role: 'sello',
+			status: 'active',
+			permissions: ['sello'],
+			primary_genre,
 			year: parseInt(year),
-			catalog_num: catalogNum,
-			created_at: new Date(),
-			subaccounts: [],
-			assigned_artists: [],
-		};
+			catalog_num: parseInt(catalog_num),
+		});
 
-		// Guardar en MongoDB
-		const newSello = new SelloModel(selloDataForDDBB);
-		await newSello.save();
+		console.log('Sello created successfully:', {
+			id: newSello._id,
+			name: newSello.name,
+			email: newSello.email,
+			role: newSello.role,
+		});
 
 		return NextResponse.json(
 			{
-				success: true,
-				message: 'Sello created successfully',
+				message: 'Sello creado exitosamente',
+				sello: {
+					id: newSello._id,
+					name: newSello.name,
+					email: newSello.email,
+					role: newSello.role,
+				},
 			},
 			{ status: 201 }
 		);
@@ -170,7 +111,6 @@ export async function POST(req: NextRequest) {
 		console.error('Error creating sello:', error);
 		return NextResponse.json(
 			{
-				success: false,
 				error: error.message || 'Internal Server Error',
 				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 			},

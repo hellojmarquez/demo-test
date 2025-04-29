@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import CreateAdminModal from '@/components/createAdminModal';
 import CreateArtistModal from '@/components/createArtistModal';
+import CreateSelloModal from '@/components/createSelloModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -54,7 +55,30 @@ export default function CrearUsuarioPage() {
 					/>
 				);
 			case 'sello':
-				return;
+				return (
+					<CreateSelloModal
+						isOpen={true}
+						onClose={() => setUserType('')}
+						onSave={async selloData => {
+							try {
+								setShowSuccessMessage(true);
+								setTimeout(() => {
+									setShowSuccessMessage(false);
+									setUserType('');
+								}, 3000);
+								router.refresh();
+							} catch (error) {
+								console.error('Error creating sello:', error);
+								toast.error(
+									error instanceof Error
+										? error.message
+										: 'Error al crear el sello'
+								);
+								throw error;
+							}
+						}}
+					/>
+				);
 			case 'artista':
 				return (
 					<CreateArtistModal
@@ -102,6 +126,8 @@ export default function CrearUsuarioPage() {
 					<span>
 						{userType === 'admin'
 							? 'Administrador creado exitosamente'
+							: userType === 'sello'
+							? 'Sello creado exitosamente'
 							: 'Artista creado exitosamente'}
 					</span>
 				</motion.div>

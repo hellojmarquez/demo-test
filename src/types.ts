@@ -22,6 +22,9 @@ export interface IUser {
 	apple_identifier?: string;
 	deezer_identifier?: string;
 	spotify_identifier?: string;
+	primary_genre?: string;
+	year?: number;
+	catalog_num?: number;
 }
 
 export interface ITokenUser {
@@ -40,6 +43,9 @@ export interface ITokenUser {
 	apple_identifier?: string;
 	deezer_identifier?: string;
 	spotify_identifier?: string;
+	primary_genre?: string;
+	year?: number;
+	catalog_num?: number;
 }
 
 export interface ISession {

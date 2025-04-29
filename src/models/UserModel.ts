@@ -68,6 +68,18 @@ const UserSchema = new mongoose.Schema({
 		type: String,
 		default: '',
 	},
+	primary_genre: {
+		type: String,
+		default: '',
+	},
+	year: {
+		type: Number,
+		default: null,
+	},
+	catalog_num: {
+		type: Number,
+		default: null,
+	},
 });
 
 const User = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

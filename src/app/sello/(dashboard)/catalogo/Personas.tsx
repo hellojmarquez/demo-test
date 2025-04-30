@@ -2,6 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { User, Pencil, Trash2, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import UpdateUserModal from '@/components/updateUserModal';
+import { UpdatePublisherModal } from '@/components/UpdatePublisherModal';
+import { UpdateContributorModal } from '@/components/UpdateContributorModal';
+import UpdateArtistaModal from '@/components/updateArtistaModal';
+import UpdateSelloModal from '@/components/UpdateSelloModal';
+import { Sello } from '@/types/sello';
+
+// Definir la interfaz Artista para que coincida con la del componente UpdateArtistaModal
+interface Artista {
+	_id: string;
+	name: string;
+	email: string;
+	password?: string;
+	picture?: { base64: string };
+	amazon_music_identifier?: string;
+	apple_identifier?: string;
+	deezer_identifier?: string;
+	spotify_identifier?: string;
+	[key: string]: any;
+}
 
 interface Persona {
 	_id: string;
@@ -12,6 +31,18 @@ interface Persona {
 	};
 	role: string;
 	status: string;
+	external_id?: number;
+	amazon_music_identifier?: string;
+	apple_identifier?: string;
+	deezer_identifier?: string;
+	spotify_identifier?: string;
+	catalog_num?: number;
+	year?: number;
+	contract_received?: boolean;
+	information_accepted?: boolean;
+	label_approved?: boolean;
+	assigned_artists?: string[];
+	[key: string]: any;
 }
 
 const Personas = () => {
@@ -21,6 +52,17 @@ const Personas = () => {
 	const [selectedUser, setSelectedUser] = useState<Persona | null>(null);
 	const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [showPublisherModal, setShowPublisherModal] = useState(false);
+	const [selectedPublisher, setSelectedPublisher] = useState<Persona | null>(
+		null
+	);
+	const [showContributorModal, setShowContributorModal] = useState(false);
+	const [selectedContributor, setSelectedContributor] =
+		useState<Persona | null>(null);
+	const [showArtistaModal, setShowArtistaModal] = useState(false);
+	const [selectedArtista, setSelectedArtista] = useState<Persona | null>(null);
+	const [showSelloModal, setShowSelloModal] = useState(false);
+	const [selectedSello, setSelectedSello] = useState<Persona | null>(null);
 
 	useEffect(() => {
 		fetchPersonas();
@@ -63,9 +105,40 @@ const Personas = () => {
 	};
 
 	const handleEdit = (e: React.MouseEvent, persona: Persona) => {
-		e.stopPropagation();
-		setSelectedUser(persona);
-		setIsUpdateModalOpen(true);
+		e.preventDefault();
+
+		// Verificar si el rol es "publisher"
+		if (persona.role && persona.role.toLowerCase() === 'publisher') {
+			console.log('Es un publisher, abriendo modal de publisher');
+			setSelectedPublisher(persona);
+			setShowPublisherModal(true);
+		}
+		// Verificar si el rol es "contributor"
+		else if (persona.role && persona.role.toLowerCase() === 'contributor') {
+			console.log('Es un contribuidor, abriendo modal de contribuidor');
+			setSelectedContributor(persona);
+			setShowContributorModal(true);
+		}
+		// Verificar si el rol es "artist" o "artista"
+		else if (
+			persona.role &&
+			(persona.role.toLowerCase() === 'artist' ||
+				persona.role.toLowerCase() === 'artista')
+		) {
+			console.log('Es un artista, abriendo modal de artista');
+			setSelectedArtista(persona);
+			setShowArtistaModal(true);
+		}
+		// Verificar si el rol es "sello"
+		else if (persona.role && persona.role.toLowerCase() === 'sello') {
+			console.log('Es un sello, abriendo modal de sello');
+			setSelectedSello(persona);
+			setShowSelloModal(true);
+		} else {
+			// Para otros roles, usar el modal genérico
+			setSelectedUser(persona);
+			setIsUpdateModalOpen(true);
+		}
 	};
 
 	const handleUpdate = async (updatedUser: Persona) => {
@@ -80,6 +153,68 @@ const Personas = () => {
 			}
 		} catch (error) {
 			console.error('Error refreshing personas:', error);
+		}
+	};
+
+	const handlePublisherUpdate = () => {
+		// Recargar la lista de personas después de actualizar un publisher
+		fetchPersonas();
+	};
+
+	const handleContributorUpdate = () => {
+		// Recargar la lista de personas después de actualizar un contribuidor
+		fetchPersonas();
+	};
+
+	const handleArtistaUpdate = async (updatedArtista: Artista) => {
+		try {
+			// Asegurarse de que el artista tenga el rol 'artist'
+			const artistToSave = {
+				...updatedArtista,
+				role: 'artist',
+			};
+
+			const res = await fetch(`/api/admin/updateUser/${artistToSave._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(artistToSave),
+			});
+			const data = await res.json();
+			if (data.success) {
+				// Recargar la lista de personas después de actualizar un artista
+				fetchPersonas();
+				setShowArtistaModal(false);
+				setSelectedArtista(null);
+			}
+		} catch (error) {
+			console.error('Error updating artist:', error);
+			alert('Error al actualizar el artista');
+		}
+	};
+
+	const handleSelloUpdate = async (updatedSello: Sello) => {
+		try {
+			// Asegurarse de que el sello tenga el rol 'sello'
+			const selloToSave = {
+				...updatedSello,
+				role: 'sello',
+			};
+
+			const res = await fetch(`/api/admin/updateUser/${selloToSave._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(selloToSave),
+			});
+			const data = await res.json();
+			if (data.success) {
+				// Recargar la lista de personas después de actualizar un sello
+				fetchPersonas();
+				setShowSelloModal(false);
+				setSelectedSello(null);
+			}
+		} catch (error) {
+			console.error('Error updating sello:', error);
+			alert('Error al actualizar el sello');
 		}
 	};
 
@@ -226,6 +361,91 @@ const Personas = () => {
 					user={selectedUser}
 					onUpdate={handleUpdate}
 				/>
+			)}
+
+			{showPublisherModal && selectedPublisher && (
+				<>
+					{console.log('Renderizando modal de publisher')}
+					<UpdatePublisherModal
+						publisher={{
+							id: selectedPublisher._id,
+							external_id: selectedPublisher.external_id || 0,
+							name: selectedPublisher.name,
+						}}
+						onUpdate={handlePublisherUpdate}
+						isOpen={showPublisherModal}
+						onClose={() => {
+							console.log('Cerrando modal de publisher');
+							setShowPublisherModal(false);
+							setSelectedPublisher(null);
+						}}
+					/>
+				</>
+			)}
+
+			{showContributorModal && selectedContributor && (
+				<>
+					{console.log('Renderizando modal de contribuidor')}
+					<UpdateContributorModal
+						contributor={{
+							id: selectedContributor._id,
+							external_id: selectedContributor.external_id || 0,
+							name: selectedContributor.name,
+						}}
+						onUpdate={handleContributorUpdate}
+						isOpen={showContributorModal}
+						onClose={() => {
+							console.log('Cerrando modal de contribuidor');
+							setShowContributorModal(false);
+							setSelectedContributor(null);
+						}}
+					/>
+				</>
+			)}
+
+			{showArtistaModal && selectedArtista && (
+				<>
+					{console.log('Renderizando modal de artista')}
+					<UpdateArtistaModal
+						artista={selectedArtista as unknown as Artista}
+						isOpen={showArtistaModal}
+						onClose={() => {
+							console.log('Cerrando modal de artista');
+							setShowArtistaModal(false);
+							setSelectedArtista(null);
+						}}
+						onSave={handleArtistaUpdate}
+					/>
+				</>
+			)}
+
+			{showSelloModal && selectedSello && (
+				<>
+					{console.log('Renderizando modal de sello')}
+					<UpdateSelloModal
+						sello={{
+							_id: selectedSello._id,
+							name: selectedSello.name,
+							picture: selectedSello.picture,
+							catalog_num: selectedSello.catalog_num || 0,
+							year: selectedSello.year || 0,
+							status: selectedSello.status || 'active',
+							contract_received: selectedSello.contract_received || false,
+							information_accepted: selectedSello.information_accepted || false,
+							label_approved: selectedSello.label_approved || false,
+							assigned_artists: selectedSello.assigned_artists || [],
+							created_at: new Date().toISOString(),
+							updatedAt: new Date().toISOString(),
+						}}
+						isOpen={showSelloModal}
+						onClose={() => {
+							console.log('Cerrando modal de sello');
+							setShowSelloModal(false);
+							setSelectedSello(null);
+						}}
+						onSave={handleSelloUpdate}
+					/>
+				</>
 			)}
 		</div>
 	);

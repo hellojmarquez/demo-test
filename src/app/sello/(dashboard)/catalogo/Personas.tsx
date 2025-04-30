@@ -31,7 +31,7 @@ interface Persona {
 	};
 	role: string;
 	status: string;
-	external_id?: number;
+	external_id?: string | number;
 	amazon_music_identifier?: string;
 	apple_identifier?: string;
 	deezer_identifier?: string;

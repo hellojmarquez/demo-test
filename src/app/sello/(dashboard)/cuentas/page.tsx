@@ -29,7 +29,7 @@ interface User {
 	createdAt?: string;
 	updatedAt?: string;
 	created_at?: string;
-	external_id?: number;
+	external_id?: string | number;
 	[key: string]: any;
 }
 

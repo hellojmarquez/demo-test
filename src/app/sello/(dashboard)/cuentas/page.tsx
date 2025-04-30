@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import UpdateArtistaModal from '@/components/updateArtistaModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import UpdateAdminModal from '@/components/UpdateAdminModal';
+import { UpdateContributorModal } from '@/components/UpdateContributorModal';
 
 interface User {
 	_id: string;
@@ -27,6 +28,7 @@ interface User {
 	createdAt?: string;
 	updatedAt?: string;
 	created_at?: string;
+	external_id?: number;
 	[key: string]: any;
 }
 
@@ -41,6 +43,10 @@ export default function UsuariosPage() {
 	const [selectedSello, setSelectedSello] = useState<User | null>(null);
 	const [showAdminModal, setShowAdminModal] = useState(false);
 	const [selectedAdmin, setSelectedAdmin] = useState<User | null>(null);
+	const [showContributorModal, setShowContributorModal] = useState(false);
+	const [selectedContributor, setSelectedContributor] = useState<User | null>(
+		null
+	);
 
 	useEffect(() => {
 		const fetchUsers = async () => {
@@ -94,8 +100,16 @@ export default function UsuariosPage() {
 			console.log('Es un administrador, abriendo modal de admin');
 			setSelectedAdmin(user);
 			setShowAdminModal(true);
+		}
+		// Verificar si el rol es "contributor"
+		else if (user.role && user.role.toLowerCase() === 'contributor') {
+			console.log('Es un contribuidor, abriendo modal de contribuidor');
+			setSelectedContributor(user);
+			setShowContributorModal(true);
 		} else {
-			console.log('No es un artista, sello ni admin, usando edición normal');
+			console.log(
+				'No es un artista, sello, admin ni contribuidor, usando edición normal'
+			);
 			setEditingUserId(user._id);
 			setEditedUser({ ...user });
 		}
@@ -133,6 +147,18 @@ export default function UsuariosPage() {
 		} finally {
 			setIsDeleting(null);
 		}
+	};
+
+	const handleContributorUpdate = () => {
+		// Recargar la lista de usuarios después de actualizar un contribuidor
+		const fetchUsers = async () => {
+			const res = await fetch('/api/admin/getAllUsers');
+			const data = await res.json();
+			if (data.success) {
+				setUsers(data.users);
+			}
+		};
+		fetchUsers();
 	};
 
 	const handleArtistSave = async (updatedArtist: any) => {
@@ -404,6 +430,26 @@ export default function UsuariosPage() {
 							setSelectedAdmin(null);
 						}}
 						onSave={handleAdminSave}
+					/>
+				</>
+			)}
+
+			{showContributorModal && selectedContributor && (
+				<>
+					{console.log('Renderizando modal de contribuidor')}
+					<UpdateContributorModal
+						contributor={{
+							id: selectedContributor._id,
+							external_id: selectedContributor.external_id || 0,
+							name: selectedContributor.name,
+						}}
+						onUpdate={handleContributorUpdate}
+						isOpen={showContributorModal}
+						onClose={() => {
+							console.log('Cerrando modal de contribuidor');
+							setShowContributorModal(false);
+							setSelectedContributor(null);
+						}}
 					/>
 				</>
 			)}

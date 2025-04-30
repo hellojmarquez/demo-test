@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 
-export async function POST(req: NextRequest) {
-	console.log('get contributors received');
-
+export async function PUT(
+	req: NextRequest,
+	{ params }: { params: { id: string } }
+) {
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -32,56 +33,52 @@ export async function POST(req: NextRequest) {
 		}
 
 		const body = await req.json();
-		let { name } = body;
+		const { name } = body;
 
-		// Capitalizar la primera letra de cada palabra
-		name = name
-			.split(' ')
-			.map(
-				(word: string) =>
-					word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-			)
-			.join(' ');
-
-		console.log(name);
-
-		// Crear contributor
+		// Actualizar contributor en la API externa
 		const contributorReq = await fetch(
-			`${process.env.MOVEMUSIC_API}/contributors`,
+			`${process.env.MOVEMUSIC_API}/contributors/${params.id}`,
 			{
-				method: 'POST',
+				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: `JWT ${moveMusicAccessToken}`,
 					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
 					Referer: process.env.MOVEMUSIC_REFERER || '',
 				},
-				body: JSON.stringify({ name: name }),
+				body: JSON.stringify({ name }),
 			}
 		);
 
 		const contributorRes = await contributorReq.json();
-		console.log(contributorRes);
 
 		// Conectar a la base de datos local
 		await dbConnect();
 
-		// Crear y guardar el contribuidor en la base de datos local
-		const contributor = new User({
-			id: contributorRes.id,
-			external_id: contributorRes.id,
-			name: contributorRes.name,
-			email: contributorRes.id,
-			role: 'contributor',
-		});
+		// Actualizar el contribuidor en la base de datos local
+		const updatedContributor = await User.findOneAndUpdate(
+			{ external_id: params.id },
+			{
+				name: contributorRes.name,
+				email: contributorRes.id,
+				external_id: contributorRes.id,
+				role: 'contributor',
+			},
+			{ new: true }
+		);
 
-		await contributor.save();
+		if (!updatedContributor) {
+			return NextResponse.json(
+				{ success: false, error: 'Contributor not found' },
+				{ status: 404 }
+			);
+		}
 
 		return NextResponse.json({
 			success: true,
 		});
 	} catch (error) {
-		console.error('Error creating contributor:', error);
+		console.error('Error updating contributor:', error);
 		return NextResponse.json(
 			{ success: false, error: 'Internal Server Error' },
 			{ status: 500 }

@@ -6,6 +6,14 @@ if (mongoose.models.User) {
 }
 
 const UserSchema = new mongoose.Schema({
+	id: {
+		type: String,
+		unique: true,
+	},
+	external_id: {
+		type: String,
+		unique: true,
+	},
 	name: {
 		type: String,
 		required: true,

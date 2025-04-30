@@ -4,7 +4,7 @@ import { X, ImageIcon, Upload, Save, XCircle } from 'lucide-react';
 
 interface Artista {
 	_id: string;
-	external_id: string;
+	external_id?: string | number;
 	name: string;
 	email: string;
 	password?: string;

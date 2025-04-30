@@ -11,6 +11,7 @@ import { Sello } from '@/types/sello';
 // Definir la interfaz Artista para que coincida con la del componente UpdateArtistaModal
 interface Artista {
 	_id: string;
+	external_id?: string | number;
 	name: string;
 	email: string;
 	password?: string;

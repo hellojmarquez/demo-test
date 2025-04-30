@@ -420,7 +420,9 @@ const Personas = () => {
 					<UpdateContributorModal
 						contributor={{
 							id: selectedContributor._id,
-							external_id: selectedContributor.external_id || 0,
+							external_id: selectedContributor.external_id
+								? Number(selectedContributor.external_id)
+								: 0,
 							name: selectedContributor.name,
 						}}
 						onUpdate={handleContributorUpdate}

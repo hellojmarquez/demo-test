@@ -43,6 +43,15 @@ const GenreSchema = new mongoose.Schema(
 	{ _id: false }
 );
 
+// Esquema para el subgénero
+const SubgenreSchema = new mongoose.Schema(
+	{
+		id: { type: Number, required: true },
+		name: { type: String, required: true },
+	},
+	{ _id: false }
+);
+
 // Esquema principal
 const SingleTrackSchema = new mongoose.Schema(
 	{
@@ -98,7 +107,10 @@ const SingleTrackSchema = new mongoose.Schema(
 			default: null,
 		},
 		subgenre: {
-			type: String,
+			type: {
+				id: { type: Number, required: true },
+				name: { type: String, required: true },
+			},
 			default: null,
 		},
 		resource: {

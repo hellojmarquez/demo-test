@@ -39,6 +39,12 @@ interface Release {
 interface Genre {
 	id: number;
 	name: string;
+	subgenres: Subgenre[];
+}
+
+interface Subgenre {
+	id: number;
+	name: string;
 }
 
 interface Track {
@@ -61,6 +67,10 @@ interface Track {
 		id: number;
 		name: string;
 	};
+	subgenre: {
+		id: number;
+		name: string;
+	};
 	label_share: string;
 	language: string;
 	order: number;
@@ -68,7 +78,6 @@ interface Track {
 	release: string;
 	resource: string;
 	sample_start: string;
-	subgenre: number;
 	track_lenght: string;
 	updatedAt: string;
 	vocals: string;
@@ -94,6 +103,14 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		genre: {
 			id: typeof track.genre === 'number' ? track.genre : track.genre?.id || 0,
 			name: typeof track.genre === 'number' ? '' : track.genre?.name || '',
+		},
+		subgenre: {
+			id:
+				typeof track.subgenre === 'number'
+					? track.subgenre
+					: track.subgenre?.id || 0,
+			name:
+				typeof track.subgenre === 'number' ? '' : track.subgenre?.name || '',
 		},
 		artists: track.artists.map(artist => ({
 			...artist,
@@ -121,6 +138,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	const [roles, setRoles] = useState<Role[]>([]);
 	const [releases, setReleases] = useState<Release[]>([]);
 	const [genres, setGenres] = useState<Genre[]>([]);
+	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [currentGenreId, setCurrentGenreId] = useState<number | null>(null);
 
@@ -134,7 +152,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 				const releasesRes = await fetch('/api/admin/getAllReleases');
 				const releasesData = await releasesRes.json();
 				if (releasesData.success) {
-					console.log(releasesData);
+					console.log('Releases:', releasesData);
 					setReleases(releasesData.data);
 				}
 
@@ -150,13 +168,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 					const genresRes = await fetch('/api/admin/getAllGenres');
 					const genresData = await genresRes.json();
 
-					// Verificar si la respuesta tiene la estructura esperada
 					if (genresData.success && Array.isArray(genresData.data)) {
+						console.log('Genres:', genresData.data);
 						setGenres(genresData.data);
 
 						// Buscar el género actual del track en la lista de géneros
 						if (track.genre) {
-							// Intentar encontrar el género por ID
 							const genreById = genresData.data.find(
 								(g: Genre) =>
 									g.id ===
@@ -166,7 +183,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 							);
 							if (genreById) {
 								setCurrentGenreId(genreById.id);
-								// Actualizar el formData con el ID y nombre del género
 								setFormData(prev => ({
 									...prev,
 									genre: {
@@ -174,8 +190,27 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 										name: genreById.name,
 									},
 								}));
+
+								// Buscar el subgénero actual en los subgéneros del género
+								if (track.subgenre && genreById.subgenres) {
+									const subgenreById = genreById.subgenres.find(
+										(s: Subgenre) =>
+											s.id ===
+											(typeof track.subgenre === 'number'
+												? track.subgenre
+												: track.subgenre.id)
+									);
+									if (subgenreById) {
+										setFormData(prev => ({
+											...prev,
+											subgenre: {
+												id: subgenreById.id,
+												name: subgenreById.name,
+											},
+										}));
+									}
+								}
 							} else {
-								// Si no se encuentra por ID, intentar por nombre
 								const genreByName = genresData.data.find(
 									(g: Genre) =>
 										g.name ===
@@ -185,7 +220,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								);
 								if (genreByName) {
 									setCurrentGenreId(genreByName.id);
-									// Actualizar el formData con el ID y nombre del género
 									setFormData(prev => ({
 										...prev,
 										genre: {
@@ -193,6 +227,26 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											name: genreByName.name,
 										},
 									}));
+
+									// Buscar el subgénero actual en los subgéneros del género
+									if (track.subgenre && genreByName.subgenres) {
+										const subgenreById = genreByName.subgenres.find(
+											(s: Subgenre) =>
+												s.id ===
+												(typeof track.subgenre === 'number'
+													? track.subgenre
+													: track.subgenre.id)
+										);
+										if (subgenreById) {
+											setFormData(prev => ({
+												...prev,
+												subgenre: {
+													id: subgenreById.id,
+													name: subgenreById.name,
+												},
+											}));
+										}
+									}
 								}
 							}
 						}
@@ -207,7 +261,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 					}
 				} catch (genreError) {
 					console.error('Error específico al cargar géneros:', genreError);
-					// No establecer error general, solo registrar el error específico
 				}
 			} catch (err) {
 				console.error('Error fetching data:', err);
@@ -220,7 +273,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		if (isOpen) {
 			fetchData();
 		}
-	}, [isOpen, track.genre]);
+	}, [isOpen, track.genre, track.subgenre]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -243,6 +296,25 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 				genre: {
 					id: genreId,
 					name: selectedGenre ? selectedGenre.name : '',
+				},
+				// Reset subgenre when genre changes
+				subgenre: {
+					id: 0,
+					name: '',
+				},
+			}));
+		} else if (name === 'subgenre') {
+			// Manejo especial para el cambio de subgénero
+			const subgenreId = parseInt(value);
+			const currentGenre = genres.find(g => g.id === formData.genre.id);
+			const selectedSubgenre = currentGenre?.subgenres?.find(
+				s => s.id === subgenreId
+			);
+			setFormData(prev => ({
+				...prev,
+				subgenre: {
+					id: subgenreId,
+					name: selectedSubgenre ? selectedSubgenre.name : '',
 				},
 			}));
 		} else {
@@ -505,13 +577,26 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								<label className="block text-sm font-medium text-gray-700">
 									Subgénero
 								</label>
-								<input
-									type="text"
+								<select
 									name="subgenre"
-									value={formData.subgenre}
+									value={formData.subgenre.id}
 									onChange={handleChange}
 									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-								/>
+								>
+									<option value="">Seleccionar subgénero</option>
+									{genres
+										.find(g => g.id === formData.genre.id)
+										?.subgenres?.map(subgenre => (
+											<option key={subgenre.id} value={subgenre.id}>
+												{subgenre.name}
+											</option>
+										))}
+								</select>
+								{formData.subgenre.name && (
+									<p className="text-xs text-gray-500 mt-1">
+										Subgénero actual: {formData.subgenre.name}
+									</p>
+								)}
 							</div>
 
 							<div>

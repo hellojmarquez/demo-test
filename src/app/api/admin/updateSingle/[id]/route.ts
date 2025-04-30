@@ -82,6 +82,23 @@ export async function PUT(
 			trackData.genre = null;
 		}
 
+		// Asegurarse de que el subgénero tenga el formato correcto
+		if (trackData.subgenre) {
+			if (typeof trackData.subgenre === 'number') {
+				trackData.subgenre = {
+					id: trackData.subgenre,
+					name: '',
+				};
+			} else if (typeof trackData.subgenre === 'object') {
+				trackData.subgenre = {
+					id: trackData.subgenre.id || 0,
+					name: trackData.subgenre.name || '',
+				};
+			}
+		} else {
+			trackData.subgenre = null;
+		}
+
 		// Actualizar el track
 		const updatedTrack = await SingleTrack.findByIdAndUpdate(
 			trackId,
@@ -109,11 +126,7 @@ export async function PUT(
 					generate_isrc: Boolean(updatedTrack.generate_isrc || false),
 					DA_ISRC: String(updatedTrack.DA_ISRC || ''),
 					genre: updatedTrack.genre?.id || 0,
-					subgenre:
-						typeof updatedTrack.subgenre === 'number' &&
-						!isNaN(updatedTrack.subgenre)
-							? updatedTrack.subgenre
-							: 0,
+					subgenre: updatedTrack.subgenre?.id || 0,
 					mix_name: String(updatedTrack.mix_name || ''),
 					resource: String(updatedTrack.resource || ''),
 					dolby_atmos_resource: String(updatedTrack.dolby_atmos_resource || ''),

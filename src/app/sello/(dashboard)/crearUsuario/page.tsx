@@ -163,21 +163,6 @@ export default function CrearUsuarioPage() {
 						onClose={() => setUserType('')}
 						onSave={async contributorData => {
 							try {
-								const response = await fetch('/api/admin/createContributor', {
-									method: 'POST',
-									headers: {
-										'Content-Type': 'application/json',
-									},
-									body: JSON.stringify(contributorData),
-								});
-
-								if (!response.ok) {
-									const error = await response.json();
-									throw new Error(
-										error.message || 'Error al crear el contribuidor'
-									);
-								}
-
 								setShowSuccessMessage(true);
 								setTimeout(() => {
 									setShowSuccessMessage(false);

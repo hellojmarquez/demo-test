@@ -126,7 +126,12 @@ const Personas = () => {
 				persona.role.toLowerCase() === 'artista')
 		) {
 			console.log('Es un artista, abriendo modal de artista');
-			setSelectedArtista(persona);
+			// Asegurarse de que el artista tenga el external_id
+			const artista = {
+				...persona,
+				external_id: persona.external_id || persona._id,
+			};
+			setSelectedArtista(artista);
 			setShowArtistaModal(true);
 		}
 		// Verificar si el rol es "sello"
@@ -174,11 +179,30 @@ const Personas = () => {
 				role: 'artist',
 			};
 
-			const res = await fetch(`/api/admin/updateUser/${artistToSave._id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(artistToSave),
+			console.log('Updating artist with data:', {
+				external_id: artistToSave.external_id,
+				_id: artistToSave._id,
 			});
+
+			// Verificar que tenemos un external_id válido
+			if (!artistToSave.external_id) {
+				throw new Error('No se encontró el external_id del artista');
+			}
+
+			const res = await fetch(
+				`/api/admin/updateArtist/${artistToSave.external_id}`,
+				{
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(artistToSave),
+				}
+			);
+
+			if (!res.ok) {
+				const errorData = await res.json();
+				throw new Error(errorData.error || 'Error al actualizar el artista');
+			}
+
 			const data = await res.json();
 			if (data.success) {
 				// Recargar la lista de personas después de actualizar un artista
@@ -188,7 +212,11 @@ const Personas = () => {
 			}
 		} catch (error) {
 			console.error('Error updating artist:', error);
-			alert('Error al actualizar el artista');
+			alert(
+				error instanceof Error
+					? error.message
+					: 'Error al actualizar el artista'
+			);
 		}
 	};
 

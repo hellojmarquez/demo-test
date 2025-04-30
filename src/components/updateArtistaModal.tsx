@@ -4,6 +4,7 @@ import { X, ImageIcon, Upload, Save, XCircle } from 'lucide-react';
 
 interface Artista {
 	_id: string;
+	external_id: string;
 	name: string;
 	email: string;
 	password?: string;
@@ -28,7 +29,10 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	onClose,
 	onSave,
 }) => {
-	const [formData, setFormData] = useState<Artista>({ ...artista });
+	const [formData, setFormData] = useState<Artista>({
+		...artista,
+		external_id: artista.external_id || artista._id, // Use external_id if available, fallback to _id
+	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
 		artista.picture ? `data:image/jpeg;base64,${artista.picture.base64}` : null

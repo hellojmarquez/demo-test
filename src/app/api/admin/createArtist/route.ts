@@ -115,19 +115,16 @@ export async function POST(req: NextRequest) {
 			deezer_identifier,
 			spotify_identifier,
 		};
-		const artistaReq = await fetch(
-			`${process.env.MOVEMUSIC_API}/contributors`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-				body: JSON.stringify(artistToApi),
-			}
-		);
+		const artistaReq = await fetch(`${process.env.MOVEMUSIC_API}/artists/`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `JWT ${moveMusicAccessToken}`,
+				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+				Referer: process.env.MOVEMUSIC_REFERER || '',
+			},
+			body: JSON.stringify(artistToApi),
+		});
 
 		const artistaRes = await artistaReq.json();
 		console.log(artistaRes);
@@ -145,13 +142,6 @@ export async function POST(req: NextRequest) {
 			apple_identifier,
 			deezer_identifier,
 			spotify_identifier,
-		});
-
-		console.log('Artist created successfully:', {
-			id: newArtist._id,
-			name: newArtist.name,
-			email: newArtist.email,
-			role: newArtist.role,
 		});
 
 		return NextResponse.json({

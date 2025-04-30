@@ -73,7 +73,12 @@ export default function UsuariosPage() {
 				user.role.toLowerCase() === 'artista')
 		) {
 			console.log('Es un artista, abriendo modal de artista');
-			setSelectedArtist(user);
+			// Asegurarse de que el artista tenga el external_id
+			const artista = {
+				...user,
+				external_id: user.external_id || user._id,
+			};
+			setSelectedArtist(artista);
 			setShowArtistModal(true);
 		}
 		// Verificar si el rol es "sello"
@@ -190,11 +195,30 @@ export default function UsuariosPage() {
 				role: 'artist',
 			};
 
-			const res = await fetch(`/api/admin/updateUser/${artistToSave._id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(artistToSave),
+			console.log('Updating artist with data:', {
+				external_id: artistToSave.external_id,
+				_id: artistToSave._id,
 			});
+
+			// Verificar que tenemos un external_id válido
+			if (!artistToSave.external_id) {
+				throw new Error('No se encontró el external_id del artista');
+			}
+
+			const res = await fetch(
+				`/api/admin/updateArtist/${artistToSave.external_id}`,
+				{
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(artistToSave),
+				}
+			);
+
+			if (!res.ok) {
+				const errorData = await res.json();
+				throw new Error(errorData.error || 'Error al actualizar el artista');
+			}
+
 			const data = await res.json();
 			if (data.success) {
 				setUsers(
@@ -205,7 +229,11 @@ export default function UsuariosPage() {
 			}
 		} catch (error) {
 			console.error('Error updating artist:', error);
-			alert('Error al actualizar el artista');
+			alert(
+				error instanceof Error
+					? error.message
+					: 'Error al actualizar el artista'
+			);
 		}
 	};
 

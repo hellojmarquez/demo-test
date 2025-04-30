@@ -14,6 +14,7 @@ export async function PUT(
 		const trackId = params.id;
 		const trackData = await req.json();
 		console.log(trackData);
+
 		// Obtener el track actual antes de actualizarlo
 		const currentTrack = await SingleTrack.findById(trackId);
 
@@ -64,6 +65,23 @@ export async function PUT(
 			trackData.release = null;
 		}
 
+		// Asegurarse de que el género tenga el formato correcto
+		if (trackData.genre) {
+			if (typeof trackData.genre === 'number') {
+				trackData.genre = {
+					id: trackData.genre,
+					name: '',
+				};
+			} else if (typeof trackData.genre === 'object') {
+				trackData.genre = {
+					id: trackData.genre.id || 0,
+					name: trackData.genre.name || '',
+				};
+			}
+		} else {
+			trackData.genre = null;
+		}
+
 		// Actualizar el track
 		const updatedTrack = await SingleTrack.findByIdAndUpdate(
 			trackId,
@@ -90,10 +108,7 @@ export async function PUT(
 					ISRC: String(updatedTrack.ISRC || ''),
 					generate_isrc: Boolean(updatedTrack.generate_isrc || false),
 					DA_ISRC: String(updatedTrack.DA_ISRC || ''),
-					genre:
-						typeof updatedTrack.genre === 'number' && !isNaN(updatedTrack.genre)
-							? updatedTrack.genre
-							: 0,
+					genre: updatedTrack.genre?.id || 0,
 					subgenre:
 						typeof updatedTrack.subgenre === 'number' &&
 						!isNaN(updatedTrack.subgenre)

@@ -34,6 +34,15 @@ const ContributorSchema = new mongoose.Schema(
 	{ _id: false }
 );
 
+// Esquema para el género
+const GenreSchema = new mongoose.Schema(
+	{
+		id: { type: Number, required: true },
+		name: { type: String, required: true },
+	},
+	{ _id: false }
+);
+
 // Esquema principal
 const SingleTrackSchema = new mongoose.Schema(
 	{
@@ -65,7 +74,7 @@ const SingleTrackSchema = new mongoose.Schema(
 
 		// Arrays de objetos con tipos específicos
 		artists: {
-			type: [ArtistSchema], // Esto acepta cualquier tipo de datos
+			type: [ArtistSchema],
 			default: [],
 		},
 		publishers: {
@@ -82,7 +91,10 @@ const SingleTrackSchema = new mongoose.Schema(
 			default: null,
 		},
 		genre: {
-			type: String,
+			type: {
+				id: { type: Number, required: true },
+				name: { type: String, required: true },
+			},
 			default: null,
 		},
 		subgenre: {

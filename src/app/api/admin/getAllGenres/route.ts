@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
-			genre: genresData,
 			data: genresData.results,
 		});
 	} catch (error) {

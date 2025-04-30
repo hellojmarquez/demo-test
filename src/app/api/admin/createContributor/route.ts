@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Contributor from '@/models/Contributor';
+import User from '@/models/UserModel';
 
 export async function POST(req: NextRequest) {
 	console.log('get contributors received');
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
 
 		const body = await req.json();
 		const { name } = body;
+		console.log(name);
 		// Crear contributor
 		const contributorReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/contributors`,
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
 					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
 					Referer: process.env.MOVEMUSIC_REFERER || '',
 				},
-				body: JSON.stringify({ name }),
+				body: JSON.stringify({ name: name }),
 			}
 		);
 
@@ -55,9 +56,11 @@ export async function POST(req: NextRequest) {
 		await dbConnect();
 
 		// Crear y guardar el contribuidor en la base de datos local
-		const contributor = new Contributor({
+		const contributor = new User({
 			id: contributorRes.id,
 			name: contributorRes.name,
+			email: contributorRes.id,
+			role: 'contributor',
 		});
 
 		await contributor.save();

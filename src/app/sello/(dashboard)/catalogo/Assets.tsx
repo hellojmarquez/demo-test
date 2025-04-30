@@ -63,7 +63,14 @@ interface Track {
 	dolby_atmos_resource: string;
 	explicit_content: boolean;
 	generate_isrc: boolean;
-	genre: number;
+	genre: {
+		id: number;
+		name: string;
+	};
+	subgenre: {
+		id: number;
+		name: string;
+	};
 	label_share: string;
 	language: string;
 	order: number;
@@ -71,7 +78,6 @@ interface Track {
 	release: string;
 	resource: string;
 	sample_start: string;
-	subgenre: number;
 	track_lenght: string;
 	updatedAt: string;
 	vocals: string;
@@ -309,7 +315,7 @@ const Assets = () => {
 													<Tag className="h-4 w-4 text-brand-light" /> Género:
 												</span>
 												<span className="text-gray-600">
-													{track.genre} / {track.subgenre}
+													{track.genre.name} / {track.subgenre.name}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

@@ -514,7 +514,9 @@ export default function UsuariosPage() {
 					<UpdatePublisherModal
 						publisher={{
 							id: selectedPublisher._id,
-							external_id: selectedPublisher.external_id || 0,
+							external_id: selectedPublisher.external_id
+								? Number(selectedPublisher.external_id)
+								: 0,
 							name: selectedPublisher.name,
 						}}
 						onUpdate={handlePublisherUpdate}

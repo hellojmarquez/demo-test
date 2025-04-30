@@ -8,6 +8,7 @@ import UpdateArtistaModal from '@/components/updateArtistaModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import UpdateAdminModal from '@/components/UpdateAdminModal';
 import { UpdateContributorModal } from '@/components/UpdateContributorModal';
+import { UpdatePublisherModal } from '@/components/UpdatePublisherModal';
 
 interface User {
 	_id: string;
@@ -47,6 +48,8 @@ export default function UsuariosPage() {
 	const [selectedContributor, setSelectedContributor] = useState<User | null>(
 		null
 	);
+	const [showPublisherModal, setShowPublisherModal] = useState(false);
+	const [selectedPublisher, setSelectedPublisher] = useState<User | null>(null);
 
 	useEffect(() => {
 		const fetchUsers = async () => {
@@ -106,9 +109,15 @@ export default function UsuariosPage() {
 			console.log('Es un contribuidor, abriendo modal de contribuidor');
 			setSelectedContributor(user);
 			setShowContributorModal(true);
+		}
+		// Verificar si el rol es "publisher"
+		else if (user.role && user.role.toLowerCase() === 'publisher') {
+			console.log('Es un publisher, abriendo modal de publisher');
+			setSelectedPublisher(user);
+			setShowPublisherModal(true);
 		} else {
 			console.log(
-				'No es un artista, sello, admin ni contribuidor, usando edición normal'
+				'No es un artista, sello, admin, contribuidor ni publisher, usando edición normal'
 			);
 			setEditingUserId(user._id);
 			setEditedUser({ ...user });
@@ -151,6 +160,18 @@ export default function UsuariosPage() {
 
 	const handleContributorUpdate = () => {
 		// Recargar la lista de usuarios después de actualizar un contribuidor
+		const fetchUsers = async () => {
+			const res = await fetch('/api/admin/getAllUsers');
+			const data = await res.json();
+			if (data.success) {
+				setUsers(data.users);
+			}
+		};
+		fetchUsers();
+	};
+
+	const handlePublisherUpdate = () => {
+		// Recargar la lista de usuarios después de actualizar un publisher
 		const fetchUsers = async () => {
 			const res = await fetch('/api/admin/getAllUsers');
 			const data = await res.json();
@@ -256,13 +277,18 @@ export default function UsuariosPage() {
 				<h2 className="text-2xl font-bold text-blue-700">
 					Gestión de Usuarios
 				</h2>
-				<Link
-					href="/sello/crearUsuario"
-					className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
-				>
-					<Plus size={18} className="text-brand-light group-hover:text-white" />
-					<span className="font-medium">Crear usuario</span>
-				</Link>
+				<div className="flex space-x-2">
+					<Link
+						href="/sello/crearUsuario"
+						className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
+					>
+						<Plus
+							size={18}
+							className="text-brand-light group-hover:text-white"
+						/>
+						<span className="font-medium">Crear usuario</span>
+					</Link>
+				</div>
 			</div>
 
 			<div className="bg-white rounded-lg shadow overflow-hidden">
@@ -449,6 +475,26 @@ export default function UsuariosPage() {
 							console.log('Cerrando modal de contribuidor');
 							setShowContributorModal(false);
 							setSelectedContributor(null);
+						}}
+					/>
+				</>
+			)}
+
+			{showPublisherModal && selectedPublisher && (
+				<>
+					{console.log('Renderizando modal de publisher')}
+					<UpdatePublisherModal
+						publisher={{
+							id: selectedPublisher._id,
+							external_id: selectedPublisher.external_id || 0,
+							name: selectedPublisher.name,
+						}}
+						onUpdate={handlePublisherUpdate}
+						isOpen={showPublisherModal}
+						onClose={() => {
+							console.log('Cerrando modal de publisher');
+							setShowPublisherModal(false);
+							setSelectedPublisher(null);
 						}}
 					/>
 				</>

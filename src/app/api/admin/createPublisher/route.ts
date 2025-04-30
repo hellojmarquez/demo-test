@@ -5,7 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 
 export async function POST(req: NextRequest) {
-	console.log('get contributors received');
+	console.log('create publisher received');
 
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
 
 		console.log(name);
 
-		// Crear contributor
-		const contributorReq = await fetch(
-			`${process.env.MOVEMUSIC_API}/contributors`,
+		// Crear publisher
+		const publisherReq = await fetch(
+			`${process.env.MOVEMUSIC_API}/publishers`,
 			{
 				method: 'POST',
 				headers: {
@@ -60,27 +60,27 @@ export async function POST(req: NextRequest) {
 			}
 		);
 
-		const contributorRes = await contributorReq.json();
-		console.log(contributorRes);
+		const publisherRes = await publisherReq.json();
+		console.log(publisherRes);
 
 		// Conectar a la base de datos local
 		await dbConnect();
 
-		// Crear y guardar el contribuidor en la base de datos local
-		const contributor = new User({
-			external_id: contributorRes.id,
-			name: contributorRes.name,
-			email: contributorRes.id,
-			role: 'contributor',
+		// Crear y guardar el publisher en la base de datos local
+		const publisher = new User({
+			external_id: publisherRes.id,
+			name: publisherRes.name,
+			email: publisherRes.id,
+			role: 'publisher',
 		});
 
-		await contributor.save();
+		await publisher.save();
 
 		return NextResponse.json({
 			success: true,
 		});
 	} catch (error) {
-		console.error('Error creating contributor:', error);
+		console.error('Error creating publisher:', error);
 		return NextResponse.json(
 			{ success: false, error: 'Internal Server Error' },
 			{ status: 500 }

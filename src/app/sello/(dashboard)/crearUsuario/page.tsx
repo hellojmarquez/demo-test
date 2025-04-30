@@ -5,6 +5,7 @@ import CreateAdminModal from '@/components/createAdminModal';
 import CreateArtistModal from '@/components/createArtistModal';
 import CreateSelloModal from '@/components/createSelloModal';
 import CreateContributorModal from '@/components/CreateContributorModal';
+import { CreatePublisherModal } from '@/components/CreatePublisherModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -181,6 +182,31 @@ export default function CrearUsuarioPage() {
 						}}
 					/>
 				);
+			case 'publisher':
+				return (
+					<CreatePublisherModal
+						isOpen={true}
+						onClose={() => setUserType('')}
+						onCreate={async () => {
+							try {
+								setShowSuccessMessage(true);
+								setTimeout(() => {
+									setShowSuccessMessage(false);
+									setUserType('');
+								}, 3000);
+								router.refresh();
+							} catch (error) {
+								console.error('Error creating publisher:', error);
+								toast.error(
+									error instanceof Error
+										? error.message
+										: 'Error al crear el publisher'
+								);
+								throw error;
+							}
+						}}
+					/>
+				);
 			default:
 				return (
 					<div className="text-center py-8">
@@ -209,6 +235,8 @@ export default function CrearUsuarioPage() {
 							? 'Sello creado exitosamente'
 							: userType === 'contribuidor'
 							? 'Contribuidor creado exitosamente'
+							: userType === 'publisher'
+							? 'Publisher creado exitosamente'
 							: 'Artista creado exitosamente'}
 					</span>
 				</motion.div>
@@ -285,6 +313,7 @@ export default function CrearUsuarioPage() {
 									<option value="sello">Sello</option>
 									<option value="artista">Artista</option>
 									<option value="contribuidor">Contribuidor</option>
+									<option value="publisher">Publisher</option>
 								</select>
 							</div>
 						</div>
@@ -300,6 +329,8 @@ export default function CrearUsuarioPage() {
 										? 'Crear Sello'
 										: userType === 'contribuidor'
 										? 'Crear Contribuidor'
+										: userType === 'publisher'
+										? 'Crear Publisher'
 										: 'Crear Artista'}
 								</h2>
 								{renderForm()}

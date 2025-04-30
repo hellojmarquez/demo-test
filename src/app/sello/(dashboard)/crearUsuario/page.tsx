@@ -9,7 +9,7 @@ import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Plus } from 'lucide-react';
 
 export default function CrearUsuarioPage() {
 	const [userType, setUserType] = useState<string>('');
@@ -243,7 +243,6 @@ export default function CrearUsuarioPage() {
 							onClose={() => setShowUpdateModal(false)}
 							onSave={async updatedSello => {
 								try {
-									// Enviar los datos actualizados al servidor
 									const response = await fetch(
 										`/api/admin/updateSello/${updatedSello._id}`,
 										{
@@ -281,26 +280,48 @@ export default function CrearUsuarioPage() {
 					)}
 				</div>
 			) : (
-				<>
-					<div className="mb-6">
-						<label className="block text-sm font-medium text-gray-700 mb-2">
-							Tipo de Usuario
-						</label>
-						<select
-							value={userType}
-							onChange={e => setUserType(e.target.value)}
-							className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
-						>
-							<option value="">Seleccionar tipo de usuario</option>
-							<option value="admin">Administrador</option>
-							<option value="sello">Sello</option>
-							<option value="artista">Artista</option>
-							<option value="contribuidor">Contribuidor</option>
-						</select>
+				<div className="space-y-6">
+					<div className="bg-white rounded-lg shadow p-6">
+						<div className="space-y-4">
+							<h2 className="text-xl font-semibold text-gray-800">
+								Crear Nuevo Usuario
+							</h2>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">
+									Tipo de Usuario
+								</label>
+								<select
+									value={userType}
+									onChange={e => setUserType(e.target.value)}
+									className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+								>
+									<option value="">Seleccionar tipo de usuario</option>
+									<option value="admin">Administrador</option>
+									<option value="sello">Sello</option>
+									<option value="artista">Artista</option>
+									<option value="contribuidor">Contribuidor</option>
+								</select>
+							</div>
+						</div>
 					</div>
 
-					<div className="bg-white rounded-lg shadow p-6">{renderForm()}</div>
-				</>
+					{userType && (
+						<div className="bg-white rounded-lg shadow p-6">
+							<div className="space-y-4">
+								<h2 className="text-xl font-semibold text-gray-800">
+									{userType === 'admin'
+										? 'Crear Administrador'
+										: userType === 'sello'
+										? 'Crear Sello'
+										: userType === 'contribuidor'
+										? 'Crear Contribuidor'
+										: 'Crear Artista'}
+								</h2>
+								{renderForm()}
+							</div>
+						</div>
+					)}
+				</div>
 			)}
 		</div>
 	);

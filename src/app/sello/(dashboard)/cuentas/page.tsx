@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import UpdateArtistaModal from '@/components/updateArtistaModal';
@@ -232,9 +232,10 @@ export default function UsuariosPage() {
 				</h2>
 				<Link
 					href="/sello/crearUsuario"
-					className="bg-green-500 py-2 px-4 rounded-lg text-white hover:bg-green-600 transition-colors"
+					className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
 				>
-					Crear usuario
+					<Plus size={18} className="text-brand-light group-hover:text-white" />
+					<span className="font-medium">Crear usuario</span>
 				</Link>
 			</div>
 

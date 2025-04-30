@@ -629,15 +629,18 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 
 							<div>
 								<label className="block text-sm font-medium text-gray-700">
-									Vocalista
+									Vocals
 								</label>
-								<input
-									type="text"
+								<select
 									name="vocals"
 									value={formData.vocals}
 									onChange={handleChange}
 									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-								/>
+								>
+									<option value="">Seleccionar idioma</option>
+									<option value="EN">English</option>
+									<option value="ES">Español</option>
+								</select>
 							</div>
 
 							<div>

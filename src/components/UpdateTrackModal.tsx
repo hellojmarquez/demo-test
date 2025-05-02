@@ -181,7 +181,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 							name:
 								artist.name ||
 								filteredArtists.find(
-									a => a.external_id === String(artist.artist)
+									(a: Artist) => a.external_id === String(artist.artist)
 								)?.name ||
 								'',
 						})),

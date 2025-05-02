@@ -43,17 +43,12 @@ export async function PUT(
 		if (contentType.includes('multipart/form-data')) {
 			const formData = await req.formData();
 			const file = formData.get('file') as File | null;
-			const data = formData.get('data') as string | null;
+			let data = formData.get('data') as string | null;
 
 			// Log all FormData entries
 			console.log(file);
-			console.log('FormData entries:');
-			formData.forEach((value, key) => {
-				console.log(`${key}:`, value);
-			});
 
 			if (data) {
-				console.log('Raw data string:', data);
 				trackData = JSON.parse(data);
 				console.log('Parsed trackData:', trackData);
 
@@ -66,67 +61,60 @@ export async function PUT(
 						name: String(artist.name || ''),
 					}));
 				}
+				if (file) {
+					const uploadTrackReq = await fetch(
+						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
+						{
+							method: 'GET',
+							headers: {
+								'Content-Type': 'application/json',
+								Authorization: `JWT ${moveMusicAccessToken}`,
+								'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+								Referer: process.env.MOVEMUSIC_REFERER || '',
+							},
+						}
+					);
+					const uploadTrackRes = await uploadTrackReq.json();
 
-				// Si no hay archivo y el resource es "media", mantener el recurso existente
-				if (!file && trackData.resource === 'media') {
-					const existingTrack = await SingleTrack.findById(trackId);
-					if (existingTrack) {
-						trackData.resource = existingTrack.resource;
-					}
-				}
-			}
+					// Extraer la URL y los campos del objeto firmado
+					const { url: signedUrl, fields: trackFields } =
+						uploadTrackRes.signed_url;
+					// Crear un objeto FormData y agregar los campos y el archivo
+					const trackFormData = new FormData();
+					Object.entries(trackFields).forEach(([key, value]) => {
+						if (typeof value === 'string' || value instanceof Blob) {
+							trackFormData.append(key, value);
+						} else {
+							console.warn(
+								`El valor de '${key}' no es un tipo válido para FormData:`,
+								value
+							);
+						}
+					});
 
-			if (file) {
-				const uploadTrackReq = await fetch(
-					`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
-					{
-						method: 'GET',
-						headers: {
-							'Content-Type': 'application/json',
-							Authorization: `JWT ${moveMusicAccessToken}`,
-							'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-							Referer: process.env.MOVEMUSIC_REFERER || '',
-						},
-					}
-				);
-				const uploadTrackRes = await uploadTrackReq.json();
+					trackFormData.append('file', file);
 
-				// Extraer la URL y los campos del objeto firmado
-				const { url: signedUrl, fields: trackFields } =
-					uploadTrackRes.signed_url;
-				// Crear un objeto FormData y agregar los campos y el archivo
-				const trackFormData = new FormData();
-				Object.entries(trackFields).forEach(([key, value]) => {
-					if (typeof value === 'string' || value instanceof Blob) {
-						trackFormData.append(key, value);
-					} else {
-						console.warn(
-							`El valor de '${key}' no es un tipo válido para FormData:`,
-							value
+					// Realizar la solicitud POST a la URL firmada
+					const uploadResponse = await fetch(signedUrl, {
+						method: 'POST',
+						body: trackFormData,
+					});
+					console.log(uploadResponse?.headers?.get('location'));
+					trackData.resource = signedUrl;
+
+					if (!uploadResponse.ok) {
+						console.error(
+							'Error al subir el archivo de audio a S3:',
+							await uploadResponse.text()
+						);
+						return NextResponse.json(
+							{
+								success: false,
+								error: 'Error al subir el archivo de audio a S3',
+							},
+							{ status: 500 }
 						);
 					}
-				});
-
-				trackFormData.append('file', file);
-
-				// Realizar la solicitud POST a la URL firmada
-				const uploadResponse = await fetch(signedUrl, {
-					method: 'POST',
-					body: trackFormData,
-				});
-				console.log(uploadResponse);
-				if (!uploadResponse.ok) {
-					console.error(
-						'Error al subir el archivo de audio a S3:',
-						await uploadResponse.text()
-					);
-					return NextResponse.json(
-						{
-							success: false,
-							error: 'Error al subir el archivo de audio a S3',
-						},
-						{ status: 500 }
-					);
 				}
 			}
 

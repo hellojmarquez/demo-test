@@ -55,7 +55,7 @@ interface Track {
 	ISRC: string;
 	__v: number;
 	album_only: boolean;
-	artists: { artist: number; kind: string; order: number }[];
+	artists: { artist: number; kind: string; order: number; name: string }[];
 	contributors: { contributor: number; role: number; order: number }[];
 	copyright_holder: string;
 	copyright_holder_year: string;
@@ -552,7 +552,13 @@ const Assets = () => {
 
 			{selectedTrack && (
 				<UpdateTrackModal
-					track={selectedTrack}
+					track={{
+						...selectedTrack,
+						artists: selectedTrack.artists.map(artist => ({
+							...artist,
+							name: '',
+						})),
+					}}
 					isOpen={isEditModalOpen}
 					onClose={() => {
 						setIsEditModalOpen(false);

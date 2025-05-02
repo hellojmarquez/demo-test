@@ -62,7 +62,7 @@ interface Track {
 	ISRC: string;
 	__v: number;
 	album_only: boolean;
-	artists: { artist: number; kind: string; order: number }[];
+	artists: { artist: number; kind: string; order: number; name: string }[];
 	contributors: { contributor: number; role: number; order: number }[];
 	copyright_holder: string;
 	copyright_holder_year: string;
@@ -103,6 +103,19 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	onClose,
 	onSave,
 }: UpdateTrackModalProps): JSX.Element | null => {
+	const [isLoading, setIsLoading] = useState(true);
+	const [artists, setArtists] = useState<Artist[]>([]);
+	const [contributors, setContributors] = useState<Contributor[]>([]);
+	const [publishers, setPublishers] = useState<Publisher[]>([]);
+	const [roles, setRoles] = useState<Role[]>([]);
+	const [releases, setReleases] = useState<Release[]>([]);
+	const [genres, setGenres] = useState<Genre[]>([]);
+	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
+	const [error, setError] = useState<string | null>(null);
+	const [currentGenreId, setCurrentGenreId] = useState<number | null>(null);
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [uploadProgress, setUploadProgress] = useState<number>(0);
+	const fileInputRef = React.useRef<HTMLInputElement>(null);
 	const [formData, setFormData] = useState<Track>({
 		...track,
 		release: track.release || '',
@@ -136,19 +149,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			order: publisher.order || 0,
 		})),
 	});
-	const [isLoading, setIsLoading] = useState(true);
-	const [artists, setArtists] = useState<Artist[]>([]);
-	const [contributors, setContributors] = useState<Contributor[]>([]);
-	const [publishers, setPublishers] = useState<Publisher[]>([]);
-	const [roles, setRoles] = useState<Role[]>([]);
-	const [releases, setReleases] = useState<Release[]>([]);
-	const [genres, setGenres] = useState<Genre[]>([]);
-	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
-	const [error, setError] = useState<string | null>(null);
-	const [currentGenreId, setCurrentGenreId] = useState<number | null>(null);
-	const [selectedFile, setSelectedFile] = useState<File | null>(null);
-	const [uploadProgress, setUploadProgress] = useState<number>(0);
-	const fileInputRef = React.useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -172,6 +172,20 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 						(user: any) => user.role === 'artista'
 					);
 					setArtists(filteredArtists);
+
+					// Update formData with artist names
+					setFormData(prev => ({
+						...prev,
+						artists: prev.artists.map(artist => ({
+							...artist,
+							name:
+								artist.name ||
+								filteredArtists.find(
+									a => a.external_id === String(artist.artist)
+								)?.name ||
+								'',
+						})),
+					}));
 
 					// Filter contributors from the same response
 					const filteredContributors = artistsData.data.filter(
@@ -360,7 +374,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			...prev,
 			artists: [
 				...prev.artists,
-				{ artist: 0, kind: '', order: prev.artists.length },
+				{ artist: 0, kind: '', order: prev.artists.length, name: '' },
 			],
 		}));
 	};
@@ -418,7 +432,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		setFormData(prev => {
 			const newArtists = [...prev.artists];
 			if (!newArtists[index]) {
-				newArtists[index] = { artist: 0, kind: '', order: 0 };
+				newArtists[index] = { artist: 0, kind: '', order: 0, name: '' };
 			}
 
 			if (field === 'artist' && typeof value === 'string') {
@@ -427,9 +441,10 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 					newArtists[index] = {
 						...newArtists[index],
 						artist: parseInt(value),
+						name: selectedArtist.name,
 					};
 				}
-			} else {
+			} else if (field === 'kind' || field === 'order') {
 				newArtists[index] = { ...newArtists[index], [field]: value };
 			}
 

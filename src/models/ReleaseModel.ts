@@ -16,7 +16,7 @@ interface Track {
 	genre: number;
 	subgenre: number;
 	mix_name: string;
-	resource: string;
+	resource: string | File | null;
 	dolby_atmos_resource: string;
 	album_only: boolean;
 	explicit_content: boolean;

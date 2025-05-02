@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
 		// Fetch all sellos from the database
 		const sellos = await Sello.find({});
-		console.log(sellos);
+
 		return NextResponse.json(sellos);
 	} catch (error) {
 		console.error('Error fetching sellos:', error);

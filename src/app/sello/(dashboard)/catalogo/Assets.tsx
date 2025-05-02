@@ -73,10 +73,10 @@ interface Track {
 	};
 	label_share: string;
 	language: string;
-	order: number;
+	order: number | null;
 	publishers: { publisher: number; author: string; order: number }[];
 	release: string;
-	resource: string;
+	resource: string | File | null;
 	sample_start: string;
 	track_lenght: string;
 	updatedAt: string;
@@ -96,7 +96,6 @@ const Assets = () => {
 		fetch('/api/admin/getAllTracks')
 			.then(res => res.json())
 			.then(response => {
-				console.log(response.singleTracks);
 				setAssets(response.singleTracks as Track[]);
 			})
 			.catch(error => console.error('Error fetching tracks:', error));
@@ -154,32 +153,44 @@ const Assets = () => {
 
 	const handleSaveEdit = async (updatedTrack: Track) => {
 		try {
-			const response = await fetch(
-				`/api/admin/updateSingle/${updatedTrack._id}`,
-				{
+			let response;
+			if (updatedTrack.resource instanceof File) {
+				const submitFormData = new FormData();
+				submitFormData.append('file', updatedTrack.resource);
+				const { resource, ...restData } = updatedTrack;
+				submitFormData.append('data', JSON.stringify(restData));
+
+				response = await fetch(`/api/admin/updateSingle/${updatedTrack._id}`, {
+					method: 'PUT',
+					body: submitFormData,
+				});
+				console.log(submitFormData);
+			} else {
+				response = await fetch(`/api/admin/updateSingle/${updatedTrack._id}`, {
 					method: 'PUT',
 					headers: {
 						'Content-Type': 'application/json',
 					},
 					body: JSON.stringify(updatedTrack),
-				}
-			);
+				});
+			}
+			if (!response.ok) {
+				throw new Error('Error al actualizar el track');
+			}
 
-			if (response.ok) {
+			const data = await response.json();
+			if (data.success) {
 				setAssets(prev =>
-					prev.map(track =>
-						track._id === updatedTrack._id ? updatedTrack : track
-					)
+					prev.map(t => (t._id === updatedTrack._id ? data.data : t))
 				);
-				setIsEditModalOpen(false);
-				setSelectedTrack(null);
 				setShowSuccessMessage(true);
 				setTimeout(() => setShowSuccessMessage(false), 3000);
 			} else {
-				console.error('Error updating track');
+				throw new Error(data.error || 'Error al actualizar el track');
 			}
 		} catch (error) {
-			console.error('Error updating track:', error);
+			console.error('Error:', error);
+			alert('Error al actualizar el track');
 		}
 	};
 
@@ -440,7 +451,11 @@ const Assets = () => {
 													<FileMusic className="h-4 w-4 text-brand-light" />{' '}
 													Resource:
 												</span>
-												<span className="text-gray-600">{track.resource}</span>
+												<span className="text-gray-600">
+													{typeof track.resource === 'string'
+														? track.resource
+														: track.resource?.name}
+												</span>
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">

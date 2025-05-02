@@ -4,7 +4,7 @@ import User from '@/models/UserModel';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
-	console.log('get contributor roles received');
+	console.log('get all artists received');
 
 	try {
 		await dbConnect();

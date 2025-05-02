@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, XCircle, Plus, Trash2 } from 'lucide-react';
+import { X, Save, XCircle, Plus, Trash2, Upload } from 'lucide-react';
 
 interface Artist {
-	id: number;
+	_id: string;
+	external_id: string;
 	name: string;
-	artist: number;
-	kind: string;
-	order: number;
+	role: string;
 }
 
 interface Contributor {
@@ -18,6 +17,14 @@ interface Contributor {
 }
 
 interface Publisher {
+	id: number;
+	name: string;
+	publisher: number;
+	author: string;
+	order: number;
+}
+
+interface PublisherForm {
 	publisher: number;
 	author: string;
 	order: number;
@@ -73,10 +80,10 @@ interface Track {
 	};
 	label_share: string;
 	language: string;
-	order: number;
+	order: number | null;
 	publishers: { publisher: number; author: string; order: number }[];
 	release: string;
-	resource: string;
+	resource: string | File | null;
 	sample_start: string;
 	track_lenght: string;
 	updatedAt: string;
@@ -95,7 +102,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	isOpen,
 	onClose,
 	onSave,
-}) => {
+}: UpdateTrackModalProps): JSX.Element | null => {
 	const [formData, setFormData] = useState<Track>({
 		...track,
 		release: track.release || '',
@@ -115,8 +122,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		artists: track.artists.map(artist => ({
 			...artist,
 			artist: artist.artist || 0,
-			kind: artist.kind || '',
-			order: artist.order || 0,
 		})),
 		contributors: track.contributors.map(contributor => ({
 			...contributor,
@@ -141,6 +146,9 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [currentGenreId, setCurrentGenreId] = useState<number | null>(null);
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [uploadProgress, setUploadProgress] = useState<number>(0);
+	const fileInputRef = React.useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -152,8 +160,35 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 				const releasesRes = await fetch('/api/admin/getAllReleases');
 				const releasesData = await releasesRes.json();
 				if (releasesData.success) {
-					console.log('Releases:', releasesData);
 					setReleases(releasesData.data);
+				}
+
+				// Fetch artists
+				const artistsRes = await fetch('/api/admin/getAllArtists');
+				const artistsData = await artistsRes.json();
+				if (artistsData.success) {
+					// Filter artists to only include those with role 'artista'
+					const filteredArtists = artistsData.data.filter(
+						(user: any) => user.role === 'artista'
+					);
+					setArtists(filteredArtists);
+
+					// Filter contributors from the same response
+					const filteredContributors = artistsData.data.filter(
+						(user: any) => user.role === 'contributor'
+					);
+					setContributors(filteredContributors);
+
+					// Filter publishers from the same response
+					const filteredPublishers = artistsData.data
+						.filter((user: any) => user.role === 'publisher')
+						.map((p: { id: string; name: string; role: string }) => ({
+							id: parseInt(p.id),
+							name: p.name,
+							role: p.role,
+						}));
+
+					setPublishers(filteredPublishers);
 				}
 
 				// Fetch roles
@@ -169,7 +204,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 					const genresData = await genresRes.json();
 
 					if (genresData.success && Array.isArray(genresData.data)) {
-						console.log('Genres:', genresData.data);
 						setGenres(genresData.data);
 
 						// Buscar el género actual del track en la lista de géneros
@@ -251,10 +285,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 							}
 						}
 					} else {
-						console.error(
-							'Formato de respuesta de géneros inesperado:',
-							genresData
-						);
 						setError(
 							'Error al cargar los géneros. Formato de respuesta inesperado.'
 						);
@@ -330,11 +360,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			...prev,
 			artists: [
 				...prev.artists,
-				{
-					artist: 0,
-					kind: '',
-					order: prev.artists.length + 1,
-				},
+				{ artist: 0, kind: '', order: prev.artists.length },
 			],
 		}));
 	};
@@ -389,12 +415,26 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		setFormData(prev => ({
-			...prev,
-			artists: prev.artists.map((artist, i) =>
-				i === index ? { ...artist, [field]: value } : artist
-			),
-		}));
+		setFormData(prev => {
+			const newArtists = [...prev.artists];
+			if (!newArtists[index]) {
+				newArtists[index] = { artist: 0, kind: '', order: 0 };
+			}
+
+			if (field === 'artist' && typeof value === 'string') {
+				const selectedArtist = artists.find(a => a.external_id === value);
+				if (selectedArtist) {
+					newArtists[index] = {
+						...newArtists[index],
+						artist: parseInt(value),
+					};
+				}
+			} else {
+				newArtists[index] = { ...newArtists[index], [field]: value };
+			}
+
+			return { ...prev, artists: newArtists };
+		});
 	};
 
 	const handleContributorChange = (
@@ -423,11 +463,32 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		}));
 	};
 
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
+				setSelectedFile(file);
+				console.log(file);
+				setFormData(prev => ({
+					...prev,
+					resource: file,
+				}));
+				setUploadProgress(0);
+			} else {
+				alert('Por favor, selecciona un archivo WAV válido');
+				e.target.value = '';
+			}
+		}
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
 		try {
 			await onSave(formData);
+			onClose();
+		} catch (error) {
+			console.error('Error saving track:', error);
 		} finally {
 			setIsLoading(false);
 		}
@@ -468,9 +529,11 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								}
 								className="w-full mb-2 border rounded px-3 py-2 text-sm"
 							>
-								<option value="">Seleccionar lanzamiento</option>
+								<option key="release-empty" value="">
+									Seleccionar lanzamiento
+								</option>
 								{releases.map(release => (
-									<option key={release._id} value={release._id}>
+									<option key={`release-${release._id}`} value={release._id}>
 										{release.name}
 									</option>
 								))}
@@ -559,9 +622,11 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									onChange={handleChange}
 									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								>
-									<option value="">Seleccionar género</option>
+									<option key="genre-empty" value="">
+										Seleccionar género
+									</option>
 									{genres.map(genre => (
-										<option key={genre.id} value={genre.id}>
+										<option key={`genre-${genre.id}`} value={genre.id}>
 											{genre.name}
 										</option>
 									))}
@@ -583,11 +648,16 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									onChange={handleChange}
 									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								>
-									<option value="">Seleccionar subgénero</option>
+									<option key="subgenre-empty" value="">
+										Seleccionar subgénero
+									</option>
 									{genres
 										.find(g => g.id === formData.genre.id)
 										?.subgenres?.map(subgenre => (
-											<option key={subgenre.id} value={subgenre.id}>
+											<option
+												key={`subgenre-${subgenre.id}`}
+												value={subgenre.id}
+											>
 												{subgenre.name}
 											</option>
 										))}
@@ -609,8 +679,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									onChange={handleChange}
 									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								>
-									<option value="ES">Español</option>
-									<option value="EN">English</option>
+									<option key="language-ES" value="ES">
+										Español
+									</option>
+									<option key="language-EN" value="EN">
+										English
+									</option>
 								</select>
 							</div>
 
@@ -695,19 +769,47 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								/>
 							</div>
 
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Resource
-								</label>
-								<input
-									type="text"
-									name="resource"
-									value={formData.resource}
-									onChange={handleChange}
-									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-								/>
+							{/* File Upload Section */}
+							<div className="space-y-4">
+								<div className="flex items-center gap-4">
+									<label className="block text-sm font-medium text-gray-700">
+										Archivo WAV
+									</label>
+									<div>
+										<input
+											type="file"
+											ref={fileInputRef}
+											onChange={handleFileChange}
+											accept=".wav"
+											className="hidden"
+										/>
+										<button
+											type="button"
+											onClick={() => fileInputRef.current?.click()}
+											className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+										>
+											<Upload className="h-4 w-4 mr-2" />
+											Subir archivo
+										</button>
+									</div>
+								</div>
+								{uploadProgress > 0 && uploadProgress < 100 && (
+									<div className="w-full bg-gray-200 rounded-full h-1.5">
+										<div
+											className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
+											style={{ width: `${uploadProgress}%` }}
+										></div>
+									</div>
+								)}
+								{formData.resource && (
+									<div className="text-sm text-gray-500 mt-1">
+										Archivo actual:{' '}
+										{typeof formData.resource === 'string'
+											? formData.resource
+											: formData.resource.name}
+									</div>
+								)}
 							</div>
-
 							<div>
 								<label className="block text-sm font-medium text-gray-700">
 									Sample Start
@@ -783,31 +885,41 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								</button>
 							</div>
 							<div className="space-y-4">
-								{formData.artists.map((artist, index) => (
-									<div key={index} className="flex items-center gap-2">
+								{formData.artists.length === 0 ? (
+									<div className="flex items-center gap-2">
 										<select
-											value={artist.artist}
-											onChange={e =>
-												handleArtistChange(
-													index,
-													'artist',
-													parseInt(e.target.value)
-												)
-											}
+											value={formData.artists[0]?.artist || ''}
+											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+												console.log('Evento onChange:', e.target.value);
+
+												const value = e.target.value;
+												if (value) {
+													console.log('Valor seleccionado select:', value);
+													handleArtistChange(0, 'artist', value);
+												}
+											}}
 											className="flex-1 p-2 border rounded"
 										>
 											<option value="">Select Artist</option>
-											{artists.map(a => (
-												<option key={a.id} value={a.id}>
-													{a.name}
-												</option>
-											))}
+											{artists &&
+												artists.length > 0 &&
+												artists.map(a => {
+													return (
+														<option
+															key={`artist-${a?.external_id || ''}`}
+															value={a?.external_id || ''}
+														>
+															{a?.name || ''}
+														</option>
+													);
+												})}
 										</select>
 										<select
-											value={artist.kind}
-											onChange={e =>
-												handleArtistChange(index, 'kind', e.target.value)
-											}
+											value={formData.artists[0]?.kind || ''}
+											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+												console.log('Evento onChange kind:', e.target.value);
+												handleArtistChange(0, 'kind', e.target.value);
+											}}
 											className="flex-1 p-2 border rounded"
 										>
 											<option value="">Select Kind</option>
@@ -817,25 +929,90 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 										</select>
 										<input
 											type="number"
-											value={artist.order}
-											onChange={e =>
+											value={formData.artists[0]?.order || 0}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+												console.log('Evento onChange order:', e.target.value);
 												handleArtistChange(
-													index,
+													0,
 													'order',
 													parseInt(e.target.value)
-												)
-											}
+												);
+											}}
 											className="w-20 p-2 border rounded"
 											placeholder="Order"
 										/>
-										<button
-											onClick={() => handleRemoveArtist(index)}
-											className="p-2 text-red-600 hover:text-red-800"
-										>
-											Remove
-										</button>
 									</div>
-								))}
+								) : (
+									formData.artists.map((artist, index) => (
+										<div key={index} className="flex items-center gap-2">
+											<select
+												value={artist.artist || ''}
+												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+													console.log(
+														'Evento onChange artista:',
+														e.target.value
+													);
+
+													const value = e.target.value;
+													if (value) {
+														console.log('Valor seleccionado:', e.target.value);
+														handleArtistChange(index, 'artist', value);
+													}
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Artist</option>
+												{artists &&
+													artists.length > 0 &&
+													artists.map(a => {
+														return (
+															<option
+																key={`artist-${a?.external_id || ''}`}
+																value={a?.external_id || ''}
+															>
+																{a?.name || ''}
+															</option>
+														);
+													})}
+											</select>
+											<select
+												value={artist.kind || ''}
+												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+													console.log('Evento onChange kind:', e.target.value);
+													handleArtistChange(index, 'kind', e.target.value);
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Kind</option>
+												<option value="main">Main</option>
+												<option value="featuring">Featuring</option>
+												<option value="remixer">Remixer</option>
+											</select>
+											<input
+												type="number"
+												value={artist.order}
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+													console.log('Evento onChange order:', e.target.value);
+													handleArtistChange(
+														index,
+														'order',
+														parseInt(e.target.value)
+													);
+												}}
+												className="w-20 p-2 border rounded"
+												placeholder="Order"
+											/>
+											{formData.artists.length > 1 && (
+												<button
+													onClick={() => handleRemoveArtist(index)}
+													className="p-2 text-red-600 hover:text-red-800"
+												>
+													Remove
+												</button>
+											)}
+										</div>
+									))
+								)}
 							</div>
 						</div>
 
@@ -867,9 +1044,11 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											}
 											className="flex-1 p-2 border rounded"
 										>
-											<option value="">Select Contributor</option>
+											<option key="contributor-empty" value="">
+												Select Contributor
+											</option>
 											{contributors.map(c => (
-												<option key={c.id} value={c.id}>
+												<option key={`contributor-${c.id}`} value={c.id}>
 													{c.name}
 												</option>
 											))}
@@ -885,9 +1064,11 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											}
 											className="flex-1 p-2 border rounded"
 										>
-											<option value="">Select Role</option>
+											<option key="role-empty" value="">
+												Select Role
+											</option>
 											{roles.map(r => (
-												<option key={r.id} value={r.id}>
+												<option key={`role-${r.id}`} value={r.id}>
 													{r.name}
 												</option>
 											))}
@@ -931,26 +1112,117 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								</button>
 							</div>
 							<div className="space-y-4">
-								{formData.publishers.map((publisher, index) => (
-									<div key={index} className="flex items-center gap-4">
+								{formData.publishers.length === 0 ? (
+									<div className="flex items-center gap-2">
+										<select
+											value=""
+											onChange={e =>
+												handlePublisherChange(
+													0,
+													'publisher',
+													e.target.value ? parseInt(e.target.value) : 0
+												)
+											}
+											className="flex-1 p-2 border rounded"
+										>
+											<option value="">Select Publisher</option>
+											{publishers &&
+												publishers.length > 0 &&
+												publishers.map(p => (
+													<option
+														key={`publisher-${p?.id || 'undefined'}`}
+														value={p?.id ? String(p.id) : ''}
+													>
+														{p?.name || ''}
+													</option>
+												))}
+										</select>
 										<input
 											type="text"
-											value={publisher.author}
+											value=""
 											onChange={e =>
-												handlePublisherChange(index, 'author', e.target.value)
+												handlePublisherChange(0, 'author', e.target.value)
 											}
-											className="flex-1 border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-											placeholder="Publisher"
+											className="flex-1 p-2 border rounded"
+											placeholder="Author"
 										/>
-										<button
-											type="button"
-											onClick={() => handleRemovePublisher(index)}
-											className="p-2 text-red-500 hover:text-red-700 rounded-full"
-										>
-											<Trash2 size={20} />
-										</button>
+										<input
+											type="number"
+											value={0}
+											onChange={e =>
+												handlePublisherChange(
+													0,
+													'order',
+													parseInt(e.target.value)
+												)
+											}
+											className="w-20 p-2 border rounded"
+											placeholder="Order"
+										/>
 									</div>
-								))}
+								) : (
+									formData.publishers.map((publisher, index) => (
+										<div key={index} className="flex items-center gap-2">
+											<select
+												value={
+													publisher.publisher === 0
+														? ''
+														: String(publisher.publisher)
+												}
+												onChange={e =>
+													handlePublisherChange(
+														index,
+														'publisher',
+														e.target.value ? parseInt(e.target.value) : 0
+													)
+												}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Publisher</option>
+												{publishers &&
+													publishers.length > 0 &&
+													publishers.map(p => (
+														<option
+															key={`publisher-${p?.id || 'undefined'}`}
+															value={p?.id ? String(p.id) : ''}
+														>
+															{p?.name || ''}
+														</option>
+													))}
+											</select>
+											<input
+												type="text"
+												value={publisher.author || ''}
+												onChange={e =>
+													handlePublisherChange(index, 'author', e.target.value)
+												}
+												className="flex-1 p-2 border rounded"
+												placeholder="Author"
+											/>
+											<input
+												type="number"
+												value={publisher.order}
+												onChange={e =>
+													handlePublisherChange(
+														index,
+														'order',
+														parseInt(e.target.value)
+													)
+												}
+												className="w-20 p-2 border rounded"
+												placeholder="Order"
+											/>
+											{formData.publishers.length > 1 && (
+												<button
+													onClick={() => handleRemovePublisher(index)}
+													className="p-2 text-red-600 hover:text-red-800"
+												>
+													Remove
+												</button>
+											)}
+										</div>
+									))
+								)}
 							</div>
 						</div>
 

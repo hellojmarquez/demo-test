@@ -8,6 +8,7 @@ const ArtistSchema = new mongoose.Schema(
 		artist: { type: Number, required: true },
 		kind: { type: String, required: true },
 		order: { type: Number, required: true },
+		name: { type: String, required: true },
 	},
 	{ _id: false }
 );

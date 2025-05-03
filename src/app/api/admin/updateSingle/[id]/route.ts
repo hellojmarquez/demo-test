@@ -71,6 +71,18 @@ export async function PUT(
 					}));
 				}
 
+				// Asegurarse de que los contribuidores tengan el formato correcto
+				if (trackData.contributors) {
+					trackData.contributors = trackData.contributors.map(
+						(contributor: any) => ({
+							external_id: Number(contributor.external_id) || 0,
+							name: String(contributor.name || ''),
+							role: Number(contributor.role) || 0,
+							order: Number(contributor.order) || 0,
+						})
+					);
+				}
+
 				if (file) {
 					console.log('ACTUALIZANDO TRAck');
 					const uploadTrackReq = await fetch(
@@ -140,6 +152,18 @@ export async function PUT(
 					order: Number(artist.order || 0),
 					name: String(artist.name || ''),
 				}));
+			}
+
+			// Asegurarse de que los contribuidores tengan el formato correcto
+			if (trackData.contributors) {
+				trackData.contributors = trackData.contributors.map(
+					(contributor: any) => ({
+						external_id: Number(contributor.external_id) || 0,
+						name: String(contributor.name || ''),
+						role: Number(contributor.role) || 0,
+						order: Number(contributor.order) || 0,
+					})
+				);
 			}
 		} else {
 			return NextResponse.json(

@@ -27,8 +27,8 @@ const PublisherSchema = new mongoose.Schema(
 // Esquema para cada contributor asociado
 const ContributorSchema = new mongoose.Schema(
 	{
-		id: { type: Number, required: true },
-		contributor: { type: Number, required: true },
+		external_id: { type: Number, required: true },
+		name: { type: String, required: true },
 		role: { type: Number, required: true },
 		order: { type: Number, required: true },
 	},

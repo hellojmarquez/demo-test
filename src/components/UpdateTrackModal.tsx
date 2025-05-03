@@ -9,7 +9,7 @@ interface Artist {
 }
 
 interface Contributor {
-	external_id: string;
+	external_id: number;
 	name: string;
 	role: number;
 	order: number;
@@ -54,7 +54,7 @@ interface Subgenre {
 }
 
 interface TrackContributor {
-	external_id: string;
+	external_id: number;
 	name: string;
 	role: number;
 	order: number;
@@ -159,7 +159,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			name: artist.name || '',
 		})),
 		contributors: track.contributors.map(contributor => ({
-			external_id: contributor.external_id || '',
+			external_id: Number(contributor.external_id) || 0,
 			name: contributor.name || '',
 			role: Number(contributor.role) || 0,
 			order: Number(contributor.order) || 0,
@@ -406,7 +406,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			...prev,
 			contributors: [
 				...prev.contributors,
-				{ external_id: '', name: '', role: 0, order: prev.contributors.length },
+				{ external_id: 0, name: '', role: 0, order: prev.contributors.length },
 			],
 		}));
 	};
@@ -495,7 +495,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			// Inicializar el objeto si no existe
 			if (!newContributors[index]) {
 				newContributors[index] = {
-					external_id: '',
+					external_id: 0,
 					name: '',
 					role: 0,
 					order: 0,
@@ -1356,6 +1356,36 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									))
 								)}
 							</div>
+						</div>
+						<div className="flex justify-end space-x-3 mt-6">
+							<button
+								type="button"
+								onClick={onClose}
+								disabled={isLoading}
+								className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
+								<span className="group-hover:text-brand-dark">Cancelar</span>
+							</button>
+							<button
+								type="submit"
+								disabled={isLoading}
+								className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{isLoading ? (
+									<>
+										<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+										<span>Actualizando...</span>
+									</>
+								) : (
+									<>
+										<Save className="h-4 w-4 group-hover:text-brand-dark" />
+										<span className="group-hover:text-brand-dark">
+											Actualizar
+										</span>
+									</>
+								)}
+							</button>
 						</div>
 					</form>
 				)}

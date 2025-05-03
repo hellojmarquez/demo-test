@@ -9,9 +9,8 @@ interface Artist {
 }
 
 interface Contributor {
-	id: number;
+	external_id: string;
 	name: string;
-	contributor: number;
 	role: number;
 	order: number;
 }
@@ -54,6 +53,13 @@ interface Subgenre {
 	name: string;
 }
 
+interface TrackContributor {
+	external_id: string;
+	name: string;
+	role: number;
+	order: number;
+}
+
 interface Track {
 	_id: string;
 	name: string;
@@ -63,7 +69,7 @@ interface Track {
 	__v: number;
 	album_only: boolean;
 	artists: { artist: number; kind: string; order: number; name: string }[];
-	contributors: { contributor: number; role: number; order: number }[];
+	contributors: TrackContributor[];
 	copyright_holder: string;
 	copyright_holder_year: string;
 	createdAt: string;
@@ -153,8 +159,8 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			name: artist.name || '',
 		})),
 		contributors: track.contributors.map(contributor => ({
-			...contributor,
-			contributor: Number(contributor.contributor) || 0,
+			external_id: contributor.external_id || '',
+			name: contributor.name || '',
 			role: Number(contributor.role) || 0,
 			order: Number(contributor.order) || 0,
 		})),
@@ -400,7 +406,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			...prev,
 			contributors: [
 				...prev.contributors,
-				{ contributor: 0, role: 0, order: prev.contributors.length },
+				{ external_id: '', name: '', role: 0, order: prev.contributors.length },
 			],
 		}));
 	};
@@ -477,57 +483,57 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		console.log('handleContributorChange called with:', {
-			index,
-			field,
-			value,
-		});
-		console.log('Available contributors:', contributors);
+		console.log(`handleContributorChange (${field}) - Valor recibido:`, value);
+		console.log(
+			`handleContributorChange (${field}) - Tipo del valor:`,
+			typeof value
+		);
+
 		setFormData(prev => {
 			const newContributors = [...prev.contributors];
+
+			// Inicializar el objeto si no existe
 			if (!newContributors[index]) {
-				newContributors[index] = { contributor: 0, role: 0, order: 0 };
+				newContributors[index] = {
+					external_id: '',
+					name: '',
+					role: 0,
+					order: 0,
+				};
 			}
 
-			if (field === 'contributor' && typeof value === 'string') {
-				// Convertir ambos IDs a string para comparación
-				const selectedContributor = contributors.find(
-					c => String(c.id) === String(value)
-				);
-				console.log('Selected contributor:', selectedContributor);
-				newContributors[index] = {
-					...newContributors[index],
-					contributor: selectedContributor ? selectedContributor.id : 0,
-				};
-			} else if (field === 'role' && typeof value === 'string') {
-				const selectedRole = roles.find(r => String(r.id) === String(value));
-				const numValue = Number(value);
-				if (!isNaN(numValue)) {
-					const selectedContributor = contributors.find(c => c.id === numValue);
-					console.log('Selected contributor:', selectedContributor);
-					newContributors[index] = {
-						...newContributors[index],
-						contributor: selectedContributor ? selectedContributor.id : 0,
-					};
+			// Manejo para campo 'name'
+			if (field === 'name') {
+				if (value === '' || value === null || value === undefined) {
+					return prev;
 				}
-			} else if (field === 'role' && typeof value === 'string') {
-				const numValue = Number(value);
-				if (!isNaN(numValue)) {
-					const selectedRole = roles.find(r => r.id === numValue);
-					console.log('Selected role:', selectedRole);
-					newContributors[index] = {
-						...newContributors[index],
-						role: selectedRole ? selectedRole.id : 0,
-					};
+				const selectedContributor = contributors.find(c => c.name === value);
+				if (selectedContributor) {
+					newContributors[index].name = selectedContributor.name;
+					newContributors[index].external_id = selectedContributor.external_id;
 				}
-			} else if (field === 'order') {
-				const numericValue =
-					typeof value === 'string' ? parseInt(value) : value;
-				console.log('Order value:', numericValue);
-				newContributors[index] = {
-					...newContributors[index],
-					order: isNaN(numericValue) ? 0 : numericValue,
-				};
+			}
+			// Manejo para campo 'role'
+			else if (field === 'role') {
+				if (value === '' || value === null || value === undefined) {
+					return prev;
+				}
+				const numValue =
+					typeof value === 'string' ? parseInt(value, 10) : Number(value);
+				if (!isNaN(numValue)) {
+					newContributors[index].role = numValue;
+				}
+			}
+			// Manejo para campo 'order'
+			else if (field === 'order') {
+				if (value === '' || value === null || value === undefined) {
+					return prev;
+				}
+				const numValue =
+					typeof value === 'string' ? parseInt(value, 10) : Number(value);
+				if (!isNaN(numValue)) {
+					newContributors[index].order = numValue;
+				}
 			}
 
 			console.log('Updated contributors:', newContributors);
@@ -1107,44 +1113,44 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								{formData.contributors.length === 0 ? (
 									<div className="flex items-center gap-2">
 										<select
-											value={formData.contributors[0]?.contributor ?? ''}
-											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-												const value = e.target.value;
-												console.log('Contributor select value:', value);
-												if (value) {
-													handleContributorChange(0, 'contributor', value);
+											value={formData.contributors[0]?.name || ''}
+											onChange={e => {
+												const selectValue = e.target.value;
+												console.log(`Select contributor value:`, selectValue);
+												if (selectValue && selectValue !== '') {
+													handleContributorChange(0, 'name', selectValue);
 												}
 											}}
 											className="flex-1 p-2 border rounded"
 										>
 											<option value="">Select Contributor</option>
-											{contributors?.map(c => {
-												console.log('Contributor option:', c);
-												return (
-													<option
-														key={`contributor-${c?.id || ''}`}
-														value={c?.id || ''}
-													>
-														{c?.name || ''}
-													</option>
-												);
-											})}
+											{contributors?.map((c, idx) => (
+												<option
+													key={`contributor-${idx}-${c?.name || 'empty'}`}
+													value={c?.name || ''}
+												>
+													{c?.name || ''}
+												</option>
+											))}
 										</select>
 
 										<select
-											value={formData.contributors[0]?.role ?? ''}
-											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+											value={formData.contributors[0]?.role || ''}
+											onChange={e => {
 												const value = e.target.value;
 												console.log('Role select value:', value);
-												if (value) {
+												if (value && value !== '') {
 													handleContributorChange(0, 'role', value);
 												}
 											}}
 											className="flex-1 p-2 border rounded"
 										>
 											<option value="">Select Role</option>
-											{roles?.map(r => (
-												<option key={`role-${r?.id || ''}`} value={r?.id || ''}>
+											{roles?.map((r, idx) => (
+												<option
+													key={`role-${idx}-${r?.id || 'empty'}`}
+													value={r?.id ? String(r.id) : ''}
+												>
 													{r?.name || ''}
 												</option>
 											))}
@@ -1153,14 +1159,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 										<input
 											type="number"
 											value={formData.contributors[0]?.order ?? 0}
-											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+											onChange={e => {
 												const val = parseInt(e.target.value);
 												console.log('Order value:', val);
-												handleContributorChange(
-													0,
-													'order',
-													isNaN(val) ? 0 : val
-												);
+												if (!isNaN(val)) {
+													handleContributorChange(0, 'order', val);
+												}
 											}}
 											className="w-20 p-2 border rounded"
 											placeholder="Order"
@@ -1168,52 +1172,50 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									</div>
 								) : (
 									formData.contributors.map((contributor, index) => (
-										<div key={index} className="flex items-center gap-2">
+										<div
+											key={`contributor-row-${index}`}
+											className="flex items-center gap-2"
+										>
 											<select
-												value={contributor.contributor ?? ''}
-												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-													const value = e.target.value;
-													console.log('Contributor select value:', value);
-													if (value) {
-														handleContributorChange(
-															index,
-															'contributor',
-															value
-														);
+												value={contributor.name || ''}
+												onChange={e => {
+													const selectValue = e.target.value;
+													console.log(`Select contributor value:`, selectValue);
+													if (selectValue && selectValue !== '') {
+														handleContributorChange(index, 'name', selectValue);
 													}
 												}}
 												className="flex-1 p-2 border rounded"
 											>
 												<option value="">Select Contributor</option>
-												{contributors?.map(c => {
-													console.log('Contributor option:', c);
-													return (
-														<option
-															key={`contributor-${c?.id || ''}`}
-															value={c?.id || ''}
-														>
-															{c?.name || ''}
-														</option>
-													);
-												})}
+												{contributors?.map((c, idx) => (
+													<option
+														key={`contributor-${index}-${idx}-${
+															c?.name || 'empty'
+														}`}
+														value={c?.name || ''}
+													>
+														{c?.name || ''}
+													</option>
+												))}
 											</select>
 
 											<select
-												value={contributor.role ?? ''}
-												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+												value={contributor.role || ''}
+												onChange={e => {
 													const value = e.target.value;
 													console.log('Role select value:', value);
-													if (value) {
+													if (value && value !== '') {
 														handleContributorChange(index, 'role', value);
 													}
 												}}
 												className="flex-1 p-2 border rounded"
 											>
 												<option value="">Select Role</option>
-												{roles?.map(r => (
+												{roles?.map((r, idx) => (
 													<option
-														key={`role-${r?.id || ''}`}
-														value={r?.id || ''}
+														key={`role-${index}-${idx}-${r?.id || 'empty'}`}
+														value={r?.id ? String(r.id) : ''}
 													>
 														{r?.name || ''}
 													</option>
@@ -1223,14 +1225,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											<input
 												type="number"
 												value={contributor.order ?? 0}
-												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+												onChange={e => {
 													const val = parseInt(e.target.value);
 													console.log('Order value:', val);
-													handleContributorChange(
-														index,
-														'order',
-														isNaN(val) ? 0 : val
-													);
+													if (!isNaN(val)) {
+														handleContributorChange(index, 'order', val);
+													}
 												}}
 												className="w-20 p-2 border rounded"
 												placeholder="Order"

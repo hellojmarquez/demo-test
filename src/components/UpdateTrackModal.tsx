@@ -147,22 +147,22 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		},
 		artists: track.artists.map(artist => ({
 			...artist,
-			artist: artist.artist || 0,
+			artist: Number(artist.artist) || 0,
 			kind: artist.kind || '',
-			order: artist.order || 0,
+			order: Number(artist.order) || 0,
 			name: artist.name || '',
 		})),
 		contributors: track.contributors.map(contributor => ({
 			...contributor,
-			contributor: contributor.contributor || 0,
-			role: contributor.role || 0,
-			order: contributor.order || 0,
+			contributor: Number(contributor.contributor) || 0,
+			role: Number(contributor.role) || 0,
+			order: Number(contributor.order) || 0,
 		})),
 		publishers: track.publishers.map(publisher => ({
 			...publisher,
-			publisher: publisher.publisher || 0,
+			publisher: Number(publisher.publisher) || 0,
 			author: publisher.author || '',
-			order: publisher.order || 0,
+			order: Number(publisher.order) || 0,
 		})),
 	});
 
@@ -466,6 +466,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		});
 	};
 
+	const getValidStringValue = (value: any): string => {
+		if (value === null || value === undefined) return '';
+		const num = Number(value);
+		return isNaN(num) ? '' : String(num);
+	};
+
 	const handleContributorChange = (
 		index: number,
 		field: string,
@@ -495,11 +501,25 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 				};
 			} else if (field === 'role' && typeof value === 'string') {
 				const selectedRole = roles.find(r => String(r.id) === String(value));
-				console.log('Selected role:', selectedRole);
-				newContributors[index] = {
-					...newContributors[index],
-					role: selectedRole ? selectedRole.id : 0,
-				};
+				const numValue = Number(value);
+				if (!isNaN(numValue)) {
+					const selectedContributor = contributors.find(c => c.id === numValue);
+					console.log('Selected contributor:', selectedContributor);
+					newContributors[index] = {
+						...newContributors[index],
+						contributor: selectedContributor ? selectedContributor.id : 0,
+					};
+				}
+			} else if (field === 'role' && typeof value === 'string') {
+				const numValue = Number(value);
+				if (!isNaN(numValue)) {
+					const selectedRole = roles.find(r => r.id === numValue);
+					console.log('Selected role:', selectedRole);
+					newContributors[index] = {
+						...newContributors[index],
+						role: selectedRole ? selectedRole.id : 0,
+					};
+				}
 			} else if (field === 'order') {
 				const numericValue =
 					typeof value === 'string' ? parseInt(value) : value;
@@ -1087,9 +1107,10 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								{formData.contributors.length === 0 ? (
 									<div className="flex items-center gap-2">
 										<select
-											value={formData.contributors[0]?.contributor || ''}
+											value={formData.contributors[0]?.contributor ?? ''}
 											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
 												const value = e.target.value;
+												console.log('Contributor select value:', value);
 												if (value) {
 													handleContributorChange(0, 'contributor', value);
 												}
@@ -1097,19 +1118,24 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											className="flex-1 p-2 border rounded"
 										>
 											<option value="">Select Contributor</option>
-											{contributors
-												?.filter(c => c && c.id && c.name)
-												.map(c => (
-													<option key={`contributor-${c.id}`} value={c.id}>
-														{c.name}
+											{contributors?.map(c => {
+												console.log('Contributor option:', c);
+												return (
+													<option
+														key={`contributor-${c?.id || ''}`}
+														value={c?.id || ''}
+													>
+														{c?.name || ''}
 													</option>
-												))}
+												);
+											})}
 										</select>
 
 										<select
-											value={formData.contributors[0]?.role || ''}
+											value={formData.contributors[0]?.role ?? ''}
 											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
 												const value = e.target.value;
+												console.log('Role select value:', value);
 												if (value) {
 													handleContributorChange(0, 'role', value);
 												}
@@ -1129,6 +1155,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											value={formData.contributors[0]?.order ?? 0}
 											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 												const val = parseInt(e.target.value);
+												console.log('Order value:', val);
 												handleContributorChange(
 													0,
 													'order',
@@ -1147,11 +1174,13 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
 													const value = e.target.value;
 													console.log('Contributor select value:', value);
-													console.log(
-														'Contributor select options:',
-														e.target.options
-													);
-													handleContributorChange(index, 'contributor', value);
+													if (value) {
+														handleContributorChange(
+															index,
+															'contributor',
+															value
+														);
+													}
 												}}
 												className="flex-1 p-2 border rounded"
 											>
@@ -1174,8 +1203,9 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
 													const value = e.target.value;
 													console.log('Role select value:', value);
-													console.log('Role select options:', e.target.options);
-													handleContributorChange(index, 'role', value);
+													if (value) {
+														handleContributorChange(index, 'role', value);
+													}
 												}}
 												className="flex-1 p-2 border rounded"
 											>
@@ -1221,7 +1251,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 						</div>
 
 						{/* Publishers Section */}
-						{/* <div className="space-y-4">
+						<div className="space-y-4">
 							<div className="flex justify-between items-center">
 								<h3 className="text-lg font-medium text-gray-900">
 									Publishers
@@ -1238,7 +1268,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								{formData.publishers.length === 0 ? (
 									<div className="flex items-center gap-2">
 										<select
-											value={formData.publishers[0]?.publisher ?? ''}
+											value={String(formData.publishers[0]?.publisher || '')}
 											onChange={e =>
 												handlePublisherChange(
 													0,
@@ -1252,7 +1282,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											{publishers?.map(p => (
 												<option
 													key={`publisher-${p?.id ?? 'undefined'}`}
-													value={p?.id ?? ''}
+													value={String(p?.id || '')}
 												>
 													{p?.name}
 												</option>
@@ -1263,10 +1293,14 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									formData.publishers.map((publisher, index) => (
 										<div key={index} className="flex items-center gap-2">
 											<select
-												value={publisher.publisher ?? ''}
+												value={String(publisher.publisher || '')}
 												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
 													const value = e.target.value;
-													handlePublisherChange(index, 'publisher', value);
+													handlePublisherChange(
+														index,
+														'publisher',
+														value ? parseInt(value) : 0
+													);
 												}}
 												className="flex-1 p-2 border rounded"
 											>
@@ -1274,7 +1308,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												{publishers?.map(p => (
 													<option
 														key={`publisher-${p?.id ?? 'undefined'}`}
-														value={p?.id ?? ''}
+														value={String(p?.id || '')}
 													>
 														{p?.name}
 													</option>
@@ -1322,7 +1356,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									))
 								)}
 							</div>
-						</div> */}
+						</div>
 					</form>
 				)}
 			</div>

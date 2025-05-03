@@ -120,6 +120,19 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		...track,
 		release: track.release || '',
 		language: track.language || '',
+		order: track.order ?? 0,
+		name: track.name || '',
+		mix_name: track.mix_name || '',
+		DA_ISRC: track.DA_ISRC || '',
+		ISRC: track.ISRC || '',
+		copyright_holder: track.copyright_holder || '',
+		copyright_holder_year: track.copyright_holder_year || '',
+		dolby_atmos_resource: track.dolby_atmos_resource || '',
+		label_share: track.label_share || '',
+		resource: track.resource || null,
+		sample_start: track.sample_start || '',
+		track_lenght: track.track_lenght || '',
+		vocals: track.vocals || '',
 		genre: {
 			id: typeof track.genre === 'number' ? track.genre : track.genre?.id || 0,
 			name: typeof track.genre === 'number' ? '' : track.genre?.name || '',
@@ -135,6 +148,9 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		artists: track.artists.map(artist => ({
 			...artist,
 			artist: artist.artist || 0,
+			kind: artist.kind || '',
+			order: artist.order || 0,
+			name: artist.name || '',
 		})),
 		contributors: track.contributors.map(contributor => ({
 			...contributor,
@@ -380,14 +396,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	};
 
 	const handleAddContributor = () => {
-		const newContributor = {
-			contributor: 0,
-			role: 0,
-			order: formData.contributors.length,
-		};
 		setFormData(prev => ({
 			...prev,
-			contributors: [...prev.contributors, newContributor],
+			contributors: [
+				...prev.contributors,
+				{ contributor: 0, role: 0, order: prev.contributors.length },
+			],
 		}));
 	};
 
@@ -457,12 +471,48 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		setFormData(prev => ({
-			...prev,
-			contributors: prev.contributors.map((contributor, i) =>
-				i === index ? { ...contributor, [field]: value } : contributor
-			),
-		}));
+		console.log('handleContributorChange called with:', {
+			index,
+			field,
+			value,
+		});
+		console.log('Available contributors:', contributors);
+		setFormData(prev => {
+			const newContributors = [...prev.contributors];
+			if (!newContributors[index]) {
+				newContributors[index] = { contributor: 0, role: 0, order: 0 };
+			}
+
+			if (field === 'contributor' && typeof value === 'string') {
+				// Convertir ambos IDs a string para comparación
+				const selectedContributor = contributors.find(
+					c => String(c.id) === String(value)
+				);
+				console.log('Selected contributor:', selectedContributor);
+				newContributors[index] = {
+					...newContributors[index],
+					contributor: selectedContributor ? selectedContributor.id : 0,
+				};
+			} else if (field === 'role' && typeof value === 'string') {
+				const selectedRole = roles.find(r => String(r.id) === String(value));
+				console.log('Selected role:', selectedRole);
+				newContributors[index] = {
+					...newContributors[index],
+					role: selectedRole ? selectedRole.id : 0,
+				};
+			} else if (field === 'order') {
+				const numericValue =
+					typeof value === 'string' ? parseInt(value) : value;
+				console.log('Order value:', numericValue);
+				newContributors[index] = {
+					...newContributors[index],
+					order: isNaN(numericValue) ? 0 : numericValue,
+				};
+			}
+
+			console.log('Updated contributors:', newContributors);
+			return { ...prev, contributors: newContributors };
+		});
 	};
 
 	const handlePublisherChange = (
@@ -903,36 +953,29 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								{formData.artists.length === 0 ? (
 									<div className="flex items-center gap-2">
 										<select
-											value={formData.artists[0]?.artist || ''}
+											value={formData.artists[0]?.artist ?? ''}
 											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-												console.log('Evento onChange:', e.target.value);
-
 												const value = e.target.value;
 												if (value) {
-													console.log('Valor seleccionado select:', value);
 													handleArtistChange(0, 'artist', value);
 												}
 											}}
 											className="flex-1 p-2 border rounded"
 										>
 											<option value="">Select Artist</option>
-											{artists &&
-												artists.length > 0 &&
-												artists.map(a => {
-													return (
-														<option
-															key={`artist-${a?.external_id || ''}`}
-															value={a?.external_id || ''}
-														>
-															{a?.name || ''}
-														</option>
-													);
-												})}
+											{artists?.map(a => (
+												<option
+													key={`artist-${a?.external_id || ''}`}
+													value={a?.external_id || ''}
+												>
+													{a?.name || ''}
+												</option>
+											))}
 										</select>
+
 										<select
-											value={formData.artists[0]?.kind || ''}
+											value={formData.artists[0]?.kind ?? ''}
 											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-												console.log('Evento onChange kind:', e.target.value);
 												handleArtistChange(0, 'kind', e.target.value);
 											}}
 											className="flex-1 p-2 border rounded"
@@ -942,16 +985,17 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											<option value="featuring">Featuring</option>
 											<option value="remixer">Remixer</option>
 										</select>
+
 										<input
 											type="number"
-											value={formData.artists[0]?.order || 0}
+											value={
+												typeof formData.artists[0]?.order === 'number'
+													? formData.artists[0].order
+													: 0
+											}
 											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-												console.log('Evento onChange order:', e.target.value);
-												handleArtistChange(
-													0,
-													'order',
-													parseInt(e.target.value)
-												);
+												const val = parseInt(e.target.value);
+												handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
 											}}
 											className="w-20 p-2 border rounded"
 											placeholder="Order"
@@ -961,39 +1005,29 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									formData.artists.map((artist, index) => (
 										<div key={index} className="flex items-center gap-2">
 											<select
-												value={artist.artist || ''}
+												value={artist.artist ?? ''}
 												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-													console.log(
-														'Evento onChange artista:',
-														e.target.value
-													);
-
 													const value = e.target.value;
 													if (value) {
-														console.log('Valor seleccionado:', e.target.value);
 														handleArtistChange(index, 'artist', value);
 													}
 												}}
 												className="flex-1 p-2 border rounded"
 											>
 												<option value="">Select Artist</option>
-												{artists &&
-													artists.length > 0 &&
-													artists.map(a => {
-														return (
-															<option
-																key={`artist-${a?.external_id || ''}`}
-																value={a?.external_id || ''}
-															>
-																{a?.name || ''}
-															</option>
-														);
-													})}
+												{artists?.map(a => (
+													<option
+														key={`artist-${a?.external_id || ''}`}
+														value={a?.external_id || ''}
+													>
+														{a?.name || ''}
+													</option>
+												))}
 											</select>
+
 											<select
-												value={artist.kind || ''}
+												value={artist.kind ?? ''}
 												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-													console.log('Evento onChange kind:', e.target.value);
 													handleArtistChange(index, 'kind', e.target.value);
 												}}
 												className="flex-1 p-2 border rounded"
@@ -1003,20 +1037,24 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												<option value="featuring">Featuring</option>
 												<option value="remixer">Remixer</option>
 											</select>
+
 											<input
 												type="number"
-												value={artist.order}
+												value={
+													typeof artist.order === 'number' ? artist.order : 0
+												}
 												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-													console.log('Evento onChange order:', e.target.value);
+													const val = parseInt(e.target.value);
 													handleArtistChange(
 														index,
 														'order',
-														parseInt(e.target.value)
+														isNaN(val) ? 0 : val
 													);
 												}}
 												className="w-20 p-2 border rounded"
 												placeholder="Order"
 											/>
+
 											{formData.artists.length > 1 && (
 												<button
 													onClick={() => handleRemoveArtist(index)}
@@ -1046,74 +1084,144 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								</button>
 							</div>
 							<div className="space-y-4">
-								{formData.contributors.map((contributor, index) => (
-									<div key={index} className="flex items-center gap-2">
+								{formData.contributors.length === 0 ? (
+									<div className="flex items-center gap-2">
 										<select
-											value={contributor.contributor}
-											onChange={e =>
-												handleContributorChange(
-													index,
-													'contributor',
-													parseInt(e.target.value)
-												)
-											}
+											value={formData.contributors[0]?.contributor || ''}
+											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+												const value = e.target.value;
+												if (value) {
+													handleContributorChange(0, 'contributor', value);
+												}
+											}}
 											className="flex-1 p-2 border rounded"
 										>
-											<option key="contributor-empty" value="">
-												Select Contributor
-											</option>
-											{contributors.map(c => (
-												<option key={`contributor-${c.id}`} value={c.id}>
-													{c.name}
+											<option value="">Select Contributor</option>
+											{contributors
+												?.filter(c => c && c.id && c.name)
+												.map(c => (
+													<option key={`contributor-${c.id}`} value={c.id}>
+														{c.name}
+													</option>
+												))}
+										</select>
+
+										<select
+											value={formData.contributors[0]?.role || ''}
+											onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+												const value = e.target.value;
+												if (value) {
+													handleContributorChange(0, 'role', value);
+												}
+											}}
+											className="flex-1 p-2 border rounded"
+										>
+											<option value="">Select Role</option>
+											{roles?.map(r => (
+												<option key={`role-${r?.id || ''}`} value={r?.id || ''}>
+													{r?.name || ''}
 												</option>
 											))}
 										</select>
-										<select
-											value={contributor.role}
-											onChange={e =>
-												handleContributorChange(
-													index,
-													'role',
-													parseInt(e.target.value)
-												)
-											}
-											className="flex-1 p-2 border rounded"
-										>
-											<option key="role-empty" value="">
-												Select Role
-											</option>
-											{roles.map(r => (
-												<option key={`role-${r.id}`} value={r.id}>
-													{r.name}
-												</option>
-											))}
-										</select>
+
 										<input
 											type="number"
-											value={contributor.order}
-											onChange={e =>
+											value={formData.contributors[0]?.order ?? 0}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+												const val = parseInt(e.target.value);
 												handleContributorChange(
-													index,
+													0,
 													'order',
-													parseInt(e.target.value)
-												)
-											}
+													isNaN(val) ? 0 : val
+												);
+											}}
 											className="w-20 p-2 border rounded"
 											placeholder="Order"
 										/>
-										<button
-											onClick={() => handleRemoveContributor(index)}
-											className="p-2 text-red-600 hover:text-red-800"
-										>
-											Remove
-										</button>
 									</div>
-								))}
+								) : (
+									formData.contributors.map((contributor, index) => (
+										<div key={index} className="flex items-center gap-2">
+											<select
+												value={contributor.contributor ?? ''}
+												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+													const value = e.target.value;
+													console.log('Contributor select value:', value);
+													console.log(
+														'Contributor select options:',
+														e.target.options
+													);
+													handleContributorChange(index, 'contributor', value);
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Contributor</option>
+												{contributors?.map(c => {
+													console.log('Contributor option:', c);
+													return (
+														<option
+															key={`contributor-${c?.id || ''}`}
+															value={c?.id || ''}
+														>
+															{c?.name || ''}
+														</option>
+													);
+												})}
+											</select>
+
+											<select
+												value={contributor.role ?? ''}
+												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+													const value = e.target.value;
+													console.log('Role select value:', value);
+													console.log('Role select options:', e.target.options);
+													handleContributorChange(index, 'role', value);
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Role</option>
+												{roles?.map(r => (
+													<option
+														key={`role-${r?.id || ''}`}
+														value={r?.id || ''}
+													>
+														{r?.name || ''}
+													</option>
+												))}
+											</select>
+
+											<input
+												type="number"
+												value={contributor.order ?? 0}
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+													const val = parseInt(e.target.value);
+													console.log('Order value:', val);
+													handleContributorChange(
+														index,
+														'order',
+														isNaN(val) ? 0 : val
+													);
+												}}
+												className="w-20 p-2 border rounded"
+												placeholder="Order"
+											/>
+
+											{formData.contributors.length > 1 && (
+												<button
+													onClick={() => handleRemoveContributor(index)}
+													className="p-2 text-red-600 hover:text-red-800"
+												>
+													Remove
+												</button>
+											)}
+										</div>
+									))
+								)}
 							</div>
 						</div>
 
 						{/* Publishers Section */}
-						<div className="space-y-4">
+						{/* <div className="space-y-4">
 							<div className="flex justify-between items-center">
 								<h3 className="text-lg font-medium text-gray-900">
 									Publishers
@@ -1130,7 +1238,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								{formData.publishers.length === 0 ? (
 									<div className="flex items-center gap-2">
 										<select
-											value=""
+											value={formData.publishers[0]?.publisher ?? ''}
 											onChange={e =>
 												handlePublisherChange(
 													0,
@@ -1141,92 +1249,67 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											className="flex-1 p-2 border rounded"
 										>
 											<option value="">Select Publisher</option>
-											{publishers &&
-												publishers.length > 0 &&
-												publishers.map(p => (
-													<option
-														key={`publisher-${p?.id || 'undefined'}`}
-														value={p?.id ? String(p.id) : ''}
-													>
-														{p?.name || ''}
-													</option>
-												))}
+											{publishers?.map(p => (
+												<option
+													key={`publisher-${p?.id ?? 'undefined'}`}
+													value={p?.id ?? ''}
+												>
+													{p?.name}
+												</option>
+											))}
 										</select>
-										<input
-											type="text"
-											value=""
-											onChange={e =>
-												handlePublisherChange(0, 'author', e.target.value)
-											}
-											className="flex-1 p-2 border rounded"
-											placeholder="Author"
-										/>
-										<input
-											type="number"
-											value={0}
-											onChange={e =>
-												handlePublisherChange(
-													0,
-													'order',
-													parseInt(e.target.value)
-												)
-											}
-											className="w-20 p-2 border rounded"
-											placeholder="Order"
-										/>
 									</div>
 								) : (
 									formData.publishers.map((publisher, index) => (
 										<div key={index} className="flex items-center gap-2">
 											<select
-												value={
-													publisher.publisher === 0
-														? ''
-														: String(publisher.publisher)
-												}
-												onChange={e =>
-													handlePublisherChange(
-														index,
-														'publisher',
-														e.target.value ? parseInt(e.target.value) : 0
-													)
-												}
+												value={publisher.publisher ?? ''}
+												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+													const value = e.target.value;
+													handlePublisherChange(index, 'publisher', value);
+												}}
 												className="flex-1 p-2 border rounded"
 											>
 												<option value="">Select Publisher</option>
-												{publishers &&
-													publishers.length > 0 &&
-													publishers.map(p => (
-														<option
-															key={`publisher-${p?.id || 'undefined'}`}
-															value={p?.id ? String(p.id) : ''}
-														>
-															{p?.name || ''}
-														</option>
-													))}
+												{publishers?.map(p => (
+													<option
+														key={`publisher-${p?.id ?? 'undefined'}`}
+														value={p?.id ?? ''}
+													>
+														{p?.name}
+													</option>
+												))}
 											</select>
+
 											<input
 												type="text"
-												value={publisher.author || ''}
-												onChange={e =>
-													handlePublisherChange(index, 'author', e.target.value)
-												}
+												name="author"
+												value={publisher.author}
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+													handlePublisherChange(
+														index,
+														'author',
+														e.target.value
+													);
+												}}
 												className="flex-1 p-2 border rounded"
-												placeholder="Author"
 											/>
+
 											<input
 												type="number"
-												value={publisher.order}
-												onChange={e =>
+												value={publisher.order ?? 0}
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+													const val = parseInt(e.target.value);
 													handlePublisherChange(
 														index,
 														'order',
-														parseInt(e.target.value)
-													)
-												}
+														isNaN(val) ? 0 : val
+													);
+												}}
 												className="w-20 p-2 border rounded"
 												placeholder="Order"
 											/>
+
 											{formData.publishers.length > 1 && (
 												<button
 													onClick={() => handleRemovePublisher(index)}
@@ -1239,38 +1322,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									))
 								)}
 							</div>
-						</div>
-
-						<div className="flex justify-end space-x-3 mt-6">
-							<button
-								type="button"
-								onClick={onClose}
-								disabled={isLoading}
-								className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
-								<span className="group-hover:text-brand-dark">Cancelar</span>
-							</button>
-							<button
-								type="submit"
-								disabled={isLoading}
-								className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								{isLoading ? (
-									<>
-										<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-										<span>Actualizando...</span>
-									</>
-								) : (
-									<>
-										<Save className="h-4 w-4 group-hover:text-brand-dark" />
-										<span className="group-hover:text-brand-dark">
-											Actualizar
-										</span>
-									</>
-								)}
-							</button>
-						</div>
+						</div> */}
 					</form>
 				)}
 			</div>

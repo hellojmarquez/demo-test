@@ -56,7 +56,12 @@ interface Track {
 	__v: number;
 	album_only: boolean;
 	artists: { artist: number; kind: string; order: number; name: string }[];
-	contributors: { contributor: number; role: number; order: number }[];
+	contributors: {
+		external_id: number;
+		name: string;
+		role: number;
+		order: number;
+	}[];
 	copyright_holder: string;
 	copyright_holder_year: string;
 	createdAt: string;
@@ -502,7 +507,7 @@ const Assets = () => {
 													{track.contributors
 														.map(
 															c =>
-																`Contributor ID: ${c.contributor}, Role: ${c.role}`
+																`Contributor ID: ${c.external_id}, Name: ${c.name}, Role: ${c.role}`
 														)
 														.join(', ')}
 												</span>
@@ -556,7 +561,22 @@ const Assets = () => {
 						...selectedTrack,
 						artists: selectedTrack.artists.map(artist => ({
 							...artist,
-							name: '',
+							artist: Number(artist.artist) || 0,
+							kind: String(artist.kind || 'main'),
+							order: Number(artist.order || 0),
+							name: String(artist.name || ''),
+						})),
+						contributors: selectedTrack.contributors.map(contributor => ({
+							external_id: Number(contributor.external_id) || 0,
+							name: String(contributor.name || ''),
+							role: Number(contributor.role) || 0,
+							order: Number(contributor.order) || 0,
+						})),
+						publishers: selectedTrack.publishers.map(publisher => ({
+							...publisher,
+							publisher: Number(publisher.publisher) || 0,
+							author: String(publisher.author || ''),
+							order: Number(publisher.order) || 0,
 						})),
 					}}
 					isOpen={isEditModalOpen}

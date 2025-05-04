@@ -51,6 +51,7 @@ interface TrackPublisher {
 }
 
 interface Track {
+	_id?: string;
 	name: string;
 	mix_name: string;
 	DA_ISRC: string;
@@ -63,14 +64,20 @@ interface Track {
 	dolby_atmos_resource: string;
 	explicit_content: boolean;
 	generate_isrc: boolean;
-	genre: { id: number; name: string };
-	subgenre: { id: number; name: string };
+	genre: {
+		id: number;
+		name: string;
+	};
+	subgenre: {
+		id: number;
+		name: string;
+	};
 	label_share: number | null;
 	language: string;
 	order: number | null;
 	publishers: TrackPublisher[];
 	release: string;
-	resource: string | null;
+	resource: string | File | null;
 	sample_start: string;
 	track_lenght: string | null;
 	vocals: string;
@@ -379,11 +386,18 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
-			setSelectedFile(file);
-			setFormData(prev => ({
-				...prev,
-				resource: file.name,
-			}));
+			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
+				setSelectedFile(file);
+				console.log(file);
+				setFormData(prev => ({
+					...prev,
+					resource: file,
+				}));
+				setUploadProgress(0);
+			} else {
+				alert('Por favor, selecciona un archivo WAV válido');
+				e.target.value = '';
+			}
 		}
 	};
 
@@ -647,8 +661,6 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 											timeFormat: 'HH:mm:ss',
 											blocks: [2, 2, 2],
 											delimiter: ':',
-											timeMaxMinute: 59,
-											timeMaxSecond: 59,
 										}}
 										name="track_lenght"
 										value={formData.track_lenght || ''}
@@ -671,8 +683,6 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 											timeFormat: 'HH:mm:ss',
 											blocks: [2, 2, 2],
 											delimiter: ':',
-											timeMaxMinute: 59,
-											timeMaxSecond: 59,
 										}}
 										name="sample_start"
 										value={formData.sample_start}
@@ -1102,51 +1112,42 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 							{/* File Upload Section */}
 							<div className="space-y-4">
-								<div className="flex justify-between items-center">
-									<h3 className="text-lg font-medium text-gray-900">
-										Resource
-									</h3>
-									<button
-										type="button"
-										onClick={() => fileInputRef.current?.click()}
-										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-									>
-										<Upload size={20} />
-									</button>
-									<input
-										ref={fileInputRef}
-										type="file"
-										onChange={handleFileChange}
-										className="hidden"
-										accept=".wav"
-									/>
-								</div>
-								{selectedFile && (
-									<div className="flex items-center justify-between p-4 bg-gray-50 rounded-md">
-										<span className="text-sm text-gray-600">
-											{selectedFile.name}
-										</span>
+								<div className="flex items-center gap-4">
+									<label className="block text-sm font-medium text-gray-700">
+										Archivo WAV
+									</label>
+									<div>
+										<input
+											type="file"
+											ref={fileInputRef}
+											onChange={handleFileChange}
+											accept=".wav"
+											className="hidden"
+										/>
 										<button
 											type="button"
-											onClick={() => {
-												setSelectedFile(null);
-												setFormData(prev => ({
-													...prev,
-													resource: null,
-												}));
-											}}
-											className="text-red-500 hover:text-red-700"
+											onClick={() => fileInputRef.current?.click()}
+											className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
 										>
-											<XCircle size={16} />
+											<Upload className="h-4 w-4 mr-2" />
+											Subir archivo
 										</button>
 									</div>
-								)}
-								{uploadProgress > 0 && (
-									<div className="w-full bg-gray-200 rounded-full h-2.5">
+								</div>
+								{uploadProgress > 0 && uploadProgress < 100 && (
+									<div className="w-full bg-gray-200 rounded-full h-1.5">
 										<div
-											className="bg-blue-600 h-2.5 rounded-full"
+											className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
 											style={{ width: `${uploadProgress}%` }}
 										></div>
+									</div>
+								)}
+								{formData.resource && (
+									<div className="text-sm text-gray-500 mt-1">
+										Archivo actual:{' '}
+										{typeof formData.resource === 'string'
+											? formData.resource
+											: formData.resource.name}
 									</div>
 								)}
 							</div>

@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, XCircle, Plus, Trash2, Upload } from 'lucide-react';
+import InputMask from 'react-input-mask';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import 'react-clock/dist/Clock.css';
+import Cleave from 'cleave.js/react';
+import 'cleave.js/dist/addons/cleave-phone.us';
 
 interface Artist {
-	_id: string;
-	external_id: string;
+	external_id: number;
 	name: string;
 	role: string;
 }
@@ -12,16 +17,13 @@ interface Artist {
 interface Contributor {
 	external_id: number;
 	name: string;
-	role: number;
-	order: number;
+	role: string;
 }
 
 interface Publisher {
-	id: number;
+	external_id: number;
 	name: string;
-	publisher: number;
-	author: string;
-	order: number;
+	role: string;
 }
 
 interface Role {
@@ -29,22 +31,10 @@ interface Role {
 	name: string;
 }
 
-interface Release {
-	_id: string;
-	name: string;
-	picture: {
-		base64: string;
-	};
-}
-
-interface Genre {
-	id: number;
-	name: string;
-	subgenres: Subgenre[];
-}
-
-interface Subgenre {
-	id: number;
+interface TrackArtist {
+	artist: number;
+	kind: string;
+	order: number;
 	name: string;
 }
 
@@ -55,46 +45,41 @@ interface TrackContributor {
 	order: number;
 }
 
+interface TrackPublisher {
+	name: string;
+	order: number;
+}
+
 interface Track {
-	_id: string;
 	name: string;
 	mix_name: string;
 	DA_ISRC: string;
 	ISRC: string;
-	__v: number;
 	album_only: boolean;
-	artists: { artist: number; kind: string; order: number; name: string }[];
+	artists: TrackArtist[];
 	contributors: TrackContributor[];
 	copyright_holder: string;
 	copyright_holder_year: string;
-	createdAt: string;
 	dolby_atmos_resource: string;
 	explicit_content: boolean;
 	generate_isrc: boolean;
-	genre: {
-		id: number;
-		name: string;
-	};
-	subgenre: {
-		id: number;
-		name: string;
-	};
-	label_share: string;
+	genre: { id: number; name: string };
+	subgenre: { id: number; name: string };
+	label_share: number | null;
 	language: string;
 	order: number | null;
-	publishers: { publisher: number; author: string; order: number }[];
+	publishers: TrackPublisher[];
 	release: string;
-	resource: string | File | null;
+	resource: string | null;
 	sample_start: string;
-	track_lenght: string;
-	updatedAt: string;
+	track_lenght: string | null;
 	vocals: string;
 }
 
 interface CreateTrackModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onSave: (newTrack: Track) => void;
+	onSave: (track: Partial<Track>) => Promise<void>;
 }
 
 const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
@@ -102,6 +87,18 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 	onClose,
 	onSave,
 }) => {
+	const [isLoading, setIsLoading] = useState(false);
+	const [artists, setArtists] = useState<Artist[]>([]);
+	const [contributors, setContributors] = useState<Contributor[]>([]);
+	const [publishers, setPublishers] = useState<Publisher[]>([]);
+	const [roles, setRoles] = useState<Role[]>([]);
+	const [error, setError] = useState<string | null>(null);
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [uploadProgress, setUploadProgress] = useState<number>(0);
+	const fileInputRef = React.useRef<HTMLInputElement>(null);
+	const trackLengthRef = React.useRef<HTMLInputElement>(null);
+	const sampleStartRef = React.useRef<HTMLInputElement>(null);
+
 	const [formData, setFormData] = useState<Partial<Track>>({
 		name: '',
 		mix_name: '',
@@ -117,36 +114,256 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 		generate_isrc: false,
 		genre: { id: 0, name: '' },
 		subgenre: { id: 0, name: '' },
-		label_share: '',
+		label_share: null,
 		language: '',
 		order: null,
 		publishers: [],
 		release: '',
 		resource: null,
 		sample_start: '',
-		track_lenght: '',
+		track_lenght: null,
 		vocals: '',
 	});
 
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setIsLoading(true);
+				setError(null);
+
+				// Fetch artists
+				const artistsRes = await fetch('/api/admin/getAllArtists');
+				const artistsData = await artistsRes.json();
+				if (artistsData.success) {
+					// Filter artists to only include those with role 'artista'
+					const filteredArtists = artistsData.data.filter(
+						(user: any) => user.role === 'artista'
+					);
+					setArtists(filteredArtists);
+
+					// Filter contributors from the same response
+					const filteredContributors = artistsData.data.filter(
+						(user: any) => user.role === 'contributor'
+					);
+					setContributors(filteredContributors);
+
+					// Filter publishers from the same response
+					const filteredPublishers = artistsData.data
+						.filter((user: any) => user.role === 'publisher')
+						.map((p: { external_id: string; name: string; role: string }) => ({
+							external_id: parseInt(p.external_id),
+							name: p.name,
+							role: p.role,
+						}));
+					setPublishers(filteredPublishers);
+				}
+
+				// Fetch roles
+				const rolesRes = await fetch('/api/admin/getContributorRoles');
+				const rolesData = await rolesRes.json();
+				if (rolesData.success) {
+					setRoles(rolesData.data);
+				}
+			} catch (err) {
+				console.error('Error fetching data:', err);
+				setError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		if (isOpen) {
+			fetchData();
+		}
+	}, [isOpen]);
+
+	const handleAddArtist = () => {
+		setFormData(prev => ({
+			...prev,
+			artists: [
+				...(prev.artists || []),
+				{ artist: 0, kind: '', order: (prev.artists || []).length, name: '' },
+			],
+		}));
+	};
+
+	const handleAddContributor = () => {
+		setFormData(prev => ({
+			...prev,
+			contributors: [
+				...(prev.contributors || []),
+				{
+					external_id: 0,
+					name: '',
+					role: 0,
+					order: (prev.contributors || []).length,
+				},
+			],
+		}));
+	};
+
+	const handleAddPublisher = () => {
+		setFormData(prev => ({
+			...prev,
+			publishers: [
+				...(prev.publishers || []),
+				{ name: '', order: (prev.publishers || []).length },
+			],
+		}));
+	};
+
+	const handleRemoveArtist = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			artists: (prev.artists || []).filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleRemoveContributor = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			contributors: (prev.contributors || []).filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleRemovePublisher = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			publishers: (prev.publishers || []).filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleArtistChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData(prev => {
+			const newArtists = [...(prev.artists || [])];
+			if (!newArtists[index]) {
+				newArtists[index] = { artist: 0, kind: '', order: 0, name: '' };
+			}
+
+			if (field === 'artist' && typeof value === 'string') {
+				const selectedArtist = artists.find(
+					a => a.external_id === parseInt(value)
+				);
+				if (selectedArtist) {
+					newArtists[index] = {
+						...newArtists[index],
+						artist: parseInt(value),
+						name: selectedArtist.name,
+					};
+				}
+			} else if (field === 'kind' || field === 'order') {
+				newArtists[index] = { ...newArtists[index], [field]: value };
+			}
+
+			return { ...prev, artists: newArtists };
+		});
+	};
+
+	const handleContributorChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData(prev => {
+			const newContributors = [...(prev.contributors || [])];
+			if (!newContributors[index]) {
+				newContributors[index] = {
+					external_id: 0,
+					name: '',
+					role: 0,
+					order: 0,
+				};
+			}
+
+			if (field === 'name') {
+				const selectedContributor = contributors.find(c => c.name === value);
+				if (selectedContributor) {
+					newContributors[index] = {
+						...newContributors[index],
+						external_id: selectedContributor.external_id,
+						name: selectedContributor.name,
+					};
+				}
+			} else if (field === 'role' || field === 'order') {
+				newContributors[index] = {
+					...newContributors[index],
+					[field]: typeof value === 'string' ? parseInt(value) : value,
+				};
+			}
+
+			return { ...prev, contributors: newContributors };
+		});
+	};
+
+	const handlePublisherChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData(prev => {
+			const newPublishers = [...(prev.publishers || [])];
+			if (!newPublishers[index]) {
+				newPublishers[index] = { name: '', order: 0 };
+			}
+
+			if (field === 'name') {
+				newPublishers[index] = {
+					...newPublishers[index],
+					name: (value as string) || '',
+				};
+			} else if (field === 'order') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					newPublishers[index] = {
+						...newPublishers[index],
+						order: numValue,
+					};
+				}
+			}
+
+			return { ...prev, publishers: newPublishers };
+		});
+	};
+
+	const handleTimeChange = (name: string, value: string) => {
+		setFormData(prev => ({
+			...prev,
+			[name]: value,
+		}));
+	};
 
 	const handleChange = (
 		e: React.ChangeEvent<
 			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 		>
 	) => {
-		const { name, value, type } = e.target;
-		setFormData(prev => ({
-			...prev,
-			[name]:
-				type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-		}));
+		const { name, value } = e.target;
+
+		if (name === 'label_share') {
+			const numericValue = value === '' ? null : parseFloat(value);
+			setFormData(prev => ({
+				...prev,
+				label_share: numericValue,
+			}));
+		} else if (name === 'track_lenght' || name === 'sample_start') {
+			// Handle time input change
+			handleTimeChange(name, value);
+		} else {
+			setFormData(prev => ({
+				...prev,
+				[name]: value,
+			}));
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setIsSubmitting(true);
+		setIsLoading(true);
 		setError(null);
 
 		try {
@@ -155,7 +372,18 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 		} catch (err: any) {
 			setError(err.message || 'Error al crear el track');
 		} finally {
-			setIsSubmitting(false);
+			setIsLoading(false);
+		}
+	};
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			setSelectedFile(file);
+			setFormData(prev => ({
+				...prev,
+				resource: file.name,
+			}));
 		}
 	};
 
@@ -166,249 +394,127 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
-					className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-					onClick={onClose}
+					className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
 				>
 					<motion.div
 						initial={{ scale: 0.9, opacity: 0 }}
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0.9, opacity: 0 }}
-						transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-						className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-						onClick={e => e.stopPropagation()}
+						className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
 					>
-						<div className="p-6 border-b border-gray-200 flex justify-between items-center">
-							<h2 className="text-xl font-semibold text-gray-800">
-								Crear Track
-							</h2>
+						<div className="flex justify-between items-center mb-6">
+							<h2 className="text-2xl font-bold">Crear Track</h2>
 							<button
 								onClick={onClose}
-								className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+								className="text-gray-500 hover:text-gray-700"
 							>
-								<X size={20} className="text-gray-500" />
+								<X size={24} />
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-6 space-y-6">
+						<form onSubmit={handleSubmit} className="space-y-6">
 							{error && (
-								<div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+								<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
 									{error}
 								</div>
 							)}
 
-							<div className="grid grid-cols-2 gap-6">
-								{/* Información Básica */}
-								<div className="space-y-4">
-									<h3 className="text-lg font-medium text-gray-700">
-										Información Básica
-									</h3>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Nombre del Track
-										</label>
-										<input
-											type="text"
-											name="name"
-											value={formData.name}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-											required
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Nombre del Mix
-										</label>
-										<input
-											type="text"
-											name="mix_name"
-											value={formData.mix_name}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											ISRC
-										</label>
-										<input
-											type="text"
-											name="ISRC"
-											value={formData.ISRC}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											DA ISRC
-										</label>
-										<input
-											type="text"
-											name="DA_ISRC"
-											value={formData.DA_ISRC}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										/>
-									</div>
-								</div>
-
-								{/* Detalles del Track */}
-								<div className="space-y-4">
-									<h3 className="text-lg font-medium text-gray-700">
-										Detalles del Track
-									</h3>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Duración
-										</label>
-										<input
-											type="text"
-											name="track_lenght"
-											value={formData.track_lenght}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-											placeholder="00:00:00"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Inicio de la Muestra
-										</label>
-										<input
-											type="text"
-											name="sample_start"
-											value={formData.sample_start}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-											placeholder="00:00:00"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Vocalista
-										</label>
-										<input
-											type="text"
-											name="vocals"
-											value={formData.vocals}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Idioma
-										</label>
-										<input
-											type="text"
-											name="language"
-											value={formData.language}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										/>
-									</div>
-								</div>
-							</div>
-
-							<div className="grid grid-cols-2 gap-6">
-								{/* Copyright */}
-								<div className="space-y-4">
-									<h3 className="text-lg font-medium text-gray-700">
-										Copyright
-									</h3>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Titular del Copyright
-										</label>
-										<input
-											type="text"
-											name="copyright_holder"
-											value={formData.copyright_holder}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Año del Copyright
-										</label>
-										<input
-											type="text"
-											name="copyright_holder_year"
-											value={formData.copyright_holder_year}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										/>
-									</div>
-								</div>
-
-								{/* Label Share */}
-								<div className="space-y-4">
-									<h3 className="text-lg font-medium text-gray-700">
-										Label Share
-									</h3>
-									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Porcentaje de Share
-										</label>
-										<input
-											type="text"
-											name="label_share"
-											value={formData.label_share}
-											onChange={handleChange}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-											placeholder="Ej: 50%"
-										/>
-									</div>
-								</div>
-							</div>
-
-							{/* Opciones */}
-							<div className="space-y-4">
-								<h3 className="text-lg font-medium text-gray-700">Opciones</h3>
-								<div className="flex items-center space-x-4">
-									<label className="flex items-center space-x-2">
-										<input
-											type="checkbox"
-											name="album_only"
-											checked={formData.album_only}
-											onChange={handleChange}
-											className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-										/>
-										<span className="text-sm text-gray-700">Solo Álbum</span>
-									</label>
-									<label className="flex items-center space-x-2">
-										<input
-											type="checkbox"
-											name="explicit_content"
-											checked={formData.explicit_content}
-											onChange={handleChange}
-											className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-										/>
-										<span className="text-sm text-gray-700">
-											Contenido Explícito
-										</span>
-									</label>
-									<label className="flex items-center space-x-2">
-										<input
-											type="checkbox"
-											name="generate_isrc"
-											checked={formData.generate_isrc}
-											onChange={handleChange}
-											className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-										/>
-										<span className="text-sm text-gray-700">Generar ISRC</span>
-									</label>
-								</div>
-							</div>
-
-							{/* Archivo */}
-							<div className="space-y-4">
-								<h3 className="text-lg font-medium text-gray-700">Archivo</h3>
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Recurso Dolby Atmos
+										Nombre
+									</label>
+									<input
+										type="text"
+										name="name"
+										value={formData.name}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										required
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Mix Name
+									</label>
+									<input
+										type="text"
+										name="mix_name"
+										value={formData.mix_name}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										DA ISRC
+									</label>
+									<input
+										type="text"
+										name="DA_ISRC"
+										value={formData.DA_ISRC}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										ISRC
+									</label>
+									<input
+										type="text"
+										name="ISRC"
+										value={formData.ISRC}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Album Only
+									</label>
+									<input
+										type="checkbox"
+										name="album_only"
+										checked={formData.album_only}
+										onChange={handleChange}
+										className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Copyright Holder
+									</label>
+									<input
+										type="text"
+										name="copyright_holder"
+										value={formData.copyright_holder}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Copyright Holder Year
+									</label>
+									<input
+										type="text"
+										name="copyright_holder_year"
+										value={formData.copyright_holder_year}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Dolby Atmos Resource
 									</label>
 									<input
 										type="text"
@@ -418,39 +524,659 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 									/>
 								</div>
+
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Archivo del Track
+										Explicit Content
 									</label>
 									<input
-										type="file"
-										onChange={e => {
-											if (e.target.files && e.target.files[0]) {
-												setFormData(prev => ({
-													...prev,
-													resource: e.target.files![0],
-												}));
-											}
+										type="checkbox"
+										name="explicit_content"
+										checked={formData.explicit_content}
+										onChange={handleChange}
+										className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Generate ISRC
+									</label>
+									<input
+										type="checkbox"
+										name="generate_isrc"
+										checked={formData.generate_isrc}
+										onChange={handleChange}
+										className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Genre
+									</label>
+									<select
+										name="genre"
+										value={formData.genre?.id}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									>
+										<option value="">Select a genre</option>
+										{/* Add genre options here */}
+									</select>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Subgenre
+									</label>
+									<select
+										name="subgenre"
+										value={formData.subgenre?.id}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									>
+										<option value="">Select a subgenre</option>
+										{/* Add subgenre options here */}
+									</select>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Label Share
+									</label>
+									<input
+										type="number"
+										name="label_share"
+										value={formData.label_share || ''}
+										onChange={handleChange}
+										step="0.01"
+										min="0"
+										max="100"
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Language
+									</label>
+									<input
+										type="text"
+										name="language"
+										value={formData.language}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Order
+									</label>
+									<input
+										type="number"
+										name="order"
+										value={formData.order || ''}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Release
+									</label>
+									<input
+										type="text"
+										name="release"
+										value={formData.release}
+										onChange={handleChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Track Length
+									</label>
+									<Cleave
+										options={{
+											time: true,
+											timePattern: ['h', 'm', 's'],
+											timeFormat: 'HH:mm:ss',
+											blocks: [2, 2, 2],
+											delimiter: ':',
+											timeMaxMinute: 59,
+											timeMaxSecond: 59,
 										}}
+										name="track_lenght"
+										value={formData.track_lenght || ''}
+										onChange={e =>
+											handleTimeChange('track_lenght', e.target.value)
+										}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										placeholder="00:00:00"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Sample Start
+									</label>
+									<Cleave
+										options={{
+											time: true,
+											timePattern: ['h', 'm', 's'],
+											timeFormat: 'HH:mm:ss',
+											blocks: [2, 2, 2],
+											delimiter: ':',
+											timeMaxMinute: 59,
+											timeMaxSecond: 59,
+										}}
+										name="sample_start"
+										value={formData.sample_start}
+										onChange={e =>
+											handleTimeChange('sample_start', e.target.value)
+										}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										placeholder="00:00:00"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Vocals
+									</label>
+									<input
+										type="text"
+										name="vocals"
+										value={formData.vocals}
+										onChange={handleChange}
 										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 									/>
 								</div>
 							</div>
 
-							<div className="flex justify-end space-x-4 pt-6">
+							{/* Artists Section */}
+							<div className="space-y-4">
+								<div className="flex justify-between items-center">
+									<h3 className="text-lg font-medium text-gray-900">
+										Artistas
+									</h3>
+									<button
+										type="button"
+										onClick={handleAddArtist}
+										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+									>
+										<Plus size={20} />
+									</button>
+								</div>
+								<div className="space-y-4">
+									{formData.artists?.length === 0 ? (
+										<div className="flex items-center gap-2">
+											<select
+												value={formData.artists?.[0]?.artist ?? ''}
+												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+													const value = e.target.value;
+													if (value) {
+														handleArtistChange(0, 'artist', value);
+													}
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Artist</option>
+												{artists?.map(a => (
+													<option
+														key={`artist-${a?.external_id || ''}`}
+														value={a?.external_id || ''}
+													>
+														{a?.name || ''}
+													</option>
+												))}
+											</select>
+
+											<select
+												value={formData.artists?.[0]?.kind ?? ''}
+												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+													handleArtistChange(0, 'kind', e.target.value);
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Kind</option>
+												<option value="main">Main</option>
+												<option value="featuring">Featuring</option>
+												<option value="remixer">Remixer</option>
+											</select>
+
+											<input
+												type="number"
+												value={
+													typeof formData.artists?.[0]?.order === 'number'
+														? formData.artists[0].order
+														: 0
+												}
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+													const val = parseInt(e.target.value);
+													handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
+												}}
+												className="w-20 p-2 border rounded"
+												placeholder="Order"
+											/>
+										</div>
+									) : (
+										formData.artists?.map((artist, index) => (
+											<div key={index} className="flex items-center gap-2">
+												<select
+													value={artist.artist ?? ''}
+													onChange={(
+														e: React.ChangeEvent<HTMLSelectElement>
+													) => {
+														const value = e.target.value;
+														if (value) {
+															handleArtistChange(index, 'artist', value);
+														}
+													}}
+													className="flex-1 p-2 border rounded"
+												>
+													<option value="">Select Artist</option>
+													{artists?.map(a => (
+														<option
+															key={`artist-${a?.external_id || ''}`}
+															value={a?.external_id || ''}
+														>
+															{a?.name || ''}
+														</option>
+													))}
+												</select>
+
+												<select
+													value={artist.kind ?? ''}
+													onChange={(
+														e: React.ChangeEvent<HTMLSelectElement>
+													) => {
+														handleArtistChange(index, 'kind', e.target.value);
+													}}
+													className="flex-1 p-2 border rounded"
+												>
+													<option value="">Select Kind</option>
+													<option value="main">Main</option>
+													<option value="featuring">Featuring</option>
+													<option value="remixer">Remixer</option>
+												</select>
+
+												<input
+													type="number"
+													value={
+														typeof artist.order === 'number' ? artist.order : 0
+													}
+													onChange={(
+														e: React.ChangeEvent<HTMLInputElement>
+													) => {
+														const val = parseInt(e.target.value);
+														handleArtistChange(
+															index,
+															'order',
+															isNaN(val) ? 0 : val
+														);
+													}}
+													className="w-20 p-2 border rounded"
+													placeholder="Order"
+												/>
+
+												{formData.artists && formData.artists.length > 1 && (
+													<button
+														onClick={() => handleRemoveArtist(index)}
+														className="p-2 text-red-600 hover:text-red-800"
+													>
+														<Trash2 size={20} />
+													</button>
+												)}
+											</div>
+										))
+									)}
+								</div>
+							</div>
+
+							{/* Contributors Section */}
+							<div className="space-y-4">
+								<div className="flex justify-between items-center">
+									<h3 className="text-lg font-medium text-gray-900">
+										Contributors
+									</h3>
+									<button
+										type="button"
+										onClick={handleAddContributor}
+										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+									>
+										<Plus size={20} />
+									</button>
+								</div>
+								<div className="space-y-4">
+									{formData.contributors?.length === 0 ? (
+										<div className="flex items-center gap-2">
+											<select
+												value={formData.contributors?.[0]?.name || ''}
+												onChange={e => {
+													const selectValue = e.target.value;
+													if (selectValue && selectValue !== '') {
+														handleContributorChange(0, 'name', selectValue);
+													}
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Contributor</option>
+												{contributors?.map((c, idx) => (
+													<option
+														key={`contributor-0-${idx}-${c?.name || 'empty'}`}
+														value={c?.name || ''}
+													>
+														{c?.name || ''}
+													</option>
+												))}
+											</select>
+
+											<select
+												value={formData.contributors?.[0]?.role || ''}
+												onChange={e => {
+													const value = e.target.value;
+													if (value && value !== '') {
+														handleContributorChange(0, 'role', value);
+													}
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Role</option>
+												{roles?.map((r, idx) => (
+													<option
+														key={`role-0-${idx}-${r?.id || 'empty'}`}
+														value={r?.id ? String(r.id) : ''}
+													>
+														{r?.name || ''}
+													</option>
+												))}
+											</select>
+
+											<input
+												type="number"
+												value={formData.contributors?.[0]?.order ?? 0}
+												onChange={e => {
+													const val = parseInt(e.target.value);
+													if (!isNaN(val)) {
+														handleContributorChange(0, 'order', val);
+													}
+												}}
+												className="w-20 p-2 border rounded"
+												placeholder="Order"
+											/>
+										</div>
+									) : (
+										formData.contributors?.map((contributor, index) => (
+											<div
+												key={`contributor-row-${index}`}
+												className="flex items-center gap-2"
+											>
+												<select
+													value={contributor.name || ''}
+													onChange={e => {
+														const selectValue = e.target.value;
+														if (selectValue && selectValue !== '') {
+															handleContributorChange(
+																index,
+																'name',
+																selectValue
+															);
+														}
+													}}
+													className="flex-1 p-2 border rounded"
+												>
+													<option value="">Select Contributor</option>
+													{contributors?.map((c, idx) => (
+														<option
+															key={`contributor-${index}-${idx}-${
+																c?.name || 'empty'
+															}`}
+															value={c?.name || ''}
+														>
+															{c?.name || ''}
+														</option>
+													))}
+												</select>
+
+												<select
+													value={contributor.role || ''}
+													onChange={e => {
+														const value = e.target.value;
+														if (value && value !== '') {
+															handleContributorChange(index, 'role', value);
+														}
+													}}
+													className="flex-1 p-2 border rounded"
+												>
+													<option value="">Select Role</option>
+													{roles?.map((r, idx) => (
+														<option
+															key={`role-${index}-${idx}-${r?.id || 'empty'}`}
+															value={r?.id ? String(r.id) : ''}
+														>
+															{r?.name || ''}
+														</option>
+													))}
+												</select>
+
+												<input
+													type="number"
+													value={contributor.order ?? 0}
+													onChange={e => {
+														const val = parseInt(e.target.value);
+														if (!isNaN(val)) {
+															handleContributorChange(index, 'order', val);
+														}
+													}}
+													className="w-20 p-2 border rounded"
+													placeholder="Order"
+												/>
+
+												{formData.contributors &&
+													formData.contributors.length > 1 && (
+														<button
+															onClick={() => handleRemoveContributor(index)}
+															className="p-2 text-red-600 hover:text-red-800"
+														>
+															<Trash2 size={20} />
+														</button>
+													)}
+											</div>
+										))
+									)}
+								</div>
+							</div>
+
+							{/* Publishers Section */}
+							<div className="space-y-4">
+								<div className="flex justify-between items-center">
+									<h3 className="text-lg font-medium text-gray-900">
+										Publishers
+									</h3>
+									<button
+										type="button"
+										onClick={handleAddPublisher}
+										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+									>
+										<Plus size={20} />
+									</button>
+								</div>
+								<div className="space-y-4">
+									{formData.publishers?.length === 0 ? (
+										<div className="flex items-center gap-2">
+											<select
+												value={formData.publishers?.[0]?.name || ''}
+												onChange={e => {
+													const value = e.target.value;
+													if (value && value !== '') {
+														handlePublisherChange(0, 'name', value);
+													}
+												}}
+												className="flex-1 p-2 border rounded"
+											>
+												<option value="">Select Publisher</option>
+												{publishers?.map((p, idx) => (
+													<option
+														key={`publisher-0-${idx}-${p?.name || 'empty'}`}
+														value={p?.name || ''}
+													>
+														{p?.name || ''}
+													</option>
+												))}
+											</select>
+
+											<input
+												type="number"
+												value={formData.publishers?.[0]?.order ?? 0}
+												onChange={e => {
+													const val = parseInt(e.target.value);
+													if (!isNaN(val)) {
+														handlePublisherChange(0, 'order', val);
+													}
+												}}
+												className="w-20 p-2 border rounded"
+												placeholder="Order"
+											/>
+										</div>
+									) : (
+										formData.publishers?.map((publisher, index) => (
+											<div
+												key={`publisher-row-${index}`}
+												className="flex items-center gap-2"
+											>
+												<select
+													value={publisher.name || ''}
+													onChange={e => {
+														const value = e.target.value;
+														if (value && value !== '') {
+															handlePublisherChange(index, 'name', value);
+														}
+													}}
+													className="flex-1 p-2 border rounded"
+												>
+													<option value="">Select Publisher</option>
+													{publishers?.map((p, idx) => (
+														<option
+															key={`publisher-${index}-${idx}-${
+																p?.name || 'empty'
+															}`}
+															value={p?.name || ''}
+														>
+															{p?.name || ''}
+														</option>
+													))}
+												</select>
+
+												<input
+													type="number"
+													value={publisher.order ?? 0}
+													onChange={e => {
+														const val = parseInt(e.target.value);
+														if (!isNaN(val)) {
+															handlePublisherChange(index, 'order', val);
+														}
+													}}
+													className="w-20 p-2 border rounded"
+													placeholder="Order"
+												/>
+
+												{formData.publishers &&
+													formData.publishers.length > 1 && (
+														<button
+															onClick={() => handleRemovePublisher(index)}
+															className="p-2 text-red-600 hover:text-red-800"
+														>
+															<Trash2 size={20} />
+														</button>
+													)}
+											</div>
+										))
+									)}
+								</div>
+							</div>
+
+							{/* File Upload Section */}
+							<div className="space-y-4">
+								<div className="flex justify-between items-center">
+									<h3 className="text-lg font-medium text-gray-900">
+										Resource
+									</h3>
+									<button
+										type="button"
+										onClick={() => fileInputRef.current?.click()}
+										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+									>
+										<Upload size={20} />
+									</button>
+									<input
+										ref={fileInputRef}
+										type="file"
+										onChange={handleFileChange}
+										className="hidden"
+										accept=".wav"
+									/>
+								</div>
+								{selectedFile && (
+									<div className="flex items-center justify-between p-4 bg-gray-50 rounded-md">
+										<span className="text-sm text-gray-600">
+											{selectedFile.name}
+										</span>
+										<button
+											type="button"
+											onClick={() => {
+												setSelectedFile(null);
+												setFormData(prev => ({
+													...prev,
+													resource: null,
+												}));
+											}}
+											className="text-red-500 hover:text-red-700"
+										>
+											<XCircle size={16} />
+										</button>
+									</div>
+								)}
+								{uploadProgress > 0 && (
+									<div className="w-full bg-gray-200 rounded-full h-2.5">
+										<div
+											className="bg-blue-600 h-2.5 rounded-full"
+											style={{ width: `${uploadProgress}%` }}
+										></div>
+									</div>
+								)}
+							</div>
+
+							<div className="flex justify-end space-x-4">
 								<button
 									type="button"
 									onClick={onClose}
-									className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+									disabled={isLoading}
+									className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-									Cancelar
+									<X size={16} />
+									Cancel
 								</button>
 								<button
 									type="submit"
-									disabled={isSubmitting}
-									className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={isLoading}
+									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-									{isSubmitting ? 'Guardando...' : 'Guardar'}
+									{isLoading ? (
+										<>
+											<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+											Saving...
+										</>
+									) : (
+										<>
+											<Save size={16} />
+											Save
+										</>
+									)}
 								</button>
 							</div>
 						</form>

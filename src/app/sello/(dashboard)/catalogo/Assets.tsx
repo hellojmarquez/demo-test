@@ -25,8 +25,10 @@ import {
 	Copyright,
 	Share2,
 	Headphones,
+	Plus,
 } from 'lucide-react';
 import UpdateTrackModal from '@/components/UpdateTrackModal';
+import CreateTrackModal from '@/components/CreateTrackModal';
 
 interface Artist {
 	name: string;
@@ -96,6 +98,7 @@ const Assets = () => {
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
 	useEffect(() => {
 		fetch('/api/admin/getAllTracks')
@@ -208,8 +211,29 @@ const Assets = () => {
 		return release.name;
 	};
 
+	const handleCreateTrack = async (newTrack: Track) => {
+		try {
+			// TODO: Implement track creation logic
+			console.log('Creating track:', newTrack);
+			setIsCreateModalOpen(false);
+		} catch (error) {
+			console.error('Error creating track:', error);
+		}
+	};
+
 	return (
-		<div className="space-y-6">
+		<div className="p-6">
+			<div className="flex justify-between items-center mb-6">
+				<h1 className="text-2xl font-semibold text-gray-800">Tracks</h1>
+				<button
+					onClick={() => setIsCreateModalOpen(true)}
+					className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
+				>
+					<Plus size={18} className="text-brand-light group-hover:text-white" />
+					<span className="font-medium">Crear Track</span>
+				</button>
+			</div>
+
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
@@ -555,30 +579,15 @@ const Assets = () => {
 				))
 			)}
 
-			{selectedTrack && (
+			<CreateTrackModal
+				isOpen={isCreateModalOpen}
+				onClose={() => setIsCreateModalOpen(false)}
+				onSave={handleCreateTrack}
+			/>
+
+			{isEditModalOpen && selectedTrack && (
 				<UpdateTrackModal
-					track={{
-						...selectedTrack,
-						artists: selectedTrack.artists.map(artist => ({
-							...artist,
-							artist: Number(artist.artist) || 0,
-							kind: String(artist.kind || 'main'),
-							order: Number(artist.order || 0),
-							name: String(artist.name || ''),
-						})),
-						contributors: selectedTrack.contributors.map(contributor => ({
-							external_id: Number(contributor.external_id) || 0,
-							name: String(contributor.name || ''),
-							role: Number(contributor.role) || 0,
-							order: Number(contributor.order) || 0,
-						})),
-						publishers: selectedTrack.publishers.map(publisher => ({
-							...publisher,
-							publisher: Number(publisher.publisher) || 0,
-							author: String(publisher.author || ''),
-							order: Number(publisher.order) || 0,
-						})),
-					}}
+					track={selectedTrack}
 					isOpen={isEditModalOpen}
 					onClose={() => {
 						setIsEditModalOpen(false);

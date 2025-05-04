@@ -60,10 +60,18 @@ const SingleTrackSchema = new mongoose.Schema(
 			type: Number,
 			default: null,
 		},
+		external_id: {
+			type: Number,
+			default: 0,
+		},
 		release: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: 'Release',
 			default: null,
+		},
+		status: {
+			type: String,
+			default: 'Borrador',
 		},
 		name: {
 			type: String,

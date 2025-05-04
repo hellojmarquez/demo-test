@@ -23,12 +23,6 @@ interface Publisher {
 	order: number;
 }
 
-interface PublisherForm {
-	publisher: number;
-	author: string;
-	order: number;
-}
-
 interface Role {
 	id: number;
 	name: string;

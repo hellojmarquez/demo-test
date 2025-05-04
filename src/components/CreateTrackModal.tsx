@@ -84,6 +84,25 @@ interface Track {
 	vocals: string;
 }
 
+interface Release {
+	_id?: string;
+	name: string;
+	picture?: {
+		base64: string;
+	};
+}
+
+interface Genre {
+	id: number;
+	name: string;
+	subgenres?: Subgenre[];
+}
+
+interface Subgenre {
+	id: number;
+	name: string;
+}
+
 interface CreateTrackModalProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -106,6 +125,9 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
 	const trackLengthRef = React.useRef<HTMLInputElement>(null);
 	const sampleStartRef = React.useRef<HTMLInputElement>(null);
+	const [releases, setReleases] = useState<Release[]>([]);
+	const [genres, setGenres] = useState<Genre[]>([]);
+	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 
 	const [formData, setFormData] = useState<Partial<Track>>({
 		name: '',
@@ -138,6 +160,20 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 			try {
 				setIsLoading(true);
 				setError(null);
+
+				// Fetch releases
+				const releasesRes = await fetch('/api/admin/getAllReleases');
+				const releasesData = await releasesRes.json();
+				if (releasesData.success) {
+					setReleases(releasesData.data);
+				}
+
+				// Fetch genres
+				const genresRes = await fetch('/api/admin/getAllGenres');
+				const genresData = await genresRes.json();
+				if (genresData.success && Array.isArray(genresData.data)) {
+					setGenres(genresData.data);
+				}
 
 				// Fetch artists
 				const artistsRes = await fetch('/api/admin/getAllArtists');
@@ -365,9 +401,44 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 		>
 	) => {
-		const { name, value } = e.target;
-
-		if (name === 'label_share') {
+		const { name, value, type } = e.target;
+		if (type === 'checkbox') {
+			const checkbox = e.target as HTMLInputElement;
+			setFormData(prev => ({
+				...prev,
+				[name]: checkbox.checked,
+			}));
+		} else if (name === 'genre') {
+			// Manejo especial para el cambio de género
+			const genreId = parseInt(value);
+			const selectedGenre = genres.find(g => g.id === genreId);
+			setFormData(prev => ({
+				...prev,
+				genre: {
+					id: genreId,
+					name: selectedGenre ? selectedGenre.name : '',
+				},
+				// Reset subgenre when genre changes
+				subgenre: {
+					id: 0,
+					name: '',
+				},
+			}));
+		} else if (name === 'subgenre') {
+			// Manejo especial para el cambio de subgénero
+			const subgenreId = parseInt(value);
+			const currentGenre = genres.find(g => g.id === formData.genre?.id);
+			const selectedSubgenre = currentGenre?.subgenres?.find(
+				s => s.id === subgenreId
+			);
+			setFormData(prev => ({
+				...prev,
+				subgenre: {
+					id: subgenreId,
+					name: selectedSubgenre ? selectedSubgenre.name : '',
+				},
+			}));
+		} else if (name === 'label_share') {
 			const numericValue = value === '' ? null : parseFloat(value);
 			setFormData(prev => ({
 				...prev,
@@ -432,375 +503,437 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 						exit={{ scale: 0.9, opacity: 0 }}
 						className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
 					>
-						<div className="flex justify-between items-center mb-6">
-							<h2 className="text-2xl font-bold">Crear Track</h2>
+						<div className="flex justify-between items-center mb-4">
+							<h2 className="text-xl font-bold">Crear Track</h2>
 							<button
 								onClick={onClose}
-								className="text-gray-500 hover:text-gray-700"
+								className="p-2 hover:bg-gray-100 rounded-full"
 							>
-								<X size={24} />
+								<X size={20} />
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="space-y-6">
-							{error && (
-								<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-									{error}
-								</div>
-							)}
-
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Nombre
-									</label>
-									<input
-										type="text"
-										name="name"
-										value={formData.name}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										required
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Mix Name
-									</label>
-									<input
-										type="text"
-										name="mix_name"
-										value={formData.mix_name}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										DA ISRC
-									</label>
-									<input
-										type="text"
-										name="DA_ISRC"
-										value={formData.DA_ISRC}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										ISRC
-									</label>
-									<input
-										type="text"
-										name="ISRC"
-										value={formData.ISRC}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Album Only
-									</label>
-									<input
-										type="checkbox"
-										name="album_only"
-										checked={formData.album_only}
-										onChange={handleChange}
-										className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Copyright Holder
-									</label>
-									<input
-										type="text"
-										name="copyright_holder"
-										value={formData.copyright_holder}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Copyright Holder Year
-									</label>
-									<input
-										type="text"
-										name="copyright_holder_year"
-										value={formData.copyright_holder_year}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Dolby Atmos Resource
-									</label>
-									<input
-										type="text"
-										name="dolby_atmos_resource"
-										value={formData.dolby_atmos_resource}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Explicit Content
-									</label>
-									<input
-										type="checkbox"
-										name="explicit_content"
-										checked={formData.explicit_content}
-										onChange={handleChange}
-										className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Generate ISRC
-									</label>
-									<input
-										type="checkbox"
-										name="generate_isrc"
-										checked={formData.generate_isrc}
-										onChange={handleChange}
-										className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Genre
-									</label>
-									<select
-										name="genre"
-										value={formData.genre?.id}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									>
-										<option value="">Select a genre</option>
-										{/* Add genre options here */}
-									</select>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Subgenre
-									</label>
-									<select
-										name="subgenre"
-										value={formData.subgenre?.id}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									>
-										<option value="">Select a subgenre</option>
-										{/* Add subgenre options here */}
-									</select>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Label Share
-									</label>
-									<input
-										type="number"
-										name="label_share"
-										value={formData.label_share || ''}
-										onChange={handleChange}
-										step="0.01"
-										min="0"
-										max="100"
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Language
-									</label>
-									<input
-										type="text"
-										name="language"
-										value={formData.language}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Order
-									</label>
-									<input
-										type="number"
-										name="order"
-										value={formData.order || ''}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Release
-									</label>
-									<input
-										type="text"
-										name="release"
-										value={formData.release}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Track Length
-									</label>
-									<Cleave
-										options={{
-											time: true,
-											timePattern: ['h', 'm', 's'],
-											timeFormat: 'HH:mm:ss',
-											blocks: [2, 2, 2],
-											delimiter: ':',
-										}}
-										name="track_lenght"
-										value={formData.track_lenght || ''}
-										onChange={e =>
-											handleTimeChange('track_lenght', e.target.value)
-										}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										placeholder="00:00:00"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Sample Start
-									</label>
-									<Cleave
-										options={{
-											time: true,
-											timePattern: ['h', 'm', 's'],
-											timeFormat: 'HH:mm:ss',
-											blocks: [2, 2, 2],
-											delimiter: ':',
-										}}
-										name="sample_start"
-										value={formData.sample_start}
-										onChange={e =>
-											handleTimeChange('sample_start', e.target.value)
-										}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-										placeholder="00:00:00"
-									/>
-								</div>
-
-								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
-										Vocals
-									</label>
-									<input
-										type="text"
-										name="vocals"
-										value={formData.vocals}
-										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									/>
-								</div>
+						{isLoading ? (
+							<div className="p-8 text-center">
+								<div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+								<p className="mt-2 text-gray-600">Cargando datos...</p>
 							</div>
+						) : error ? (
+							<div className="p-8 text-center text-red-500">
+								<XCircle size={48} className="mx-auto mb-2" />
+								<p>{error}</p>
+							</div>
+						) : (
+							<form onSubmit={handleSubmit} className="space-y-6">
+								{/* seleccionar lanzamienot */}
+								<div className="flex  gap-x-4">
+									<div className="flex w-2/3 flex-col gap-2 ">
+										<h1>Seleccionar lanzamiento</h1>
+										<select
+											value={formData.release || ''}
+											onChange={e =>
+												setFormData(prev => ({
+													...prev,
+													release: e.target.value || '',
+												}))
+											}
+											className="w-full mb-2 border rounded px-3 py-2 text-sm"
+										>
+											<option key="release-empty" value="">
+												Seleccionar lanzamiento
+											</option>
+											{releases.map(release => (
+												<option
+													key={`release-${release._id}`}
+													value={release._id || ''}
+												>
+													{release.name || ''}
+												</option>
+											))}
+										</select>
+										{formData.release && (
+											<div className="flex items-center gap-2 mb-2">
+												{releases.find(r => r._id === formData.release)?.picture
+													?.base64 && (
+													<img
+														src={`data:image/jpeg;base64,${
+															releases.find(r => r._id === formData.release)
+																?.picture?.base64
+														}`}
+														alt="Release cover"
+														className="w-12 h-12 object-cover rounded"
+													/>
+												)}
+												<span className="text-sm">
+													{releases.find(r => r._id === formData.release)
+														?.name || ''}
+												</span>
+											</div>
+										)}
+									</div>
 
-							{/* Artists Section */}
-							<div className="space-y-4">
-								<div className="flex justify-between items-center">
-									<h3 className="text-lg font-medium text-gray-900">
-										Artistas
-									</h3>
-									<button
-										type="button"
-										onClick={handleAddArtist}
-										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-									>
-										<Plus size={20} />
-									</button>
+									{/* File Upload Section */}
+									<div className="w-1/3 space-y-4">
+										<div className="flex items-center gap-4">
+											<label className="block text-sm font-medium text-gray-700">
+												Archivo WAV
+											</label>
+											<div>
+												<input
+													type="file"
+													ref={fileInputRef}
+													onChange={handleFileChange}
+													accept=".wav"
+													className="hidden"
+												/>
+												<button
+													type="button"
+													onClick={() => fileInputRef.current?.click()}
+													className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+												>
+													<Upload className="h-4 w-4 mr-2" />
+													Subir archivo
+												</button>
+											</div>
+										</div>
+										{uploadProgress > 0 && uploadProgress < 100 && (
+											<div className="w-full bg-gray-200 rounded-full h-1.5">
+												<div
+													className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
+													style={{ width: `${uploadProgress}%` }}
+												></div>
+											</div>
+										)}
+										{formData.resource && (
+											<div className="text-sm text-gray-500 mt-1">
+												Archivo actual:{' '}
+												{typeof formData.resource === 'string'
+													? formData.resource
+													: formData.resource.name}
+											</div>
+										)}
+									</div>
 								</div>
-								<div className="space-y-4">
-									{formData.artists?.length === 0 ? (
-										<div className="flex items-center gap-2">
-											<select
-												value={formData.artists?.[0]?.artist ?? ''}
-												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-													const value = e.target.value;
-													if (value) {
-														handleArtistChange(0, 'artist', value);
-													}
-												}}
-												className="flex-1 p-2 border rounded"
-											>
-												<option value="">Select Artist</option>
-												{artists?.map(a => (
+
+								<div className="grid grid-cols-2 gap-6">
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Nombre
+										</label>
+										<input
+											type="text"
+											name="name"
+											value={formData.name}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Nombre de mix
+										</label>
+										<input
+											type="text"
+											name="mix_name"
+											value={formData.mix_name}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											ISRC
+										</label>
+										<input
+											type="text"
+											name="ISRC"
+											value={formData.ISRC}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											DA ISRC
+										</label>
+										<input
+											type="text"
+											name="DA_ISRC"
+											value={formData.DA_ISRC}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Género
+										</label>
+										<select
+											name="genre"
+											value={formData.genre?.id || ''}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										>
+											<option key="genre-empty" value="">
+												Seleccionar género
+											</option>
+											{genres.map(genre => (
+												<option key={`genre-${genre.id}`} value={genre.id}>
+													{genre.name}
+												</option>
+											))}
+										</select>
+										{formData.genre?.name && (
+											<p className="text-xs text-gray-500 mt-1">
+												Género actual: {formData.genre.name}
+											</p>
+										)}
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Subgénero
+										</label>
+										<select
+											name="subgenre"
+											value={formData.subgenre?.id || ''}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										>
+											<option key="subgenre-empty" value="">
+												Seleccionar subgénero
+											</option>
+											{genres
+												.find(g => g.id === formData.genre?.id)
+												?.subgenres?.map(subgenre => (
 													<option
-														key={`artist-${a?.external_id || ''}`}
-														value={a?.external_id || ''}
+														key={`subgenre-${subgenre.id}`}
+														value={subgenre.id}
 													>
-														{a?.name || ''}
+														{subgenre.name}
 													</option>
 												))}
-											</select>
+										</select>
+										{formData.subgenre?.name && (
+											<p className="text-xs text-gray-500 mt-1">
+												Subgénero actual: {formData.subgenre.name}
+											</p>
+										)}
+									</div>
 
-											<select
-												value={formData.artists?.[0]?.kind ?? ''}
-												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-													handleArtistChange(0, 'kind', e.target.value);
-												}}
-												className="flex-1 p-2 border rounded"
-											>
-												<option value="">Select Kind</option>
-												<option value="main">Main</option>
-												<option value="featuring">Featuring</option>
-												<option value="remixer">Remixer</option>
-											</select>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Idioma
+										</label>
+										<select
+											name="language"
+											value={formData.language}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										>
+											<option key="language-ES" value="ES">
+												Español
+											</option>
+											<option key="language-EN" value="EN">
+												English
+											</option>
+										</select>
+									</div>
 
-											<input
-												type="number"
-												value={
-													typeof formData.artists?.[0]?.order === 'number'
-														? formData.artists[0].order
-														: 0
-												}
-												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-													const val = parseInt(e.target.value);
-													handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
-												}}
-												className="w-20 p-2 border rounded"
-												placeholder="Order"
-											/>
-										</div>
-									) : (
-										formData.artists?.map((artist, index) => (
-											<div key={index} className="flex items-center gap-2">
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Label Share
+										</label>
+										<Cleave
+											options={{
+												numericOnly: true,
+												prefix: '',
+
+												blocks: [3],
+												delimiter: '',
+											}}
+											name="label_share"
+											value={formData.label_share || ''}
+											onChange={e =>
+												setFormData(prev => ({
+													...prev,
+													label_share: e.target.value
+														? parseFloat(e.target.value)
+														: null,
+												}))
+											}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Vocals
+										</label>
+										<select
+											name="vocals"
+											value={formData.vocals}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										>
+											<option value="">Seleccionar idioma</option>
+											<option value="EN">English</option>
+											<option value="ES">Español</option>
+										</select>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Copyright Holder
+										</label>
+										<input
+											type="text"
+											name="copyright_holder"
+											value={formData.copyright_holder}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Copyright Year
+										</label>
+										<input
+											type="text"
+											name="copyright_holder_year"
+											value={formData.copyright_holder_year}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Dolby Atmos Resource
+										</label>
+										<input
+											type="text"
+											name="dolby_atmos_resource"
+											value={formData.dolby_atmos_resource}
+											onChange={handleChange}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										/>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Duración
+										</label>
+										<Cleave
+											options={{
+												time: true,
+												timePattern: ['h', 'm', 's'],
+												timeFormat: 'HH:mm:ss',
+												blocks: [2, 2, 2],
+												delimiter: ':',
+											}}
+											name="track_lenght"
+											value={formData.track_lenght || ''}
+											onChange={e =>
+												handleTimeChange('track_lenght', e.target.value)
+											}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+											placeholder="00:00:00"
+										/>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Sample Start
+										</label>
+										<Cleave
+											options={{
+												time: true,
+												timePattern: ['h', 'm', 's'],
+												timeFormat: 'HH:mm:ss',
+												blocks: [2, 2, 2],
+												delimiter: ':',
+											}}
+											name="sample_start"
+											value={formData.sample_start}
+											onChange={e =>
+												handleTimeChange('sample_start', e.target.value)
+											}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+											placeholder="00:00:00"
+										/>
+									</div>
+								</div>
+
+								{/* Checkboxes Section */}
+								<div className="grid grid-cols-3 gap-4">
+									<div className="flex items-center">
+										<input
+											type="checkbox"
+											name="album_only"
+											checked={formData.album_only}
+											onChange={handleChange}
+											className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+										/>
+										<label className="ml-2 block text-sm text-gray-700">
+											Solo Album
+										</label>
+									</div>
+
+									<div className="flex items-center">
+										<input
+											type="checkbox"
+											name="explicit_content"
+											checked={formData.explicit_content}
+											onChange={handleChange}
+											className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+										/>
+										<label className="ml-2 block text-sm text-gray-700">
+											Contenido Explícito
+										</label>
+									</div>
+
+									<div className="flex items-center">
+										<input
+											type="checkbox"
+											name="generate_isrc"
+											checked={formData.generate_isrc}
+											onChange={handleChange}
+											className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+										/>
+										<label className="ml-2 block text-sm text-gray-700">
+											Generar ISRC
+										</label>
+									</div>
+								</div>
+
+								{/* Artists Section */}
+								<div className="space-y-4">
+									<div className="flex justify-between items-center">
+										<h3 className="text-lg font-medium text-gray-900">
+											Artistas
+										</h3>
+										<button
+											type="button"
+											onClick={handleAddArtist}
+											className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+										>
+											<Plus size={20} />
+										</button>
+									</div>
+									<div className="space-y-4">
+										{formData.artists?.length === 0 ? (
+											<div className="flex items-center gap-2">
 												<select
-													value={artist.artist ?? ''}
+													value={formData.artists?.[0]?.artist ?? ''}
 													onChange={(
 														e: React.ChangeEvent<HTMLSelectElement>
 													) => {
 														const value = e.target.value;
 														if (value) {
-															handleArtistChange(index, 'artist', value);
+															handleArtistChange(0, 'artist', value);
 														}
 													}}
 													className="flex-1 p-2 border rounded"
@@ -817,11 +950,11 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 												</select>
 
 												<select
-													value={artist.kind ?? ''}
+													value={formData.artists?.[0]?.kind ?? ''}
 													onChange={(
 														e: React.ChangeEvent<HTMLSelectElement>
 													) => {
-														handleArtistChange(index, 'kind', e.target.value);
+														handleArtistChange(0, 'kind', e.target.value);
 													}}
 													className="flex-1 p-2 border rounded"
 												>
@@ -834,14 +967,16 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 												<input
 													type="number"
 													value={
-														typeof artist.order === 'number' ? artist.order : 0
+														typeof formData.artists?.[0]?.order === 'number'
+															? formData.artists[0].order
+															: 0
 													}
 													onChange={(
 														e: React.ChangeEvent<HTMLInputElement>
 													) => {
 														const val = parseInt(e.target.value);
 														handleArtistChange(
-															index,
+															0,
 															'order',
 															isNaN(val) ? 0 : val
 														);
@@ -849,109 +984,106 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 													className="w-20 p-2 border rounded"
 													placeholder="Order"
 												/>
-
-												{formData.artists && formData.artists.length > 1 && (
-													<button
-														onClick={() => handleRemoveArtist(index)}
-														className="p-2 text-red-600 hover:text-red-800"
-													>
-														Remove
-													</button>
-												)}
 											</div>
-										))
-									)}
-								</div>
-							</div>
+										) : (
+											formData.artists?.map((artist, index) => (
+												<div key={index} className="flex items-center gap-2">
+													<select
+														value={artist.artist ?? ''}
+														onChange={(
+															e: React.ChangeEvent<HTMLSelectElement>
+														) => {
+															const value = e.target.value;
+															if (value) {
+																handleArtistChange(index, 'artist', value);
+															}
+														}}
+														className="flex-1 p-2 border rounded"
+													>
+														<option value="">Select Artist</option>
+														{artists?.map(a => (
+															<option
+																key={`artist-${a?.external_id || ''}`}
+																value={a?.external_id || ''}
+															>
+																{a?.name || ''}
+															</option>
+														))}
+													</select>
 
-							{/* Contributors Section */}
-							<div className="space-y-4">
-								<div className="flex justify-between items-center">
-									<h3 className="text-lg font-medium text-gray-900">
-										Contributors
-									</h3>
-									<button
-										type="button"
-										onClick={handleAddContributor}
-										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-									>
-										<Plus size={20} />
-									</button>
+													<select
+														value={artist.kind ?? ''}
+														onChange={(
+															e: React.ChangeEvent<HTMLSelectElement>
+														) => {
+															handleArtistChange(index, 'kind', e.target.value);
+														}}
+														className="flex-1 p-2 border rounded"
+													>
+														<option value="">Select Kind</option>
+														<option value="main">Main</option>
+														<option value="featuring">Featuring</option>
+														<option value="remixer">Remixer</option>
+													</select>
+
+													<input
+														type="number"
+														value={
+															typeof artist.order === 'number'
+																? artist.order
+																: 0
+														}
+														onChange={(
+															e: React.ChangeEvent<HTMLInputElement>
+														) => {
+															const val = parseInt(e.target.value);
+															handleArtistChange(
+																index,
+																'order',
+																isNaN(val) ? 0 : val
+															);
+														}}
+														className="w-20 p-2 border rounded"
+														placeholder="Order"
+													/>
+
+													{formData.artists && formData.artists.length > 1 && (
+														<button
+															onClick={() => handleRemoveArtist(index)}
+															className="p-2 text-red-600 hover:text-red-800"
+														>
+															Remove
+														</button>
+													)}
+												</div>
+											))
+										)}
+									</div>
 								</div>
+
+								{/* Contributors Section */}
 								<div className="space-y-4">
-									{formData.contributors?.length === 0 ? (
-										<div className="flex items-center gap-2">
-											<select
-												value={formData.contributors?.[0]?.name || ''}
-												onChange={e => {
-													const selectValue = e.target.value;
-													if (selectValue && selectValue !== '') {
-														handleContributorChange(0, 'name', selectValue);
-													}
-												}}
-												className="flex-1 p-2 border rounded"
-											>
-												<option value="">Select Contributor</option>
-												{contributors?.map((c, idx) => (
-													<option
-														key={`contributor-0-${idx}-${c?.name || 'empty'}`}
-														value={c?.name || ''}
-													>
-														{c?.name || ''}
-													</option>
-												))}
-											</select>
-
-											<select
-												value={formData.contributors?.[0]?.role || ''}
-												onChange={e => {
-													const value = e.target.value;
-													if (value && value !== '') {
-														handleContributorChange(0, 'role', value);
-													}
-												}}
-												className="flex-1 p-2 border rounded"
-											>
-												<option value="">Select Role</option>
-												{roles?.map((r, idx) => (
-													<option
-														key={`role-0-${idx}-${r?.id || 'empty'}`}
-														value={r?.id ? String(r.id) : ''}
-													>
-														{r?.name || ''}
-													</option>
-												))}
-											</select>
-
-											<input
-												type="number"
-												value={formData.contributors?.[0]?.order ?? 0}
-												onChange={e => {
-													const val = parseInt(e.target.value);
-													if (!isNaN(val)) {
-														handleContributorChange(0, 'order', val);
-													}
-												}}
-												className="w-20 p-2 border rounded"
-												placeholder="Order"
-											/>
-										</div>
-									) : (
-										formData.contributors?.map((contributor, index) => (
-											<div
-												key={`contributor-row-${index}`}
-												className="flex items-center gap-2"
-											>
+									<div className="flex justify-between items-center">
+										<h3 className="text-lg font-medium text-gray-900">
+											Contributors
+										</h3>
+										<button
+											type="button"
+											onClick={handleAddContributor}
+											className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+										>
+											<Plus size={20} />
+										</button>
+									</div>
+									<div className="space-y-4">
+										{formData.contributors?.length === 0 ? (
+											<div className="flex items-center gap-2">
 												<select
-													value={contributor.name || ''}
+													value={formData.contributors?.[0]?.name || ''}
 													onChange={e => {
 														const selectValue = e.target.value;
 														if (selectValue && selectValue !== '') {
-															handleContributorChange(
-																index,
-																'name',
-																selectValue
-															);
+															handleContributorChange(0, 'name', selectValue);
 														}
 													}}
 													className="flex-1 p-2 border rounded"
@@ -959,9 +1091,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 													<option value="">Select Contributor</option>
 													{contributors?.map((c, idx) => (
 														<option
-															key={`contributor-${index}-${idx}-${
-																c?.name || 'empty'
-															}`}
+															key={`contributor-0-${idx}-${c?.name || 'empty'}`}
 															value={c?.name || ''}
 														>
 															{c?.name || ''}
@@ -970,11 +1100,11 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 												</select>
 
 												<select
-													value={contributor.role || ''}
+													value={formData.contributors?.[0]?.role || ''}
 													onChange={e => {
 														const value = e.target.value;
 														if (value && value !== '') {
-															handleContributorChange(index, 'role', value);
+															handleContributorChange(0, 'role', value);
 														}
 													}}
 													className="flex-1 p-2 border rounded"
@@ -982,7 +1112,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 													<option value="">Select Role</option>
 													{roles?.map((r, idx) => (
 														<option
-															key={`role-${index}-${idx}-${r?.id || 'empty'}`}
+															key={`role-0-${idx}-${r?.id || 'empty'}`}
 															value={r?.id ? String(r.id) : ''}
 														>
 															{r?.name || ''}
@@ -992,117 +1122,127 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 												<input
 													type="number"
-													value={contributor.order ?? 0}
+													value={formData.contributors?.[0]?.order ?? 0}
 													onChange={e => {
 														const val = parseInt(e.target.value);
 														if (!isNaN(val)) {
-															handleContributorChange(index, 'order', val);
+															handleContributorChange(0, 'order', val);
 														}
 													}}
 													className="w-20 p-2 border rounded"
 													placeholder="Order"
 												/>
-
-												{formData.contributors &&
-													formData.contributors.length > 1 && (
-														<button
-															onClick={() => handleRemoveContributor(index)}
-															className="p-2 text-red-600 hover:text-red-800"
-														>
-															<Trash2 size={20} />
-														</button>
-													)}
 											</div>
-										))
-									)}
-								</div>
-							</div>
-
-							{/* Publishers Section */}
-							<div className="space-y-4">
-								<div className="flex justify-between items-center">
-									<h3 className="text-lg font-medium text-gray-900">
-										Publishers
-									</h3>
-									<button
-										type="button"
-										onClick={handleAddPublisher}
-										className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-									>
-										<Plus size={20} />
-									</button>
-								</div>
-								<div className="space-y-4">
-									{formData.publishers?.length === 0 ? (
-										<div className="flex items-center gap-2">
-											<select
-												value={String(
-													formData.publishers?.[0]?.publisher || ''
-												)}
-												onChange={e =>
-													handlePublisherChange(
-														0,
-														'publisher',
-														e.target.value ? parseInt(e.target.value) : 0
-													)
-												}
-												className="flex-1 p-2 border rounded"
-											>
-												<option value="">Seleccionar Publisher</option>
-												{publishers?.map((p, idx) => (
-													<option
-														key={`publisher-${p?.external_id || idx}`}
-														value={String(p?.external_id || '')}
+										) : (
+											formData.contributors?.map((contributor, index) => (
+												<div
+													key={`contributor-row-${index}`}
+													className="flex items-center gap-2"
+												>
+													<select
+														value={contributor.name || ''}
+														onChange={e => {
+															const selectValue = e.target.value;
+															if (selectValue && selectValue !== '') {
+																handleContributorChange(
+																	index,
+																	'name',
+																	selectValue
+																);
+															}
+														}}
+														className="flex-1 p-2 border rounded"
 													>
-														{p?.name || ''}
-													</option>
-												))}
-											</select>
+														<option value="">Select Contributor</option>
+														{contributors?.map((c, idx) => (
+															<option
+																key={`contributor-${index}-${idx}-${
+																	c?.name || 'empty'
+																}`}
+																value={c?.name || ''}
+															>
+																{c?.name || ''}
+															</option>
+														))}
+													</select>
 
-											<input
-												type="text"
-												name="author"
-												value={formData.publishers?.[0]?.author || ''}
-												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-													handlePublisherChange(0, 'author', e.target.value);
-												}}
-												className="flex-1 p-2 border rounded"
-												placeholder="Autor"
-											/>
+													<select
+														value={contributor.role || ''}
+														onChange={e => {
+															const value = e.target.value;
+															if (value && value !== '') {
+																handleContributorChange(index, 'role', value);
+															}
+														}}
+														className="flex-1 p-2 border rounded"
+													>
+														<option value="">Select Role</option>
+														{roles?.map((r, idx) => (
+															<option
+																key={`role-${index}-${idx}-${r?.id || 'empty'}`}
+																value={r?.id ? String(r.id) : ''}
+															>
+																{r?.name || ''}
+															</option>
+														))}
+													</select>
 
-											<input
-												type="number"
-												value={formData.publishers?.[0]?.order ?? 0}
-												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-													const val = parseInt(e.target.value);
-													handlePublisherChange(
-														0,
-														'order',
-														isNaN(val) ? 0 : val
-													);
-												}}
-												className="w-20 p-2 border rounded"
-												placeholder="Orden"
-											/>
-										</div>
-									) : (
-										formData.publishers?.map((publisher, index) => (
-											<div
-												key={`publisher-row-${index}`}
-												className="flex items-center gap-2"
-											>
+													<input
+														type="number"
+														value={contributor.order ?? 0}
+														onChange={e => {
+															const val = parseInt(e.target.value);
+															if (!isNaN(val)) {
+																handleContributorChange(index, 'order', val);
+															}
+														}}
+														className="w-20 p-2 border rounded"
+														placeholder="Order"
+													/>
+
+													{formData.contributors &&
+														formData.contributors.length > 1 && (
+															<button
+																onClick={() => handleRemoveContributor(index)}
+																className="p-2 text-red-600 hover:text-red-800"
+															>
+																<Trash2 size={20} />
+															</button>
+														)}
+												</div>
+											))
+										)}
+									</div>
+								</div>
+
+								{/* Publishers Section */}
+								<div className="space-y-4">
+									<div className="flex justify-between items-center">
+										<h3 className="text-lg font-medium text-gray-900">
+											Publishers
+										</h3>
+										<button
+											type="button"
+											onClick={handleAddPublisher}
+											className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+										>
+											<Plus size={20} />
+										</button>
+									</div>
+									<div className="space-y-4">
+										{formData.publishers?.length === 0 ? (
+											<div className="flex items-center gap-2">
 												<select
-													value={String(publisher?.publisher || '')}
-													onChange={(
-														e: React.ChangeEvent<HTMLSelectElement>
-													) => {
-														const value = e.target.value;
+													value={String(
+														formData.publishers?.[0]?.publisher || ''
+													)}
+													onChange={e =>
 														handlePublisherChange(
-															index,
+															0,
 															'publisher',
-															value ? parseInt(value) : 0
-														);
-													}}
+															e.target.value ? parseInt(e.target.value) : 0
+														)
+													}
 													className="flex-1 p-2 border rounded"
 												>
 													<option value="">Seleccionar Publisher</option>
@@ -1119,15 +1259,11 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 												<input
 													type="text"
 													name="author"
-													value={publisher?.author || ''}
+													value={formData.publishers?.[0]?.author || ''}
 													onChange={(
 														e: React.ChangeEvent<HTMLInputElement>
 													) => {
-														handlePublisherChange(
-															index,
-															'author',
-															e.target.value
-														);
+														handlePublisherChange(0, 'author', e.target.value);
 													}}
 													className="flex-1 p-2 border rounded"
 													placeholder="Autor"
@@ -1135,13 +1271,13 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 												<input
 													type="number"
-													value={publisher?.order ?? 0}
+													value={formData.publishers?.[0]?.order ?? 0}
 													onChange={(
 														e: React.ChangeEvent<HTMLInputElement>
 													) => {
 														const val = parseInt(e.target.value);
 														handlePublisherChange(
-															index,
+															0,
 															'order',
 															isNaN(val) ? 0 : val
 														);
@@ -1149,93 +1285,121 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 													className="w-20 p-2 border rounded"
 													placeholder="Orden"
 												/>
-
-												{formData.publishers &&
-													formData.publishers.length > 1 && (
-														<button
-															onClick={() => handleRemovePublisher(index)}
-															className="p-2 text-red-600 hover:text-red-800"
-														>
-															<Trash2 size={20} />
-														</button>
-													)}
 											</div>
-										))
-									)}
-								</div>
-							</div>
+										) : (
+											formData.publishers?.map((publisher, index) => (
+												<div
+													key={`publisher-row-${index}`}
+													className="flex items-center gap-2"
+												>
+													<select
+														value={String(publisher?.publisher || '')}
+														onChange={(
+															e: React.ChangeEvent<HTMLSelectElement>
+														) => {
+															const value = e.target.value;
+															handlePublisherChange(
+																index,
+																'publisher',
+																value ? parseInt(value) : 0
+															);
+														}}
+														className="flex-1 p-2 border rounded"
+													>
+														<option value="">Seleccionar Publisher</option>
+														{publishers?.map((p, idx) => (
+															<option
+																key={`publisher-${p?.external_id || idx}`}
+																value={String(p?.external_id || '')}
+															>
+																{p?.name || ''}
+															</option>
+														))}
+													</select>
 
-							{/* File Upload Section */}
-							<div className="space-y-4">
-								<div className="flex items-center gap-4">
-									<label className="block text-sm font-medium text-gray-700">
-										Archivo WAV
-									</label>
-									<div>
-										<input
-											type="file"
-											ref={fileInputRef}
-											onChange={handleFileChange}
-											accept=".wav"
-											className="hidden"
-										/>
-										<button
-											type="button"
-											onClick={() => fileInputRef.current?.click()}
-											className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-										>
-											<Upload className="h-4 w-4 mr-2" />
-											Subir archivo
-										</button>
+													<input
+														type="text"
+														name="author"
+														value={publisher?.author || ''}
+														onChange={(
+															e: React.ChangeEvent<HTMLInputElement>
+														) => {
+															handlePublisherChange(
+																index,
+																'author',
+																e.target.value
+															);
+														}}
+														className="flex-1 p-2 border rounded"
+														placeholder="Autor"
+													/>
+
+													<input
+														type="number"
+														value={publisher?.order ?? 0}
+														onChange={(
+															e: React.ChangeEvent<HTMLInputElement>
+														) => {
+															const val = parseInt(e.target.value);
+															handlePublisherChange(
+																index,
+																'order',
+																isNaN(val) ? 0 : val
+															);
+														}}
+														className="w-20 p-2 border rounded"
+														placeholder="Orden"
+													/>
+
+													{formData.publishers &&
+														formData.publishers.length > 1 && (
+															<button
+																onClick={() => handleRemovePublisher(index)}
+																className="p-2 text-red-600 hover:text-red-800"
+															>
+																<Trash2 size={20} />
+															</button>
+														)}
+												</div>
+											))
+										)}
 									</div>
 								</div>
-								{uploadProgress > 0 && uploadProgress < 100 && (
-									<div className="w-full bg-gray-200 rounded-full h-1.5">
-										<div
-											className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
-											style={{ width: `${uploadProgress}%` }}
-										></div>
-									</div>
-								)}
-								{formData.resource && (
-									<div className="text-sm text-gray-500 mt-1">
-										Archivo actual:{' '}
-										{typeof formData.resource === 'string'
-											? formData.resource
-											: formData.resource.name}
-									</div>
-								)}
-							</div>
 
-							<div className="flex justify-end space-x-3 mt-6">
-								<button
-									type="button"
-									onClick={onClose}
-									disabled={isLoading}
-									className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
-									<span className="group-hover:text-brand-dark">Cancelar</span>
-								</button>
-								<button
-									type="submit"
-									disabled={isLoading}
-									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									{isLoading ? (
-										<>
-											<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-											<span>Creando...</span>
-										</>
-									) : (
-										<>
-											<Save className="h-4 w-4 group-hover:text-brand-dark" />
-											<span className="group-hover:text-brand-dark">Crear</span>
-										</>
-									)}
-								</button>
-							</div>
-						</form>
+								<div className="flex justify-end space-x-3 mt-6">
+									<button
+										type="button"
+										onClick={onClose}
+										disabled={isLoading}
+										className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
+										<span className="group-hover:text-brand-dark">
+											Cancelar
+										</span>
+									</button>
+									<button
+										type="submit"
+										disabled={isLoading}
+										className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										{isLoading ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												<span>Creando...</span>
+											</>
+										) : (
+											<>
+												<Save className="h-4 w-4 group-hover:text-brand-dark" />
+												<span className="group-hover:text-brand-dark">
+													Crear
+												</span>
+											</>
+										)}
+									</button>
+								</div>
+							</form>
+						)}
 					</motion.div>
 				</motion.div>
 			)}

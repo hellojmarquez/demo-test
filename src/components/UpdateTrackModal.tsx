@@ -16,11 +16,9 @@ interface Contributor {
 }
 
 interface Publisher {
-	id: number;
+	external_id: number;
 	name: string;
-	publisher: number;
-	author: string;
-	order: number;
+	role: string;
 }
 
 interface Role {
@@ -159,7 +157,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			order: Number(contributor.order) || 0,
 		})),
 		publishers: track.publishers.map(publisher => ({
-			...publisher,
 			publisher: Number(publisher.publisher) || 0,
 			author: publisher.author || '',
 			order: Number(publisher.order) || 0,
@@ -212,8 +209,8 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 					// Filter publishers from the same response
 					const filteredPublishers = artistsData.data
 						.filter((user: any) => user.role === 'publisher')
-						.map((p: { id: string; name: string; role: string }) => ({
-							id: parseInt(p.id),
+						.map((p: { external_id: string; name: string; role: string }) => ({
+							external_id: parseInt(p.external_id),
 							name: p.name,
 							role: p.role,
 						}));
@@ -335,6 +332,19 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		}
 	}, [isOpen, track.genre, track.subgenre]);
 
+	useEffect(() => {
+		if (track) {
+			setFormData({
+				...track,
+				publishers: track.publishers.map(publisher => ({
+					publisher: Number(publisher.publisher) || 0,
+					author: publisher.author || '',
+					order: Number(publisher.order) || 0,
+				})),
+			});
+		}
+	}, [track]);
+
 	const handleChange = (
 		e: React.ChangeEvent<
 			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -406,14 +416,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	};
 
 	const handleAddPublisher = () => {
-		const newPublisher = {
-			publisher: 0,
-			author: '',
-			order: formData.publishers.length,
-		};
 		setFormData(prev => ({
 			...prev,
-			publishers: [...prev.publishers, newPublisher],
+			publishers: [
+				...prev.publishers,
+				{ publisher: 0, author: '', order: prev.publishers.length },
+			],
 		}));
 	};
 
@@ -540,12 +548,45 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		setFormData(prev => ({
-			...prev,
-			publishers: prev.publishers.map((publisher, i) =>
-				i === index ? { ...publisher, [field]: value } : publisher
-			),
-		}));
+		setFormData(prev => {
+			const newPublishers = [...prev.publishers];
+			if (!newPublishers[index]) {
+				newPublishers[index] = { publisher: 0, author: '', order: 0 };
+			}
+
+			if (field === 'publisher') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					const selectedPublisher = publishers.find(
+						p => p.external_id === numValue
+					);
+					if (selectedPublisher) {
+						newPublishers[index] = {
+							...newPublishers[index],
+							publisher: selectedPublisher.external_id,
+							author: selectedPublisher.name || '',
+						};
+					}
+				}
+			} else if (field === 'author') {
+				newPublishers[index] = {
+					...newPublishers[index],
+					author: (value as string) || '',
+				};
+			} else if (field === 'order') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					newPublishers[index] = {
+						...newPublishers[index],
+						order: numValue,
+					};
+				}
+			}
+
+			return { ...prev, publishers: newPublishers };
+		});
 	};
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -568,6 +609,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+
 		setIsLoading(true);
 		try {
 			await onSave(formData);
@@ -608,9 +650,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 					<form onSubmit={handleSubmit} className="space-y-6">
 						<div className="flex flex-col gap-2">
 							<select
-								value={formData.release}
+								value={formData.release || ''}
 								onChange={e =>
-									setFormData(prev => ({ ...prev, release: e.target.value }))
+									setFormData(prev => ({
+										...prev,
+										release: e.target.value || '',
+									}))
 								}
 								className="w-full mb-2 border rounded px-3 py-2 text-sm"
 							>
@@ -618,8 +663,11 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									Seleccionar lanzamiento
 								</option>
 								{releases.map(release => (
-									<option key={`release-${release._id}`} value={release._id}>
-										{release.name}
+									<option
+										key={`release-${release._id}`}
+										value={release._id || ''}
+									>
+										{release.name || ''}
 									</option>
 								))}
 							</select>
@@ -638,7 +686,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 										/>
 									)}
 									<span className="text-sm">
-										{releases.find(r => r._id === formData.release)?.name}
+										{releases.find(r => r._id === formData.release)?.name || ''}
 									</span>
 								</div>
 							)}
@@ -1272,22 +1320,25 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											}
 											className="flex-1 p-2 border rounded"
 										>
-											<option value="">Select Publisher</option>
-											{publishers?.map(p => (
+											<option value="">Seleccionar Publisher</option>
+											{publishers?.map((p, idx) => (
 												<option
-													key={`publisher-${p?.id ?? 'undefined'}`}
-													value={String(p?.id || '')}
+													key={`publisher-${p?.external_id || idx}`}
+													value={String(p?.external_id || '')}
 												>
-													{p?.name}
+													{p?.name || ''}
 												</option>
 											))}
 										</select>
 									</div>
 								) : (
 									formData.publishers.map((publisher, index) => (
-										<div key={index} className="flex items-center gap-2">
+										<div
+											key={`publisher-row-${index}`}
+											className="flex items-center gap-2"
+										>
 											<select
-												value={String(publisher.publisher || '')}
+												value={String(publisher?.publisher || '')}
 												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
 													const value = e.target.value;
 													handlePublisherChange(
@@ -1298,13 +1349,13 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 												}}
 												className="flex-1 p-2 border rounded"
 											>
-												<option value="">Select Publisher</option>
-												{publishers?.map(p => (
+												<option value="">Seleccionar Publisher</option>
+												{publishers?.map((p, idx) => (
 													<option
-														key={`publisher-${p?.id ?? 'undefined'}`}
-														value={String(p?.id || '')}
+														key={`publisher-${p?.external_id || idx}`}
+														value={String(p?.external_id || '')}
 													>
-														{p?.name}
+														{p?.name || ''}
 													</option>
 												))}
 											</select>
@@ -1312,7 +1363,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 											<input
 												type="text"
 												name="author"
-												value={publisher.author}
+												value={publisher?.author || ''}
 												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 													handlePublisherChange(
 														index,
@@ -1321,11 +1372,12 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 													);
 												}}
 												className="flex-1 p-2 border rounded"
+												placeholder="Autor"
 											/>
 
 											<input
 												type="number"
-												value={publisher.order ?? 0}
+												value={publisher?.order ?? 0}
 												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 													const val = parseInt(e.target.value);
 													handlePublisherChange(
@@ -1335,7 +1387,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 													);
 												}}
 												className="w-20 p-2 border rounded"
-												placeholder="Order"
+												placeholder="Orden"
 											/>
 
 											{formData.publishers.length > 1 && (
@@ -1343,7 +1395,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 													onClick={() => handleRemovePublisher(index)}
 													className="p-2 text-red-600 hover:text-red-800"
 												>
-													Remove
+													<Trash2 size={20} />
 												</button>
 											)}
 										</div>

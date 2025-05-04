@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 		);
 
 		const contributorsData = await contributorsRes.json();
-
+		console.log(contributorsData);
 		return NextResponse.json({
 			success: true,
 			data: contributorsData.results,

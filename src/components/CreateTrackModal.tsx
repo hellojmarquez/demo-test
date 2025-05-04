@@ -1151,15 +1151,15 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 								)}
 							</div>
 
-							<div className="flex justify-end space-x-4">
+							<div className="flex justify-end space-x-3 mt-6">
 								<button
 									type="button"
 									onClick={onClose}
 									disabled={isLoading}
 									className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-									<X size={16} />
-									Cancel
+									<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
+									<span className="group-hover:text-brand-dark">Cancelar</span>
 								</button>
 								<button
 									type="submit"
@@ -1169,12 +1169,12 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 									{isLoading ? (
 										<>
 											<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-											Saving...
+											<span>Creando...</span>
 										</>
 									) : (
 										<>
-											<Save size={16} />
-											Save
+											<Save className="h-4 w-4 group-hover:text-brand-dark" />
+											<span className="group-hover:text-brand-dark">Crear</span>
 										</>
 									)}
 								</button>

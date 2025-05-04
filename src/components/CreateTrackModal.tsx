@@ -46,7 +46,8 @@ interface TrackContributor {
 }
 
 interface TrackPublisher {
-	name: string;
+	publisher: number;
+	author: string;
 	order: number;
 }
 
@@ -214,7 +215,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 			...prev,
 			publishers: [
 				...(prev.publishers || []),
-				{ name: '', order: (prev.publishers || []).length },
+				{ publisher: 0, author: '', order: (prev.publishers || []).length },
 			],
 		}));
 	};
@@ -314,13 +315,28 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 		setFormData(prev => {
 			const newPublishers = [...(prev.publishers || [])];
 			if (!newPublishers[index]) {
-				newPublishers[index] = { name: '', order: 0 };
+				newPublishers[index] = { publisher: 0, author: '', order: 0 };
 			}
 
-			if (field === 'name') {
+			if (field === 'publisher') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					const selectedPublisher = publishers.find(
+						p => p.external_id === numValue
+					);
+					if (selectedPublisher) {
+						newPublishers[index] = {
+							...newPublishers[index],
+							publisher: selectedPublisher.external_id,
+							author: selectedPublisher.name || '',
+						};
+					}
+				}
+			} else if (field === 'author') {
 				newPublishers[index] = {
 					...newPublishers[index],
-					name: (value as string) || '',
+					author: (value as string) || '',
 				};
 			} else if (field === 'order') {
 				const numValue =
@@ -1020,20 +1036,23 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 									{formData.publishers?.length === 0 ? (
 										<div className="flex items-center gap-2">
 											<select
-												value={formData.publishers?.[0]?.name || ''}
-												onChange={e => {
-													const value = e.target.value;
-													if (value && value !== '') {
-														handlePublisherChange(0, 'name', value);
-													}
-												}}
+												value={String(
+													formData.publishers?.[0]?.publisher || ''
+												)}
+												onChange={e =>
+													handlePublisherChange(
+														0,
+														'publisher',
+														e.target.value ? parseInt(e.target.value) : 0
+													)
+												}
 												className="flex-1 p-2 border rounded"
 											>
-												<option value="">Select Publisher</option>
+												<option value="">Seleccionar Publisher</option>
 												{publishers?.map((p, idx) => (
 													<option
-														key={`publisher-0-${idx}-${p?.name || 'empty'}`}
-														value={p?.name || ''}
+														key={`publisher-${p?.external_id || idx}`}
+														value={String(p?.external_id || '')}
 													>
 														{p?.name || ''}
 													</option>
@@ -1041,16 +1060,29 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 											</select>
 
 											<input
+												type="text"
+												name="author"
+												value={formData.publishers?.[0]?.author || ''}
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+													handlePublisherChange(0, 'author', e.target.value);
+												}}
+												className="flex-1 p-2 border rounded"
+												placeholder="Autor"
+											/>
+
+											<input
 												type="number"
 												value={formData.publishers?.[0]?.order ?? 0}
-												onChange={e => {
+												onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 													const val = parseInt(e.target.value);
-													if (!isNaN(val)) {
-														handlePublisherChange(0, 'order', val);
-													}
+													handlePublisherChange(
+														0,
+														'order',
+														isNaN(val) ? 0 : val
+													);
 												}}
 												className="w-20 p-2 border rounded"
-												placeholder="Order"
+												placeholder="Orden"
 											/>
 										</div>
 									) : (
@@ -1060,22 +1092,24 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 												className="flex items-center gap-2"
 											>
 												<select
-													value={publisher.name || ''}
-													onChange={e => {
+													value={String(publisher?.publisher || '')}
+													onChange={(
+														e: React.ChangeEvent<HTMLSelectElement>
+													) => {
 														const value = e.target.value;
-														if (value && value !== '') {
-															handlePublisherChange(index, 'name', value);
-														}
+														handlePublisherChange(
+															index,
+															'publisher',
+															value ? parseInt(value) : 0
+														);
 													}}
 													className="flex-1 p-2 border rounded"
 												>
-													<option value="">Select Publisher</option>
+													<option value="">Seleccionar Publisher</option>
 													{publishers?.map((p, idx) => (
 														<option
-															key={`publisher-${index}-${idx}-${
-																p?.name || 'empty'
-															}`}
-															value={p?.name || ''}
+															key={`publisher-${p?.external_id || idx}`}
+															value={String(p?.external_id || '')}
 														>
 															{p?.name || ''}
 														</option>
@@ -1083,16 +1117,37 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 												</select>
 
 												<input
+													type="text"
+													name="author"
+													value={publisher?.author || ''}
+													onChange={(
+														e: React.ChangeEvent<HTMLInputElement>
+													) => {
+														handlePublisherChange(
+															index,
+															'author',
+															e.target.value
+														);
+													}}
+													className="flex-1 p-2 border rounded"
+													placeholder="Autor"
+												/>
+
+												<input
 													type="number"
-													value={publisher.order ?? 0}
-													onChange={e => {
+													value={publisher?.order ?? 0}
+													onChange={(
+														e: React.ChangeEvent<HTMLInputElement>
+													) => {
 														const val = parseInt(e.target.value);
-														if (!isNaN(val)) {
-															handlePublisherChange(index, 'order', val);
-														}
+														handlePublisherChange(
+															index,
+															'order',
+															isNaN(val) ? 0 : val
+														);
 													}}
 													className="w-20 p-2 border rounded"
-													placeholder="Order"
+													placeholder="Orden"
 												/>
 
 												{formData.publishers &&

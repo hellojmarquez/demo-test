@@ -254,7 +254,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 			if (field === 'artist' && typeof value === 'string') {
 				const selectedArtist = artists.find(
-					a => a.external_id === parseInt(value)
+					a => String(a.external_id) === value
 				);
 				if (selectedArtist) {
 					newArtists[index] = {
@@ -855,7 +855,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 														onClick={() => handleRemoveArtist(index)}
 														className="p-2 text-red-600 hover:text-red-800"
 													>
-														<Trash2 size={20} />
+														Remove
 													</button>
 												)}
 											</div>

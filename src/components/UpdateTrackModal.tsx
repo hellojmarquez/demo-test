@@ -91,7 +91,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		copyright_holder: track.copyright_holder || '',
 		copyright_holder_year: track.copyright_holder_year || '',
 		dolby_atmos_resource: track.dolby_atmos_resource || '',
-		label_share: track.label_share || '',
+		label_share: track.label_share ?? null,
 		resource: track.resource || null,
 		sample_start: track.sample_start || '',
 		track_lenght: track.track_lenght || '',

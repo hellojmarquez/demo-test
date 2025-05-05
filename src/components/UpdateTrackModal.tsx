@@ -116,10 +116,11 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			name: artist.name || '',
 		})),
 		contributors: track.contributors.map(contributor => ({
-			external_id: Number(contributor.external_id) || 0,
+			contributor: Number(contributor.external_id) || 0,
 			name: contributor.name || '',
 			role: Number(contributor.role) || 0,
 			order: Number(contributor.order) || 0,
+			role_name: contributor.role_name || '',
 		})),
 		publishers: track.publishers.map(publisher => ({
 			publisher: Number(publisher.publisher) || 0,

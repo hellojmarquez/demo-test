@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { User, Lock, Music } from 'lucide-react';
 
 export default function SelloLogin() {
 	const [user, setUser] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [isUserFocused, setIsUserFocused] = useState(false);
+	const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 	const router = useRouter();
 	const { login } = useAuth();
 
@@ -83,49 +86,122 @@ export default function SelloLogin() {
 	};
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gray-100">
-			<div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-				<h1 className="text-2xl font-bold mb-4 text-center text-gray-800">
-					Login
-				</h1>
-				<form className="flex flex-col space-y-4">
-					<label className="block text-sm font-medium text-gray-700">
-						Usuario:
-					</label>
-					<input
-						type="text"
-						value={user}
-						onChange={e => setUser(e.target.value)}
-						className="w-full text-blue-400 border border-gray-300 rounded-md p-2"
-						placeholder="Ingresa tu usuario"
-					/>
-
-					<label className="block text-sm font-medium text-gray-700">
-						Contraseña:
-					</label>
-
-					<input
-						type="password"
-						className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-black"
-						placeholder="Enter your password"
-						value={password}
-						onChange={e => setPassword(e.target.value)}
-						disabled={loading}
-					/>
-					{error && <p className="text-red-500 text-sm text-center">{error}</p>}
-					<button
-						onClick={handleSubmit}
-						className={`w-full py-2 text-white font-semibold rounded-lg ${
-							loading
-								? 'bg-gray-400 cursor-not-allowed'
-								: 'bg-blue-500 hover:bg-blue-600'
-						} focus:outline-none`}
-						disabled={loading}
-					>
-						{loading ? 'Logging in...' : 'Login'}
-					</button>
-				</form>
+		<>
+			<style jsx global>{`
+				@keyframes wave {
+					0%,
+					100% {
+						transform: scaleY(0.1);
+					}
+					50% {
+						transform: scaleY(1);
+					}
+				}
+				.animate-wave {
+					animation: wave 1s ease-in-out infinite;
+					transform-origin: bottom;
+				}
+			`}</style>
+			<div className="min-h-screen flex items-center justify-center bg-gray-100">
+				<div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+					<h1 className="text-2xl font-bold mb-6 text-center text-gray-800">
+						Isla Sounds
+					</h1>
+					<form className="flex flex-col space-y-4">
+						<div className="relative">
+							<User
+								className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600"
+								size={20}
+							/>
+							<label
+								className={`absolute left-10 transition-all duration-200 ${
+									isUserFocused || user
+										? 'top-1 text-xs text-gray-600'
+										: 'top-1/2 -translate-y-1/2 text-gray-400'
+								}`}
+							>
+								Usuario
+							</label>
+							<input
+								type="text"
+								value={user}
+								onChange={e => setUser(e.target.value)}
+								onFocus={() => setIsUserFocused(true)}
+								onBlur={() => setIsUserFocused(false)}
+								className="w-full pl-10 pr-4 pt-4 pb-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+							/>
+						</div>
+						<div className="relative">
+							<Lock
+								className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600"
+								size={20}
+							/>
+							<label
+								className={`absolute left-10 transition-all duration-200 ${
+									isPasswordFocused || password
+										? 'top-1 text-xs text-gray-600'
+										: 'top-1/2 -translate-y-1/2 text-gray-400'
+								}`}
+							>
+								Contraseña
+							</label>
+							<input
+								type="password"
+								value={password}
+								onChange={e => setPassword(e.target.value)}
+								onFocus={() => setIsPasswordFocused(true)}
+								onBlur={() => setIsPasswordFocused(false)}
+								className="w-full pl-10 pr-4 pt-4 pb-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+								disabled={loading}
+							/>
+						</div>
+						{error && (
+							<p className="text-red-500 text-sm text-center">{error}</p>
+						)}
+						<button
+							onClick={handleSubmit}
+							className={`w-full py-3 text-white font-semibold rounded-lg relative overflow-hidden group ${
+								loading
+									? 'bg-gray-400 cursor-not-allowed'
+									: 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+							} focus:outline-none transition-all duration-300`}
+							disabled={loading}
+						>
+							{loading ? (
+								<div className="flex items-center justify-center h-6">
+									<div className="flex space-x-1 items-end">
+										<div
+											className="w-1 h-4 bg-white rounded-full animate-wave"
+											style={{ animationDelay: '0ms' }}
+										></div>
+										<div
+											className="w-1 h-4 bg-white rounded-full animate-wave"
+											style={{ animationDelay: '150ms' }}
+										></div>
+										<div
+											className="w-1 h-4 bg-white rounded-full animate-wave"
+											style={{ animationDelay: '300ms' }}
+										></div>
+										<div
+											className="w-1 h-4 bg-white rounded-full animate-wave"
+											style={{ animationDelay: '450ms' }}
+										></div>
+										<div
+											className="w-1 h-4 bg-white rounded-full animate-wave"
+											style={{ animationDelay: '600ms' }}
+										></div>
+									</div>
+								</div>
+							) : (
+								<div className="flex items-center justify-center space-x-2">
+									<Music className="w-5 h-5" />
+									<span>Login</span>
+								</div>
+							)}
+						</button>
+					</form>
+				</div>
 			</div>
-		</div>
+		</>
 	);
 }

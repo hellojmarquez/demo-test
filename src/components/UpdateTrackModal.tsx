@@ -10,10 +10,11 @@ interface Artist {
 }
 
 interface Contributor {
-	external_id: number;
+	contributor: number;
 	name: string;
 	role: number;
 	order: number;
+	role_name: string;
 }
 
 interface Publisher {
@@ -116,7 +117,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			name: artist.name || '',
 		})),
 		contributors: track.contributors.map(contributor => ({
-			contributor: Number(contributor.external_id) || 0,
+			contributor: Number(contributor.contributor) || 0,
 			name: contributor.name || '',
 			role: Number(contributor.role) || 0,
 			order: Number(contributor.order) || 0,
@@ -376,7 +377,13 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			...prev,
 			contributors: [
 				...prev.contributors,
-				{ external_id: 0, name: '', role: 0, order: prev.contributors.length },
+				{
+					contributor: 0,
+					name: '',
+					role: 0,
+					order: prev.contributors.length,
+					role_name: '',
+				},
 			],
 		}));
 	};
@@ -463,10 +470,11 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 			// Inicializar el objeto si no existe
 			if (!newContributors[index]) {
 				newContributors[index] = {
-					external_id: 0,
+					contributor: 0,
 					name: '',
 					role: 0,
 					order: 0,
+					role_name: '',
 				};
 			}
 
@@ -478,7 +486,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 				const selectedContributor = contributors.find(c => c.name === value);
 				if (selectedContributor) {
 					newContributors[index].name = selectedContributor.name;
-					newContributors[index].external_id = selectedContributor.external_id;
+					newContributors[index].contributor = selectedContributor.contributor;
 				}
 			}
 			// Manejo para campo 'role'
@@ -794,7 +802,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								<input
 									type="text"
 									name="track_lenght"
-									value={formData.track_lenght}
+									value={formData.track_lenght || ''}
 									onChange={handleChange}
 									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								/>
@@ -849,7 +857,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 								<input
 									type="text"
 									name="label_share"
-									value={formData.label_share}
+									value={formData.label_share?.toString() || ''}
 									onChange={handleChange}
 									className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								/>

@@ -21,18 +21,21 @@ import {
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { Sello } from '@/types/sello';
 
-const Sellos = () => {
+export default function SellosPage() {
 	const [sellos, setSellos] = useState<Sello[]>([]);
 	const [expandedSello, setExpandedSello] = useState<string | null>(null);
 	const [selectedSello, setSelectedSello] = useState<Sello | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		fetch('/api/admin/getAllSellos')
-			.then(res => res.json())
-			.then(response => {
+		const fetchSellos = async () => {
+			setLoading(true);
+			try {
+				const res = await fetch('/api/admin/getAllSellos');
+				const response = await res.json();
 				console.log('Respuesta completa de la API:', response);
 
 				// Verificar la estructura de los datos
@@ -60,8 +63,13 @@ const Sellos = () => {
 					console.error('La respuesta no es un array:', response);
 					setSellos([]);
 				}
-			})
-			.catch(error => console.error('Error fetching sellos:', error));
+			} catch (error) {
+				console.error('Error fetching sellos:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchSellos();
 	}, []);
 
 	const toggleExpand = (selloId: string) => {
@@ -153,6 +161,14 @@ const Sellos = () => {
 			day: 'numeric',
 		});
 	};
+
+	if (loading) {
+		return (
+			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-dark"></div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
@@ -425,6 +441,4 @@ const Sellos = () => {
 			)}
 		</div>
 	);
-};
-
-export default Sellos;
+}

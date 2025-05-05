@@ -30,6 +30,7 @@ interface User {
 	updatedAt?: string;
 	created_at?: string;
 	external_id?: string | number;
+	type: string;
 	[key: string]: any;
 }
 
@@ -50,18 +51,33 @@ export default function UsuariosPage() {
 	);
 	const [showPublisherModal, setShowPublisherModal] = useState(false);
 	const [selectedPublisher, setSelectedPublisher] = useState<User | null>(null);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		const fetchUsers = async () => {
-			const res = await fetch('/api/admin/getAllUsers');
-			const data = await res.json();
-			if (data.success) {
-				console.log(data.users);
-				setUsers(data.users);
+			try {
+				const res = await fetch('/api/admin/getAllUsers');
+				const data = await res.json();
+				if (data.success) {
+					console.log(data.users);
+					setUsers(data.users);
+				}
+			} catch (error) {
+				console.error('Error fetching users:', error);
+			} finally {
+				setLoading(false);
 			}
 		};
 		fetchUsers();
 	}, []);
+
+	if (loading) {
+		return (
+			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-dark"></div>
+			</div>
+		);
+	}
 
 	const handleEdit = (user: User) => {
 		console.log('Rol del usuario:', user.role);

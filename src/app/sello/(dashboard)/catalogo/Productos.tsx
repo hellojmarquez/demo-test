@@ -51,14 +51,24 @@ const Productos: React.FC = () => {
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		fetch('/api/admin/getAllReleases')
-			.then(res => res.json())
-			.then(response => {
-				setReleases(response.data as Release[]);
-			})
-			.catch(error => console.error('Error fetching releases:', error));
+		const fetchReleases = async () => {
+			setLoading(true);
+			try {
+				const res = await fetch('/api/admin/getAllReleases');
+				const data = await res.json();
+				if (data.success) {
+					setReleases(data.data as Release[]);
+				}
+			} catch (error) {
+				console.error('Error fetching releases:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchReleases();
 	}, []);
 
 	const toggleExpand = (id: string) => {
@@ -132,6 +142,14 @@ const Productos: React.FC = () => {
 			setIsDeleting(null);
 		}
 	};
+
+	if (loading) {
+		return (
+			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-dark"></div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">

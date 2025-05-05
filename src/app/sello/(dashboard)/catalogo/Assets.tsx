@@ -521,7 +521,7 @@ const Assets = () => {
 													{track.contributors
 														.map(
 															c =>
-																`Contributor ID: ${c.external_id}, Name: ${c.name}, Role: ${c.role}`
+																`Contributor ID: ${c.contributor}, Name: ${c.name}, Role: ${c.role}`
 														)
 														.join(', ')}
 												</span>

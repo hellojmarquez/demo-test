@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, XCircle, Plus, Trash2, Upload } from 'lucide-react';
+import { Track } from '@/types/track';
 
 interface Artist {
 	_id: string;
@@ -50,42 +51,6 @@ interface TrackContributor {
 	name: string;
 	role: number;
 	order: number;
-}
-
-interface Track {
-	_id: string;
-	name: string;
-	mix_name: string;
-	DA_ISRC: string;
-	ISRC: string;
-	__v: number;
-	album_only: boolean;
-	artists: { artist: number; kind: string; order: number; name: string }[];
-	contributors: TrackContributor[];
-	copyright_holder: string;
-	copyright_holder_year: string;
-	createdAt: string;
-	dolby_atmos_resource: string;
-	explicit_content: boolean;
-	generate_isrc: boolean;
-	genre: {
-		id: number;
-		name: string;
-	};
-	subgenre: {
-		id: number;
-		name: string;
-	};
-	label_share: string;
-	language: string;
-	order: number | null;
-	publishers: { publisher: number; author: string; order: number }[];
-	release: string;
-	resource: string | File | null;
-	sample_start: string;
-	track_lenght: string;
-	updatedAt: string;
-	vocals: string;
 }
 
 interface UpdateTrackModalProps {

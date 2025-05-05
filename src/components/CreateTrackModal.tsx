@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, XCircle, Plus, Trash2, Upload } from 'lucide-react';
-import InputMask from 'react-input-mask';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import 'react-clock/dist/Clock.css';
 import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
+import { Track } from '@/types/track';
 
 interface Artist {
 	external_id: number;
@@ -15,9 +14,10 @@ interface Artist {
 }
 
 interface Contributor {
-	external_id: number;
+	contributor: number;
 	name: string;
 	role: string;
+	role_name: string;
 }
 
 interface Publisher {
@@ -29,59 +29,6 @@ interface Publisher {
 interface Role {
 	id: number;
 	name: string;
-}
-
-interface TrackArtist {
-	artist: number;
-	kind: string;
-	order: number;
-	name: string;
-}
-
-interface TrackContributor {
-	external_id: number;
-	name: string;
-	role: number;
-	order: number;
-}
-
-interface TrackPublisher {
-	publisher: number;
-	author: string;
-	order: number;
-}
-
-interface Track {
-	_id?: string;
-	name: string;
-	mix_name: string;
-	DA_ISRC: string;
-	ISRC: string;
-	album_only: boolean;
-	artists: TrackArtist[];
-	contributors: TrackContributor[];
-	copyright_holder: string;
-	copyright_holder_year: string;
-	dolby_atmos_resource: string;
-	explicit_content: boolean;
-	generate_isrc: boolean;
-	genre: {
-		id: number;
-		name: string;
-	};
-	subgenre: {
-		id: number;
-		name: string;
-	};
-	label_share: number | null;
-	language: string;
-	order: number | null;
-	publishers: TrackPublisher[];
-	release: string;
-	resource: string | File | null;
-	sample_start: string;
-	track_lenght: string | null;
-	vocals: string;
 }
 
 interface Release {
@@ -237,10 +184,11 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 			contributors: [
 				...(prev.contributors || []),
 				{
-					external_id: 0,
+					contributor: 0,
 					name: '',
 					role: 0,
 					order: (prev.contributors || []).length,
+					role_name: '',
 				},
 			],
 		}));
@@ -316,10 +264,11 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 			const newContributors = [...(prev.contributors || [])];
 			if (!newContributors[index]) {
 				newContributors[index] = {
-					external_id: 0,
+					contributor: 0,
 					name: '',
 					role: 0,
 					order: 0,
+					role_name: '',
 				};
 			}
 
@@ -328,14 +277,23 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 				if (selectedContributor) {
 					newContributors[index] = {
 						...newContributors[index],
-						external_id: selectedContributor.external_id,
+						contributor: selectedContributor.contributor,
 						name: selectedContributor.name,
 					};
 				}
-			} else if (field === 'role' || field === 'order') {
+			} else if (field === 'role') {
+				const selectedRole = roles.find(r => r.id === Number(value));
+				if (selectedRole) {
+					newContributors[index] = {
+						...newContributors[index],
+						role: Number(value),
+						role_name: selectedRole.name,
+					};
+				}
+			} else if (field === 'order') {
 				newContributors[index] = {
 					...newContributors[index],
-					[field]: typeof value === 'string' ? parseInt(value) : value,
+					order: typeof value === 'string' ? parseInt(value) : value,
 				};
 			}
 
@@ -457,17 +415,18 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setIsLoading(true);
-		setError(null);
+		console.log(formData);
+		// setIsLoading(true);
+		// setError(null);
 
-		try {
-			await onSave(formData as Track);
-			onClose();
-		} catch (err: any) {
-			setError(err.message || 'Error al crear el track');
-		} finally {
-			setIsLoading(false);
-		}
+		// try {
+		// 	await onSave(formData as Track);
+		// 	onClose();
+		// } catch (err: any) {
+		// 	setError(err.message || 'Error al crear el track');
+		// } finally {
+		// 	setIsLoading(false);
+		// }
 	};
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

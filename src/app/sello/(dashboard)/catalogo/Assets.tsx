@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import UpdateTrackModal from '@/components/UpdateTrackModal';
 import CreateTrackModal from '@/components/CreateTrackModal';
+import { Track } from '@/types/track';
 
 interface Artist {
 	name: string;
@@ -47,47 +48,6 @@ interface Release {
 	picture: {
 		base64: string;
 	};
-}
-
-interface Track {
-	_id: string;
-	name: string;
-	mix_name: string;
-	DA_ISRC: string;
-	ISRC: string;
-	__v: number;
-	album_only: boolean;
-	artists: { artist: number; kind: string; order: number; name: string }[];
-	contributors: {
-		external_id: number;
-		name: string;
-		role: number;
-		order: number;
-	}[];
-	copyright_holder: string;
-	copyright_holder_year: string;
-	createdAt: string;
-	dolby_atmos_resource: string;
-	explicit_content: boolean;
-	generate_isrc: boolean;
-	genre: {
-		id: number;
-		name: string;
-	};
-	subgenre: {
-		id: number;
-		name: string;
-	};
-	label_share: string;
-	language: string;
-	order: number | null;
-	publishers: { publisher: number; author: string; order: number }[];
-	release: string;
-	resource: string | File | null;
-	sample_start: string;
-	track_lenght: string;
-	updatedAt: string;
-	vocals: string;
 }
 
 const Assets = () => {
@@ -211,13 +171,43 @@ const Assets = () => {
 		return release.name;
 	};
 
-	const handleCreateTrack = async (newTrack: Track) => {
+	const handleCreateTrack = async (newTrack: Partial<Track>) => {
 		try {
-			// TODO: Implement track creation logic
-			console.log('Creating track:', newTrack);
-			setIsCreateModalOpen(false);
+			let response;
+			if (newTrack.resource instanceof File) {
+				const submitFormData = new FormData();
+				submitFormData.append('file', newTrack.resource);
+				const { resource, ...restData } = newTrack;
+				submitFormData.append('data', JSON.stringify(restData));
+
+				response = await fetch(`/api/admin/createSingle`, {
+					method: 'POST',
+					body: submitFormData,
+				});
+				console.log(submitFormData);
+			} else {
+				response = await fetch(`/api/admin/createSingle`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(newTrack),
+				});
+			}
+			if (!response.ok) {
+				throw new Error('Error al actualizar el track');
+			}
+
+			const data = await response.json();
+			if (data.success) {
+				setShowSuccessMessage(true);
+				setTimeout(() => setShowSuccessMessage(false), 3000);
+			} else {
+				throw new Error(data.error || 'Error al actualizar el track');
+			}
 		} catch (error) {
-			console.error('Error creating track:', error);
+			console.error('Error:', error);
+			alert('Error al actualizar el track');
 		}
 	};
 

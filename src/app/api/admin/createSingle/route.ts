@@ -4,12 +4,12 @@ import SingleTrack from '@/models/SingleTrack';
 import { Binary } from 'mongodb';
 import { jwtVerify } from 'jose';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
 	console.log('crerateSingle');
 	try {
-		const token = request.cookies.get('loginToken')?.value;
-		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
-
+		console.log('update track');
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
+		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
 				{ success: false, error: 'Not authenticated' },
@@ -32,156 +32,194 @@ export async function POST(request: NextRequest) {
 		}
 		await dbConnect();
 
-		// Obtener el FormData de la solicitud
-		const formData = await request.formData();
+		const contentType = req.headers.get('content-type') || '';
+		let trackData: Record<string, any> = {};
+		let fileName = '';
+		let resource_url = '';
+		if (contentType.includes('multipart/form-data')) {
+			const formData = await req.formData();
+			const file = formData.get('file') as File | null;
+			let data = formData.get('data') as string | null;
 
-		console.log('Datos recibidos en createSingle:', {
-			name: formData.get('name'),
-			order: formData.get('order'),
-			// No imprimir archivos binarios en los logs
-			resource: formData.get('resource')
-				? 'Archivo presente'
-				: 'No hay archivo',
-		});
+			if (data) {
+				trackData = JSON.parse(data);
 
-		// Procesar los arrays JSON
-		const artists = JSON.parse(formData.get('artists') as string);
-		const publishers = JSON.parse(formData.get('publishers') as string);
-		const contributors = JSON.parse(formData.get('contributors') as string);
-
-		// Procesar el archivo de audio si existe
-		let resourcePath = '';
-		let resourceType = '';
-		const resourceFile = formData.get('resource') as File;
-		if (resourceFile && resourceFile instanceof File) {
-			// Aquí podrías implementar la lógica para guardar el archivo
-			// Por ejemplo, subirlo a un servicio de almacenamiento o guardarlo en el sistema de archivos
-			// Por ahora, solo guardamos el nombre del archivo
-			resourcePath = resourceFile.name;
-			resourceType = resourceFile.type;
-			console.log('Archivo de audio recibido:', resourceFile.name);
-		}
-
-		// Crear el objeto de datos para el modelo
-		const singleData = {
-			order: Number(formData.get('order')),
-			release: formData.get('release'),
-			name: formData.get('name'),
-			mix_name: formData.get('mix_name'),
-			language: formData.get('language'),
-			vocals: formData.get('vocals'),
-			artists: artists,
-			publishers: publishers,
-			contributors: contributors,
-			label_share: formData.get('label_share'),
-			genre: formData.get('genre'),
-			subgenre: formData.get('subgenre'),
-			resource: resourcePath,
-			dolby_atmos_resource: formData.get('dolby_atmos_resource'),
-			copyright_holder: formData.get('copyright_holder'),
-			copyright_holder_year: formData.get('copyright_holder_year'),
-			album_only: formData.get('album_only') === 'true',
-			sample_start: formData.get('sample_start'),
-			explicit_content: formData.get('explicit_content') === 'true',
-			ISRC: formData.get('ISRC'),
-			generate_isrc: formData.get('generate_isrc') === 'true',
-			DA_ISRC: formData.get('DA_ISRC'),
-			track_lenght: formData.get('track_lenght'),
-		};
-		console.log(singleData);
-
-		// Si hay un archivo de audio, subirlo a MoveMusic
-		if (resourceFile && resourceFile instanceof File) {
-			// solicitar subida de track
-			const uploadTrackReq = await fetch(
-				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${resourcePath}&filetype=${resourceType}&upload_type=track.audio`,
-				{
-					method: 'GET',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `JWT ${moveMusicAccessToken}`,
-						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-						Referer: process.env.MOVEMUSIC_REFERER || '',
-					},
+				// Asegurarse de que los artistas tengan el formato correcto
+				if (trackData.artists) {
+					trackData.artists = trackData.artists.map((artist: any) => ({
+						artist: Number(artist.artist) || 0,
+						kind: String(artist.kind || 'main'),
+						order: Number(artist.order || 0),
+						name: String(artist.name || ''),
+					}));
 				}
-			);
-			const uploadTrackRes = await uploadTrackReq.json();
 
-			// Extraer la URL y los campos del objeto firmado
-			const { url: signedUrl, fields: trackFields } = uploadTrackRes.signed_url;
-
-			// Crear un objeto FormData y agregar los campos y el archivo
-			const trackFormData = new FormData();
-			Object.entries(trackFields).forEach(([key, value]) => {
-				if (typeof value === 'string' || value instanceof Blob) {
-					trackFormData.append(key, value);
-				} else {
-					console.warn(
-						`El valor de '${key}' no es un tipo válido para FormData:`,
-						value
+				// Asegurarse de que los contribuidores tengan el formato correcto
+				if (trackData.contributors) {
+					trackData.contributors = trackData.contributors.map(
+						(contributor: any) => ({
+							external_id: Number(contributor.external_id) || 0,
+							name: String(contributor.name || ''),
+							role: Number(contributor.role) || 0,
+							order: Number(contributor.order) || 0,
+						})
 					);
 				}
-			});
 
-			trackFormData.append('file', resourceFile); // Usar el archivo de audio
+				if (file) {
+					fileName = file.name.toLowerCase();
+					console.log('ACTUALIZANDO TRAck');
+					const uploadTrackReq = await fetch(
+						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
+						{
+							method: 'GET',
+							headers: {
+								'Content-Type': 'application/json',
+								Authorization: `JWT ${moveMusicAccessToken}`,
+								'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+								Referer: process.env.MOVEMUSIC_REFERER || '',
+							},
+						}
+					);
+					const uploadTrackRes = await uploadTrackReq.json();
 
-			// Realizar la solicitud POST a la URL firmada
-			const uploadResponse = await fetch(signedUrl, {
-				method: 'POST',
-				body: trackFormData,
-			});
+					// Extraer la URL y los campos del objeto firmado
+					const { url: signedUrl, fields: trackFields } =
+						uploadTrackRes.signed_url;
+					// Crear un objeto FormData y agregar los campos y el archivo
+					const trackFormData = new FormData();
+					Object.entries(trackFields).forEach(([key, value]) => {
+						if (typeof value === 'string' || value instanceof Blob) {
+							trackFormData.append(key, value);
+						} else {
+							console.warn(
+								`El valor de '${key}' no es un tipo válido para FormData:`,
+								value
+							);
+						}
+					});
 
-			// Verificar si la subida fue exitosa
-			if (!uploadResponse.ok) {
-				console.error(
-					'Error al subir el archivo de audio a S3:',
-					await uploadResponse.text()
-				);
-				return NextResponse.json(
-					{ success: false, error: 'Error al subir el archivo de audio a S3' },
-					{ status: 500 }
+					trackFormData.append('file', file);
+
+					// Realizar la solicitud POST a la URL firmada
+					const uploadResponse = await fetch(signedUrl, {
+						method: 'POST',
+						body: trackFormData,
+					});
+
+					resource_url = signedUrl;
+
+					if (!uploadResponse.ok) {
+						console.error(
+							'Error al subir el archivo de audio a S3:',
+							await uploadResponse.text()
+						);
+						return NextResponse.json(
+							{
+								success: false,
+								error: 'Error al subir el archivo de audio a S3',
+							},
+							{ status: 500 }
+						);
+					}
+				}
+			}
+		} else if (contentType.includes('application/json')) {
+			trackData = await req.json();
+			console.log('JSON trackData:', trackData);
+
+			// Asegurarse de que los artistas tengan el formato correcto
+			if (trackData.artists) {
+				trackData.artists = trackData.artists.map((artist: any) => ({
+					artist: Number(artist.artist) || 0,
+					kind: String(artist.kind || 'main'),
+					order: Number(artist.order || 0),
+					name: String(artist.name || ''),
+				}));
+			}
+
+			// Asegurarse de que los contribuidores tengan el formato correcto
+			if (trackData.contributors) {
+				trackData.contributors = trackData.contributors.map(
+					(contributor: any) => ({
+						external_id: Number(contributor.external_id) || 0,
+						name: String(contributor.name || ''),
+						role: Number(contributor.role) || 0,
+						order: Number(contributor.order) || 0,
+					})
 				);
 			}
-			console.log(uploadResponse);
-			// Obtener la URL pública del archivo subido
-			const uploadedTrackUrl = uploadTrackRes.url;
-			console.log(uploadedTrackUrl);
-			const fileName = uploadedTrackUrl.split('/').pop();
-			singleData.resource = fileName;
+		} else {
+			return NextResponse.json(
+				{ success: false, error: 'Invalid content type' },
+				{ status: 400 }
+			);
 		}
-		//enviar track a api externa
-		const trackToApi = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-				Referer: process.env.MOVEMUSIC_REFERER || '',
-				Authorization: `JWT ${moveMusicAccessToken}`,
-			},
-			body: JSON.stringify(singleData),
-		});
 
-		const apiResponse = await trackToApi.json();
-		console.log(apiResponse);
-		// Crear el nuevo single en la base de datos
-		// const newSingle = await SingleTrack.create(singleData);
+		// Asegurarse de que el género tenga el formato correcto
+		if (trackData.genre) {
+			if (typeof trackData.genre === 'number') {
+				trackData.genre = {
+					id: trackData.genre,
+					name: '',
+				};
+			} else if (typeof trackData.genre === 'object') {
+				trackData.genre = {
+					id: trackData.genre.id || 0,
+					name: trackData.genre.name || '',
+				};
+			}
+		} else {
+			trackData.genre = null;
+		}
 
-		// console.log('Single creado exitosamente:', newSingle._id);
+		// Asegurarse de que el subgénero tenga el formato correcto
+		if (trackData.subgenre) {
+			if (typeof trackData.subgenre === 'number') {
+				trackData.subgenre = {
+					id: trackData.subgenre,
+					name: '',
+				};
+			} else if (typeof trackData.subgenre === 'object') {
+				trackData.subgenre = {
+					id: trackData.subgenre.id || 0,
+					name: trackData.subgenre.name || '',
+				};
+			}
+		} else {
+			trackData.subgenre = null;
+		}
+		trackData.resource = `public/${fileName}`;
 
-		return NextResponse.json(
+		console.log('track ', trackData);
+		const createSingleInApi = await fetch(
+			`${process.env.MOVEMUSIC_API}/tracks`,
 			{
-				success: true,
-				message: 'Single creado exitosamente',
-			},
-			{ status: 201 }
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+				body: JSON.stringify(trackData),
+			}
 		);
-	} catch (error) {
-		console.error('Error al crear el single:', error);
+		const creaSingleApiRes = await createSingleInApi.json();
+		console.log(creaSingleApiRes);
+		// Crear el track
+		// const createTrack = await SingleTrack.create(trackId, trackData, {
+		// 	new: true,
+		// });
+
+		return NextResponse.json({ success: true });
+	} catch (error: any) {
+		console.error('Error updating track:', error);
 		return NextResponse.json(
 			{
 				success: false,
-				message: 'Error al crear el single',
-				error: error instanceof Error ? error.message : 'Error desconocido',
+				error: error.message || 'Internal Server Error',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 			},
 			{ status: 500 }
 		);

@@ -2,16 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import bcrypt from 'bcryptjs';
+import { jwtVerify } from 'jose';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
 	console.log('create sello request received');
-	console.log('Content-Type:', request.headers.get('content-type'));
+	console.log('Content-Type:', req.headers.get('content-type'));
 
 	try {
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
+		const token = req.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
 		await dbConnect();
 
 		// Verificar si es FormData
-		const contentType = request.headers.get('content-type');
+		const contentType = req.headers.get('content-type');
 		if (!contentType?.includes('multipart/form-data')) {
 			return NextResponse.json(
 				{ message: 'Se requiere enviar los datos como FormData' },
@@ -19,7 +42,7 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const formData = await request.formData();
+		const formData = await req.formData();
 		console.log('Received form data fields:', Array.from(formData.keys()));
 
 		// Extraer los campos del FormData
@@ -61,10 +84,50 @@ export async function POST(request: NextRequest) {
 		// Procesar la imagen si existe
 		let pictureBuffer = null;
 		if (picture) {
+			console.log(picture);
 			try {
-				const arrayBuffer = await picture.arrayBuffer();
-				pictureBuffer = Buffer.from(arrayBuffer);
-				console.log('Image converted to buffer successfully');
+				// const arrayBuffer = await picture.arrayBuffer();
+				// pictureBuffer = Buffer.from(arrayBuffer);
+				// console.log('Image converted to buffer successfully');
+				const uploadPictureReq = await fetch(
+					`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=image/jpeg&upload_type=label.logo`,
+					{
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `JWT ${moveMusicAccessToken}`,
+							'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+							Referer: process.env.MOVEMUSIC_REFERER || '',
+						},
+					}
+				);
+				const uploadPictureRes = await uploadPictureReq.json();
+				console.log('uploadPictureRes', uploadPictureRes);
+				// Extraer la URL y los campos del objeto firmado
+				const { url: signedUrl, fields: trackFields } =
+					uploadPictureRes.signed_url;
+				// Crear un objeto FormData y agregar los campos y el archivo
+				const trackFormData = new FormData();
+				Object.entries(trackFields).forEach(([key, value]) => {
+					if (typeof value === 'string' || value instanceof Blob) {
+						trackFormData.append(key, value);
+					} else {
+						console.warn(
+							`El valor de '${key}' no es un tipo válido para FormData:`,
+							value
+						);
+					}
+				});
+
+				trackFormData.append('file', picture);
+
+				// Realizar la solicitud POST a la URL firmada
+				const uploadResponse = await fetch(signedUrl, {
+					method: 'POST',
+					body: trackFormData,
+				});
+				const uploadRes = await uploadResponse.json();
+				console.log('uploadRes', uploadRes);
 			} catch (error) {
 				console.error('Error converting image to buffer:', error);
 				return NextResponse.json(
@@ -75,35 +138,24 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Crear el nuevo sello
-		const newSello = await User.create({
-			name,
-			email,
-			password,
-			picture: pictureBuffer,
-			role: 'sello',
-			status: 'active',
-			permissions: ['sello'],
-			primary_genre,
-			year: parseInt(year),
-			catalog_num: parseInt(catalog_num),
-		});
+		// const newSello = await User.create({
+		// 	name,
+		// 	email,
+		// 	password,
+		// 	picture: pictureBuffer,
+		// 	role: 'sello',
+		// 	status: 'active',
+		// 	permissions: ['sello'],
+		// 	primary_genre,
+		// 	year: parseInt(year),
+		// 	catalog_num: parseInt(catalog_num),
+		// });
 
-		console.log('Sello created successfully:', {
-			id: newSello._id,
-			name: newSello.name,
-			email: newSello.email,
-			role: newSello.role,
-		});
+		console.log('Sello created successfully:');
 
 		return NextResponse.json(
 			{
 				message: 'Sello creado exitosamente',
-				sello: {
-					id: newSello._id,
-					name: newSello.name,
-					email: newSello.email,
-					role: newSello.role,
-				},
 			},
 			{ status: 201 }
 		);

@@ -240,6 +240,7 @@ const CreateReleasePage = () => {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+
 		try {
 			const formDataToSend = new FormData();
 
@@ -276,7 +277,7 @@ const CreateReleasePage = () => {
 					formDataToSend.append(key, value.toString());
 				}
 			});
-
+			console.log('data to send: ', formDataToSend);
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',
 				body: formDataToSend,

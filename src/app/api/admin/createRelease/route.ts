@@ -100,15 +100,13 @@ export async function POST(req: NextRequest) {
 		// Crear el nuevo release
 
 		// artwork: '',
-		// genre: genre.id,
-		// subgenre: subgenre.id,
+
 		// genre_name: genre.name,
 		// subgenre_name: subgenre.name,
 		// label_name,
 		let newRelease = {
 			name,
 			label,
-
 			kind,
 			language,
 			countries,
@@ -118,13 +116,14 @@ export async function POST(req: NextRequest) {
 			backcatalog,
 			auto_detect_language,
 			generate_ean,
+			genre: genre.id,
+			subgenre: subgenre.id,
 			youtube_declaration,
 			release_version,
 			publisher,
 			publisher_year,
 			copyright_holder,
 			copyright_holder_year,
-
 			catalogue_number,
 			is_new_release,
 			official_date,
@@ -192,11 +191,8 @@ export async function POST(req: NextRequest) {
 		const releaseToApiData = {
 			...newRelease,
 			artwork: picture_path,
-			genre: genre.id,
-			subgenre: subgenre.id,
 		};
 
-		console.log(newRelease);
 		const releaseToApi = await fetch(`${process.env.MOVEMUSIC_API}/releases`, {
 			method: 'POST',
 			headers: {
@@ -212,11 +208,19 @@ export async function POST(req: NextRequest) {
 		await dbConnect();
 
 		//Guardar en la API
-
+		console.log(picture_url);
 		// Guardar en la base de datos
-		// const savedRelease = await Release.create(newRelease);
+		const releaseToSave = {
+			...newRelease,
+			external_id: Number(apiRes.id || external_id),
+			picture: String(picture_url || '/avatar.png'),
+			genre_name: genre.name,
+			subgenre_name: subgenre.name,
+			label_name: String(label_name),
+		};
+		const savedRelease = await Release.create(releaseToSave);
 
-		// console.log(savedRelease);
+		console.log('release en mongo: ', savedRelease);
 
 		return NextResponse.json({
 			success: true,

@@ -48,7 +48,8 @@ const trackSchema = new Schema<Track>({
 
 const releaseSchema = new Schema(
 	{
-		picture: { type: Buffer, required: true },
+		picture: { type: String, required: true, default: '/avatar.png' },
+		external_id: { type: Number, required: true },
 		auto_detect_language: { type: Boolean, required: true },
 		generate_ean: { type: Boolean, required: true },
 		backcatalog: { type: Boolean, required: true },
@@ -59,7 +60,8 @@ const releaseSchema = new Schema(
 		countries: { type: [String], required: true },
 		name: { type: String, required: true },
 		kind: { type: String, required: true },
-		label: { type: String, required: true },
+		label: { type: Number, required: true },
+		label_name: { type: String, required: true },
 		language: { type: String, required: true },
 	},
 	{ timestamps: true }

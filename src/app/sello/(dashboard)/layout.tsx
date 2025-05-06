@@ -62,7 +62,7 @@ export default function DashboardLayout({
 	return (
 		<>
 			<AccountSelector />
-			<div className="min-h-screen bg-gray-50">
+			<div className="min-h-screen ">
 				{/* Header with Navigation */}
 				<header className="bg-white shadow">
 					<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -171,7 +171,7 @@ export default function DashboardLayout({
 
 				{/* Main Content */}
 				<main
-					className={`${inter.className} bg-[#f0ecf1] text-gray-900 min-h-screen p-4 md:p-8`}
+					className={`${inter.className} bg-white text-gray-900 min-h-screen  md:p-8`}
 				>
 					<div className="max-w-7xl mx-auto">{children}</div>
 				</main>

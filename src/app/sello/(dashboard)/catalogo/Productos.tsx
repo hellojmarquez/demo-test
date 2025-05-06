@@ -19,9 +19,10 @@ import {
 	Barcode,
 	Plus,
 } from 'lucide-react';
+import Link from 'next/link';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { useRouter } from 'next/navigation';
 interface Release {
 	_id: string;
 	__v: number;
@@ -52,7 +53,7 @@ const Productos: React.FC = () => {
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
-
+	const router = useRouter();
 	useEffect(() => {
 		const fetchReleases = async () => {
 			setLoading(true);
@@ -154,10 +155,13 @@ const Productos: React.FC = () => {
 	return (
 		<div className="space-y-6">
 			<div className="flex justify-end mb-4">
-				<button className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group">
-					<Plus size={18} className="text-brand-light group-hover:text-white" />
-					<span className="font-medium">Crear Producto</span>
-				</button>
+				<Link
+					href="/sello/catalogo/crear-release"
+					className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group min-w-[180px]"
+				>
+					<Plus className="h-4 w-4" />
+					<span>Crear lanzamiento</span>
+				</Link>
 			</div>
 
 			{showSuccessMessage && (

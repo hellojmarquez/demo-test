@@ -1,55 +1,37 @@
 export const dynamic = 'force-dynamic';
-import { jwtVerify } from 'jose';
+import dbConnect from '@/lib/dbConnect';
+import User from '@/models/UserModel';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
-	console.log('get publishers roles received');
+	console.log('get all publishers received');
 
 	try {
-		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
-		const token = req.cookies.get('loginToken')?.value;
-		if (!token) {
-			return NextResponse.json(
-				{ success: false, error: 'Not authenticated' },
-				{ status: 401 }
-			);
-		}
+		await dbConnect();
+		const publishers = await User.find({ role: 'publisher' })
+			.select('-password')
+			.sort({ createdAt: -1 });
 
-		// Verificar JWT
-		try {
-			const { payload: verifiedPayload } = await jwtVerify(
-				token,
-				new TextEncoder().encode(process.env.JWT_SECRET)
-			);
-		} catch (err) {
-			console.error('JWT verification failed', err);
-			return NextResponse.json(
-				{ success: false, error: 'Invalid token' },
-				{ status: 401 }
-			);
-		}
-		// Obtener los roles
-		const publishersRes = await fetch(
-			`${process.env.MOVEMUSIC_API}/publishers`,
-			{
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-			}
-		);
-
-		const publishersData = await publishersRes.json();
-
+		// Convierte los Buffers de MongoDB a base64
+		const publisherWithBase64 = publishers.map(publisher => {
+			const publisherObj = publisher.toObject();
+			return {
+				...publisherObj,
+				external_id: Number(publisherObj.external_id),
+				picture: publisherObj.picture
+					? {
+							base64: publisherObj.picture.toString('base64'),
+					  }
+					: null,
+			};
+		});
+		console.log(publisherWithBase64);
 		return NextResponse.json({
 			success: true,
-			data: publishersData.results,
+			data: publisherWithBase64,
 		});
 	} catch (error) {
-		console.error('Error fetching contributor roles:', error);
+		console.error('Error obteniendo publishers:', error);
 		return NextResponse.json(
 			{ success: false, error: 'Internal Server Error' },
 			{ status: 500 }

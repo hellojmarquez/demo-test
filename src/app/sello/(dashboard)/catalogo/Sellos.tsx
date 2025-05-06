@@ -39,23 +39,38 @@ export default function SellosPage() {
 				console.log('Respuesta completa de la API:', response);
 
 				// Verificar la estructura de los datos
-				if (Array.isArray(response)) {
+				if (Array.isArray(response.data)) {
 					// Si la respuesta es un array, verificar cada sello
-					response.forEach((sello, index) => {
+					response.data.forEach((sello: Sello, index: number) => {
 						console.log(`Sello ${index}:`, sello);
 						console.log(`Sello ${index} picture:`, sello.picture);
 					});
-
 					// Asegurarse de que cada sello tenga la estructura correcta
-					const sellosFormateados = response.map(sello => {
+					const sellosFormateados = response.data.map((sello: Sello) => {
+						// Convertir year y catalog_num a números
+						const year =
+							typeof sello.year === 'string'
+								? parseInt(sello.year, 10)
+								: sello.year;
+						const catalog_num =
+							typeof sello.catalog_num === 'string'
+								? parseInt(sello.catalog_num, 10)
+								: sello.catalog_num;
+
 						// Si picture es un string, convertirlo a objeto con base64
 						if (sello.picture && typeof sello.picture === 'string') {
 							return {
 								...sello,
+								year,
+								catalog_num,
 								picture: { base64: sello.picture },
 							};
 						}
-						return sello;
+						return {
+							...sello,
+							year,
+							catalog_num,
+						};
 					});
 
 					setSellos(sellosFormateados);

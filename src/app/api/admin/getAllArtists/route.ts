@@ -8,14 +8,16 @@ export async function GET(req: NextRequest) {
 
 	try {
 		await dbConnect();
-		const personas = await User.find({ role: { $ne: 'admin' } })
+		const personas = await User.find({ role: 'artista' })
 			.select('-password')
 			.sort({ createdAt: -1 });
+
 		// Convierte los Buffers de MongoDB a base64
 		const personasWithBase64 = personas.map(persona => {
 			const personaObj = persona.toObject();
 			return {
 				...personaObj,
+				external_id: Number(personaObj.external_id),
 				picture: personaObj.picture
 					? {
 							base64: personaObj.picture.toString('base64'),
@@ -23,6 +25,7 @@ export async function GET(req: NextRequest) {
 					: null,
 			};
 		});
+		console.log(personasWithBase64);
 		return NextResponse.json({
 			success: true,
 			data: personasWithBase64,

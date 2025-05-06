@@ -37,16 +37,34 @@ function CreateSelloModal({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [error, setError] = useState('');
 
-	const handleChange = (
-		e: React.ChangeEvent<
-			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-		>
-	) => {
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
-		setFormData(prev => ({
-			...prev,
-			[name]: value,
-		}));
+
+		if (name === 'year') {
+			// Solo permitir números y máximo 4 dígitos
+			if (/^\d{0,4}$/.test(value)) {
+				setFormData(prev => ({
+					...prev,
+					[name]: value,
+				}));
+			}
+		} else if (name === 'catalog_num') {
+			// Solo permitir enteros positivos para el número de catálogo
+			const regex = /^\d*$/;
+
+			if (regex.test(value)) {
+				setFormData(prev => ({
+					...prev,
+					[name]: value,
+				}));
+			}
+		} else {
+			// Para otros campos
+			setFormData(prev => ({
+				...prev,
+				[name]: value,
+			}));
+		}
 	};
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,8 +98,14 @@ function CreateSelloModal({
 			formDataToSend.append('email', formData.email);
 			formDataToSend.append('password', formData.password);
 			formDataToSend.append('primary_genre', formData.primary_genre);
-			formDataToSend.append('year', formData.year);
-			formDataToSend.append('catalog_num', formData.catalog_num);
+			formDataToSend.append(
+				'year',
+				formData.year ? parseInt(formData.year).toString() : ''
+			);
+			formDataToSend.append(
+				'catalog_num',
+				formData.catalog_num ? parseInt(formData.catalog_num).toString() : ''
+			);
 
 			if (formData.picture?.base64) {
 				// Convertir base64 a Blob
@@ -215,7 +239,7 @@ function CreateSelloModal({
 												id="name"
 												name="name"
 												value={formData.name}
-												onChange={handleChange}
+												onChange={handleInputChange}
 												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 												required
 											/>
@@ -233,7 +257,7 @@ function CreateSelloModal({
 												id="email"
 												name="email"
 												value={formData.email}
-												onChange={handleChange}
+												onChange={handleInputChange}
 												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 												required
 											/>
@@ -252,7 +276,7 @@ function CreateSelloModal({
 											id="password"
 											name="password"
 											value={formData.password}
-											onChange={handleChange}
+											onChange={handleInputChange}
 											className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 											required
 										/>
@@ -271,45 +295,40 @@ function CreateSelloModal({
 												id="primary_genre"
 												name="primary_genre"
 												value={formData.primary_genre}
-												onChange={handleChange}
+												onChange={handleInputChange}
 												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 												required
 											/>
 										</div>
 
 										<div>
-											<label
-												htmlFor="year"
-												className="block text-sm font-medium text-gray-700 mb-1"
-											>
+											<label className="block text-sm font-medium text-gray-700 mb-1">
 												Año de Fundación
 											</label>
 											<input
-												type="number"
-												id="year"
+												type="text"
 												name="year"
 												value={formData.year}
-												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												onChange={handleInputChange}
+												onPaste={e => e.preventDefault()}
+												maxLength={4}
+												className="w-full border border-gray-300 p-2 rounded-lg"
 												required
 											/>
 										</div>
 									</div>
 
 									<div>
-										<label
-											htmlFor="catalog_num"
-											className="block text-sm font-medium text-gray-700 mb-1"
-										>
-											Número de Catálogo
+										<label className="block text-sm font-medium text-gray-700 mb-1">
+											Número de catálogo
 										</label>
 										<input
-											type="number"
-											id="catalog_num"
+											type="text"
 											name="catalog_num"
 											value={formData.catalog_num}
-											onChange={handleChange}
-											className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+											onChange={handleInputChange}
+											onPaste={e => e.preventDefault()}
+											className="w-full border border-gray-300 p-2 rounded-lg"
 											required
 										/>
 									</div>

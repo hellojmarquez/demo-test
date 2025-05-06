@@ -50,6 +50,15 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				...formData,
 				[name]: checkbox.checked,
 			});
+		} else if (name === 'year' || name === 'catalog_num') {
+			// Solo permitir números
+			if (/^\d*$/.test(value)) {
+				const numericValue = value === '' ? '' : Number(value);
+				setFormData({
+					...formData,
+					[name]: numericValue,
+				});
+			}
 		} else {
 			setFormData({
 				...formData,
@@ -76,6 +85,64 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				console.log('Imagen procesada:', base64Data.substring(0, 50) + '...');
 			};
 			reader.readAsDataURL(file);
+		}
+	};
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const { name, value } = e.target;
+
+		if (name === 'year') {
+			// Solo permitir números y máximo 4 dígitos
+			if (/^\d{0,4}$/.test(value)) {
+				setFormData({
+					...formData,
+					[name]: value === '' ? '' : parseInt(value),
+				});
+			}
+		} else if (name === 'catalog_num') {
+			// Solo permitir enteros positivos para el número de catálogo
+			const regex = /^\d*$/;
+
+			if (regex.test(value)) {
+				if (value === '') {
+					setFormData({
+						...formData,
+						[name]: '',
+					});
+				} else {
+					const numValue = parseInt(value);
+					const isMinValid = numValue >= 0;
+					if (isMinValid) {
+						setFormData({
+							...formData,
+							[name]: numValue,
+						});
+					}
+				}
+			}
+		} else {
+			// Para otros campos
+			setFormData({
+				...formData,
+				[name]: value,
+			});
+		}
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		// Solo permitir números y teclas de control
+		const allowedKeys = [
+			'Backspace',
+			'Delete',
+			'ArrowLeft',
+			'ArrowRight',
+			'Tab',
+			'Home',
+			'End',
+		];
+
+		if (!/^\d$/.test(e.key) && !allowedKeys.includes(e.key)) {
+			e.preventDefault();
 		}
 	};
 
@@ -198,11 +265,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											Número de Catálogo
 										</label>
 										<input
-											type="number"
+											type="text"
 											id="catalog_num"
 											name="catalog_num"
 											value={formData.catalog_num}
-											onChange={handleChange}
+											onChange={handleInputChange}
+											onPaste={e => e.preventDefault()}
 											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 											required
 										/>
@@ -216,11 +284,13 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											Año
 										</label>
 										<input
-											type="number"
+											type="text"
 											id="year"
 											name="year"
 											value={formData.year}
-											onChange={handleChange}
+											onChange={handleInputChange}
+											onPaste={e => e.preventDefault()}
+											maxLength={4}
 											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 											required
 										/>

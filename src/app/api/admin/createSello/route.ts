@@ -6,7 +6,6 @@ import { jwtVerify } from 'jose';
 
 export async function POST(req: NextRequest) {
 	console.log('create sello request received');
-	console.log('Content-Type:', req.headers.get('content-type'));
 
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
@@ -43,26 +42,17 @@ export async function POST(req: NextRequest) {
 		}
 
 		const formData = await req.formData();
-		console.log('Received form data fields:', Array.from(formData.keys()));
 
 		// Extraer los campos del FormData
 		const name = formData.get('name') as string;
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
 		const primary_genre = formData.get('primary_genre') as string;
-		const year = formData.get('year') as string;
-		const catalog_num = formData.get('catalog_num') as string;
+		const yearString = formData.get('year') as string;
+		const catalog_numString = formData.get('catalog_num') as string;
 		const picture = formData.get('picture') as File | null;
-
-		console.log('Extracted fields:', {
-			name,
-			email,
-			hasPassword: !!password,
-			hasPicture: !!picture,
-			primary_genre,
-			year,
-			catalog_num,
-		});
+		const year = Number(yearString);
+		const catalog_num = Number(catalog_numString);
 
 		// Validar campos requeridos
 		if (!name) {
@@ -82,13 +72,11 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Procesar la imagen si existe
-		let pictureBuffer = null;
+		let picture_url = '';
+		let picture_path = '';
 		if (picture) {
 			console.log(picture);
 			try {
-				// const arrayBuffer = await picture.arrayBuffer();
-				// pictureBuffer = Buffer.from(arrayBuffer);
-				// console.log('Image converted to buffer successfully');
 				const uploadPictureReq = await fetch(
 					`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=image/jpeg&upload_type=label.logo`,
 					{
@@ -102,15 +90,15 @@ export async function POST(req: NextRequest) {
 					}
 				);
 				const uploadPictureRes = await uploadPictureReq.json();
-				console.log('uploadPictureRes', uploadPictureRes);
+
 				// Extraer la URL y los campos del objeto firmado
-				const { url: signedUrl, fields: trackFields } =
+				const { url: signedUrl, fields: dataFields } =
 					uploadPictureRes.signed_url;
 				// Crear un objeto FormData y agregar los campos y el archivo
-				const trackFormData = new FormData();
-				Object.entries(trackFields).forEach(([key, value]) => {
+				const labelFormData = new FormData();
+				Object.entries(dataFields).forEach(([key, value]) => {
 					if (typeof value === 'string' || value instanceof Blob) {
-						trackFormData.append(key, value);
+						labelFormData.append(key, value);
 					} else {
 						console.warn(
 							`El valor de '${key}' no es un tipo válido para FormData:`,
@@ -119,17 +107,32 @@ export async function POST(req: NextRequest) {
 					}
 				});
 
-				trackFormData.append('file', picture);
+				labelFormData.append('file', picture);
 
 				// Realizar la solicitud POST a la URL firmada
 				const uploadResponse = await fetch(signedUrl, {
 					method: 'POST',
-					body: trackFormData,
+					body: labelFormData,
 				});
-				const uploadRes = await uploadResponse.json();
-				console.log('uploadRes', uploadRes);
+
+				picture_url = uploadResponse?.headers?.get('location') || '';
+				picture_path = decodeURIComponent(
+					new URL(picture_url).pathname.slice(1)
+				);
+				console.log('picture_path: ', picture_path);
+
+				if (!uploadResponse.ok) {
+					console.error(
+						'Error al subir la imagen a S3:',
+						await uploadResponse.text()
+					);
+					return NextResponse.json(
+						{ message: 'Error al subir la imagen a S3' },
+						{ status: 500 }
+					);
+				}
 			} catch (error) {
-				console.error('Error converting image to buffer:', error);
+				console.error('Error al procesar la imagen:', error);
 				return NextResponse.json(
 					{ message: 'Error al procesar la imagen' },
 					{ status: 400 }
@@ -137,21 +140,47 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		// Crear el nuevo sello
-		// const newSello = await User.create({
-		// 	name,
-		// 	email,
-		// 	password,
-		// 	picture: pictureBuffer,
-		// 	role: 'sello',
-		// 	status: 'active',
-		// 	permissions: ['sello'],
-		// 	primary_genre,
-		// 	year: parseInt(year),
-		// 	catalog_num: parseInt(catalog_num),
-		// });
+		//crear sello en api
+		const labelToApi = {
+			name,
+			logo: picture_path,
+			primary_genre,
+			year,
+			catalog_num,
+		};
 
-		console.log('Sello created successfully:');
+		const createLabelReq = await fetch(`${process.env.MOVEMUSIC_API}/labels/`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `JWT ${moveMusicAccessToken}`,
+				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+				Referer: process.env.MOVEMUSIC_REFERER || '',
+			},
+			body: JSON.stringify(labelToApi),
+		});
+
+		const createLabelRes = await createLabelReq.json();
+		console.log('createLabelRes', createLabelRes);
+
+		// Crear el nuevo sello
+		const labelToBBDD = {
+			external_id: createLabelRes.id,
+			name,
+			email,
+			password,
+			picture: picture_url,
+			role: 'sello',
+			status: 'active',
+			permissions: ['sello'],
+			primary_genre,
+			year,
+			catalog_num,
+		};
+
+		const newSello = await User.create(labelToBBDD);
+
+		console.log('Sello created successfully: ', newSello);
 
 		return NextResponse.json(
 			{

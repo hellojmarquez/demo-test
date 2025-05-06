@@ -98,11 +98,17 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Crear el nuevo release
-		const newRelease = {
-			artwork: '',
+
+		// artwork: '',
+		// genre: genre.id,
+		// subgenre: subgenre.id,
+		// genre_name: genre.name,
+		// subgenre_name: subgenre.name,
+		// label_name,
+		let newRelease = {
 			name,
 			label,
-			label_name,
+
 			kind,
 			language,
 			countries,
@@ -118,10 +124,7 @@ export async function POST(req: NextRequest) {
 			publisher_year,
 			copyright_holder,
 			copyright_holder_year,
-			genre: genre.id,
-			subgenre: subgenre.id,
-			genre_name: genre.name,
-			subgenre_name: subgenre.name,
+
 			catalogue_number,
 			is_new_release,
 			official_date,
@@ -186,8 +189,12 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		newRelease.artwork = picture_path;
-		newRelease.genre = genre.id;
+		const releaseToApiData = {
+			...newRelease,
+			artwork: picture_path,
+			genre: genre.id,
+			subgenre: subgenre.id,
+		};
 
 		console.log(newRelease);
 		const releaseToApi = await fetch(`${process.env.MOVEMUSIC_API}/releases`, {
@@ -198,7 +205,7 @@ export async function POST(req: NextRequest) {
 				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
 				Referer: process.env.MOVEMUSIC_REFERER || '',
 			},
-			body: JSON.stringify(newRelease),
+			body: JSON.stringify(releaseToApiData),
 		});
 		const apiRes = await releaseToApi.json();
 		console.log(apiRes);

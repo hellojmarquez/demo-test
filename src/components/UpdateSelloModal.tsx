@@ -53,10 +53,9 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		} else if (name === 'year' || name === 'catalog_num') {
 			// Solo permitir números
 			if (/^\d*$/.test(value)) {
-				const numericValue = value === '' ? '' : Number(value);
 				setFormData({
 					...formData,
-					[name]: numericValue,
+					[name]: value === '' ? 0 : parseInt(value),
 				});
 			}
 		} else {
@@ -96,7 +95,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			if (/^\d{0,4}$/.test(value)) {
 				setFormData({
 					...formData,
-					[name]: value === '' ? '' : parseInt(value),
+					[name]: value === '' ? 0 : parseInt(value),
 				});
 			}
 		} else if (name === 'catalog_num') {
@@ -104,21 +103,10 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			const regex = /^\d*$/;
 
 			if (regex.test(value)) {
-				if (value === '') {
-					setFormData({
-						...formData,
-						[name]: '',
-					});
-				} else {
-					const numValue = parseInt(value);
-					const isMinValid = numValue >= 0;
-					if (isMinValid) {
-						setFormData({
-							...formData,
-							[name]: numValue,
-						});
-					}
-				}
+				setFormData({
+					...formData,
+					[name]: value === '' ? 0 : parseInt(value),
+				});
 			}
 		} else {
 			// Para otros campos

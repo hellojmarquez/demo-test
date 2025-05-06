@@ -104,9 +104,11 @@ export default function SelloLogin() {
 			`}</style>
 			<div className="min-h-screen flex items-center justify-center bg-gray-100">
 				<div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-					<h1 className="text-2xl font-bold mb-6 text-center text-gray-800">
-						Isla Sounds
-					</h1>
+					<img
+						src="/isla_sounds_logo.png"
+						alt="Isla Sounds"
+						className="w-8/12 mx-auto mb-6"
+					/>
 					<form className="flex flex-col space-y-4">
 						<div className="relative">
 							<User

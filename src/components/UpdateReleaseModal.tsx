@@ -111,6 +111,13 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		}));
 	};
 
+	const handleDeleteTrack = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			tracks: prev.tracks.filter((_, i) => i !== index),
+		}));
+	};
+
 	if (!isOpen) return null;
 
 	return (
@@ -290,21 +297,103 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 						<label className="block text-sm font-medium text-gray-700">
 							Tracks
 						</label>
-						<textarea
-							name="tracks"
-							value={JSON.stringify(formData.tracks, null, 2)}
-							onChange={e => {
-								try {
-									const tracks = JSON.parse(e.target.value);
-									setFormData(prev => ({ ...prev, tracks }));
-								} catch (error) {
-									// Si el JSON no es válido, no actualizamos el estado
-									console.error('JSON inválido para pistas');
-								}
-							}}
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-dark focus:ring-brand-dark font-mono text-sm"
-							rows={3}
-						/>
+						<div className="space-y-2">
+							{formData.tracks.map((track, index) => (
+								<div
+									key={track._id || index}
+									className="p-3 bg-gray-50 rounded-lg"
+								>
+									<div className="flex items-start justify-between">
+										<div className="flex-1">
+											<div className="flex items-center gap-2">
+												<span className="text-sm font-medium">
+													{track.name}
+												</span>
+												<span className="text-xs text-gray-500">
+													Orden: {track.order}
+												</span>
+											</div>
+
+											{track.artists && track.artists.length > 0 && (
+												<div className="mt-1">
+													<div className="text-xs text-gray-500 mb-1">
+														Artistas:
+													</div>
+													<div className="space-y-1">
+														{track.artists.map((artist: any) => (
+															<div
+																key={artist._id}
+																className="flex items-center gap-2 text-xs"
+															>
+																<span className="bg-gray-200 px-2 py-0.5 rounded">
+																	{artist.kind === 'main'
+																		? 'Principal'
+																		: artist.kind === 'featuring'
+																		? 'Invitado'
+																		: artist.kind === 'remixer'
+																		? 'Remixer'
+																		: artist.kind}
+																</span>
+																<span>ID: {artist.artist}</span>
+															</div>
+														))}
+													</div>
+												</div>
+											)}
+
+											<div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
+												<div>
+													<span className="font-medium">ISRC:</span>{' '}
+													{track.ISRC || 'No asignado'}
+												</div>
+												<div>
+													<span className="font-medium">Duración:</span>{' '}
+													{track.track_length || '00:00:00'}
+												</div>
+												<div>
+													<span className="font-medium">Género:</span>{' '}
+													{track.genre}
+												</div>
+												<div>
+													<span className="font-medium">Subgénero:</span>{' '}
+													{track.subgenre}
+												</div>
+											</div>
+
+											<div className="mt-2 flex flex-wrap gap-2">
+												{track.album_only && (
+													<span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+														Solo álbum
+													</span>
+												)}
+												{track.explicit_content && (
+													<span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+														Contenido explícito
+													</span>
+												)}
+												{track.generate_isrc && (
+													<span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+														ISRC automático
+													</span>
+												)}
+											</div>
+										</div>
+										<button
+											type="button"
+											onClick={() => handleDeleteTrack(index)}
+											className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+										>
+											<Trash2 size={16} />
+										</button>
+									</div>
+								</div>
+							))}
+							{formData.tracks.length === 0 && (
+								<div className="text-sm text-gray-500 italic">
+									No hay tracks agregados
+								</div>
+							)}
+						</div>
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">

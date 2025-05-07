@@ -70,6 +70,7 @@ interface ReleaseForAPI {
 
 interface ReleaseForModal extends Omit<Release, 'picture'> {
 	picture: PictureObject | null;
+	track_length: string;
 }
 
 const Productos: React.FC = () => {

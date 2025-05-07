@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
 	X,
 	Upload,
@@ -6,12 +6,42 @@ import {
 	Save,
 	XCircle,
 	Trash2,
+	Plus,
 } from 'lucide-react';
 
 interface Release {
 	_id: string;
 	__v: number;
-	artists: any[];
+	name: string;
+	picture: {
+		base64: string;
+	} | null;
+	artists: {
+		order: number;
+		artist: number;
+		kind: string;
+		name: string;
+	}[];
+	tracks: {
+		_id: string;
+		order: number;
+		track: number;
+		name: string;
+		isrc: string;
+		ISRC: string;
+		genre: string;
+		subgenre: string;
+		track_length: string;
+		explicit_content: boolean;
+		album_only: boolean;
+		generate_isrc: boolean;
+		artists: {
+			order: number;
+			artist: number;
+			kind: string;
+			name: string;
+		}[];
+	}[];
 	auto_detect_language: boolean;
 	backcatalog: boolean;
 	countries: string[];
@@ -22,12 +52,13 @@ interface Release {
 	kind: string;
 	label: string;
 	language: string;
-	name: string;
-	picture: {
-		base64: string;
-	} | null;
-	tracks: any[];
 	youtube_declaration: boolean;
+}
+
+interface ArtistData {
+	external_id: number;
+	name: string;
+	role: string;
 }
 
 interface UpdateReleaseModalProps {
@@ -43,7 +74,10 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 	onClose,
 	onSave,
 }) => {
-	const [formData, setFormData] = useState<Release>(release);
+	const [formData, setFormData] = useState<Release>({
+		...release,
+		picture: release.picture ? { base64: release.picture.base64 } : null,
+	});
 	const [imagePreview, setImagePreview] = useState<string | null>(
 		release.picture?.base64
 			? `data:image/jpeg;base64,${release.picture.base64}`
@@ -51,6 +85,23 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 	);
 	const [isLoading, setIsLoading] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [artistData, setArtistData] = useState<ArtistData[]>([]);
+
+	useEffect(() => {
+		const fetchArtistData = async () => {
+			try {
+				const response = await fetch('/api/admin/getAllArtists');
+				const data = await response.json();
+				if (data.success && Array.isArray(data.data)) {
+					setArtistData(data.data);
+				}
+			} catch (error) {
+				console.error('Error fetching artist data:', error);
+			}
+		};
+
+		fetchArtistData();
+	}, []);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -102,13 +153,68 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		}));
 	};
 
-	const handleArtistChange = (index: number, field: string, value: string) => {
+	const handleAddArtist = () => {
 		setFormData(prev => ({
 			...prev,
-			artists: prev.artists.map((artist, i) =>
-				i === index ? { ...artist, [field]: value } : artist
-			),
+			artists: [
+				...prev.artists,
+				{
+					order: prev.artists.length,
+					artist: 0,
+					kind: '',
+					name: '',
+				},
+			],
 		}));
+	};
+
+	const handleArtistChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData(prev => {
+			const newArtists = [...prev.artists];
+			if (!newArtists[index]) {
+				newArtists[index] = { order: 0, artist: 0, kind: 'main', name: '' };
+			}
+
+			if (field === 'artist') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					const selectedArtist = artistData.find(
+						a => a.external_id === numValue
+					);
+					if (selectedArtist) {
+						newArtists[index] = {
+							...newArtists[index],
+							artist: selectedArtist.external_id,
+							name: selectedArtist.name || '',
+						};
+					}
+				}
+			} else if (field === 'kind') {
+				newArtists[index] = {
+					...newArtists[index],
+					kind: value as string,
+				};
+			} else if (field === 'order') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					newArtists[index] = {
+						...newArtists[index],
+						order: numValue,
+					};
+				}
+			}
+
+			return {
+				...prev,
+				artists: newArtists,
+			};
+		});
 	};
 
 	const handleDeleteTrack = (index: number) => {
@@ -252,44 +358,126 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							Artistas
 						</label>
 						<div className="space-y-2">
-							{formData.artists.map((artist, index) => (
-								<div
-									key={index}
-									className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
-								>
-									<div className="flex-1">
-										<div className="flex items-center gap-2">
-											<select
-												value={artist.kind}
-												onChange={e =>
-													handleArtistChange(index, 'kind', e.target.value)
-												}
-												className="text-xs bg-gray-200 px-2 py-0.5 rounded border-0 focus:ring-0 focus:outline-none"
-											>
-												<option value="main">Principal</option>
-												<option value="featuring">Invitado</option>
-												<option value="remixer">Remixer</option>
-											</select>
-											<span className="font-medium">{artist.name}</span>
-										</div>
-										<div className="text-xs text-gray-500 mt-1">
-											ID: {artist.artist} | Orden: {artist.order}
-										</div>
-									</div>
-									<button
-										type="button"
-										onClick={() => handleDeleteArtist(index)}
-										className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+							{formData.artists.length === 0 ? (
+								<div className="flex items-center gap-2">
+									<select
+										value={formData.artists[0]?.artist ?? ''}
+										onChange={e => {
+											const value = e.target.value;
+											if (value) {
+												handleArtistChange(0, 'artist', value);
+											}
+										}}
+										className="flex-1 p-2 border rounded"
 									>
-										<Trash2 size={16} />
-									</button>
+										<option value="">Seleccionar artista</option>
+										{artistData.map(a => (
+											<option key={a.external_id} value={a.external_id}>
+												{a.name}
+											</option>
+										))}
+									</select>
+
+									<select
+										value={formData.artists[0]?.kind ?? ''}
+										onChange={e => {
+											handleArtistChange(0, 'kind', e.target.value);
+										}}
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Seleccionar rol</option>
+										<option value="main">Principal</option>
+										<option value="featuring">Invitado</option>
+										<option value="remixer">Remixer</option>
+									</select>
+
+									<input
+										type="number"
+										value={
+											typeof formData.artists[0]?.order === 'number'
+												? formData.artists[0].order
+												: 0
+										}
+										onChange={e => {
+											const val = parseInt(e.target.value);
+											handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
+										}}
+										className="w-20 p-2 border rounded"
+										placeholder="Orden"
+									/>
 								</div>
-							))}
-							{formData.artists.length === 0 && (
-								<div className="text-sm text-gray-500 italic">
-									No hay artistas agregados
-								</div>
+							) : (
+								formData.artists.map((artist, index) => (
+									<div key={index} className="flex items-center gap-2">
+										<select
+											value={artist.artist ?? ''}
+											onChange={e => {
+												const value = e.target.value;
+												if (value) {
+													handleArtistChange(index, 'artist', value);
+												}
+											}}
+											className="flex-1 p-2 border rounded"
+										>
+											<option value="">Seleccionar artista</option>
+											{artistData.map(a => (
+												<option key={a.external_id} value={a.external_id}>
+													{a.name}
+												</option>
+											))}
+										</select>
+
+										<select
+											value={artist.kind ?? ''}
+											onChange={e => {
+												handleArtistChange(index, 'kind', e.target.value);
+											}}
+											className="flex-1 p-2 border rounded"
+										>
+											<option value="">Seleccionar rol</option>
+											<option value="main">Principal</option>
+											<option value="featuring">Invitado</option>
+											<option value="remixer">Remixer</option>
+										</select>
+
+										<input
+											type="number"
+											value={
+												typeof artist.order === 'number' ? artist.order : 0
+											}
+											onChange={e => {
+												const val = parseInt(e.target.value);
+												handleArtistChange(
+													index,
+													'order',
+													isNaN(val) ? 0 : val
+												);
+											}}
+											className="w-20 p-2 border rounded"
+											placeholder="Orden"
+										/>
+
+										{formData.artists.length > 1 && (
+											<button
+												onClick={() => handleDeleteArtist(index)}
+												className="p-2 text-red-600 hover:text-red-800"
+											>
+												<Trash2 size={20} />
+											</button>
+										)}
+									</div>
+								))
 							)}
+						</div>
+
+						<div className="flex justify-end">
+							<button
+								type="button"
+								onClick={handleAddArtist}
+								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+							>
+								<Plus size={20} />
+							</button>
 						</div>
 					</div>
 

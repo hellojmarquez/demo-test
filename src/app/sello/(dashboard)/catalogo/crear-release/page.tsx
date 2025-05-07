@@ -511,13 +511,25 @@ const CreateReleasePage = () => {
 									<label className="block text-sm font-medium text-gray-700">
 										Año del Publisher
 									</label>
-									<input
-										type="text"
+									<select
 										name="publisher_year"
 										value={formData.publisher_year}
 										onChange={handleChange}
 										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									/>
+									>
+										<option value="">Seleccionar año</option>
+										{Array.from(
+											{ length: new Date().getFullYear() - 1899 },
+											(_, i) => (
+												<option
+													key={`publisher-year-${1900 + i}`}
+													value={1900 + i}
+												>
+													{1900 + i}
+												</option>
+											)
+										)}
+									</select>
 								</div>
 
 								<div>
@@ -537,13 +549,25 @@ const CreateReleasePage = () => {
 									<label className="block text-sm font-medium text-gray-700">
 										Año del Copyright
 									</label>
-									<input
-										type="text"
+									<select
 										name="copyright_holder_year"
 										value={formData.copyright_holder_year}
 										onChange={handleChange}
 										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									/>
+									>
+										<option value="">Seleccionar año</option>
+										{Array.from(
+											{ length: new Date().getFullYear() - 1899 },
+											(_, i) => (
+												<option
+													key={`copyright-year-${1900 + i}`}
+													value={1900 + i}
+												>
+													{1900 + i}
+												</option>
+											)
+										)}
+									</select>
 								</div>
 
 								<div>

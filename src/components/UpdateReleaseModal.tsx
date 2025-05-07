@@ -8,6 +8,7 @@ import {
 	Trash2,
 	Plus,
 } from 'lucide-react';
+import Cleave from 'cleave.js';
 
 interface Release {
 	_id: string;
@@ -53,12 +54,19 @@ interface Release {
 	label: string;
 	language: string;
 	youtube_declaration: boolean;
+	track_length: string;
 }
 
 interface ArtistData {
 	external_id: number;
 	name: string;
 	role: string;
+}
+
+interface TrackData {
+	_id: string;
+	name: string;
+	ISRC: string;
 }
 
 interface UpdateReleaseModalProps {
@@ -86,21 +94,30 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 	const [isLoading, setIsLoading] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
+	const [trackData, setTrackData] = useState<TrackData[]>([]);
 
 	useEffect(() => {
-		const fetchArtistData = async () => {
+		const fetchData = async () => {
 			try {
-				const response = await fetch('/api/admin/getAllArtists');
-				const data = await response.json();
-				if (data.success && Array.isArray(data.data)) {
-					setArtistData(data.data);
+				// Fetch artists
+				const artistsRes = await fetch('/api/admin/getAllArtists');
+				const artistsData = await artistsRes.json();
+				if (artistsData.success && Array.isArray(artistsData.data)) {
+					setArtistData(artistsData.data);
+				}
+
+				// Fetch tracks
+				const tracksRes = await fetch('/api/admin/getAllTracks');
+				const tracksData = await tracksRes.json();
+				if (tracksData.success && Array.isArray(tracksData.data)) {
+					setTrackData(tracksData.data);
 				}
 			} catch (error) {
-				console.error('Error fetching artist data:', error);
+				console.error('Error fetching data:', error);
 			}
 		};
 
-		fetchArtistData();
+		fetchData();
 	}, []);
 
 	const handleChange = (
@@ -139,6 +156,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+		console.log('enviado: ', formData);
 		try {
 			await onSave(formData);
 		} finally {
@@ -221,6 +239,88 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		setFormData(prev => ({
 			...prev,
 			tracks: prev.tracks.filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleTrackChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData(prev => {
+			const newTracks = [...prev.tracks];
+			if (!newTracks[index]) {
+				newTracks[index] = {
+					_id: '',
+					order: prev.tracks.length,
+					track: 0,
+					name: '',
+					isrc: '',
+					ISRC: '',
+					genre: '',
+					subgenre: '',
+					track_length: '',
+					explicit_content: false,
+					album_only: false,
+					generate_isrc: false,
+					artists: [],
+				};
+			}
+
+			if (field === 'track') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					const selectedTrack = trackData.find(t => t._id === value);
+					if (selectedTrack) {
+						newTracks[index] = {
+							...newTracks[index],
+							track: numValue,
+							name: selectedTrack.name,
+							ISRC: selectedTrack.ISRC,
+							order: prev.tracks.length,
+						};
+					}
+				}
+			} else if (field === 'order') {
+				const numValue =
+					typeof value === 'string' ? parseInt(value) : Number(value);
+				if (!isNaN(numValue)) {
+					newTracks[index] = {
+						...newTracks[index],
+						order: numValue,
+					};
+				}
+			}
+
+			return {
+				...prev,
+				tracks: newTracks,
+			};
+		});
+	};
+
+	const handleAddTrack = () => {
+		setFormData(prev => ({
+			...prev,
+			tracks: [
+				...prev.tracks,
+				{
+					_id: '',
+					order: prev.tracks.length,
+					track: 0,
+					name: '',
+					isrc: '',
+					ISRC: '',
+					genre: '',
+					subgenre: '',
+					track_length: '',
+					explicit_content: false,
+					album_only: false,
+					generate_isrc: false,
+					artists: [],
+				},
+			],
 		}));
 	};
 
@@ -489,98 +589,103 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							{formData.tracks.map((track, index) => (
 								<div
 									key={track._id || index}
-									className="p-3 bg-gray-50 rounded-lg"
+									className="flex items-center gap-2"
 								>
-									<div className="flex items-start justify-between">
-										<div className="flex-1">
-											<div className="flex items-center gap-2">
-												<span className="text-sm font-medium">
-													{track.name}
-												</span>
-												<span className="text-xs text-gray-500">
-													Orden: {track.order}
-												</span>
-											</div>
-
-											{track.artists && track.artists.length > 0 && (
-												<div className="mt-1">
-													<div className="text-xs text-gray-500 mb-1">
-														Artistas:
-													</div>
-													<div className="space-y-1">
-														{track.artists.map((artist: any) => (
-															<div
-																key={artist._id}
-																className="flex items-center gap-2 text-xs"
-															>
-																<span className="bg-gray-200 px-2 py-0.5 rounded">
-																	{artist.kind === 'main'
-																		? 'Principal'
-																		: artist.kind === 'featuring'
-																		? 'Invitado'
-																		: artist.kind === 'remixer'
-																		? 'Remixer'
-																		: artist.kind}
-																</span>
-																<span>ID: {artist.artist}</span>
-															</div>
-														))}
-													</div>
-												</div>
-											)}
-
-											<div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
-												<div>
-													<span className="font-medium">ISRC:</span>{' '}
-													{track.ISRC || 'No asignado'}
-												</div>
-												<div>
-													<span className="font-medium">Duración:</span>{' '}
-													{track.track_length || '00:00:00'}
-												</div>
-												<div>
-													<span className="font-medium">Género:</span>{' '}
-													{track.genre}
-												</div>
-												<div>
-													<span className="font-medium">Subgénero:</span>{' '}
-													{track.subgenre}
-												</div>
-											</div>
-
-											<div className="mt-2 flex flex-wrap gap-2">
-												{track.album_only && (
-													<span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-														Solo álbum
-													</span>
-												)}
-												{track.explicit_content && (
-													<span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
-														Contenido explícito
-													</span>
-												)}
-												{track.generate_isrc && (
-													<span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-														ISRC automático
-													</span>
-												)}
-											</div>
-										</div>
-										<button
-											type="button"
-											onClick={() => handleDeleteTrack(index)}
-											className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-										>
-											<Trash2 size={16} />
-										</button>
+									<div className="flex-1 p-2 border rounded bg-gray-50">
+										{track.name}
 									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Duración
+										</label>
+										<input
+											type="text"
+											name="track_length"
+											value={track.track_length || ''}
+											onChange={e =>
+												handleTrackChange(index, 'track_length', e.target.value)
+											}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+											placeholder="00:00:00"
+										/>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Orden
+										</label>
+										<input
+											type="number"
+											name="order"
+											value={track.order}
+											onChange={e => {
+												const val = parseInt(e.target.value);
+												handleTrackChange(index, 'order', isNaN(val) ? 0 : val);
+											}}
+											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0 bg-red-500 text-white"
+											placeholder="Orden"
+											min="0"
+										/>
+									</div>
+
+									<button
+										onClick={() => handleDeleteTrack(index)}
+										className="p-2 text-red-600 hover:text-red-800"
+									>
+										<Trash2 size={20} />
+									</button>
 								</div>
 							))}
+
 							{formData.tracks.length === 0 && (
-								<div className="text-sm text-gray-500 italic">
+								<div className="text-sm text-gray-500">
 									No hay tracks agregados
 								</div>
 							)}
+
+							<div className="flex items-center gap-2">
+								<select
+									value=""
+									onChange={e => {
+										const value = e.target.value;
+										if (value) {
+											handleTrackChange(formData.tracks.length, 'track', value);
+										}
+									}}
+									className="flex-1 p-2 border rounded"
+								>
+									<option value="">Seleccionar track</option>
+									{trackData.map(track => (
+										<option key={track._id} value={track._id}>
+											{track.name}
+										</option>
+									))}
+								</select>
+
+								<input
+									type="number"
+									value={formData.tracks.length}
+									onChange={e => {
+										const val = parseInt(e.target.value);
+										if (!isNaN(val)) {
+											handleTrackChange(formData.tracks.length, 'order', val);
+										}
+									}}
+									className="w-20 p-2 border rounded bg-red-500 text-white"
+									placeholder="Orden"
+									min="0"
+								/>
+							</div>
+						</div>
+
+						<div className="flex justify-end">
+							<button
+								type="button"
+								onClick={handleAddTrack}
+								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+							>
+								<Plus size={20} />
+							</button>
 						</div>
 					</div>
 

@@ -4,7 +4,6 @@ import mongoose from 'mongoose';
 // Esquema para cada artista asociado
 const ArtistSchema = new mongoose.Schema(
 	{
-		id: { type: Number, required: true },
 		artist: { type: Number, required: true },
 		kind: { type: String, required: true },
 		order: { type: Number, required: true },
@@ -16,7 +15,6 @@ const ArtistSchema = new mongoose.Schema(
 // Esquema para cada publisher asociado
 const PublisherSchema = new mongoose.Schema(
 	{
-		id: { type: Number, required: true },
 		publisher: { type: Number, required: true },
 		author: { type: String, required: true },
 		order: { type: Number, required: true },
@@ -87,7 +85,7 @@ const SingleTrackSchema = new mongoose.Schema(
 		},
 		vocals: {
 			type: String,
-			default: null,
+			default: 'ES',
 		},
 
 		// Arrays de objetos con tipos específicos
@@ -109,17 +107,11 @@ const SingleTrackSchema = new mongoose.Schema(
 			default: null,
 		},
 		genre: {
-			type: {
-				id: { type: Number, required: true },
-				name: { type: String, required: true },
-			},
+			type: GenreSchema,
 			default: null,
 		},
 		subgenre: {
-			type: {
-				id: { type: Number, required: true },
-				name: { type: String, required: true },
-			},
+			type: SubgenreSchema,
 			default: null,
 		},
 		resource: {
@@ -162,9 +154,9 @@ const SingleTrackSchema = new mongoose.Schema(
 			type: String,
 			default: null,
 		},
-		track_lenght: {
+		track_length: {
 			type: String,
-			default: null,
+			default: '00:00:00',
 		},
 	},
 	{ timestamps: true }

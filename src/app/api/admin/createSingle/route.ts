@@ -7,7 +7,6 @@ import { jwtVerify } from 'jose';
 export async function POST(req: NextRequest) {
 	console.log('crerateSingle');
 	try {
-		console.log('update track');
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
 
 			if (data) {
 				trackData = JSON.parse(data);
-
+				console.log('trackData: ', trackData);
 				// Asegurarse de que los artistas tengan el formato correcto
 				if (trackData.artists) {
 					trackData.artists = trackData.artists.map((artist: any) => ({
@@ -189,28 +188,47 @@ export async function POST(req: NextRequest) {
 		} else {
 			trackData.subgenre = null;
 		}
-		trackData.resource = `public/${fileName}`;
 
-		console.log('track ', trackData);
-		const createSingleInApi = await fetch(
-			`${process.env.MOVEMUSIC_API}/tracks`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-				body: JSON.stringify(trackData),
-			}
-		);
-		const creaSingleApiRes = await createSingleInApi.json();
-		console.log(creaSingleApiRes);
+		// Asegurarse de que los campos requeridos estén presentes y con el formato correcto
+		const requiredFields = {
+			name: trackData.name || '',
+			language: trackData.language || 'ES',
+			track_length: trackData.track_lenght || '00:00:00', // Corregimos el nombre del campo
+			vocals: trackData.vocals || 'ES',
+			status: 'Borrador',
+			artists: trackData.artists || [],
+			publishers: trackData.publishers || [],
+			contributors: trackData.contributors || [],
+			genre: trackData.genre || null,
+			subgenre: trackData.subgenre || null,
+		};
+
+		// Validar campos requeridos
+		if (!requiredFields.name) {
+			return NextResponse.json(
+				{ success: false, error: 'El nombre del track es requerido' },
+				{ status: 400 }
+			);
+		}
+
+		if (!requiredFields.language) {
+			return NextResponse.json(
+				{ success: false, error: 'El idioma del track es requerido' },
+				{ status: 400 }
+			);
+		}
+
+		// Actualizar trackData con los campos corregidos
+		trackData = {
+			...trackData,
+			...requiredFields,
+		};
+
+		console.log('Datos finales del track:', trackData);
+
 		// Crear el track
-		// const createTrack = await SingleTrack.create(trackId, trackData, {
-		// 	new: true,
-		// });
+		const createTrack = await SingleTrack.create(trackData);
+		console.log('bbdd res: ', createTrack);
 
 		return NextResponse.json({ success: true });
 	} catch (error: any) {

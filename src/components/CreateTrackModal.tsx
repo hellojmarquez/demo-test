@@ -114,6 +114,16 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 				if (releasesData.success) {
 					setReleases(releasesData.data);
 				}
+				const contributorRes = await fetch('/api/admin/getAllContributor');
+				const contributorData = await contributorRes.json();
+				if (contributorData.success) {
+					setContributors(contributorData.data);
+				}
+				const publisherRes = await fetch('/api/admin/getAllContributor');
+				const publisherData = await publisherRes.json();
+				if (publisherData.success) {
+					setPublishers(publisherData.data);
+				}
 
 				// Fetch genres
 				const genresRes = await fetch('/api/admin/getAllGenres');
@@ -131,22 +141,6 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 						(user: any) => user.role === 'artista'
 					);
 					setArtists(filteredArtists);
-
-					// Filter contributors from the same response
-					const filteredContributors = artistsData.data.filter(
-						(user: any) => user.role === 'contributor'
-					);
-					setContributors(filteredContributors);
-
-					// Filter publishers from the same response
-					const filteredPublishers = artistsData.data
-						.filter((user: any) => user.role === 'publisher')
-						.map((p: { external_id: string; name: string; role: string }) => ({
-							external_id: parseInt(p.external_id),
-							name: p.name,
-							role: p.role,
-						}));
-					setPublishers(filteredPublishers);
 				}
 
 				// Fetch roles
@@ -415,18 +409,18 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		console.log(formData);
-		// setIsLoading(true);
-		// setError(null);
+		console.log('crear: ', formData);
+		setIsLoading(true);
+		setError(null);
 
-		// try {
-		// 	await onSave(formData as Track);
-		// 	onClose();
-		// } catch (err: any) {
-		// 	setError(err.message || 'Error al crear el track');
-		// } finally {
-		// 	setIsLoading(false);
-		// }
+		try {
+			await onSave(formData as Track);
+			onClose();
+		} catch (err: any) {
+			setError(err.message || 'Error al crear el track');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -822,6 +816,30 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 											}
 											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 											placeholder="00:00:00"
+										/>
+									</div>
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Orden
+										</label>
+										<input
+											type="number"
+											name="order"
+											value={formData.order || ''}
+											onChange={e =>
+												setFormData(prev => ({
+													...prev,
+													order: parseInt(e.target.value),
+												}))
+											}
+											onKeyPress={e => {
+												if (!/[0-9]/.test(e.key)) {
+													e.preventDefault();
+												}
+											}}
+											className="w-20 p-2 border rounded"
+											placeholder="200"
+											min="0"
 										/>
 									</div>
 								</div>

@@ -39,8 +39,11 @@ export async function POST(req: NextRequest) {
 		const external_id = parseInt(`${timestamp}${random}`);
 
 		// Parsear campos individuales
-		const picture = formData.get('picture') as File;
-		const pictureBuffer = Buffer.from(await picture.arrayBuffer());
+		const picture = formData.get('picture') as File | null;
+		let pictureBuffer: Buffer | null = null;
+		if (picture && picture instanceof File) {
+			pictureBuffer = Buffer.from(await picture.arrayBuffer());
+		}
 
 		// Parsear campos complejos que vienen como stringified JSON
 		const artistsRaw = formData.get('artists');

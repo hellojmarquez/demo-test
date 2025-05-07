@@ -277,6 +277,7 @@ const CreateReleasePage = () => {
 					formDataToSend.append(key, value.toString());
 				}
 			});
+
 			console.log('data to send: ', formDataToSend);
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',
@@ -418,7 +419,28 @@ const CreateReleasePage = () => {
 										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 									/>
 								</div>
-
+								<div className="flex items-center gap-4">
+									<label className="block text-sm font-medium text-gray-700">
+										Portada
+									</label>
+									<div>
+										<input
+											type="file"
+											ref={fileInputRef}
+											onChange={handleFileChange}
+											accept="image/*"
+											className="hidden"
+										/>
+										<button
+											type="button"
+											onClick={() => fileInputRef.current?.click()}
+											className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+										>
+											<Upload className="h-4 w-4 mr-2" />
+											Subir imagen
+										</button>
+									</div>
+								</div>
 								<div>
 									<label className="block text-sm font-medium text-gray-700">
 										Label
@@ -722,28 +744,6 @@ const CreateReleasePage = () => {
 							</div>
 
 							<div className="space-y-4">
-								<div className="flex items-center gap-4">
-									<label className="block text-sm font-medium text-gray-700">
-										Portada
-									</label>
-									<div>
-										<input
-											type="file"
-											ref={fileInputRef}
-											onChange={handleFileChange}
-											accept="image/*"
-											className="hidden"
-										/>
-										<button
-											type="button"
-											onClick={() => fileInputRef.current?.click()}
-											className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-										>
-											<Upload className="h-4 w-4 mr-2" />
-											Subir imagen
-										</button>
-									</div>
-								</div>
 								{formData.picture?.base64 && (
 									<div className="mt-2">
 										<img

@@ -88,17 +88,99 @@ export default function SelloLogin() {
 	return (
 		<>
 			<style jsx global>{`
-				@keyframes wave {
+				@keyframes wave1 {
 					0%,
 					100% {
-						transform: scaleY(0.1);
+						transform: scaleY(0.2);
+					}
+					25% {
+						transform: scaleY(0.8);
 					}
 					50% {
-						transform: scaleY(1);
+						transform: scaleY(0.3);
+					}
+					75% {
+						transform: scaleY(0.9);
 					}
 				}
-				.animate-wave {
-					animation: wave 1s ease-in-out infinite;
+				@keyframes wave2 {
+					0%,
+					100% {
+						transform: scaleY(0.9);
+					}
+					25% {
+						transform: scaleY(0.3);
+					}
+					50% {
+						transform: scaleY(0.8);
+					}
+					75% {
+						transform: scaleY(0.2);
+					}
+				}
+				@keyframes wave3 {
+					0%,
+					100% {
+						transform: scaleY(0.4);
+					}
+					25% {
+						transform: scaleY(0.7);
+					}
+					50% {
+						transform: scaleY(0.2);
+					}
+					75% {
+						transform: scaleY(0.6);
+					}
+				}
+				@keyframes wave4 {
+					0%,
+					100% {
+						transform: scaleY(0.7);
+					}
+					25% {
+						transform: scaleY(0.2);
+					}
+					50% {
+						transform: scaleY(0.5);
+					}
+					75% {
+						transform: scaleY(0.3);
+					}
+				}
+				@keyframes wave5 {
+					0%,
+					100% {
+						transform: scaleY(0.3);
+					}
+					25% {
+						transform: scaleY(0.6);
+					}
+					50% {
+						transform: scaleY(0.9);
+					}
+					75% {
+						transform: scaleY(0.4);
+					}
+				}
+				.animate-wave1 {
+					animation: wave1 0.8s ease-in-out infinite;
+					transform-origin: bottom;
+				}
+				.animate-wave2 {
+					animation: wave2 1.2s ease-in-out infinite;
+					transform-origin: bottom;
+				}
+				.animate-wave3 {
+					animation: wave3 0.9s ease-in-out infinite;
+					transform-origin: bottom;
+				}
+				.animate-wave4 {
+					animation: wave4 1.1s ease-in-out infinite;
+					transform-origin: bottom;
+				}
+				.animate-wave5 {
+					animation: wave5 1s ease-in-out infinite;
 					transform-origin: bottom;
 				}
 			`}</style>
@@ -172,26 +254,11 @@ export default function SelloLogin() {
 							{loading ? (
 								<div className="flex items-center justify-center h-6">
 									<div className="flex space-x-1 items-end">
-										<div
-											className="w-1 h-4 bg-white rounded-full animate-wave"
-											style={{ animationDelay: '0ms' }}
-										></div>
-										<div
-											className="w-1 h-4 bg-white rounded-full animate-wave"
-											style={{ animationDelay: '150ms' }}
-										></div>
-										<div
-											className="w-1 h-4 bg-white rounded-full animate-wave"
-											style={{ animationDelay: '300ms' }}
-										></div>
-										<div
-											className="w-1 h-4 bg-white rounded-full animate-wave"
-											style={{ animationDelay: '450ms' }}
-										></div>
-										<div
-											className="w-1 h-4 bg-white rounded-full animate-wave"
-											style={{ animationDelay: '600ms' }}
-										></div>
+										<div className="w-1 h-4 bg-white rounded-full animate-wave1"></div>
+										<div className="w-1 h-4 bg-white rounded-full animate-wave2"></div>
+										<div className="w-1 h-4 bg-white rounded-full animate-wave3"></div>
+										<div className="w-1 h-4 bg-white rounded-full animate-wave4"></div>
+										<div className="w-1 h-4 bg-white rounded-full animate-wave5"></div>
 									</div>
 								</div>
 							) : (

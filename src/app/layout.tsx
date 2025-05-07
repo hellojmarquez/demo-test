@@ -11,7 +11,7 @@ const rubik = Rubik({
 });
 
 export const metadata: Metadata = {
-	title: 'CMMG',
+	title: 'Isla Sounds',
 };
 
 export default function RootLayout({

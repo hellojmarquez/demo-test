@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
 			original_date,
 			territory,
 		};
-
+		console.log('new release: ', newRelease);
 		if (picture) {
 			console.log('ACTUALIZANDO TRAck');
 			const uploadArtworkReq = await fetch(
@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
 			body: JSON.stringify(releaseToApiData),
 		});
 		const apiRes = await releaseToApi.json();
-		console.log(apiRes);
+		console.log('api res: ', apiRes);
 		await dbConnect();
 
 		//Guardar en la API

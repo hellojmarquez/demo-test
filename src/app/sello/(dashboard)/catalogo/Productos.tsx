@@ -373,7 +373,7 @@ const Productos: React.FC = () => {
 													<Users className="h-4 w-4 text-brand-light" />{' '}
 													Artistas:
 												</span>
-												<span className="text-gray-600">
+												<span className="text-gray-600 flex flex-col gap-1">
 													{release.artists.length > 0
 														? release.artists.map(
 																(artist: any, index: number) => (
@@ -381,7 +381,16 @@ const Productos: React.FC = () => {
 																		key={`${release._id}-artist-${index}`}
 																		className="flex items-center gap-2"
 																	>
-																		{JSON.stringify(artist)}
+																		<span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+																			{artist.kind === 'main'
+																				? 'Principal'
+																				: artist.kind === 'featuring'
+																				? 'Featuring'
+																				: artist.kind === 'remixer'
+																				? 'Remixer'
+																				: artist.kind}
+																		</span>
+																		<span>{artist.name}</span>
 																	</span>
 																)
 														  )

@@ -48,7 +48,7 @@ const trackSchema = new Schema<Track>({
 
 const releaseSchema = new Schema(
 	{
-		picture: { type: String, required: true, default: '/avatar.png' },
+		picture: { type: String, required: true, default: '/cd_cover.png' },
 		external_id: { type: Number, required: true },
 		auto_detect_language: { type: Boolean, required: true },
 		generate_ean: { type: Boolean, required: true },

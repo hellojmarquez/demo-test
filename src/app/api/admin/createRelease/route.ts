@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
 		const releaseToSave = {
 			...newRelease,
 			external_id: Number(apiRes.id || external_id),
-			picture: String(picture_url || '/avatar.png'),
+			picture: String(picture_url || '/cd_cover.png'),
 			genre_name: genre.name,
 			subgenre_name: subgenre.name,
 			label_name: String(label_name),

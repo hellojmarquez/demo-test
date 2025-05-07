@@ -23,6 +23,11 @@ import Link from 'next/link';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+
+interface PictureObject {
+	base64: string;
+}
+
 interface Release {
 	_id: string;
 	__v: number;
@@ -38,11 +43,33 @@ interface Release {
 	label: string;
 	language: string;
 	name: string;
-	picture: {
-		base64: string;
-	} | null;
+	picture: string | null;
 	tracks: any[];
 	youtube_declaration: boolean;
+}
+
+interface ReleaseForAPI {
+	_id: string;
+	__v: number;
+	artists: any[];
+	auto_detect_language: boolean;
+	backcatalog: boolean;
+	countries: string[];
+	createdAt: string;
+	updatedAt: string;
+	dolby_atmos: boolean;
+	generate_ean: boolean;
+	kind: string;
+	label: string;
+	language: string;
+	name: string;
+	picture: string | null;
+	tracks: any[];
+	youtube_declaration: boolean;
+}
+
+interface ReleaseForModal extends Omit<Release, 'picture'> {
+	picture: PictureObject | null;
 }
 
 const Productos: React.FC = () => {
@@ -62,6 +89,7 @@ const Productos: React.FC = () => {
 				const data = await res.json();
 				if (data.success) {
 					setReleases(data.data as Release[]);
+					console.log(data.data);
 				}
 			} catch (error) {
 				console.error('Error fetching releases:', error);
@@ -82,8 +110,14 @@ const Productos: React.FC = () => {
 		setIsEditModalOpen(true);
 	};
 
-	const handleSaveEdit = async (updatedRelease: Release) => {
+	const handleSaveEdit = async (updatedRelease: ReleaseForModal) => {
 		try {
+			// Convert the picture object back to string for the API
+			const releaseToSend: ReleaseForAPI = {
+				...updatedRelease,
+				picture: updatedRelease.picture?.base64 || null,
+			};
+
 			const response = await fetch(
 				`/api/admin/updateRelease/${updatedRelease._id}`,
 				{
@@ -91,14 +125,22 @@ const Productos: React.FC = () => {
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify(updatedRelease),
+					body: JSON.stringify(releaseToSend),
 				}
 			);
 
 			if (response.ok) {
+				// Convert the picture back to string for the local state
+				const updatedReleaseForState: Release = {
+					...updatedRelease,
+					picture: updatedRelease.picture?.base64 || null,
+				};
+
 				setReleases(prev =>
 					prev.map(release =>
-						release._id === updatedRelease._id ? updatedRelease : release
+						release._id === updatedRelease._id
+							? updatedReleaseForState
+							: release
 					)
 				);
 				setIsEditModalOpen(false);
@@ -205,11 +247,11 @@ const Productos: React.FC = () => {
 						>
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-5">
-									{release.picture && release.picture.base64 ? (
+									{release.picture ? (
 										<motion.img
 											whileHover={{ scale: 1.05 }}
 											transition={{ duration: 0.2 }}
-											src={`data:image/jpeg;base64,${release.picture.base64}`}
+											src={release.picture}
 											alt={release.name}
 											className="w-20 h-20 object-cover rounded-lg shadow-sm"
 										/>
@@ -482,10 +524,15 @@ const Productos: React.FC = () => {
 
 			{selectedRelease && (
 				<UpdateReleaseModal
-					release={{
-						...selectedRelease,
-						updatedAt: selectedRelease.updatedAt || new Date().toISOString(),
-					}}
+					release={
+						{
+							...selectedRelease,
+							picture: selectedRelease.picture
+								? { base64: selectedRelease.picture }
+								: null,
+							updatedAt: selectedRelease.updatedAt || new Date().toISOString(),
+						} as ReleaseForModal
+					}
 					isOpen={isEditModalOpen}
 					onClose={() => {
 						setIsEditModalOpen(false);

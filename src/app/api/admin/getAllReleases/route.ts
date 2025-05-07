@@ -8,17 +8,10 @@ export async function GET(req: NextRequest) {
 	try {
 		await dbConnect();
 		const releases = await Release.find().sort({ createdAt: -1 });
-		// Convierte los Buffers a base64
-		const releasesWithBase64 = releases.map(release => ({
-			...release.toObject(), // para que no devuelva un objeto de Mongoose
-			picture: {
-				base64: Buffer.from(release.picture).toString('base64'),
-			},
-		}));
 
 		return NextResponse.json({
 			success: true,
-			data: releasesWithBase64,
+			data: releases,
 		});
 	} catch (error) {
 		console.error('Error fetching contributor roles:', error);

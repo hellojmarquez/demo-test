@@ -420,25 +420,38 @@ const CreateReleasePage = () => {
 									/>
 								</div>
 								<div className="flex items-center gap-4">
-									<label className="block text-sm font-medium text-gray-700">
-										Portada
-									</label>
 									<div>
-										<input
-											type="file"
-											ref={fileInputRef}
-											onChange={handleFileChange}
-											accept="image/*"
-											className="hidden"
-										/>
-										<button
-											type="button"
-											onClick={() => fileInputRef.current?.click()}
-											className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-										>
-											<Upload className="h-4 w-4 mr-2" />
-											Subir imagen
-										</button>
+										<label className="block text-sm font-medium text-gray-700">
+											Portada
+										</label>
+										<div>
+											<input
+												type="file"
+												ref={fileInputRef}
+												onChange={handleFileChange}
+												accept="image/*"
+												className="hidden"
+											/>
+											<button
+												type="button"
+												onClick={() => fileInputRef.current?.click()}
+												className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+											>
+												<Upload className="h-4 w-4 mr-2" />
+												Subir imagen
+											</button>
+										</div>
+									</div>
+									<div className="space-y-4">
+										{formData.picture?.base64 && (
+											<div className="mt-2">
+												<img
+													src={formData.picture.base64}
+													alt="Preview"
+													className="h-32 w-32 object-cover rounded-lg"
+												/>
+											</div>
+										)}
 									</div>
 								</div>
 								<div>
@@ -717,42 +730,6 @@ const CreateReleasePage = () => {
 										<option value="specific">Específico</option>
 									</select>
 								</div>
-
-								{formData.territory === 'specific' && (
-									<div className="col-span-2">
-										<label className="block text-sm font-medium text-gray-700">
-											Países
-										</label>
-										<input
-											type="text"
-											name="countries"
-											value={formData.countries?.join(', ')}
-											onChange={e => {
-												const countries = e.target.value
-													.split(',')
-													.map(country => country.trim());
-												setFormData(prev => ({
-													...prev,
-													countries,
-												}));
-											}}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-											placeholder="Ingresa los países separados por comas"
-										/>
-									</div>
-								)}
-							</div>
-
-							<div className="space-y-4">
-								{formData.picture?.base64 && (
-									<div className="mt-2">
-										<img
-											src={formData.picture.base64}
-											alt="Preview"
-											className="h-32 w-32 object-cover rounded-lg"
-										/>
-									</div>
-								)}
 							</div>
 
 							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -68,13 +68,13 @@ export default function DashboardLayout({
 						<div className="flex justify-between items-center h-16">
 							<div className="flex items-center">
 								<img
-									src="/isla_sounds_logo.png"
+									src="/logo_white.png"
 									alt="Isla Sounds"
 									className="h-4 w-auto"
 								/>
 							</div>
 							<div className="flex items-center space-x-4">
-								<p className="text-sm text-gray-600">
+								<p className="text-sm text-white">
 									Bienvenido, {user?.name || 'Usuario'}
 								</p>
 								<AccountSwitchButton />

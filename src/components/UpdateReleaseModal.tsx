@@ -1,5 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, Image as ImageIcon, Save, XCircle } from 'lucide-react';
+import {
+	X,
+	Upload,
+	Image as ImageIcon,
+	Save,
+	XCircle,
+	Trash2,
+} from 'lucide-react';
 
 interface Release {
 	_id: string;
@@ -86,6 +93,22 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		} finally {
 			setIsLoading(false);
 		}
+	};
+
+	const handleDeleteArtist = (index: number) => {
+		setFormData(prev => ({
+			...prev,
+			artists: prev.artists.filter((_, i) => i !== index),
+		}));
+	};
+
+	const handleArtistChange = (index: number, field: string, value: string) => {
+		setFormData(prev => ({
+			...prev,
+			artists: prev.artists.map((artist, i) =>
+				i === index ? { ...artist, [field]: value } : artist
+			),
+		}));
 	};
 
 	if (!isOpen) return null;
@@ -221,21 +244,46 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 						<label className="block text-sm font-medium text-gray-700">
 							Artistas
 						</label>
-						<textarea
-							name="artists"
-							value={JSON.stringify(formData.artists, null, 2)}
-							onChange={e => {
-								try {
-									const artists = JSON.parse(e.target.value);
-									setFormData(prev => ({ ...prev, artists }));
-								} catch (error) {
-									// Si el JSON no es válido, no actualizamos el estado
-									console.error('JSON inválido para artistas');
-								}
-							}}
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-dark focus:ring-brand-dark font-mono text-sm"
-							rows={3}
-						/>
+						<div className="space-y-2">
+							{formData.artists.map((artist, index) => (
+								<div
+									key={index}
+									className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+								>
+									<div className="flex-1">
+										<div className="flex items-center gap-2">
+											<select
+												value={artist.kind}
+												onChange={e =>
+													handleArtistChange(index, 'kind', e.target.value)
+												}
+												className="text-xs bg-gray-200 px-2 py-0.5 rounded border-0 focus:ring-0 focus:outline-none"
+											>
+												<option value="main">Principal</option>
+												<option value="featuring">Invitado</option>
+												<option value="remixer">Remixer</option>
+											</select>
+											<span className="font-medium">{artist.name}</span>
+										</div>
+										<div className="text-xs text-gray-500 mt-1">
+											ID: {artist.artist} | Orden: {artist.order}
+										</div>
+									</div>
+									<button
+										type="button"
+										onClick={() => handleDeleteArtist(index)}
+										className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+									>
+										<Trash2 size={16} />
+									</button>
+								</div>
+							))}
+							{formData.artists.length === 0 && (
+								<div className="text-sm text-gray-500 italic">
+									No hay artistas agregados
+								</div>
+							)}
+						</div>
 					</div>
 
 					<div className="space-y-2">

@@ -100,20 +100,12 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		// Crear el nuevo release
-
-		// artwork: '',
-
-		// genre_name: genre.name,
-		// subgenre_name: subgenre.name,
-		// label_name,
 		let newRelease = {
 			name,
 			label,
 			kind,
 			language,
 			countries,
-			artists,
 			tracks: [],
 			dolby_atmos,
 			backcatalog,
@@ -133,7 +125,7 @@ export async function POST(req: NextRequest) {
 			original_date,
 			territory,
 		};
-		console.log('new release: ', newRelease);
+
 		if (picture) {
 			console.log('ACTUALIZANDO TRAck');
 			const uploadArtworkReq = await fetch(
@@ -194,7 +186,14 @@ export async function POST(req: NextRequest) {
 		const releaseToApiData = {
 			...newRelease,
 			artwork: picture_path,
+			artists: artists.map((artist: any) => ({
+				order: artist.order,
+				artist: artist.artist,
+				kind: artist.kind,
+			})),
 		};
+		console.log('Artists formatted:', releaseToApiData.artists);
+		console.log('Release data:', releaseToApiData);
 
 		const releaseToApi = await fetch(`${process.env.MOVEMUSIC_API}/releases`, {
 			method: 'POST',
@@ -220,6 +219,7 @@ export async function POST(req: NextRequest) {
 			genre_name: genre.name,
 			subgenre_name: subgenre.name,
 			label_name: String(label_name),
+			artists,
 		};
 		const savedRelease = await Release.create(releaseToSave);
 

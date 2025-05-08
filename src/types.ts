@@ -11,9 +11,11 @@ export interface IUser {
 	password: string;
 	picture: string;
 	subaccounts: string[];
+	parentId?: string;
 	createdAt: string;
 	updatedAt: string;
 	role: string;
+	tipo: 'principal' | 'subcuenta';
 	status: string;
 	permissions: string[];
 	_id: string;
@@ -32,9 +34,11 @@ export interface ITokenUser {
 	email: string;
 	picture: string;
 	subaccounts: string[];
+	parentId?: string;
 	createdAt: string;
 	updatedAt: string;
 	role: string;
+	tipo: 'principal' | 'subcuenta';
 	status: string;
 	permissions: string[];
 	_id: string;

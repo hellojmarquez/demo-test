@@ -36,7 +36,7 @@ const SelloSchema: Schema = new Schema({
 	name: { type: String, required: true },
 	primary_genre: { type: String },
 	year: { type: Number },
-	picture: { type: Schema.Types.Mixed }, // Esto permitirá almacenar datos binarios
+	picture: { type: String }, // Esto permitirá almacenar datos binarios
 });
 
 // Verificar si el modelo ya existe para evitar errores en desarrollo con hot reload

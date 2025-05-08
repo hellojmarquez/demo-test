@@ -1,14 +1,19 @@
 export interface Sello {
 	_id: string;
-	assigned_artists: string[];
+	name: string;
+	company: string;
 	catalog_num: number;
+	primary_genre: string;
+	year: number;
 	contract_received: boolean;
-	created_at: string;
 	information_accepted: boolean;
 	label_approved: boolean;
-	name: string;
-	picture?: { base64: string };
-	status: string;
-	updatedAt: string;
-	year: number;
+	picture?: string;
+	assigned_artists?: string[];
+	status: 'active' | 'inactive';
+	tipo: 'principal' | 'subcuenta';
+	parentId?: string | null;
+	parentName?: string | null;
+	created_at?: string;
+	updatedAt?: string;
 }

@@ -16,12 +16,46 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	onClose,
 	onSave,
 }) => {
-	const [formData, setFormData] = useState<Sello>({ ...sello });
+	const [formData, setFormData] = useState<Sello>({
+		...sello,
+		assigned_artists: sello.assigned_artists || [],
+		tipo: sello.tipo || 'principal',
+		parentId: sello.parentId || null,
+	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
 		sello.picture ? `data:image/jpeg;base64,${sello.picture.base64}` : null
 	);
+	const [parentAccounts, setParentAccounts] = useState<
+		Array<{ _id: string; name: string }>
+	>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	// Obtener la lista de cuentas principales
+	useEffect(() => {
+		const fetchParentAccounts = async () => {
+			try {
+				const response = await fetch('/api/admin/getAllUsers');
+				if (response.ok) {
+					const data = await response.json();
+					// Filtrar solo las cuentas principales
+					const mainAccounts = data.users
+						.filter((user: any) => user.tipo === 'principal')
+						.map((user: any) => ({
+							_id: user._id,
+							name: user.name,
+						}));
+					setParentAccounts(mainAccounts);
+				}
+			} catch (error) {
+				console.error('Error fetching parent accounts:', error);
+			}
+		};
+
+		if (isOpen) {
+			fetchParentAccounts();
+		}
+	}, [isOpen]);
 
 	// Actualizar la previsualización cuando cambia el sello seleccionado
 	useEffect(() => {
@@ -58,6 +92,16 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 					[name]: value === '' ? 0 : parseInt(value),
 				});
 			}
+		} else if (name === 'parentId') {
+			// Cuando cambia el parentId, actualizar también el parentName
+			const selectedParent = parentAccounts.find(
+				account => account._id === value
+			);
+			setFormData({
+				...formData,
+				parentId: value,
+				parentName: selectedParent?.name || null,
+			});
 		} else {
 			setFormData({
 				...formData,
@@ -229,6 +273,50 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 								<div className="space-y-4">
 									<div>
 										<label
+											htmlFor="tipo"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
+											Tipo de Cuenta
+										</label>
+										<select
+											id="tipo"
+											name="tipo"
+											value={formData.tipo}
+											onChange={handleChange}
+											className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+										>
+											<option value="principal">Cuenta Principal</option>
+											<option value="subcuenta">Subcuenta</option>
+										</select>
+									</div>
+
+									{formData.tipo === 'subcuenta' && (
+										<div>
+											<label
+												htmlFor="parentId"
+												className="block text-sm font-medium text-gray-700 mb-1"
+											>
+												Cuenta Principal
+											</label>
+											<select
+												id="parentId"
+												name="parentId"
+												value={formData.parentId || ''}
+												onChange={handleChange}
+												className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+											>
+												<option value="">Seleccionar cuenta principal</option>
+												{parentAccounts.map(account => (
+													<option key={account._id} value={account._id}>
+														{account.name}
+													</option>
+												))}
+											</select>
+										</div>
+									)}
+
+									<div>
+										<label
 											htmlFor="name"
 											className="block text-sm font-medium text-gray-700 mb-1"
 										>
@@ -366,12 +454,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 										<textarea
 											id="assigned_artists"
 											name="assigned_artists"
-											value={formData.assigned_artists.join(', ')}
+											value={formData.assigned_artists?.join(', ') || ''}
 											onChange={e => {
 												const artists = e.target.value
 													.split(',')
 													.map(artist => artist.trim())
-													.filter(artist => artist !== '');
+													.filter(artist => artist.length > 0);
 												setFormData({
 													...formData,
 													assigned_artists: artists,

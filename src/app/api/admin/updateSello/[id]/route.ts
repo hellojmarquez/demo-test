@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Sello from '@/models/SelloModel';
+import User from '@/models/UserModel';
 import { Binary } from 'mongodb';
 
 export async function PUT(
@@ -15,7 +15,7 @@ export async function PUT(
 		console.log('Recibiendo datos en la API:', {
 			id,
 			...data,
-			picture: data.picture ? 'Imagen presente' : 'No hay imagen',
+			picture: data.picture,
 		});
 
 		// Convertir la imagen a Binary si existe
@@ -55,7 +55,7 @@ export async function PUT(
 			}
 		}
 
-		const updatedSello = await Sello.findByIdAndUpdate(
+		const updatedSello = await User.findByIdAndUpdate(
 			id,
 			{
 				$set: {
@@ -67,13 +67,14 @@ export async function PUT(
 					contract_received: data.contract_received,
 					information_accepted: data.information_accepted,
 					label_approved: data.label_approved,
-					picture: pictureBinary,
+					picture: 'asdasdsa',
 				},
 			},
 			{ new: true }
 		);
 
 		if (!updatedSello) {
+			console.error('No se encontró el sello con ID:', id);
 			return NextResponse.json(
 				{ error: 'Sello no encontrado' },
 				{ status: 404 }

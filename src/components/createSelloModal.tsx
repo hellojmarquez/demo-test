@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
 
@@ -15,6 +15,8 @@ interface CreateSelloModalProps {
 		picture?: {
 			base64: string;
 		};
+		isSubaccount?: boolean;
+		parentUserId?: string;
 	}) => Promise<void>;
 }
 
@@ -31,16 +33,47 @@ function CreateSelloModal({
 		year: '',
 		catalog_num: '',
 		picture: undefined as { base64: string } | undefined,
+		isSubaccount: false,
+		parentUserId: '',
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [error, setError] = useState('');
+	const [availableParents, setAvailableParents] = useState<
+		Array<{ _id: string; name: string; role: string }>
+	>([]);
 
-	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const { name, value } = e.target;
+	useEffect(() => {
+		const fetchAvailableParents = async () => {
+			try {
+				const response = await fetch('/api/admin/getAllUsers');
+				if (response.ok) {
+					const data = await response.json();
+					setAvailableParents(data.users || []);
+				}
+			} catch (error) {
+				console.error('Error fetching available parents:', error);
+			}
+		};
 
-		if (name === 'year') {
+		if (isOpen) {
+			fetchAvailableParents();
+		}
+	}, [isOpen]);
+
+	const handleInputChange = (
+		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+	) => {
+		const { name, value, type } = e.target;
+
+		if (type === 'checkbox') {
+			const checked = (e.target as HTMLInputElement).checked;
+			setFormData(prev => ({
+				...prev,
+				[name]: checked,
+			}));
+		} else if (name === 'year') {
 			// Solo permitir números y máximo 4 dígitos
 			if (/^\d{0,4}$/.test(value)) {
 				setFormData(prev => ({
@@ -106,6 +139,20 @@ function CreateSelloModal({
 				'catalog_num',
 				formData.catalog_num ? parseInt(formData.catalog_num).toString() : ''
 			);
+			formDataToSend.append('isSubaccount', formData.isSubaccount.toString());
+			formDataToSend.append(
+				'tipo',
+				formData.isSubaccount ? 'subcuenta' : 'principal'
+			);
+			if (formData.isSubaccount && formData.parentUserId) {
+				formDataToSend.append('parentUserId', formData.parentUserId);
+				const selectedParent = availableParents.find(
+					parent => parent._id === formData.parentUserId
+				);
+				if (selectedParent) {
+					formDataToSend.append('parentName', selectedParent.name);
+				}
+			}
 
 			if (formData.picture?.base64) {
 				// Convertir base64 a Blob
@@ -170,7 +217,7 @@ function CreateSelloModal({
 						className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
 						onClick={e => e.stopPropagation()}
 					>
-						<div className="p-4 border-b border-gray-200 flex justify-between items-center">
+						<div className="p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
 							<h2 className="text-xl font-semibold text-gray-800">
 								Crear Sello
 							</h2>
@@ -182,7 +229,10 @@ function CreateSelloModal({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="flex flex-col flex-1">
+						<form
+							onSubmit={handleSubmit}
+							className="flex-1 flex flex-col min-h-0"
+						>
 							<div className="p-4 space-y-4 overflow-y-auto flex-1">
 								<div className="space-y-3">
 									<div className="space-y-2">
@@ -332,10 +382,53 @@ function CreateSelloModal({
 											required
 										/>
 									</div>
+
+									<div className="flex items-center space-x-2">
+										<input
+											type="checkbox"
+											id="isSubaccount"
+											name="isSubaccount"
+											checked={formData.isSubaccount}
+											onChange={handleInputChange}
+											className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+										/>
+										<label
+											htmlFor="isSubaccount"
+											className="text-sm text-gray-700"
+										>
+											Crear como subcuenta
+										</label>
+									</div>
+
+									{formData.isSubaccount && (
+										<div>
+											<label
+												htmlFor="parentUserId"
+												className="block text-sm font-medium text-gray-700 mb-1"
+											>
+												Usuario Padre
+											</label>
+											<select
+												id="parentUserId"
+												name="parentUserId"
+												value={formData.parentUserId}
+												onChange={handleInputChange}
+												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												required
+											>
+												<option value="">Seleccionar usuario padre</option>
+												{availableParents.map(parent => (
+													<option key={parent._id} value={parent._id}>
+														{parent.name} ({parent.role})
+													</option>
+												))}
+											</select>
+										</div>
+									)}
 								</div>
 							</div>
 
-							<div className="flex justify-end gap-3 p-4 border-t border-gray-200">
+							<div className="p-4 border-t border-gray-200 flex justify-end space-x-2 flex-shrink-0">
 								<button
 									type="button"
 									onClick={onClose}

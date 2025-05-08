@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
-import bcrypt from 'bcryptjs';
+import { encryptPassword } from '@/utils/auth';
+import { verifyToken } from '@/utils/jwt';
+import { getTokenBack } from '@/utils/tokenBack';
 import { jwtVerify } from 'jose';
 
-export async function POST(req: NextRequest) {
-	console.log('create sello request received');
-
+export async function POST(request: NextRequest) {
 	try {
-		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
-		const token = req.cookies.get('loginToken')?.value;
+		await dbConnect();
+
+		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
+		const token = request.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
 				{ success: false, error: 'Not authenticated' },
@@ -30,10 +32,9 @@ export async function POST(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-		await dbConnect();
 
 		// Verificar si es FormData
-		const contentType = req.headers.get('content-type');
+		const contentType = request.headers.get('content-type');
 		if (!contentType?.includes('multipart/form-data')) {
 			return NextResponse.json(
 				{ message: 'Se requiere enviar los datos como FormData' },
@@ -41,41 +42,71 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const formData = await req.formData();
-
-		// Extraer los campos del FormData
+		// Obtener datos del formulario
+		const formData = await request.formData();
 		const name = formData.get('name') as string;
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
 		const primary_genre = formData.get('primary_genre') as string;
-		const yearString = formData.get('year') as string;
-		const catalog_numString = formData.get('catalog_num') as string;
+		const year = formData.get('year') as string;
+		const catalog_num = formData.get('catalog_num') as string;
 		const picture = formData.get('picture') as File | null;
-		const year = Number(yearString);
-		const catalog_num = Number(catalog_numString);
+		const isSubaccount = formData.get('isSubaccount') === 'true';
+		const parentUserId = formData.get('parentUserId') as string;
+		const parentName = formData.get('parentName') as string;
 
 		// Validar campos requeridos
-		if (!name) {
-			return NextResponse.json(
-				{ message: 'Nombre, email y contraseña son requeridos' },
-				{ status: 400 }
-			);
+		// if (!name || !primary_genre || !year || !catalog_num) {
+		// 	return NextResponse.json(
+		// 		{ error: 'Todos los campos son requeridos' },
+		// 		{ status: 400 }
+		// 	);
+		// }
+
+		// Validar campos específicos para cuenta principal
+		if (!isSubaccount) {
+			// if (!email || !password) {
+			// 	return NextResponse.json(
+			// 		{
+			// 			error: 'Email y contraseña son requeridos para cuentas principales',
+			// 		},
+			// 		{ status: 400 }
+			// 	);
+			// }
+
+			// Validar que el email no exista
+			const existingUser = await User.findOne({ email: email.toLowerCase() });
+			if (existingUser) {
+				return NextResponse.json(
+					{ error: 'El email ya está registrado' },
+					{ status: 400 }
+				);
+			}
 		}
 
-		// Verificar si el email ya existe
-		const existingUser = await User.findOne({ email });
-		if (existingUser) {
-			return NextResponse.json(
-				{ message: 'El email ya está registrado' },
-				{ status: 400 }
-			);
+		// Si es subcuenta, validar el usuario padre
+		let parentUser = null;
+		if (isSubaccount) {
+			if (!parentUserId) {
+				return NextResponse.json(
+					{ error: 'Usuario padre es requerido para subcuentas' },
+					{ status: 400 }
+				);
+			}
+
+			parentUser = await User.findById(parentUserId);
+			if (!parentUser) {
+				return NextResponse.json(
+					{ error: 'Usuario padre no encontrado' },
+					{ status: 404 }
+				);
+			}
 		}
 
 		// Procesar la imagen si existe
 		let picture_url = '';
 		let picture_path = '';
 		if (picture) {
-			console.log(picture);
 			try {
 				const uploadPictureReq = await fetch(
 					`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=image/jpeg&upload_type=label.logo`,
@@ -119,7 +150,6 @@ export async function POST(req: NextRequest) {
 				picture_path = decodeURIComponent(
 					new URL(picture_url).pathname.slice(1)
 				);
-				console.log('picture_path: ', picture_path);
 
 				if (!uploadResponse.ok) {
 					console.error(
@@ -140,13 +170,15 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		//crear sello en api
+		// Crear sello en API externa solo si no es subcuenta
+		let external_id = null;
+
 		const labelToApi = {
 			name,
 			logo: picture_path,
 			primary_genre,
-			year,
-			catalog_num,
+			year: parseInt(year),
+			catalog_num: parseInt(catalog_num),
 		};
 
 		const createLabelReq = await fetch(`${process.env.MOVEMUSIC_API}/labels/`, {
@@ -161,38 +193,58 @@ export async function POST(req: NextRequest) {
 		});
 
 		const createLabelRes = await createLabelReq.json();
-		console.log('createLabelRes', createLabelRes);
+		console.log('createLabelRes: ', createLabelRes);
+		external_id = createLabelRes.id;
 
-		// Crear el nuevo sello
-		const labelToBBDD = {
-			external_id: createLabelRes.id,
+		// Encriptar contraseña solo si no es subcuenta
+		const hashedPassword = !isSubaccount
+			? await encryptPassword(password)
+			: null;
+
+		// Crear el nuevo usuario
+		const newUser = new User({
+			external_id,
 			name,
-			email,
-			password,
-			picture: picture_url,
+			email: !isSubaccount ? email.toLowerCase() : undefined,
+			password: hashedPassword,
 			role: 'sello',
 			status: 'active',
 			permissions: ['sello'],
+			picture: picture_url,
+			tipo: isSubaccount ? 'subcuenta' : 'principal',
+			parentId: isSubaccount ? parentUserId : null,
+			parentName: isSubaccount ? parentName : null,
+			subaccounts: !isSubaccount ? [] : undefined,
+			// Campos específicos de sello
 			primary_genre,
-			year,
-			catalog_num,
-		};
+			year: parseInt(year),
+			catalog_num: parseInt(catalog_num),
+		});
 
-		const newSello = await User.create(labelToBBDD);
+		await newUser.save();
 
-		console.log('Sello created successfully: ', newSello);
+		// Si es subcuenta, actualizar el array de subcuentas del usuario padre
+		if (isSubaccount && parentUserId) {
+			await User.findByIdAndUpdate(parentUserId, {
+				$push: { subaccounts: newUser._id },
+			});
+		}
+		console.log('Guardado', newUser);
 
 		return NextResponse.json(
 			{
-				message: 'Sello creado exitosamente',
+				success: true,
+				message: isSubaccount
+					? 'Subcuenta creada exitosamente'
+					: 'Sello creado exitosamente',
 			},
 			{ status: 201 }
 		);
 	} catch (error: any) {
-		console.error('Error creating sello:', error);
+		console.error('Error al crear sello:', error);
 		return NextResponse.json(
 			{
-				error: error.message || 'Internal Server Error',
+				error: error.message || 'Error interno del servidor',
 				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 			},
 			{ status: 500 }

@@ -38,46 +38,35 @@ export default function SellosPage() {
 				const response = await res.json();
 				console.log('Respuesta completa de la API:', response);
 
-				// Verificar la estructura de los datos
-				if (Array.isArray(response.data)) {
-					// Si la respuesta es un array, verificar cada sello
-					response.data.forEach((sello: Sello, index: number) => {
-						console.log(`Sello ${index}:`, sello);
-						console.log(`Sello ${index} picture:`, sello.picture);
-					});
-					// Asegurarse de que cada sello tenga la estructura correcta
-					const sellosFormateados = response.data.map((sello: Sello) => {
-						// Convertir year y catalog_num a números
-						const year =
-							typeof sello.year === 'string'
-								? parseInt(sello.year, 10)
-								: sello.year;
-						const catalog_num =
-							typeof sello.catalog_num === 'string'
-								? parseInt(sello.catalog_num, 10)
-								: sello.catalog_num;
+				// Asegurarnos de que response.data sea un array
+				const sellosData = Array.isArray(response.data) ? response.data : [];
 
-						// Si picture es un string, convertirlo a objeto con base64
-						if (sello.picture && typeof sello.picture === 'string') {
-							return {
-								...sello,
-								year,
-								catalog_num,
-								picture: { base64: sello.picture },
-							};
-						}
-						return {
-							...sello,
-							year,
-							catalog_num,
-						};
-					});
+				// Si la respuesta es un array, verificar cada sello
+				sellosData.forEach((sello: Sello, index: number) => {
+					console.log(`Sello ${index}:`, sello);
+					console.log(`Sello ${index} picture:`, sello.picture);
+				});
+				// Asegurarse de que cada sello tenga la estructura correcta
+				const sellosFormateados = sellosData.map((sello: Sello) => {
+					// Convertir year y catalog_num a números
+					const year =
+						typeof sello.year === 'string'
+							? parseInt(sello.year, 10)
+							: sello.year;
+					const catalog_num =
+						typeof sello.catalog_num === 'string'
+							? parseInt(sello.catalog_num, 10)
+							: sello.catalog_num;
 
-					setSellos(sellosFormateados);
-				} else {
-					console.error('La respuesta no es un array:', response);
-					setSellos([]);
-				}
+					return {
+						...sello,
+						year,
+						catalog_num,
+						picture: sello.picture || null,
+					};
+				});
+
+				setSellos(sellosFormateados);
 			} catch (error) {
 				console.error('Error fetching sellos:', error);
 			} finally {
@@ -93,19 +82,12 @@ export default function SellosPage() {
 
 	const handleEdit = async (sello: Sello) => {
 		try {
-			console.log('Enviando sello a la API:', {
-				...sello,
-				picture: sello.picture
-					? sello.picture.base64.substring(0, 50) + '...'
-					: 'No hay imagen',
-			});
-
 			// Asegurarse de que el objeto picture tenga el formato correcto
 			const selloToUpdate = {
 				...sello,
-				picture: sello.picture ? { base64: sello.picture.base64 } : undefined,
+				picture: sello.picture || undefined,
 			};
-
+			console.log(selloToUpdate);
 			const response = await fetch(`/api/admin/updateSello/${sello._id}`, {
 				method: 'PUT',
 				headers: {
@@ -200,7 +182,7 @@ export default function SellosPage() {
 				</motion.div>
 			)}
 
-			{sellos.length === 0 ? (
+			{!sellos || sellos.length === 0 ? (
 				<motion.div
 					key="empty-state"
 					initial={{ opacity: 0 }}
@@ -232,18 +214,12 @@ export default function SellosPage() {
 										key={`logo-${sello._id}`}
 										whileHover={{ scale: 1.05 }}
 										transition={{ duration: 0.2 }}
-										src={
-											typeof sello.picture === 'string'
-												? `data:image/jpeg;base64,${sello.picture}`
-												: `data:image/jpeg;base64,${sello.picture.base64}`
-										}
+										src={sello.picture}
 										alt={sello.name}
 										className="w-20 h-20 object-cover rounded-lg shadow-sm"
 										onError={e => {
 											console.error('Error al cargar la imagen:', e);
 											console.error('Estructura del sello:', sello);
-											// Opcionalmente, establecer una imagen de respaldo
-											// e.currentTarget.src = '/images/fallback-image.png';
 										}}
 									/>
 								) : (
@@ -345,7 +321,8 @@ export default function SellosPage() {
 													Artistas:
 												</span>
 												<span className="text-gray-600">
-													{sello.assigned_artists.length > 0
+													{sello.assigned_artists &&
+													sello.assigned_artists.length > 0
 														? sello.assigned_artists.join(', ')
 														: 'No hay artistas asignados'}
 												</span>
@@ -408,7 +385,7 @@ export default function SellosPage() {
 													<Clock className="h-4 w-4 text-brand-light" /> Creado:
 												</span>
 												<span className="text-gray-600">
-													{formatDate(sello.created_at)}
+													{formatDate(sello.created_at || '')}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -417,7 +394,7 @@ export default function SellosPage() {
 													Actualizado:
 												</span>
 												<span className="text-gray-600">
-													{formatDate(sello.updatedAt)}
+													{formatDate(sello.updatedAt || '')}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

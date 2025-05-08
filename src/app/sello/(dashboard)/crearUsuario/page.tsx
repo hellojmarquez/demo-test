@@ -10,7 +10,7 @@ import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, Plus } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 export default function CrearUsuarioPage() {
 	const [userType, setUserType] = useState<string>('');

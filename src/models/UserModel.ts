@@ -17,17 +17,35 @@ const UserSchema = new mongoose.Schema({
 	email: {
 		type: String,
 		unique: true,
+		required: function (this: any) {
+			return this.tipo === 'principal';
+		},
 	},
 	password: {
 		type: String,
+		required: function (this: any) {
+			return this.tipo === 'principal';
+		},
 	},
 	picture: {
-		type: Buffer,
+		type: mongoose.Schema.Types.Mixed,
 		default: null,
 	},
 	subaccounts: {
 		type: Array,
 		default: [],
+		required: function (this: any) {
+			return this.tipo === 'principal';
+		},
+	},
+	parentId: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'User',
+		default: null,
+	},
+	parentName: {
+		type: String,
+		default: null,
 	},
 	createdAt: {
 		type: Date,
@@ -42,6 +60,12 @@ const UserSchema = new mongoose.Schema({
 		type: String,
 		default: 'user',
 		enum: ['user', 'sello', 'artista', 'contributor', 'publisher', 'admin'],
+		required: true,
+	},
+	tipo: {
+		type: String,
+		enum: ['principal', 'subcuenta'],
+		default: 'principal',
 		required: true,
 	},
 	status: {

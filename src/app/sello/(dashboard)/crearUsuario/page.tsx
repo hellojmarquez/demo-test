@@ -6,11 +6,11 @@ import CreateArtistModal from '@/components/createArtistModal';
 import CreateSelloModal from '@/components/createSelloModal';
 import CreateContributorModal from '@/components/CreateContributorModal';
 import { CreatePublisherModal } from '@/components/CreatePublisherModal';
-import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
+import UpdateSelloModal from '@/components/UpdateSelloModal';
 
 export default function CrearUsuarioPage() {
 	const [userType, setUserType] = useState<string>('');
@@ -251,27 +251,22 @@ export default function CrearUsuarioPage() {
 			{userRole === 'sello' ? (
 				<div className="bg-white rounded-lg shadow p-6">
 					{selloData && (
-						<UpdateSelloModal
+						<CreateSelloModal
 							isOpen={showUpdateModal}
 							onClose={() => setShowUpdateModal(false)}
-							onSave={async updatedSello => {
+							onSave={async selloData => {
 								try {
-									const response = await fetch(
-										`/api/admin/updateSello/${updatedSello._id}`,
-										{
-											method: 'PUT',
-											headers: {
-												'Content-Type': 'application/json',
-											},
-											body: JSON.stringify(updatedSello),
-										}
-									);
+									const response = await fetch('/api/admin/createSello', {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+										},
+										body: JSON.stringify(selloData),
+									});
 
 									if (!response.ok) {
 										const error = await response.json();
-										throw new Error(
-											error.message || 'Error al actualizar el sello'
-										);
+										throw new Error(error.message || 'Error al crear el sello');
 									}
 
 									setShowSuccessMessage(true);
@@ -280,15 +275,14 @@ export default function CrearUsuarioPage() {
 									}, 3000);
 									router.refresh();
 								} catch (error) {
-									console.error('Error updating sello:', error);
+									console.error('Error creating sello:', error);
 									toast.error(
 										error instanceof Error
 											? error.message
-											: 'Error al actualizar el sello'
+											: 'Error al crear el sello'
 									);
 								}
 							}}
-							sello={selloData}
 						/>
 					)}
 				</div>

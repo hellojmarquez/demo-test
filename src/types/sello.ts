@@ -14,6 +14,7 @@ export interface Sello {
 	tipo: 'principal' | 'subcuenta';
 	parentId?: string | null;
 	parentName?: string | null;
+	subaccounts?: Array<{ _id: string; name: string }>;
 	createdAt?: string;
 	updatedAt?: string;
 	external_id?: number;

@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
-import { verifyToken } from '@/utils/jwt';
-import { getTokenBack } from '@/utils/tokenBack';
 import { jwtVerify } from 'jose';
 
 export async function POST(request: NextRequest) {
@@ -205,7 +203,7 @@ export async function POST(request: NextRequest) {
 		const newUser = new User({
 			external_id,
 			name,
-			email: !isSubaccount ? email.toLowerCase() : undefined,
+			email: !isSubaccount ? email.toLowerCase() : '',
 			password: hashedPassword,
 			role: 'sello',
 			status: 'active',
@@ -220,6 +218,7 @@ export async function POST(request: NextRequest) {
 			year: parseInt(year),
 			catalog_num: parseInt(catalog_num),
 		});
+		console.log('newUser: ', newUser);
 
 		await newUser.save();
 

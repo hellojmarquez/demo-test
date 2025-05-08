@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
 		const requiredFields = {
 			name: trackData.name || '',
 			language: trackData.language || 'ES',
-			track_length: trackData.track_lenght || '00:00:00', // Corregimos el nombre del campo
+			track_length: trackData.track_lenght || '00:00:00',
 			vocals: trackData.vocals || 'ES',
 			status: 'Borrador',
 			artists: trackData.artists || [],

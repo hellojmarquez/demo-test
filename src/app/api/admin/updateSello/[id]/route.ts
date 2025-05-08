@@ -42,6 +42,15 @@ export async function PUT(
 		let picture_path = '';
 		console.log('Datos foto:', file);
 		console.log('Datos recibidos:', data);
+		if (data.year) data.year = parseInt(data.year);
+		if (data.external_id) data.external_id = parseInt(data.external_id);
+		const newData = {
+			name: data.name,
+			primary_genre: data.primary_genre,
+			year: data.year,
+			catalog_num: data.catalog_num,
+		};
+		// Solo actualizar la imagen si se envía una nueva
 		if (file) {
 			const uploadMediaReq = await fetch(
 				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=label.logo`,
@@ -57,10 +66,10 @@ export async function PUT(
 			);
 			const uploadMediaRes = await uploadMediaReq.json();
 			// Extraer la URL y los campos del objeto firmado
-			const { url: signedUrl, fields: trackFields } = uploadMediaRes.signed_url;
+			const { url: signedUrl, fields: mediaFields } = uploadMediaRes.signed_url;
 			// Crear un objeto FormData y agregar los campos y el archivo
 			const mediaFormData = new FormData();
-			Object.entries(trackFields).forEach(([key, value]) => {
+			Object.entries(mediaFields).forEach(([key, value]) => {
 				if (typeof value === 'string' || value instanceof Blob) {
 					mediaFormData.append(key, value);
 				} else {
@@ -82,17 +91,10 @@ export async function PUT(
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
 		}
-		if (data.year) data.year = parseInt(data.year);
-		if (data.external_id) data.external_id = parseInt(data.external_id);
-		const dataToApi = {
-			name: data.name,
-			logo: picture_path,
-			primary_genre: data.primary_genre,
-			year: data.year,
-			catalog_num: data.catalog_num,
-		};
+		console.log('recibido: : ', data);
+		console.log('recibido:  ', file);
 		const releaseToApi = await fetch(
-			`${process.env.MOVEMUSIC_API}/releases/${data.external_id}`,
+			`${process.env.MOVEMUSIC_API}/labels/${data.external_id}`,
 			{
 				method: 'PUT',
 				headers: {
@@ -101,7 +103,7 @@ export async function PUT(
 					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
 					Referer: process.env.MOVEMUSIC_REFERER || '',
 				},
-				body: JSON.stringify(dataToApi),
+				body: JSON.stringify({ ...newData, logo: picture_path }),
 			}
 		);
 		const apiRes = await releaseToApi.json();
@@ -114,22 +116,20 @@ export async function PUT(
 		}
 
 		// Preparar los datos para la base de datos
+
 		const dataToBBDD = {
-			_id: new ObjectId(id),
-			external_id: apiRes.id,
-			name: data.name,
-			picture: picture_url,
-			primary_genre: data.primary_genre,
-			year: data.year,
-			subaccounts: !data.isSubaccount ? [] : undefined,
-			tipo: data.isSubaccount ? 'subcuenta' : 'principal',
-			catalog_num: data.catalog_num,
+			...newData,
+			picture: file === null ? data.picture : picture_url,
+			external_id: apiRes.api || data.external_id,
 			parentId: data.parentId ? new ObjectId(data.parentId) : null,
 			parentName: data.parentName || null,
 			status: data.status,
 			assigned_artists: data.assigned_artists || [],
+			subaccounts: !data.isSubaccount ? [] : undefined,
+			tipo: data.isSubaccount ? 'subcuenta' : 'principal',
+			_id: new ObjectId(id),
 		};
-
+		console.log('dataToBBDD: ', dataToBBDD);
 		// Actualizar en la base de datos
 		const updateUser = await User.findOneAndUpdate(
 			{ _id: new ObjectId(id) },

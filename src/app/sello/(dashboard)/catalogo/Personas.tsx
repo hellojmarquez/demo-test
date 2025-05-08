@@ -459,16 +459,21 @@ const Personas = () => {
 						sello={{
 							_id: selectedSello._id,
 							name: selectedSello.name,
-							picture: selectedSello.picture,
+							picture: selectedSello.picture?.base64 || undefined,
 							catalog_num: selectedSello.catalog_num || 0,
 							year: selectedSello.year || 0,
-							status: selectedSello.status || 'active',
+							status: (selectedSello.status || 'active') as
+								| 'active'
+								| 'inactive',
 							contract_received: selectedSello.contract_received || false,
 							information_accepted: selectedSello.information_accepted || false,
 							label_approved: selectedSello.label_approved || false,
 							assigned_artists: selectedSello.assigned_artists || [],
 							created_at: new Date().toISOString(),
 							updatedAt: new Date().toISOString(),
+							tipo: 'principal',
+							parentId: null,
+							parentName: null,
 						}}
 						isOpen={showSelloModal}
 						onClose={() => {
@@ -476,7 +481,10 @@ const Personas = () => {
 							setShowSelloModal(false);
 							setSelectedSello(null);
 						}}
-						onSave={handleSelloUpdate}
+						onSave={async (formData: FormData) => {
+							const data = JSON.parse(formData.get('data') as string);
+							await handleSelloUpdate(data);
+						}}
 					/>
 				</>
 			)}

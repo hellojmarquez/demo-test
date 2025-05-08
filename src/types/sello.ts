@@ -8,7 +8,7 @@ export interface Sello {
 	contract_received: boolean;
 	information_accepted: boolean;
 	label_approved: boolean;
-	picture?: string;
+	picture?: string | File | { base64: string };
 	assigned_artists?: string[];
 	status: 'active' | 'inactive';
 	tipo: 'principal' | 'subcuenta';

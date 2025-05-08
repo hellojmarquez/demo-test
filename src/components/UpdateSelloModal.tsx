@@ -23,9 +23,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		parentId: sello.parentId || null,
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [imagePreview, setImagePreview] = useState<string | null>(
-		sello.picture || null
-	);
+	const [imagePreview, setImagePreview] = useState<string | null>(() => {
+		if (!sello.picture) return null;
+		if (typeof sello.picture === 'string') return sello.picture;
+		if ('base64' in sello.picture) return sello.picture.base64;
+		return null;
+	});
 	const [parentAccounts, setParentAccounts] = useState<
 		Array<{ _id: string; name: string }>
 	>([]);
@@ -59,8 +62,14 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 	// Actualizar la previsualización cuando cambia el sello seleccionado
 	useEffect(() => {
-		if (sello.picture) {
+		if (!sello.picture) {
+			setImagePreview(null);
+			return;
+		}
+		if (typeof sello.picture === 'string') {
 			setImagePreview(sello.picture);
+		} else if ('base64' in sello.picture) {
+			setImagePreview(sello.picture.base64);
 		} else {
 			setImagePreview(null);
 		}
@@ -165,10 +174,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				external_id: formData.external_id
 					? parseInt(formData.external_id.toString())
 					: undefined,
+				picture:
+					typeof formData.picture === 'string' ? formData.picture : undefined, // Mantener la imagen existente si no es un File
 			};
 			formDataToSend.append('data', JSON.stringify(dataToSend));
 
-			// Si hay una imagen, agregarla como File
+			// Si hay una imagen nueva, agregarla como File
 			if (formData.picture instanceof File) {
 				formDataToSend.append('picture', formData.picture);
 			}

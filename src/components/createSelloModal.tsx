@@ -30,7 +30,7 @@ function CreateSelloModal({
 		email: '',
 		password: '',
 		primary_genre: '',
-		year: '',
+		year: new Date().getFullYear().toString(),
 		catalog_num: '',
 		picture: undefined as { base64: string } | undefined,
 		isSubaccount: false,
@@ -43,22 +43,34 @@ function CreateSelloModal({
 	const [availableParents, setAvailableParents] = useState<
 		Array<{ _id: string; name: string; role: string }>
 	>([]);
+	const [genres, setGenres] = useState<Array<{ _id: string; name: string }>>(
+		[]
+	);
 
 	useEffect(() => {
-		const fetchAvailableParents = async () => {
+		const fetchData = async () => {
 			try {
-				const response = await fetch('/api/admin/getAllUsers');
-				if (response.ok) {
-					const data = await response.json();
+				// Fetch available parents
+				const parentsResponse = await fetch('/api/admin/getAllUsers');
+				if (parentsResponse.ok) {
+					const data = await parentsResponse.json();
 					setAvailableParents(data.users || []);
 				}
+
+				// Fetch genres
+				const genresResponse = await fetch('/api/admin/getAllGenres');
+				if (genresResponse.ok) {
+					const genresData = await genresResponse.json();
+					console.log('Genres data:', genresData);
+					setGenres(genresData.data || []);
+				}
 			} catch (error) {
-				console.error('Error fetching available parents:', error);
+				console.error('Error fetching data:', error);
 			}
 		};
 
 		if (isOpen) {
-			fetchAvailableParents();
+			fetchData();
 		}
 	}, [isOpen]);
 
@@ -340,31 +352,44 @@ function CreateSelloModal({
 											>
 												Género Principal
 											</label>
-											<input
-												type="text"
+											<select
 												id="primary_genre"
 												name="primary_genre"
 												value={formData.primary_genre}
 												onChange={handleInputChange}
 												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 												required
-											/>
+											>
+												<option value="">Seleccionar género</option>
+												{genres.map(genre => (
+													<option key={genre._id} value={genre.name}>
+														{genre.name}
+													</option>
+												))}
+											</select>
 										</div>
 
 										<div>
 											<label className="block text-sm font-medium text-gray-700 mb-1">
 												Año de Fundación
 											</label>
-											<input
-												type="text"
+											<select
 												name="year"
 												value={formData.year}
 												onChange={handleInputChange}
-												onPaste={e => e.preventDefault()}
-												maxLength={4}
-												className="w-full border border-gray-300 p-2 rounded-lg"
+												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 												required
-											/>
+											>
+												<option value="">Seleccionar año</option>
+												{Array.from({ length: 125 }, (_, i) => {
+													const year = new Date().getFullYear() - i;
+													return (
+														<option key={year} value={year}>
+															{year}
+														</option>
+													);
+												})}
+											</select>
 										</div>
 									</div>
 

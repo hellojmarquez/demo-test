@@ -33,24 +33,48 @@ export async function PUT(
 				{ status: 401 }
 			);
 		}
-		const formData = await req.formData();
 
-		// Obtener la imagen del FormData
-		const file = formData.get('picture') as File;
-		const data = JSON.parse(formData.get('data') as string);
-		let picture_url = '';
-		let picture_path = '';
-		console.log('Datos foto:', file);
-		console.log('Datos recibidos:', data);
-		if (data.year) data.year = parseInt(data.year);
-		if (data.external_id) data.external_id = parseInt(data.external_id);
-		const newData = {
+		await dbConnect();
+
+		// Obtener el sello actual para comparar cambios
+		const currentSello = await User.findById(id);
+		if (!currentSello) {
+			return NextResponse.json(
+				{ error: 'Sello no encontrado' },
+				{ status: 404 }
+			);
+		}
+
+		let data: any;
+		let file: File | null = null;
+
+		// Determinar si la solicitud es FormData o JSON
+		const contentType = req.headers.get('content-type') || '';
+		if (contentType.includes('multipart/form-data')) {
+			const formData = await req.formData();
+			file = formData.get('picture') as File;
+			data = JSON.parse(formData.get('data') as string);
+		} else if (contentType.includes('application/json')) {
+			data = await req.json();
+		} else {
+			return NextResponse.json(
+				{ error: 'Content-Type no soportado' },
+				{ status: 400 }
+			);
+		}
+
+		// Preparar los datos para la actualización
+		const updateData: any = {
 			name: data.name,
 			primary_genre: data.primary_genre,
-			year: data.year,
-			catalog_num: data.catalog_num,
+			year: parseInt(data.year),
+			catalog_num: parseInt(data.catalog_num),
+			status: data.status,
+			assigned_artists: data.assigned_artists || [],
+			tipo: data.tipo,
 		};
-		// Solo actualizar la imagen si se envía una nueva
+		console.log('recibido: ', updateData);
+		// Manejar la imagen si se proporciona una nueva
 		if (file) {
 			const uploadMediaReq = await fetch(
 				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=label.logo`,
@@ -65,86 +89,83 @@ export async function PUT(
 				}
 			);
 			const uploadMediaRes = await uploadMediaReq.json();
-			// Extraer la URL y los campos del objeto firmado
 			const { url: signedUrl, fields: mediaFields } = uploadMediaRes.signed_url;
-			// Crear un objeto FormData y agregar los campos y el archivo
 			const mediaFormData = new FormData();
 			Object.entries(mediaFields).forEach(([key, value]) => {
 				if (typeof value === 'string' || value instanceof Blob) {
 					mediaFormData.append(key, value);
-				} else {
-					console.warn(
-						`El valor de '${key}' no es un tipo válido para FormData:`,
-						value
-					);
 				}
 			});
-
 			mediaFormData.append('file', file);
-
-			// Realizar la solicitud POST a la URL firmada
 			const uploadResponse = await fetch(signedUrl, {
 				method: 'POST',
 				body: mediaFormData,
 			});
-			console.log('uploadResponse: ', uploadResponse);
-			picture_url = uploadResponse?.headers?.get('location') || '';
-			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
+			const picture_url = uploadResponse?.headers?.get('location') || '';
+			updateData.picture = picture_url;
 		}
-		console.log('recibido: : ', data);
-		console.log('recibido:  ', file);
-		const releaseToApi = await fetch(
-			`${process.env.MOVEMUSIC_API}/labels/${data.external_id}`,
-			{
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-				body: JSON.stringify({ ...newData, logo: picture_path }),
+
+		// Manejar cambios en las subcuentas
+		if (data.tipo === 'principal') {
+			// Obtener las subcuentas actuales y las nuevas
+			const currentSubaccounts = currentSello.subaccounts || [];
+			const newSubaccounts = data.subaccounts || [];
+
+			// Encontrar subcuentas removidas
+			const removedSubaccounts = currentSubaccounts.filter(
+				(sub: string) =>
+					!newSubaccounts.some((newSub: { _id: string }) => newSub._id === sub)
+			);
+
+			// Encontrar subcuentas agregadas
+			const addedSubaccounts = newSubaccounts.filter(
+				(newSub: { _id: string }) => !currentSubaccounts.includes(newSub._id)
+			);
+
+			// Actualizar las subcuentas removidas
+			for (const subId of removedSubaccounts) {
+				await User.findByIdAndUpdate(subId, {
+					parentId: null,
+					parentName: null,
+				});
 			}
-		);
-		const apiRes = await releaseToApi.json();
 
-		await dbConnect();
+			// Actualizar las subcuentas agregadas
+			for (const sub of addedSubaccounts) {
+				await User.findByIdAndUpdate(sub._id, {
+					parentId: id,
+					parentName: data.name,
+				});
+			}
 
-		// Validar que el ID sea válido
-		if (!ObjectId.isValid(id)) {
-			return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+			// Actualizar el array de subcuentas
+			updateData.subaccounts = newSubaccounts.map(
+				(sub: { _id: string }) => sub._id
+			);
+		} else if (data.tipo === 'subcuenta') {
+			// Si es una subcuenta, actualizar parentId y parentName
+			updateData.parentId = data.parentId;
+			updateData.parentName = data.parentName;
+			updateData.subaccounts = undefined; // Las subcuentas no pueden tener subcuentas
 		}
 
-		// Preparar los datos para la base de datos
+		// Actualizar el sello
+		const updatedSello = await User.findByIdAndUpdate(id, updateData, {
+			new: true,
+			runValidators: true,
+		});
 
-		const dataToBBDD = {
-			...newData,
-			picture: file === null ? data.picture : picture_url,
-			external_id: apiRes.api || data.external_id,
-			parentId: data.parentId ? new ObjectId(data.parentId) : null,
-			parentName: data.parentName || null,
-			status: data.status,
-			assigned_artists: data.assigned_artists || [],
-			subaccounts: !data.isSubaccount ? [] : undefined,
-			tipo: data.isSubaccount ? 'subcuenta' : 'principal',
-			_id: new ObjectId(id),
-		};
-		console.log('dataToBBDD: ', dataToBBDD);
-		// Actualizar en la base de datos
-		const updateUser = await User.findOneAndUpdate(
-			{ _id: new ObjectId(id) },
-			dataToBBDD,
-			{ runValidators: true }
-		);
-		console.log('result: ', updateUser);
-		if (!updateUser) {
+		if (!updatedSello) {
 			return NextResponse.json(
-				{ error: 'Sello no encontrado' },
-				{ status: 404 }
+				{ error: 'Error al actualizar el sello' },
+				{ status: 500 }
 			);
 		}
 
-		return NextResponse.json({ success: true });
+		return NextResponse.json({
+			success: true,
+			data: updatedSello,
+		});
 	} catch (error) {
 		console.error('Error updating sello:', error);
 		return NextResponse.json(

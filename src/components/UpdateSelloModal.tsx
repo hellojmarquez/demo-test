@@ -1,6 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
+import {
+	X,
+	Save,
+	Image as ImageIcon,
+	XCircle,
+	Upload,
+	Plus,
+	Trash2,
+	Users,
+} from 'lucide-react';
 import { Sello } from '@/types/sello';
 
 interface UpdateSelloModalProps {
@@ -21,6 +30,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		assigned_artists: sello.assigned_artists || [],
 		tipo: sello.tipo || 'principal',
 		parentId: sello.parentId || null,
+		subaccounts: sello.subaccounts || [],
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
@@ -32,11 +42,18 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const [parentAccounts, setParentAccounts] = useState<
 		Array<{ _id: string; name: string }>
 	>([]);
+	const [availableSubaccounts, setAvailableSubaccounts] = useState<
+		Array<{ _id: string; name: string }>
+	>([]);
+	const [selectedSubaccount, setSelectedSubaccount] = useState<string>('');
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [removedSubaccounts, setRemovedSubaccounts] = useState<
+		Array<{ _id: string; name: string }>
+	>([]);
 
-	// Obtener la lista de cuentas principales
+	// Obtener la lista de cuentas principales y subcuentas disponibles
 	useEffect(() => {
-		const fetchParentAccounts = async () => {
+		const fetchAccounts = async () => {
 			try {
 				const response = await fetch('/api/admin/getAllUsers');
 				if (response.ok) {
@@ -49,14 +66,23 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 							name: user.name,
 						}));
 					setParentAccounts(mainAccounts);
+
+					// Filtrar subcuentas disponibles (que no estén asignadas a ningún sello)
+					const subaccounts = data.users
+						.filter((user: any) => user.tipo === 'subcuenta' && !user.parentId)
+						.map((user: any) => ({
+							_id: user._id,
+							name: user.name,
+						}));
+					setAvailableSubaccounts(subaccounts);
 				}
 			} catch (error) {
-				console.error('Error fetching parent accounts:', error);
+				console.error('Error fetching accounts:', error);
 			}
 		};
 
 		if (isOpen) {
-			fetchParentAccounts();
+			fetchAccounts();
 		}
 	}, [isOpen]);
 
@@ -100,6 +126,28 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				parentId: value,
 				parentName: selectedParent?.name || null,
 			});
+		} else if (name === 'tipo') {
+			// Cuando cambia el tipo de cuenta
+			if (value === 'subcuenta') {
+				// Si cambia a subcuenta, limpiar las subcuentas propias
+				setFormData(prev => ({
+					...prev,
+					tipo: 'subcuenta' as const,
+					subaccounts: [],
+					// Si ya tiene un parentId, mantenerlo
+					parentId: prev.parentId || null,
+					parentName: prev.parentName || null,
+				}));
+			} else {
+				// Si cambia a principal, limpiar parentId y parentName
+				setFormData(prev => ({
+					...prev,
+					tipo: 'principal' as const,
+					parentId: null,
+					parentName: null,
+					subaccounts: prev.subaccounts || [],
+				}));
+			}
 		} else {
 			setFormData({
 				...formData,
@@ -156,11 +204,137 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		}
 	};
 
+	const handleRemoveSubaccount = (subaccountId: string) => {
+		const subaccount = formData.subaccounts?.find(
+			sub => sub._id === subaccountId
+		);
+		if (!subaccount) return;
+
+		// Agregar la subcuenta a la lista de removidas
+		setRemovedSubaccounts(prev => [...prev, subaccount]);
+
+		// Actualizar el estado local
+		setFormData(prev => ({
+			...prev,
+			subaccounts:
+				prev.subaccounts?.filter(sub => sub._id !== subaccountId) || [],
+		}));
+
+		// Agregar la subcuenta de vuelta a las disponibles
+		setAvailableSubaccounts(prev => [...prev, subaccount]);
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
 
 		try {
+			// Si es una subcuenta y tiene un parentId (ya sea nuevo o cambiado)
+			if (formData.tipo === 'subcuenta' && formData.parentId) {
+				// Si tenía un parentId anterior y es diferente al nuevo, remover de la cuenta anterior
+				if (sello.parentId && sello.parentId !== formData.parentId) {
+					// Obtener la cuenta padre anterior
+					const oldParentResponse = await fetch(
+						`/api/admin/getSello/${sello.parentId}`
+					);
+					if (oldParentResponse.ok) {
+						const oldParentResult = await oldParentResponse.json();
+						if (oldParentResult.success && oldParentResult.data) {
+							const oldParentData = oldParentResult.data;
+							// Remover esta subcuenta de la lista de subcuentas de la cuenta anterior
+							const updatedSubaccounts =
+								oldParentData.subaccounts?.filter(
+									(sub: { _id: string }) => sub._id !== formData._id
+								) || [];
+
+							// Actualizar la cuenta padre anterior
+							await fetch(`/api/admin/updateSello/${sello.parentId}`, {
+								method: 'PUT',
+								headers: {
+									'Content-Type': 'application/json',
+								},
+								body: JSON.stringify({
+									...oldParentData,
+									subaccounts: updatedSubaccounts,
+								}),
+							});
+						}
+					}
+				}
+
+				// Obtener la nueva cuenta padre
+				const newParentResponse = await fetch(
+					`/api/admin/getSello/${formData.parentId}`
+				);
+				if (!newParentResponse.ok) {
+					throw new Error('Error al obtener la nueva cuenta padre');
+				}
+				const newParentResult = await newParentResponse.json();
+				if (!newParentResult.success || !newParentResult.data) {
+					throw new Error(
+						'Error al obtener los datos de la nueva cuenta padre'
+					);
+				}
+				const newParentData = newParentResult.data;
+
+				// Verificar si la subcuenta ya está en la lista de subcuentas
+				const subaccountExists = newParentData.subaccounts?.some(
+					(sub: { _id: string }) => sub._id === formData._id
+				);
+
+				// Si no existe, agregarla a la lista de subcuentas
+				if (!subaccountExists) {
+					const updateParentResponse = await fetch(
+						`/api/admin/updateSello/${formData.parentId}`,
+						{
+							method: 'PUT',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({
+								...newParentData,
+								subaccounts: [
+									...(newParentData.subaccounts || []),
+									{ _id: formData._id, name: formData.name },
+								],
+							}),
+						}
+					);
+
+					if (!updateParentResponse.ok) {
+						throw new Error('Error al actualizar la nueva cuenta padre');
+					}
+				}
+			}
+
+			// Primero actualizar las subcuentas removidas
+			for (const subaccount of removedSubaccounts) {
+				const response = await fetch(
+					`/api/admin/updateSello/${subaccount._id}`,
+					{
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							_id: subaccount._id,
+							parentId: null,
+							parentName: null,
+							tipo: 'subcuenta',
+							name: subaccount.name,
+							year: 0,
+							catalog_num: 0,
+							status: 'active',
+							assigned_artists: [],
+						}),
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error('Error al actualizar la subcuenta');
+				}
+			}
+
 			const formDataToSend = new FormData();
 
 			// Agregar el ID al FormData
@@ -169,13 +343,13 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			// Agregar los datos del formulario como JSON string
 			const dataToSend = {
 				...formData,
-				year: parseInt(formData.year.toString()),
-				catalog_num: parseInt(formData.catalog_num.toString()),
+				year: parseInt(formData.year.toString()) || 0,
+				catalog_num: parseInt(formData.catalog_num.toString()) || 0,
 				external_id: formData.external_id
 					? parseInt(formData.external_id.toString())
 					: undefined,
 				picture:
-					typeof formData.picture === 'string' ? formData.picture : undefined, // Mantener la imagen existente si no es un File
+					typeof formData.picture === 'string' ? formData.picture : undefined,
 			};
 			formDataToSend.append('data', JSON.stringify(dataToSend));
 
@@ -185,11 +359,33 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			}
 
 			await onSave(formDataToSend);
+			setRemovedSubaccounts([]); // Limpiar la lista de subcuentas removidas
 		} catch (error) {
 			console.error('Error saving sello:', error);
+			alert('Error al guardar los cambios. Por favor, intenta de nuevo.');
 		} finally {
 			setIsSubmitting(false);
 		}
+	};
+
+	const handleAddSubaccount = () => {
+		if (!selectedSubaccount) return;
+
+		const subaccount = availableSubaccounts.find(
+			sub => sub._id === selectedSubaccount
+		);
+		if (!subaccount) return;
+
+		setFormData(prev => ({
+			...prev,
+			subaccounts: [...(prev.subaccounts || []), subaccount],
+		}));
+
+		// Remover la subcuenta de las disponibles
+		setAvailableSubaccounts(prev =>
+			prev.filter(sub => sub._id !== selectedSubaccount)
+		);
+		setSelectedSubaccount('');
 	};
 
 	return (
@@ -416,6 +612,74 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 									</div>
 								</div>
 							</div>
+
+							{formData.tipo === 'principal' && (
+								<div className="mt-6 border-t border-gray-200 pt-6">
+									<h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+										<Users className="h-5 w-5 text-brand-light" />
+										Gestión de Subcuentas
+									</h3>
+
+									{/* Lista de subcuentas actuales */}
+									<div className="mb-4">
+										<h4 className="text-sm font-medium text-gray-700 mb-2">
+											Subcuentas Asignadas
+										</h4>
+										<div className="space-y-2">
+											{formData.subaccounts?.map(subaccount => (
+												<div
+													key={subaccount._id}
+													className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+												>
+													<span className="text-gray-700">
+														{subaccount.name}
+													</span>
+													<button
+														type="button"
+														onClick={() =>
+															handleRemoveSubaccount(subaccount._id)
+														}
+														className="p-1 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50"
+													>
+														<Trash2 className="h-4 w-4" />
+													</button>
+												</div>
+											))}
+											{(!formData.subaccounts ||
+												formData.subaccounts.length === 0) && (
+												<p className="text-sm text-gray-500 italic">
+													No hay subcuentas asignadas
+												</p>
+											)}
+										</div>
+									</div>
+
+									{/* Agregar nueva subcuenta */}
+									<div className="flex gap-2">
+										<select
+											value={selectedSubaccount}
+											onChange={e => setSelectedSubaccount(e.target.value)}
+											className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+										>
+											<option value="">Seleccionar subcuenta</option>
+											{availableSubaccounts.map(subaccount => (
+												<option key={subaccount._id} value={subaccount._id}>
+													{subaccount.name}
+												</option>
+											))}
+										</select>
+										<button
+											type="button"
+											onClick={handleAddSubaccount}
+											disabled={!selectedSubaccount}
+											className="px-3 py-2 bg-brand-light text-white rounded-md hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										>
+											<Plus className="h-4 w-4" />
+											Agregar
+										</button>
+									</div>
+								</div>
+							)}
 
 							<div className="flex justify-end space-x-3 mt-6">
 								<button

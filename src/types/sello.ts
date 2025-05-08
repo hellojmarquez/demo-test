@@ -1,9 +1,9 @@
 export interface Sello {
 	_id: string;
 	name: string;
-	company: string;
+	company?: string;
 	catalog_num: number;
-	primary_genre: string;
+	primary_genre?: string;
 	year: number;
 	contract_received: boolean;
 	information_accepted: boolean;
@@ -16,4 +16,5 @@ export interface Sello {
 	parentName?: string | null;
 	created_at?: string;
 	updatedAt?: string;
+	external_id?: number;
 }

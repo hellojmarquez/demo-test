@@ -41,11 +41,6 @@ export default function SellosPage() {
 				// Asegurarnos de que response.data sea un array
 				const sellosData = Array.isArray(response.data) ? response.data : [];
 
-				// Si la respuesta es un array, verificar cada sello
-				sellosData.forEach((sello: Sello, index: number) => {
-					console.log(`Sello ${index}:`, sello);
-					console.log(`Sello ${index} picture:`, sello.picture);
-				});
 				// Asegurarse de que cada sello tenga la estructura correcta
 				const sellosFormateados = sellosData.map((sello: Sello) => {
 					// Convertir year y catalog_num a números
@@ -80,28 +75,22 @@ export default function SellosPage() {
 		setExpandedSello(expandedSello === selloId ? null : selloId);
 	};
 
-	const handleEdit = async (sello: Sello) => {
+	const handleEdit = async (formData: FormData) => {
 		try {
-			// Asegurarse de que el objeto picture tenga el formato correcto
-			const selloToUpdate = {
-				...sello,
-				picture: sello.picture || undefined,
-			};
-			console.log(selloToUpdate);
-			const response = await fetch(`/api/admin/updateSello/${sello._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(selloToUpdate),
-			});
+			const response = await fetch(
+				`/api/admin/updateSello/${formData.get('_id')}`,
+				{
+					method: 'PUT',
+					body: formData,
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error('Failed to update sello');
 			}
 
 			const updatedSello = await response.json();
-			console.log('Sello actualizado recibido:', updatedSello);
+			console.log('Sello actualizado recibido');
 
 			// Actualizar el estado con el sello actualizado
 			setSellos(prevSellos =>
@@ -214,13 +203,9 @@ export default function SellosPage() {
 										key={`logo-${sello._id}`}
 										whileHover={{ scale: 1.05 }}
 										transition={{ duration: 0.2 }}
-										src={sello.picture}
+										src={sello.picture || '/suitcase.png'}
 										alt={sello.name}
 										className="w-20 h-20 object-cover rounded-lg shadow-sm"
-										onError={e => {
-											console.error('Error al cargar la imagen:', e);
-											console.error('Estructura del sello:', sello);
-										}}
 									/>
 								) : (
 									<div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-lg shadow-sm">

@@ -90,7 +90,6 @@ const Productos: React.FC = () => {
 				const data = await res.json();
 				if (data.success) {
 					setReleases(data.data as Release[]);
-					console.log(data.data);
 				}
 			} catch (error) {
 				console.error('Error fetching releases:', error);

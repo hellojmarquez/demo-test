@@ -7,7 +7,7 @@ interface UpdateSelloModalProps {
 	sello: Sello;
 	isOpen: boolean;
 	onClose: () => void;
-	onSave: (sello: Sello) => void;
+	onSave: (formData: FormData) => Promise<void>;
 }
 
 const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
@@ -24,7 +24,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
-		sello.picture ? `data:image/jpeg;base64,${sello.picture.base64}` : null
+		sello.picture || null
 	);
 	const [parentAccounts, setParentAccounts] = useState<
 		Array<{ _id: string; name: string }>
@@ -60,16 +60,11 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	// Actualizar la previsualización cuando cambia el sello seleccionado
 	useEffect(() => {
 		if (sello.picture) {
-			setImagePreview(`data:image/jpeg;base64,${sello.picture.base64}`);
+			setImagePreview(sello.picture);
 		} else {
 			setImagePreview(null);
 		}
 	}, [sello]);
-
-	useEffect(() => {
-		console.log('Sello recibido en modal:', sello);
-		console.log('Previsualización de imagen:', imagePreview);
-	}, [sello, imagePreview]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -78,13 +73,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	) => {
 		const { name, value, type } = e.target;
 
-		if (type === 'checkbox') {
-			const checkbox = e.target as HTMLInputElement;
-			setFormData({
-				...formData,
-				[name]: checkbox.checked,
-			});
-		} else if (name === 'year' || name === 'catalog_num') {
+		if (name === 'year' || name === 'catalog_num') {
 			// Solo permitir números
 			if (/^\d*$/.test(value)) {
 				setFormData({
@@ -113,19 +102,16 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
+			// Guardar el archivo directamente
+			setFormData(prev => ({
+				...prev,
+				picture: file,
+			}));
+
+			// Crear una URL para la vista previa
 			const reader = new FileReader();
 			reader.onloadend = () => {
-				const base64String = reader.result as string;
-				// Mantener el prefijo data:image/jpeg;base64, para la vista previa
-				setImagePreview(base64String);
-
-				// Para enviar a la API, usar solo la parte base64 sin el prefijo
-				const base64Data = base64String.split(',')[1];
-				setFormData({
-					...formData,
-					picture: { base64: base64Data },
-				});
-				console.log('Imagen procesada:', base64Data.substring(0, 50) + '...');
+				setImagePreview(reader.result as string);
 			};
 			reader.readAsDataURL(file);
 		}
@@ -161,35 +147,33 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		}
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-		// Solo permitir números y teclas de control
-		const allowedKeys = [
-			'Backspace',
-			'Delete',
-			'ArrowLeft',
-			'ArrowRight',
-			'Tab',
-			'Home',
-			'End',
-		];
-
-		if (!/^\d$/.test(e.key) && !allowedKeys.includes(e.key)) {
-			e.preventDefault();
-		}
-	};
-
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
 
 		try {
-			console.log('Enviando datos:', {
+			const formDataToSend = new FormData();
+
+			// Agregar el ID al FormData
+			formDataToSend.append('_id', formData._id);
+
+			// Agregar los datos del formulario como JSON string
+			const dataToSend = {
 				...formData,
-				picture: formData.picture
-					? formData.picture.base64.substring(0, 50) + '...'
-					: 'No hay imagen',
-			});
-			await onSave(formData);
+				year: parseInt(formData.year.toString()),
+				catalog_num: parseInt(formData.catalog_num.toString()),
+				external_id: formData.external_id
+					? parseInt(formData.external_id.toString())
+					: undefined,
+			};
+			formDataToSend.append('data', JSON.stringify(dataToSend));
+
+			// Si hay una imagen, agregarla como File
+			if (formData.picture instanceof File) {
+				formDataToSend.append('picture', formData.picture);
+			}
+
+			await onSave(formDataToSend);
 		} catch (error) {
 			console.error('Error saving sello:', error);
 		} finally {
@@ -393,57 +377,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 								</div>
 
 								<div className="space-y-4">
-									<div className="flex items-center">
-										<input
-											type="checkbox"
-											id="contract_received"
-											name="contract_received"
-											checked={formData.contract_received}
-											onChange={handleChange}
-											className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
-										/>
-										<label
-											htmlFor="contract_received"
-											className="ml-2 block text-sm text-gray-700"
-										>
-											Contrato Recibido
-										</label>
-									</div>
-
-									<div className="flex items-center">
-										<input
-											type="checkbox"
-											id="information_accepted"
-											name="information_accepted"
-											checked={formData.information_accepted}
-											onChange={handleChange}
-											className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
-										/>
-										<label
-											htmlFor="information_accepted"
-											className="ml-2 block text-sm text-gray-700"
-										>
-											Información Aceptada
-										</label>
-									</div>
-
-									<div className="flex items-center">
-										<input
-											type="checkbox"
-											id="label_approved"
-											name="label_approved"
-											checked={formData.label_approved}
-											onChange={handleChange}
-											className="h-4 w-4 text-brand-light focus:ring-brand-light border-gray-300 rounded"
-										/>
-										<label
-											htmlFor="label_approved"
-											className="ml-2 block text-sm text-gray-700"
-										>
-											Label Aprobado
-										</label>
-									</div>
-
 									<div>
 										<label
 											htmlFor="assigned_artists"

@@ -125,7 +125,7 @@ export default function SellosPage() {
 		setIsDeleting(sello._id);
 
 		try {
-			const response = await fetch(`/api/admin/deleteSello/${sello._id}`, {
+			const response = await fetch(`/api/admin/user/${sello._id}`, {
 				method: 'DELETE',
 			});
 

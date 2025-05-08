@@ -28,7 +28,6 @@ interface User {
 	assigned_artists?: string[];
 	createdAt?: string;
 	updatedAt?: string;
-	created_at?: string;
 	external_id?: string | number;
 	type: string;
 	[key: string]: any;
@@ -112,7 +111,7 @@ export default function UsuariosPage() {
 				information_accepted: user.information_accepted || false,
 				label_approved: user.label_approved || false,
 				assigned_artists: user.assigned_artists || [],
-				created_at: user.createdAt || new Date().toISOString(),
+				createdAt: user.createdAt || new Date().toISOString(),
 				updatedAt: user.updatedAt || new Date().toISOString(),
 			};
 			// Usar any para evitar problemas de tipo

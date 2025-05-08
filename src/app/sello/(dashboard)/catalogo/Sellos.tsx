@@ -6,14 +6,10 @@ import {
 	Calendar,
 	Tag,
 	CheckCircle,
-	XCircle,
 	Hash,
 	Pencil,
 	ChevronDown,
 	ChevronUp,
-	FileText,
-	ClipboardCheck,
-	Award,
 	Users,
 	Image as ImageIcon,
 	Clock,
@@ -36,7 +32,7 @@ export default function SellosPage() {
 			try {
 				const res = await fetch('/api/admin/getAllSellos');
 				const response = await res.json();
-				console.log('Respuesta completa de la API:', response);
+				console.log('sellos completa de la API:', response);
 
 				// Asegurarnos de que response.data sea un array
 				const sellosData = Array.isArray(response.data) ? response.data : [];
@@ -316,61 +312,10 @@ export default function SellosPage() {
 										<div className="space-y-3">
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<FileText className="h-4 w-4 text-brand-light" />{' '}
-													Contrato recibido:
-												</span>
-												<span className="text-gray-600">
-													{sello.contract_received ? (
-														<span className="flex items-center gap-1 text-green-600">
-															<CheckCircle className="h-4 w-4" /> Sí
-														</span>
-													) : (
-														<span className="flex items-center gap-1 text-red-500">
-															<XCircle className="h-4 w-4" /> No
-														</span>
-													)}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<ClipboardCheck className="h-4 w-4 text-brand-light" />{' '}
-													Información aceptada:
-												</span>
-												<span className="text-gray-600">
-													{sello.information_accepted ? (
-														<span className="flex items-center gap-1 text-green-600">
-															<CheckCircle className="h-4 w-4" /> Sí
-														</span>
-													) : (
-														<span className="flex items-center gap-1 text-red-500">
-															<XCircle className="h-4 w-4" /> No
-														</span>
-													)}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Award className="h-4 w-4 text-brand-light" /> Label
-													aprobado:
-												</span>
-												<span className="text-gray-600">
-													{sello.label_approved ? (
-														<span className="flex items-center gap-1 text-green-600">
-															<CheckCircle className="h-4 w-4" /> Sí
-														</span>
-													) : (
-														<span className="flex items-center gap-1 text-red-500">
-															<XCircle className="h-4 w-4" /> No
-														</span>
-													)}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Clock className="h-4 w-4 text-brand-light" /> Creado:
 												</span>
 												<span className="text-gray-600">
-													{formatDate(sello.created_at || '')}
+													{formatDate(sello.createdAt || '')}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

@@ -45,7 +45,7 @@ export default function CrearUsuarioPage() {
 							information_accepted: data.user.information_accepted || false,
 							label_approved: data.user.label_approved || false,
 							assigned_artists: data.user.assigned_artists || [],
-							created_at: data.user.createdAt || new Date().toISOString(),
+							createdAt: data.user.createdAt || new Date().toISOString(),
 							updatedAt: data.user.updatedAt || new Date().toISOString(),
 						};
 						setSelloData(adaptedSelloData);

@@ -14,7 +14,7 @@ export interface Sello {
 	tipo: 'principal' | 'subcuenta';
 	parentId?: string | null;
 	parentName?: string | null;
-	created_at?: string;
+	createdAt?: string;
 	updatedAt?: string;
 	external_id?: number;
 }

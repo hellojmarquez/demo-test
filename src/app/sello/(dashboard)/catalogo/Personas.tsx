@@ -469,7 +469,7 @@ const Personas = () => {
 							information_accepted: selectedSello.information_accepted || false,
 							label_approved: selectedSello.label_approved || false,
 							assigned_artists: selectedSello.assigned_artists || [],
-							created_at: new Date().toISOString(),
+							createdAt: new Date().toISOString(),
 							updatedAt: new Date().toISOString(),
 							tipo: 'principal',
 							parentId: null,

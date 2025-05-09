@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@eslint/config-array": "^0.17.0",
 		"@eslint/object-schema": "^2.1.4",
+		"@headlessui/react": "^2.2.2",
 		"@hookform/resolvers": "^3.9.0",
 		"@phosphor-icons/react": "^2.1.6",
 		"@types/cleave.js": "^1.4.12",
@@ -44,6 +45,7 @@
 		"react-hook-form": "^7.53.0",
 		"react-hot-toast": "^2.4.1",
 		"react-input-mask": "^2.0.4",
+		"react-select": "^5.10.1",
 		"react-time-picker": "^7.0.0",
 		"rimraf": "^5.0.7",
 		"yup": "^1.4.0"

@@ -95,6 +95,9 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 
 	if (!isOpen) return null;
 
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 			<div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -164,7 +167,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 								name="name"
 								value={formData.name}
 								onChange={handleChange}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+								className={inputStyles}
 								required
 							/>
 						</div>
@@ -182,7 +185,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 								name="email"
 								value={formData.email}
 								onChange={handleChange}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+								className={inputStyles}
 								required
 							/>
 						</div>
@@ -200,77 +203,79 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 								name="password"
 								value={formData.password || ''}
 								onChange={handleChange}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+								className={inputStyles}
 								placeholder="Dejar en blanco para mantener la contraseña actual"
 							/>
 						</div>
 
-						<div>
-							<label
-								htmlFor="amazon_music_identifier"
-								className="block text-sm font-medium text-gray-700 mb-1"
-							>
-								Identificador Amazon Music
-							</label>
-							<input
-								type="text"
-								id="amazon_music_identifier"
-								name="amazon_music_identifier"
-								value={formData.amazon_music_identifier || ''}
-								onChange={handleChange}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
-							/>
-						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label
+									htmlFor="amazon_music_identifier"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									Identificador Amazon Music
+								</label>
+								<input
+									type="text"
+									id="amazon_music_identifier"
+									name="amazon_music_identifier"
+									value={formData.amazon_music_identifier || ''}
+									onChange={handleChange}
+									className={inputStyles}
+								/>
+							</div>
 
-						<div>
-							<label
-								htmlFor="apple_identifier"
-								className="block text-sm font-medium text-gray-700 mb-1"
-							>
-								Identificador Apple
-							</label>
-							<input
-								type="text"
-								id="apple_identifier"
-								name="apple_identifier"
-								value={formData.apple_identifier || ''}
-								onChange={handleChange}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
-							/>
-						</div>
+							<div>
+								<label
+									htmlFor="apple_identifier"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									Identificador Apple
+								</label>
+								<input
+									type="text"
+									id="apple_identifier"
+									name="apple_identifier"
+									value={formData.apple_identifier || ''}
+									onChange={handleChange}
+									className={inputStyles}
+								/>
+							</div>
 
-						<div>
-							<label
-								htmlFor="deezer_identifier"
-								className="block text-sm font-medium text-gray-700 mb-1"
-							>
-								Identificador Deezer
-							</label>
-							<input
-								type="text"
-								id="deezer_identifier"
-								name="deezer_identifier"
-								value={formData.deezer_identifier || ''}
-								onChange={handleChange}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
-							/>
-						</div>
+							<div>
+								<label
+									htmlFor="deezer_identifier"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									Identificador Deezer
+								</label>
+								<input
+									type="text"
+									id="deezer_identifier"
+									name="deezer_identifier"
+									value={formData.deezer_identifier || ''}
+									onChange={handleChange}
+									className={inputStyles}
+								/>
+							</div>
 
-						<div>
-							<label
-								htmlFor="spotify_identifier"
-								className="block text-sm font-medium text-gray-700 mb-1"
-							>
-								Identificador Spotify
-							</label>
-							<input
-								type="text"
-								id="spotify_identifier"
-								name="spotify_identifier"
-								value={formData.spotify_identifier || ''}
-								onChange={handleChange}
-								className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
-							/>
+							<div>
+								<label
+									htmlFor="spotify_identifier"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									Identificador Spotify
+								</label>
+								<input
+									type="text"
+									id="spotify_identifier"
+									name="spotify_identifier"
+									value={formData.spotify_identifier || ''}
+									onChange={handleChange}
+									className={inputStyles}
+								/>
+							</div>
 						</div>
 					</div>
 

@@ -17,6 +17,9 @@ export default function CreateContributorModal({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!name.trim()) return;
@@ -92,10 +95,10 @@ export default function CreateContributorModal({
 								<input
 									type="text"
 									id="name"
+									name="name"
 									value={name}
 									onChange={e => setName(e.target.value)}
-									className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-									placeholder="Nombre del contribuidor"
+									className={inputStyles}
 									required
 								/>
 							</div>

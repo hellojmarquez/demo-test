@@ -9,8 +9,46 @@ import { CreatePublisherModal } from '@/components/CreatePublisherModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, X, Save, ChevronDown } from 'lucide-react';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
+import Select, { SingleValue } from 'react-select';
+
+interface AccountOption {
+	value: string;
+	label: string;
+}
+
+// Styles for react-select components
+const reactSelectStyles = {
+	control: (base: any) => ({
+		...base,
+		border: 'none',
+		borderBottom: '2px solid #E5E7EB',
+		borderRadius: '0',
+		boxShadow: 'none',
+		'&:hover': {
+			borderBottom: '2px solid #4B5563',
+		},
+	}),
+	option: (base: any, state: any) => ({
+		...base,
+		backgroundColor: state.isSelected
+			? '#4B5563' // brand-dark color
+			: state.isFocused
+			? '#F3F4F6'
+			: 'white',
+		color: state.isSelected ? 'white' : '#1F2937',
+		'&:hover': {
+			backgroundColor: state.isSelected
+				? '#4B5563' // brand-dark color
+				: '#F3F4F6',
+		},
+	}),
+	menu: (base: any) => ({
+		...base,
+		zIndex: 9999,
+	}),
+};
 
 export default function CrearUsuarioPage() {
 	const [userType, setUserType] = useState<string>('');
@@ -20,6 +58,18 @@ export default function CrearUsuarioPage() {
 	const [currentUser, setCurrentUser] = useState<any>(null);
 	const [selloData, setSelloData] = useState<any>(null);
 	const router = useRouter();
+	const [formData, setFormData] = useState({
+		name: '',
+		email: '',
+		password: '',
+		tipo: 'principal',
+		parentId: '',
+		parentName: '',
+	});
+
+	const [parentAccounts, setParentAccounts] = useState<
+		Array<{ _id: string; name: string }>
+	>([]);
 
 	// Obtener el rol del usuario actual
 	useEffect(() => {
@@ -59,6 +109,65 @@ export default function CrearUsuarioPage() {
 
 		fetchUserRole();
 	}, []);
+
+	const handleChange = (
+		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+	) => {
+		const { name, value } = e.target;
+		setFormData(prev => ({
+			...prev,
+			[name]: value,
+		}));
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		try {
+			const response = await fetch('/api/admin/createUser', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(formData),
+			});
+
+			if (response.ok) {
+				toast.success('Usuario creado exitosamente');
+				router.push('/sello/dashboard');
+			} else {
+				const data = await response.json();
+				toast.error(data.message || 'Error al crear el usuario');
+			}
+		} catch (error) {
+			console.error('Error creating user:', error);
+			toast.error('Error al crear el usuario');
+		}
+	};
+
+	// Fetch parent accounts when tipo changes to 'subcuenta'
+	useEffect(() => {
+		const fetchParentAccounts = async () => {
+			if (formData.tipo === 'subcuenta') {
+				try {
+					const response = await fetch('/api/admin/getAllUsers');
+					if (response.ok) {
+						const data = await response.json();
+						const mainAccounts = data.users
+							.filter((user: any) => user.tipo === 'principal')
+							.map((user: any) => ({
+								_id: user._id,
+								name: user.name,
+							}));
+						setParentAccounts(mainAccounts);
+					}
+				} catch (error) {
+					console.error('Error fetching parent accounts:', error);
+				}
+			}
+		};
+
+		fetchParentAccounts();
+	}, [formData.tipo]);
 
 	const renderForm = () => {
 		// Si el usuario es un sello, no mostrar el formulario de creación
@@ -297,18 +406,42 @@ export default function CrearUsuarioPage() {
 								<label className="block text-sm font-medium text-gray-700 mb-2">
 									Tipo de Usuario
 								</label>
-								<select
-									value={userType}
-									onChange={e => setUserType(e.target.value)}
-									className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500"
-								>
-									<option value="">Seleccionar tipo de usuario</option>
-									<option value="admin">Administrador</option>
-									<option value="sello">Sello</option>
-									<option value="artista">Artista</option>
-									<option value="contribuidor">Contribuidor</option>
-									<option value="publisher">Publisher</option>
-								</select>
+								<Select<AccountOption>
+									value={
+										userType
+											? {
+													value: userType,
+													label:
+														userType === 'admin'
+															? 'Administrador'
+															: userType === 'sello'
+															? 'Sello'
+															: userType === 'artista'
+															? 'Artista'
+															: userType === 'contribuidor'
+															? 'Contribuidor'
+															: userType === 'publisher'
+															? 'Publisher'
+															: '',
+											  }
+											: null
+									}
+									onChange={(selectedOption: SingleValue<AccountOption>) => {
+										setUserType(selectedOption?.value || '');
+									}}
+									options={[
+										{ value: 'admin', label: 'Administrador' },
+										{ value: 'sello', label: 'Sello' },
+										{ value: 'artista', label: 'Artista' },
+										{ value: 'contribuidor', label: 'Contribuidor' },
+										{ value: 'publisher', label: 'Publisher' },
+									]}
+									placeholder="Seleccionar tipo de usuario"
+									isClearable
+									className="react-select-container"
+									classNamePrefix="react-select"
+									styles={reactSelectStyles}
+								/>
 							</div>
 						</div>
 					</div>

@@ -13,6 +13,7 @@ import {
 	Users,
 	Image as ImageIcon,
 	Clock,
+	UserPlus,
 } from 'lucide-react';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { Sello } from '@/types/sello';
@@ -174,7 +175,7 @@ export default function SellosPage() {
 					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
 				>
 					<CheckCircle size={18} />
-					<span>Sello eliminado exitosamente</span>
+					<span>Operación completada exitosamente</span>
 				</motion.div>
 			)}
 

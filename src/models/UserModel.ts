@@ -105,6 +105,20 @@ const UserSchema = new mongoose.Schema({
 		type: Number,
 		default: null,
 	},
+	artistLimit: {
+		type: Number,
+		default: function (this: { role: string }) {
+			return this.role === 'sello' ? 3 : undefined;
+		},
+	},
+	hasExtendedLimit: {
+		type: Boolean,
+		default: false,
+	},
+	limitExpirationDate: {
+		type: Date,
+		default: null,
+	},
 });
 
 const User = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

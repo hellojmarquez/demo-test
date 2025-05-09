@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
+import Select from 'react-select';
 
 interface CreateArtistModalProps {
 	isOpen: boolean;
@@ -19,6 +20,11 @@ interface CreateArtistModalProps {
 		isSubaccount?: boolean;
 		parentUserId?: string;
 	}) => Promise<void>;
+}
+
+interface ParentOption {
+	value: string;
+	label: string;
 }
 
 function CreateArtistModal({
@@ -45,6 +51,36 @@ function CreateArtistModal({
 	const [availableParents, setAvailableParents] = useState<
 		Array<{ _id: string; name: string }>
 	>([]);
+
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+
+	const reactSelectStyles = {
+		control: (base: any) => ({
+			...base,
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			backgroundColor: 'transparent',
+			'&:hover': {
+				borderBottom: '2px solid #4B5563',
+			},
+		}),
+		option: (base: any, state: { isSelected: boolean }) => ({
+			...base,
+			backgroundColor: state.isSelected ? '#4B5563' : 'white',
+			color: state.isSelected ? 'white' : '#1F2937',
+			'&:hover': {
+				backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+			},
+		}),
+		menu: (base: any) => ({
+			...base,
+			boxShadow: 'none',
+			border: '1px solid #E5E7EB',
+		}),
+	};
 
 	useEffect(() => {
 		const fetchAvailableParents = async () => {
@@ -279,7 +315,7 @@ function CreateArtistModal({
 												name="name"
 												value={formData.name}
 												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 												required
 											/>
 										</div>
@@ -297,7 +333,7 @@ function CreateArtistModal({
 												name="email"
 												value={formData.email}
 												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 												required
 											/>
 										</div>
@@ -316,7 +352,7 @@ function CreateArtistModal({
 											name="password"
 											value={formData.password}
 											onChange={handleChange}
-											className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+											className={inputStyles}
 											required
 										/>
 									</div>
@@ -335,7 +371,7 @@ function CreateArtistModal({
 												name="amazon_music_identifier"
 												value={formData.amazon_music_identifier}
 												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 											/>
 										</div>
 
@@ -352,7 +388,7 @@ function CreateArtistModal({
 												name="apple_identifier"
 												value={formData.apple_identifier}
 												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 											/>
 										</div>
 									</div>
@@ -371,7 +407,7 @@ function CreateArtistModal({
 												name="deezer_identifier"
 												value={formData.deezer_identifier}
 												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 											/>
 										</div>
 
@@ -388,7 +424,7 @@ function CreateArtistModal({
 												name="spotify_identifier"
 												value={formData.spotify_identifier}
 												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 											/>
 										</div>
 									</div>
@@ -418,21 +454,37 @@ function CreateArtistModal({
 											>
 												Usuario Padre
 											</label>
-											<select
+											<Select
 												id="parentUserId"
 												name="parentUserId"
-												value={formData.parentUserId}
-												onChange={handleChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												value={
+													formData.parentUserId
+														? {
+																value: formData.parentUserId,
+																label:
+																	availableParents.find(
+																		p => p._id === formData.parentUserId
+																	)?.name || '',
+														  }
+														: null
+												}
+												onChange={(selectedOption: ParentOption | null) => {
+													handleChange({
+														target: {
+															name: 'parentUserId',
+															value: selectedOption?.value || '',
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}}
+												options={availableParents.map(parent => ({
+													value: parent._id,
+													label: parent.name,
+												}))}
+												placeholder="Seleccionar usuario padre"
+												styles={reactSelectStyles}
+												isClearable
 												required
-											>
-												<option value="">Seleccionar usuario padre</option>
-												{availableParents.map(parent => (
-													<option key={parent._id} value={parent._id}>
-														{parent.name}
-													</option>
-												))}
-											</select>
+											/>
 										</div>
 									)}
 								</div>

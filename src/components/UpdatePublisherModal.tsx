@@ -25,6 +25,9 @@ export function UpdatePublisherModal({
 	const [name, setName] = useState(publisher.name);
 	const [isLoading, setIsLoading] = useState(false);
 
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+
 	// Actualizar el nombre cuando cambia el publisher
 	useEffect(() => {
 		setName(publisher.name);
@@ -107,13 +110,13 @@ export function UpdatePublisherModal({
 										Nombre
 									</label>
 									<input
-										id="name"
 										type="text"
+										id="name"
+										name="name"
 										value={name}
 										onChange={e => setName(e.target.value)}
-										placeholder="Nombre del publisher"
+										className={inputStyles}
 										required
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
 									/>
 								</div>
 							</div>

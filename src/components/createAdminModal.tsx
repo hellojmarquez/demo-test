@@ -72,6 +72,9 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 		}
 	};
 
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+
 	return (
 		<AnimatePresence>
 			{isOpen && (
@@ -158,7 +161,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 										name="name"
 										value={formData.name}
 										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+										className={inputStyles}
 										required
 									/>
 								</div>
@@ -176,7 +179,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 										name="email"
 										value={formData.email}
 										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+										className={inputStyles}
 										required
 									/>
 								</div>
@@ -194,7 +197,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 										name="password"
 										value={formData.password}
 										onChange={handleChange}
-										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+										className={inputStyles}
 										required
 									/>
 								</div>

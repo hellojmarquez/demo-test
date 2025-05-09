@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
+import Select from 'react-select';
 
 interface CreateSelloModalProps {
 	isOpen: boolean;
@@ -18,6 +19,21 @@ interface CreateSelloModalProps {
 		isSubaccount?: boolean;
 		parentUserId?: string;
 	}) => Promise<void>;
+}
+
+interface GenreOption {
+	value: string;
+	label: string;
+}
+
+interface YearOption {
+	value: string;
+	label: string;
+}
+
+interface ParentOption {
+	value: string;
+	label: string;
 }
 
 function CreateSelloModal({
@@ -46,6 +62,36 @@ function CreateSelloModal({
 	const [genres, setGenres] = useState<Array<{ _id: string; name: string }>>(
 		[]
 	);
+
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+
+	const reactSelectStyles = {
+		control: (base: any) => ({
+			...base,
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			backgroundColor: 'transparent',
+			'&:hover': {
+				borderBottom: '2px solid #4B5563',
+			},
+		}),
+		option: (base: any, state: { isSelected: boolean }) => ({
+			...base,
+			backgroundColor: state.isSelected ? '#4B5563' : 'white',
+			color: state.isSelected ? 'white' : '#1F2937',
+			'&:hover': {
+				backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+			},
+		}),
+		menu: (base: any) => ({
+			...base,
+			boxShadow: 'none',
+			border: '1px solid #E5E7EB',
+		}),
+	};
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -294,7 +340,7 @@ function CreateSelloModal({
 												htmlFor="name"
 												className="block text-sm font-medium text-gray-700 mb-1"
 											>
-												Nombre del Sello
+												Nombre
 											</label>
 											<input
 												type="text"
@@ -302,7 +348,7 @@ function CreateSelloModal({
 												name="name"
 												value={formData.name}
 												onChange={handleInputChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 												required
 											/>
 										</div>
@@ -320,7 +366,7 @@ function CreateSelloModal({
 												name="email"
 												value={formData.email}
 												onChange={handleInputChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												className={inputStyles}
 												required
 											/>
 										</div>
@@ -339,7 +385,7 @@ function CreateSelloModal({
 											name="password"
 											value={formData.password}
 											onChange={handleInputChange}
-											className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+											className={inputStyles}
 											required
 										/>
 									</div>
@@ -352,58 +398,91 @@ function CreateSelloModal({
 											>
 												Género Principal
 											</label>
-											<select
+											<Select
 												id="primary_genre"
 												name="primary_genre"
-												value={formData.primary_genre}
-												onChange={handleInputChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												value={
+													formData.primary_genre
+														? {
+																value: formData.primary_genre,
+																label: formData.primary_genre,
+														  }
+														: null
+												}
+												onChange={(selectedOption: GenreOption | null) => {
+													handleInputChange({
+														target: {
+															name: 'primary_genre',
+															value: selectedOption?.value || '',
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}}
+												options={genres.map(genre => ({
+													value: genre.name,
+													label: genre.name,
+												}))}
+												placeholder="Seleccionar género"
+												styles={reactSelectStyles}
+												isClearable
 												required
-											>
-												<option value="">Seleccionar género</option>
-												{genres.map(genre => (
-													<option key={genre._id} value={genre.name}>
-														{genre.name}
-													</option>
-												))}
-											</select>
+											/>
 										</div>
 
 										<div>
-											<label className="block text-sm font-medium text-gray-700 mb-1">
-												Año de Fundación
-											</label>
-											<select
-												name="year"
-												value={formData.year}
-												onChange={handleInputChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
-												required
+											<label
+												htmlFor="year"
+												className="block text-sm font-medium text-gray-700 mb-1"
 											>
-												<option value="">Seleccionar año</option>
-												{Array.from({ length: 125 }, (_, i) => {
-													const year = new Date().getFullYear() - i;
-													return (
-														<option key={year} value={year}>
-															{year}
-														</option>
-													);
-												})}
-											</select>
+												Año
+											</label>
+											<Select
+												id="year"
+												name="year"
+												value={
+													formData.year
+														? { value: formData.year, label: formData.year }
+														: null
+												}
+												onChange={(selectedOption: YearOption | null) => {
+													handleInputChange({
+														target: {
+															name: 'year',
+															value: selectedOption?.value || '',
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}}
+												options={Array.from(
+													{ length: new Date().getFullYear() - 1899 },
+													(_, i) => {
+														const year = new Date().getFullYear() - i;
+														return {
+															value: year.toString(),
+															label: year.toString(),
+														};
+													}
+												)}
+												placeholder="Seleccionar año"
+												styles={reactSelectStyles}
+												isClearable
+												required
+											/>
 										</div>
 									</div>
 
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-1">
-											Número de catálogo
+										<label
+											htmlFor="catalog_num"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
+											Número de Catálogo
 										</label>
 										<input
 											type="text"
+											id="catalog_num"
 											name="catalog_num"
 											value={formData.catalog_num}
 											onChange={handleInputChange}
-											onPaste={e => e.preventDefault()}
-											className="w-full border border-gray-300 p-2 rounded-lg"
+											className={inputStyles}
 											required
 										/>
 									</div>
@@ -433,21 +512,37 @@ function CreateSelloModal({
 											>
 												Usuario Padre
 											</label>
-											<select
+											<Select
 												id="parentUserId"
 												name="parentUserId"
-												value={formData.parentUserId}
-												onChange={handleInputChange}
-												className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent"
+												value={
+													formData.parentUserId
+														? {
+																value: formData.parentUserId,
+																label:
+																	availableParents.find(
+																		p => p._id === formData.parentUserId
+																	)?.name || '',
+														  }
+														: null
+												}
+												onChange={(selectedOption: ParentOption | null) => {
+													handleInputChange({
+														target: {
+															name: 'parentUserId',
+															value: selectedOption?.value || '',
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}}
+												options={availableParents.map(parent => ({
+													value: parent._id,
+													label: `${parent.name} (${parent.role})`,
+												}))}
+												placeholder="Seleccionar usuario padre"
+												styles={reactSelectStyles}
+												isClearable
 												required
-											>
-												<option value="">Seleccionar usuario padre</option>
-												{availableParents.map(parent => (
-													<option key={parent._id} value={parent._id}>
-														{parent.name} ({parent.role})
-													</option>
-												))}
-											</select>
+											/>
 										</div>
 									)}
 								</div>

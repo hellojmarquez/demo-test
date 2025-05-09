@@ -4,6 +4,7 @@ import React, { useState, useEffect, useActionState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Save, Upload, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Select, { SingleValue } from 'react-select';
 
 interface Genre {
 	id: number;
@@ -119,6 +120,42 @@ const CreateReleasePage = () => {
 		territory: 'worldwide',
 	});
 	const [artists, setArtists] = useState<Artist[]>([]);
+
+	// Add the common input styles
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+	const selectStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
+
+	// Add the react-select styles
+	const reactSelectStyles = {
+		control: (base: any) => ({
+			...base,
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			'&:hover': {
+				borderBottom: '2px solid #4B5563',
+			},
+		}),
+		option: (base: any, state: any) => ({
+			...base,
+			backgroundColor: state.isSelected
+				? '#4B5563'
+				: state.isFocused
+				? '#F3F4F6'
+				: 'white',
+			color: state.isSelected ? 'white' : '#1F2937',
+			'&:hover': {
+				backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+			},
+		}),
+		menu: (base: any) => ({
+			...base,
+			zIndex: 9999,
+		}),
+	};
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -379,6 +416,15 @@ const CreateReleasePage = () => {
 		});
 	};
 
+	const currentYear = new Date().getFullYear();
+	const years = Array.from(
+		{ length: currentYear - 1899 },
+		(_, i) => currentYear - i
+	).map(year => ({
+		value: year.toString(),
+		label: year.toString(),
+	}));
+
 	return (
 		<div className="min-h-screen w-full">
 			<div className="mx-auto px-4 shadow-lg">
@@ -408,7 +454,7 @@ const CreateReleasePage = () => {
 						<form onSubmit={handleSubmit} className="space-y-6">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Nombre
 									</label>
 									<input
@@ -416,7 +462,8 @@ const CreateReleasePage = () => {
 										name="name"
 										value={formData.name}
 										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className={inputStyles}
+										required
 									/>
 								</div>
 								<div className="flex items-center gap-4">
@@ -455,215 +502,310 @@ const CreateReleasePage = () => {
 									</div>
 								</div>
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Label
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Sello
 									</label>
-									<select
-										name="label"
-										value={formData.label}
-										onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-											const selectedSello = selloData.find(
-												s => s.external_id === parseInt(e.target.value)
-											);
-											setFormData(prev => ({
-												...prev,
-												label: parseInt(e.target.value),
-												label_name: selectedSello?.name || '',
-											}));
+									<Select
+										value={
+											formData.label
+												? {
+														value: formData.label,
+														label:
+															selloData.find(
+																s => s.external_id === formData.label
+															)?.name || '',
+												  }
+												: null
+										}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: number;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'label',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
 										}}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option value="">Seleccionar Label</option>
-										{selloData?.map(sello => (
-											<option
-												key={`sello-${sello.external_id}`}
-												value={sello.external_id}
-											>
-												{sello.name}
-											</option>
-										))}
-									</select>
+										options={selloData.map(sello => ({
+											value: sello.external_id,
+											label: sello.name,
+										}))}
+										placeholder="Seleccionar sello"
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Tipo
 									</label>
-									<select
-										name="kind"
-										value={formData.kind}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option value="single">Single</option>
-										<option value="album">Álbum</option>
-										<option value="ep">EP</option>
-									</select>
+									<Select
+										value={{
+											value: formData.kind,
+											label:
+												formData.kind === 'single'
+													? 'Single'
+													: formData.kind === 'ep'
+													? 'EP'
+													: 'Album',
+										}}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'kind',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={[
+											{ value: 'single', label: 'Single' },
+											{ value: 'ep', label: 'EP' },
+											{ value: 'album', label: 'Album' },
+										]}
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Idioma
 									</label>
-									<select
-										name="language"
-										value={formData.language}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option value="ES">Español</option>
-										<option value="EN">English</option>
-									</select>
+									<Select
+										value={{
+											value: formData.language,
+											label: formData.language === 'ES' ? 'Español' : 'English',
+										}}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'language',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={[
+											{ value: 'ES', label: 'Español' },
+											{ value: 'EN', label: 'English' },
+										]}
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Versión del Release
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Versión del Lanzamiento
 									</label>
 									<input
 										type="text"
 										name="release_version"
 										value={formData.release_version}
 										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className={inputStyles}
+										required
 									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Publisher
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Editor
 									</label>
 									<input
 										type="text"
 										name="publisher"
 										value={formData.publisher}
 										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className={inputStyles}
+										required
 									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Año del Publisher
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Año del Editor
 									</label>
-									<select
-										name="publisher_year"
-										value={formData.publisher_year}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option value="">Seleccionar año</option>
-										{Array.from(
-											{ length: new Date().getFullYear() - 1899 },
-											(_, i) => (
-												<option
-													key={`publisher-year-${1900 + i}`}
-													value={1900 + i}
-												>
-													{1900 + i}
-												</option>
-											)
-										)}
-									</select>
+									<Select
+										value={{
+											value: formData.publisher_year,
+											label: formData.publisher_year,
+										}}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'publisher_year',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={years}
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Titular del Copyright
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Titular de los Derechos
 									</label>
 									<input
 										type="text"
 										name="copyright_holder"
 										value={formData.copyright_holder}
 										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className={inputStyles}
+										required
 									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
-										Año del Copyright
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Año del Titular de los Derechos
 									</label>
-									<select
-										name="copyright_holder_year"
-										value={formData.copyright_holder_year}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option value="">Seleccionar año</option>
-										{Array.from(
-											{ length: new Date().getFullYear() - 1899 },
-											(_, i) => (
-												<option
-													key={`copyright-year-${1900 + i}`}
-													value={1900 + i}
-												>
-													{1900 + i}
-												</option>
-											)
-										)}
-									</select>
+									<Select
+										value={{
+											value: formData.copyright_holder_year,
+											label: formData.copyright_holder_year,
+										}}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'copyright_holder_year',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={years}
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Género
 									</label>
-									<select
-										name="genre"
-										value={formData.genre?.id || ''}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option key="genre-empty" value="">
-											Seleccionar género
-										</option>
-										{genres.map(genre => (
-											<option key={`genre-${genre.id}`} value={genre.id}>
-												{genre.name}
-											</option>
-										))}
-									</select>
-									{formData.genre?.name && (
-										<p className="text-xs text-gray-500 mt-1">
-											Género actual: {formData.genre.name}
-										</p>
-									)}
+									<Select
+										value={
+											formData.genre?.id
+												? {
+														value: formData.genre.id.toString(),
+														label: formData.genre.name,
+												  }
+												: null
+										}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'genre',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={genres.map(genre => ({
+											value: genre.id.toString(),
+											label: genre.name,
+										}))}
+										placeholder="Seleccionar género"
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Subgénero
 									</label>
-									<select
-										name="subgenre"
-										value={formData.subgenre?.id || ''}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option key="subgenre-empty" value="">
-											Seleccionar subgénero
-										</option>
-										{genres
-											.find(g => g.id === formData.genre?.id)
-											?.subgenres?.map(subgenre => (
-												<option
-													key={`subgenre-${subgenre.id}`}
-													value={subgenre.id}
-												>
-													{subgenre.name}
-												</option>
-											))}
-									</select>
-									{formData.subgenre?.name && (
-										<p className="text-xs text-gray-500 mt-1">
-											Subgénero actual: {formData.subgenre.name}
-										</p>
-									)}
+									<Select
+										value={
+											formData.subgenre?.id
+												? {
+														value: formData.subgenre.id.toString(),
+														label: formData.subgenre.name,
+												  }
+												: null
+										}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'subgenre',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={
+											genres
+												.find(g => g.id === formData.genre?.id)
+												?.subgenres.map(subgenre => ({
+													value: subgenre.id.toString(),
+													label: subgenre.name,
+												})) || []
+										}
+										placeholder="Seleccionar subgénero"
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+										isDisabled={!formData.genre?.id}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Número de Catálogo
 									</label>
 									<input
@@ -671,27 +813,47 @@ const CreateReleasePage = () => {
 										name="catalogue_number"
 										value={formData.catalogue_number}
 										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className={inputStyles}
+										required
 									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Es Nuevo Release
 									</label>
-									<select
-										name="is_new_release"
-										value={formData.is_new_release}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option value={1}>Sí</option>
-										<option value={0}>No</option>
-									</select>
+									<Select
+										value={{
+											value: formData.is_new_release.toString(),
+											label: formData.is_new_release === 1 ? 'Sí' : 'No',
+										}}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'is_new_release',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={[
+											{ value: '1', label: 'Sí' },
+											{ value: '0', label: 'No' },
+										]}
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Fecha Oficial
 									</label>
 									<input
@@ -699,12 +861,13 @@ const CreateReleasePage = () => {
 										name="official_date"
 										value={formData.official_date}
 										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className={inputStyles}
+										required
 									/>
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700">
+									<label className="block text-sm font-medium text-gray-700 mb-1">
 										Fecha Original
 									</label>
 									<input
@@ -712,7 +875,8 @@ const CreateReleasePage = () => {
 										name="original_date"
 										value={formData.original_date}
 										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className={inputStyles}
+										required
 									/>
 								</div>
 
@@ -720,15 +884,37 @@ const CreateReleasePage = () => {
 									<label className="block text-sm font-medium text-gray-700">
 										Territorio
 									</label>
-									<select
-										name="territory"
-										value={formData.territory}
-										onChange={handleChange}
-										className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-									>
-										<option value="worldwide">Worldwide</option>
-										<option value="specific">Específico</option>
-									</select>
+									<Select
+										value={{
+											value: formData.territory,
+											label:
+												formData.territory === 'worldwide'
+													? 'Worldwide'
+													: 'Específico',
+										}}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleChange({
+													target: {
+														name: 'territory',
+														value: selectedOption.value,
+													},
+												} as any);
+											}
+										}}
+										options={[
+											{ value: 'worldwide', label: 'Worldwide' },
+											{ value: 'specific', label: 'Específico' },
+										]}
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 								</div>
 							</div>
 
@@ -807,40 +993,74 @@ const CreateReleasePage = () => {
 								</div>
 								<div className="space-y-4">
 									{artists.length === 0 ? (
-										<div className="flex items-center gap-2">
-											<select
-												value={artists[0]?.artist ?? ''}
-												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-													const value = e.target.value;
-													if (value) {
-														handleArtistChange(0, 'artist', value);
+										<div className="flex items-center gap-2 w-full">
+											<Select
+												value={
+													artists[0]?.artist
+														? {
+																value: artists[0].artist,
+																label: artists[0].name,
+														  }
+														: null
+												}
+												onChange={(
+													selectedOption: SingleValue<{
+														value: number;
+														label: string;
+													}>
+												) => {
+													if (selectedOption) {
+														handleArtistChange(
+															0,
+															'artist',
+															selectedOption.value
+														);
 													}
 												}}
-												className="flex-1 p-2 border rounded"
-											>
-												<option value="">Seleccionar Artista</option>
-												{artistData?.map(a => (
-													<option
-														key={`artist-${a?.external_id || ''}`}
-														value={a?.external_id || ''}
-													>
-														{a?.name || ''}
-													</option>
-												))}
-											</select>
+												options={artistData.map(artist => ({
+													value: artist.external_id,
+													label: artist.name,
+												}))}
+												placeholder="Seleccionar Artista"
+												className="react-select-container flex-1"
+												classNamePrefix="react-select"
+												styles={reactSelectStyles}
+											/>
 
-											<select
-												value={artists[0]?.kind ?? ''}
-												onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-													handleArtistChange(0, 'kind', e.target.value);
+											<Select
+												value={
+													artists[0]?.kind
+														? {
+																value: artists[0].kind,
+																label:
+																	artists[0].kind === 'main'
+																		? 'Principal'
+																		: artists[0].kind === 'featuring'
+																		? 'Invitado'
+																		: 'Remixer',
+														  }
+														: null
+												}
+												onChange={(
+													selectedOption: SingleValue<{
+														value: string;
+														label: string;
+													}>
+												) => {
+													if (selectedOption) {
+														handleArtistChange(0, 'kind', selectedOption.value);
+													}
 												}}
-												className="flex-1 p-2 border rounded"
-											>
-												<option value="">Seleccionar Tipo</option>
-												<option value="main">Principal</option>
-												<option value="featuring">Invitado</option>
-												<option value="remixer">Remixer</option>
-											</select>
+												options={[
+													{ value: 'main', label: 'Principal' },
+													{ value: 'featuring', label: 'Invitado' },
+													{ value: 'remixer', label: 'Remixer' },
+												]}
+												placeholder="Seleccionar Tipo"
+												className="react-select-container flex-1"
+												classNamePrefix="react-select"
+												styles={reactSelectStyles}
+											/>
 
 											<input
 												type="number"
@@ -849,50 +1069,87 @@ const CreateReleasePage = () => {
 													const val = parseInt(e.target.value);
 													handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
 												}}
-												className="w-20 p-2 border rounded"
+												className="w-20 px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 												placeholder="Orden"
 											/>
 										</div>
 									) : (
 										artists.map((artist, index) => (
-											<div key={index} className="flex items-center gap-2">
-												<select
-													value={artist.artist ?? ''}
+											<div
+												key={index}
+												className="flex items-center gap-2 w-full"
+											>
+												<Select
+													value={
+														artist.artist
+															? {
+																	value: artist.artist,
+																	label: artist.name,
+															  }
+															: null
+													}
 													onChange={(
-														e: React.ChangeEvent<HTMLSelectElement>
+														selectedOption: SingleValue<{
+															value: number;
+															label: string;
+														}>
 													) => {
-														const value = e.target.value;
-														if (value) {
-															handleArtistChange(index, 'artist', value);
+														if (selectedOption) {
+															handleArtistChange(
+																index,
+																'artist',
+																selectedOption.value
+															);
 														}
 													}}
-													className="flex-1 p-2 border rounded"
-												>
-													<option value="">Seleccionar Artista</option>
-													{artistData?.map(a => (
-														<option
-															key={`artist-${a?.external_id || ''}`}
-															value={a?.external_id || ''}
-														>
-															{a?.name || ''}
-														</option>
-													))}
-												</select>
+													options={artistData.map(artist => ({
+														value: artist.external_id,
+														label: artist.name,
+													}))}
+													placeholder="Seleccionar Artista"
+													className="react-select-container flex-1"
+													classNamePrefix="react-select"
+													styles={reactSelectStyles}
+												/>
 
-												<select
-													value={artist.kind ?? ''}
+												<Select
+													value={
+														artist.kind
+															? {
+																	value: artist.kind,
+																	label:
+																		artist.kind === 'main'
+																			? 'Principal'
+																			: artist.kind === 'featuring'
+																			? 'Invitado'
+																			: 'Remixer',
+															  }
+															: null
+													}
 													onChange={(
-														e: React.ChangeEvent<HTMLSelectElement>
+														selectedOption: SingleValue<{
+															value: string;
+															label: string;
+														}>
 													) => {
-														handleArtistChange(index, 'kind', e.target.value);
+														if (selectedOption) {
+															handleArtistChange(
+																index,
+																'kind',
+																selectedOption.value
+															);
+														}
 													}}
-													className="flex-1 p-2 border rounded"
-												>
-													<option value="">Seleccionar Tipo</option>
-													<option value="main">Principal</option>
-													<option value="featuring">Invitado</option>
-													<option value="remixer">Remixer</option>
-												</select>
+													options={[
+														{ value: 'main', label: 'Principal' },
+														{ value: 'featuring', label: 'Invitado' },
+														{ value: 'remixer', label: 'Remixer' },
+													]}
+													placeholder="Seleccionar Tipo"
+													className="react-select-container flex-1"
+													classNamePrefix="react-select"
+													styles={reactSelectStyles}
+												/>
 
 												<input
 													type="number"
@@ -907,7 +1164,7 @@ const CreateReleasePage = () => {
 															isNaN(val) ? 0 : val
 														);
 													}}
-													className="w-20 p-2 border rounded"
+													className="w-20 px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 													placeholder="Orden"
 												/>
 											</div>

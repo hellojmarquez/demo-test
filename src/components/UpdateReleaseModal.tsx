@@ -9,6 +9,7 @@ import {
 	Plus,
 } from 'lucide-react';
 import Cleave from 'cleave.js';
+import Select, { SingleValue } from 'react-select';
 
 interface Release {
 	_id: string;
@@ -96,6 +97,43 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
 	const [trackData, setTrackData] = useState<TrackData[]>([]);
 
+	// Add the common input styles at the top of the component
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+	const selectStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
+	const selectWrapperStyles = 'relative';
+
+	// Add the react-select styles
+	const reactSelectStyles = {
+		control: (base: any) => ({
+			...base,
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			'&:hover': {
+				borderBottom: '2px solid #4B5563',
+			},
+		}),
+		option: (base: any, state: any) => ({
+			...base,
+			backgroundColor: state.isSelected
+				? '#4B5563'
+				: state.isFocused
+				? '#F3F4F6'
+				: 'white',
+			color: state.isSelected ? 'white' : '#1F2937',
+			'&:hover': {
+				backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+			},
+		}),
+		menu: (base: any) => ({
+			...base,
+			zIndex: 9999,
+		}),
+	};
+
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -109,9 +147,8 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 				// Fetch tracks
 				const tracksRes = await fetch('/api/admin/getAllTracks');
 				const tracksData = await tracksRes.json();
-				if (tracksData.success && Array.isArray(tracksData.data)) {
-					setTrackData(tracksData.data);
-				}
+				console.log(tracksData);
+				setTrackData(tracksData.singleTracks);
 			} catch (error) {
 				console.error('Error fetching data:', error);
 			}
@@ -391,7 +428,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 								name="name"
 								value={formData.name}
 								onChange={handleChange}
-								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+								className={inputStyles}
 							/>
 						</div>
 
@@ -404,7 +441,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 								name="label"
 								value={formData.label}
 								onChange={handleChange}
-								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+								className={inputStyles}
 							/>
 						</div>
 
@@ -412,15 +449,32 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							<label className="block text-sm font-medium text-gray-700">
 								Idioma
 							</label>
-							<select
+							<Select
 								name="language"
-								value={formData.language}
-								onChange={handleChange}
-								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-							>
-								<option value="ES">Español</option>
-								<option value="EN">English</option>
-							</select>
+								value={{
+									value: formData.language,
+									label: formData.language === 'ES' ? 'Español' : 'English',
+								}}
+								onChange={(
+									selectedOption: SingleValue<{ value: string; label: string }>
+								) => {
+									if (selectedOption) {
+										handleChange({
+											target: {
+												name: 'language',
+												value: selectedOption.value,
+											},
+										} as any);
+									}
+								}}
+								options={[
+									{ value: 'ES', label: 'Español' },
+									{ value: 'EN', label: 'English' },
+								]}
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={reactSelectStyles}
+							/>
 						</div>
 
 						<div>
@@ -432,7 +486,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 								name="kind"
 								value={formData.kind}
 								onChange={handleChange}
-								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+								className={inputStyles}
 							/>
 						</div>
 					</div>
@@ -460,36 +514,69 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 						<div className="space-y-2">
 							{formData.artists.length === 0 ? (
 								<div className="flex items-center gap-2">
-									<select
-										value={formData.artists[0]?.artist ?? ''}
-										onChange={e => {
-											const value = e.target.value;
-											if (value) {
-												handleArtistChange(0, 'artist', value);
+									<Select
+										value={
+											formData.artists[0]?.artist
+												? {
+														value: formData.artists[0].artist,
+														label: formData.artists[0].name,
+												  }
+												: null
+										}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: number;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleArtistChange(0, 'artist', selectedOption.value);
 											}
 										}}
-										className="flex-1 p-2 border rounded"
-									>
-										<option value="">Seleccionar artista</option>
-										{artistData.map(a => (
-											<option key={a.external_id} value={a.external_id}>
-												{a.name}
-											</option>
-										))}
-									</select>
+										options={artistData.map(artist => ({
+											value: artist.external_id,
+											label: artist.name,
+										}))}
+										placeholder="Seleccionar artista"
+										className="react-select-container flex-1"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 
-									<select
-										value={formData.artists[0]?.kind ?? ''}
-										onChange={e => {
-											handleArtistChange(0, 'kind', e.target.value);
+									<Select
+										value={
+											formData.artists[0]?.kind
+												? {
+														value: formData.artists[0].kind,
+														label:
+															formData.artists[0].kind === 'main'
+																? 'Principal'
+																: formData.artists[0].kind === 'featuring'
+																? 'Invitado'
+																: 'Remixer',
+												  }
+												: null
+										}
+										onChange={(
+											selectedOption: SingleValue<{
+												value: string;
+												label: string;
+											}>
+										) => {
+											if (selectedOption) {
+												handleArtistChange(0, 'kind', selectedOption.value);
+											}
 										}}
-										className="flex-1 p-2 border rounded"
-									>
-										<option value="">Seleccionar rol</option>
-										<option value="main">Principal</option>
-										<option value="featuring">Invitado</option>
-										<option value="remixer">Remixer</option>
-									</select>
+										options={[
+											{ value: 'main', label: 'Principal' },
+											{ value: 'featuring', label: 'Invitado' },
+											{ value: 'remixer', label: 'Remixer' },
+										]}
+										placeholder="Seleccionar rol"
+										className="react-select-container flex-1"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+									/>
 
 									<input
 										type="number"
@@ -502,43 +589,84 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 											const val = parseInt(e.target.value);
 											handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
 										}}
-										className="w-20 p-2 border rounded"
+										className={inputStyles}
 										placeholder="Orden"
 									/>
 								</div>
 							) : (
 								formData.artists.map((artist, index) => (
 									<div key={index} className="flex items-center gap-2">
-										<select
-											value={artist.artist ?? ''}
-											onChange={e => {
-												const value = e.target.value;
-												if (value) {
-													handleArtistChange(index, 'artist', value);
+										<Select
+											value={
+												artist.artist
+													? {
+															value: artist.artist,
+															label: artist.name,
+													  }
+													: null
+											}
+											onChange={(
+												selectedOption: SingleValue<{
+													value: number;
+													label: string;
+												}>
+											) => {
+												if (selectedOption) {
+													handleArtistChange(
+														index,
+														'artist',
+														selectedOption.value
+													);
 												}
 											}}
-											className="flex-1 p-2 border rounded"
-										>
-											<option value="">Seleccionar artista</option>
-											{artistData.map(a => (
-												<option key={a.external_id} value={a.external_id}>
-													{a.name}
-												</option>
-											))}
-										</select>
+											options={artistData.map(artist => ({
+												value: artist.external_id,
+												label: artist.name,
+											}))}
+											placeholder="Seleccionar artista"
+											className="react-select-container flex-1"
+											classNamePrefix="react-select"
+											styles={reactSelectStyles}
+										/>
 
-										<select
-											value={artist.kind ?? ''}
-											onChange={e => {
-												handleArtistChange(index, 'kind', e.target.value);
+										<Select
+											value={
+												artist.kind
+													? {
+															value: artist.kind,
+															label:
+																artist.kind === 'main'
+																	? 'Principal'
+																	: artist.kind === 'featuring'
+																	? 'Invitado'
+																	: 'Remixer',
+													  }
+													: null
+											}
+											onChange={(
+												selectedOption: SingleValue<{
+													value: string;
+													label: string;
+												}>
+											) => {
+												if (selectedOption) {
+													handleArtistChange(
+														index,
+														'kind',
+														selectedOption.value
+													);
+												}
 											}}
-											className="flex-1 p-2 border rounded"
-										>
-											<option value="">Seleccionar rol</option>
-											<option value="main">Principal</option>
-											<option value="featuring">Invitado</option>
-											<option value="remixer">Remixer</option>
-										</select>
+											options={[
+												{ value: 'main', label: 'Principal' },
+												{ value: 'featuring', label: 'Invitado' },
+												{ value: 'remixer', label: 'Remixer' },
+											]}
+											placeholder="Seleccionar rol"
+											className="react-select-container flex-1"
+											classNamePrefix="react-select"
+											styles={reactSelectStyles}
+										/>
 
 										<input
 											type="number"
@@ -553,7 +681,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 													isNaN(val) ? 0 : val
 												);
 											}}
-											className="w-20 p-2 border rounded"
+											className="w-20 px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 											placeholder="Orden"
 										/>
 
@@ -595,39 +723,6 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 										{track.name}
 									</div>
 
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Duración
-										</label>
-										<input
-											type="text"
-											name="track_length"
-											value={track.track_length || ''}
-											onChange={e =>
-												handleTrackChange(index, 'track_length', e.target.value)
-											}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-											placeholder="00:00:00"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Orden
-										</label>
-										<input
-											type="number"
-											name="order"
-											value={track.order}
-											onChange={e => {
-												const val = parseInt(e.target.value);
-												handleTrackChange(index, 'order', isNaN(val) ? 0 : val);
-											}}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0 bg-red-500 text-white"
-											placeholder="Orden"
-											min="0"
-										/>
-									</div>
-
 									<button
 										onClick={() => handleDeleteTrack(index)}
 										className="p-2 text-red-600 hover:text-red-800"
@@ -644,36 +739,35 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							)}
 
 							<div className="flex items-center gap-2">
-								<select
-									value=""
-									onChange={e => {
-										const value = e.target.value;
-										if (value) {
-											handleTrackChange(formData.tracks.length, 'track', value);
+								<Select
+									value={null}
+									onChange={(
+										selectedOption: SingleValue<{
+											value: string;
+											label: string;
+										}>
+									) => {
+										if (selectedOption) {
+											const selectedTrack = trackData.find(
+												t => t._id === selectedOption.value
+											);
+											if (selectedTrack) {
+												handleTrackChange(
+													formData.tracks.length,
+													'track',
+													selectedTrack._id
+												);
+											}
 										}
 									}}
-									className="flex-1 p-2 border rounded"
-								>
-									<option value="">Seleccionar track</option>
-									{trackData.map(track => (
-										<option key={track._id} value={track._id}>
-											{track.name}
-										</option>
-									))}
-								</select>
-
-								<input
-									type="number"
-									value={formData.tracks.length}
-									onChange={e => {
-										const val = parseInt(e.target.value);
-										if (!isNaN(val)) {
-											handleTrackChange(formData.tracks.length, 'order', val);
-										}
-									}}
-									className="w-20 p-2 border rounded bg-red-500 text-white"
-									placeholder="Orden"
-									min="0"
+									options={trackData.map(track => ({
+										value: track._id,
+										label: track.name,
+									}))}
+									placeholder="Seleccionar track"
+									className="react-select-container flex-1"
+									classNamePrefix="react-select"
+									styles={reactSelectStyles}
 								/>
 							</div>
 						</div>

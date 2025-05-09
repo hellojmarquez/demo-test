@@ -132,10 +132,7 @@ const artistSchema = new mongoose.Schema({
 
 // Esquema específico para contribuidores
 const contributorSchema = new mongoose.Schema({
-	picture: {
-		type: mongoose.Schema.Types.Mixed,
-		default: null,
-	},
+	// No fields needed, inherits all from baseUserSchema
 });
 
 // Esquema específico para publishers

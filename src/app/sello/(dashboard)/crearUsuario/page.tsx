@@ -278,6 +278,7 @@ export default function CrearUsuarioPage() {
 						onClose={() => setUserType('')}
 						onSave={async contributorData => {
 							try {
+								setSuccessUserType('contribuidor');
 								setShowSuccessMessage(true);
 								setTimeout(() => {
 									setShowSuccessMessage(false);

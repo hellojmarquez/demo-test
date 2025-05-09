@@ -3,6 +3,7 @@ import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
 	console.log('get contributors received');
@@ -32,7 +33,14 @@ export async function POST(req: NextRequest) {
 		}
 
 		const body = await req.json();
-		let { name } = body;
+		let { name, email, password } = body;
+
+		if (!name || !email || !password) {
+			return NextResponse.json(
+				{ success: false, error: 'Todos los campos son requeridos' },
+				{ status: 400 }
+			);
+		}
 
 		// Capitalizar la primera letra de cada palabra
 		name = name
@@ -43,9 +51,17 @@ export async function POST(req: NextRequest) {
 			)
 			.join(' ');
 
-		console.log(name);
+		// Verificar si el email ya existe
+		await dbConnect();
+		const existingUser = await User.findOne({ email });
+		if (existingUser) {
+			return NextResponse.json(
+				{ success: false, error: 'El email ya está registrado' },
+				{ status: 400 }
+			);
+		}
 
-		// Crear contributor
+		// Crear contributor en MoveMusic
 		const contributorReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/contributors`,
 			{
@@ -63,14 +79,28 @@ export async function POST(req: NextRequest) {
 		const contributorRes = await contributorReq.json();
 		console.log(contributorRes);
 
-		// Conectar a la base de datos local
-		await dbConnect();
+		// Verificar si la respuesta contiene un error
+		if (Array.isArray(contributorRes.name)) {
+			return NextResponse.json(
+				{
+					success: false,
+					error:
+						contributorRes.name[0] ||
+						'Error al crear el contribuidor en MoveMusic',
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Hashear la contraseña
+		const hashedPassword = await bcrypt.hash(password, 10);
 
 		// Crear y guardar el contribuidor en la base de datos local
 		const contributor = new User({
 			external_id: contributorRes.id,
 			name: contributorRes.name,
-			email: contributorRes.id,
+			email: email,
+			password: hashedPassword,
 			role: 'contributor',
 		});
 

@@ -5,7 +5,11 @@ import { XCircle, Save } from 'lucide-react';
 interface CreateContributorModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onSave: (contributorData: { name: string }) => Promise<void>;
+	onSave: (contributorData: {
+		name: string;
+		email: string;
+		password: string;
+	}) => Promise<void>;
 }
 
 export default function CreateContributorModal({
@@ -13,16 +17,36 @@ export default function CreateContributorModal({
 	onClose,
 	onSave,
 }: CreateContributorModalProps) {
-	const [name, setName] = useState('');
+	const [formData, setFormData] = useState({
+		name: '',
+		email: '',
+		password: '',
+	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const { name, value } = e.target;
+		setFormData(prev => ({
+			...prev,
+			[name]: value,
+		}));
+		setError(null);
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!name.trim()) return;
+		if (
+			!formData.name.trim() ||
+			!formData.email.trim() ||
+			!formData.password.trim()
+		) {
+			setError('Todos los campos son requeridos');
+			return;
+		}
 
 		try {
 			setIsSubmitting(true);
@@ -33,22 +57,22 @@ export default function CreateContributorModal({
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ name: name.trim() }),
+				body: JSON.stringify(formData),
 			});
 
+			const data = await response.json();
+
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Error al crear el contribuidor');
+				throw new Error(data.error || 'Error al crear el contribuidor');
 			}
 
-			const data = await response.json();
 			await onSave(data.contributor);
-			setName('');
+			setFormData({ name: '', email: '', password: '' });
 			onClose();
 		} catch (err) {
 			console.error('Error creating contributor:', err);
 			setError(
-				err instanceof Error ? err.message : 'Error creating contributor'
+				err instanceof Error ? err.message : 'Error al crear el contribuidor'
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -96,14 +120,54 @@ export default function CreateContributorModal({
 									type="text"
 									id="name"
 									name="name"
-									value={name}
-									onChange={e => setName(e.target.value)}
+									value={formData.name}
+									onChange={handleChange}
 									className={inputStyles}
 									required
 								/>
 							</div>
 
-							{error && <div className="text-red-500 text-sm">{error}</div>}
+							<div>
+								<label
+									htmlFor="email"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									Email
+								</label>
+								<input
+									type="email"
+									id="email"
+									name="email"
+									value={formData.email}
+									onChange={handleChange}
+									className={inputStyles}
+									required
+								/>
+							</div>
+
+							<div>
+								<label
+									htmlFor="password"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									Contraseña
+								</label>
+								<input
+									type="password"
+									id="password"
+									name="password"
+									value={formData.password}
+									onChange={handleChange}
+									className={inputStyles}
+									required
+								/>
+							</div>
+
+							{error && (
+								<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{error}
+								</div>
+							)}
 
 							<div className="flex justify-end space-x-3 mt-6">
 								<button

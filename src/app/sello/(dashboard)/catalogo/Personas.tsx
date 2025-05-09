@@ -59,6 +59,8 @@ interface Persona {
 	createdAt?: string;
 	updatedAt?: string;
 	parentName?: string;
+	primary_genre?: string;
+	[key: string]: any;
 }
 
 const Personas = () => {

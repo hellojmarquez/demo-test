@@ -559,7 +559,7 @@ const CreateReleasePage = () => {
 										}}
 										onChange={(
 											selectedOption: SingleValue<{
-												value: string;
+												value: string | undefined;
 												label: string;
 											}>
 										) => {
@@ -567,7 +567,7 @@ const CreateReleasePage = () => {
 												handleChange({
 													target: {
 														name: 'kind',
-														value: selectedOption.value,
+														value: selectedOption.value || '',
 													},
 												} as any);
 											}
@@ -594,7 +594,7 @@ const CreateReleasePage = () => {
 										}}
 										onChange={(
 											selectedOption: SingleValue<{
-												value: string;
+												value: string | undefined;
 												label: string;
 											}>
 										) => {
@@ -602,7 +602,7 @@ const CreateReleasePage = () => {
 												handleChange({
 													target: {
 														name: 'language',
-														value: selectedOption.value,
+														value: selectedOption.value || '',
 													},
 												} as any);
 											}
@@ -656,15 +656,15 @@ const CreateReleasePage = () => {
 										}}
 										onChange={(
 											selectedOption: SingleValue<{
-												value: string;
-												label: string;
+												value: string | undefined;
+												label: string | undefined;
 											}>
 										) => {
 											if (selectedOption) {
 												handleChange({
 													target: {
 														name: 'publisher_year',
-														value: selectedOption.value,
+														value: selectedOption.value || '',
 													},
 												} as any);
 											}
@@ -701,15 +701,15 @@ const CreateReleasePage = () => {
 										}}
 										onChange={(
 											selectedOption: SingleValue<{
-												value: string;
-												label: string;
+												value: string | undefined;
+												label: string | undefined;
 											}>
 										) => {
 											if (selectedOption) {
 												handleChange({
 													target: {
 														name: 'copyright_holder_year',
-														value: selectedOption.value,
+														value: selectedOption.value || '',
 													},
 												} as any);
 											}
@@ -824,12 +824,12 @@ const CreateReleasePage = () => {
 									</label>
 									<Select
 										value={{
-											value: formData.is_new_release.toString(),
+											value: formData.is_new_release?.toString() || '0',
 											label: formData.is_new_release === 1 ? 'Sí' : 'No',
 										}}
 										onChange={(
 											selectedOption: SingleValue<{
-												value: string;
+												value: string | undefined;
 												label: string;
 											}>
 										) => {
@@ -894,7 +894,7 @@ const CreateReleasePage = () => {
 										}}
 										onChange={(
 											selectedOption: SingleValue<{
-												value: string;
+												value: string | undefined;
 												label: string;
 											}>
 										) => {
@@ -902,7 +902,7 @@ const CreateReleasePage = () => {
 												handleChange({
 													target: {
 														name: 'territory',
-														value: selectedOption.value,
+														value: selectedOption.value || '',
 													},
 												} as any);
 											}

@@ -25,6 +25,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 		picture: undefined as { base64: string } | undefined,
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +37,8 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 			...prev,
 			[name]: value,
 		}));
+		// Limpiar el error cuando el usuario modifica el formulario
+		setError(null);
 	};
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,12 +64,17 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
+		setError(null);
 
 		try {
 			await onSave(formData);
-			onClose();
 		} catch (error) {
 			console.error('Error creating admin:', error);
+			setError(
+				error instanceof Error
+					? error.message
+					: 'Error al crear el administrador'
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -90,7 +98,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0.9, opacity: 0 }}
 						transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-						className="bg-white rounded-xl shadow-xl w-full max-w-md"
+						className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col"
 						onClick={e => e.stopPropagation()}
 					>
 						<div className="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -105,7 +113,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-6">
+						<form onSubmit={handleSubmit} className="p-6 overflow-y-auto">
 							<div className="space-y-4">
 								<div className="space-y-2">
 									<label className="block text-sm font-medium text-gray-700">
@@ -201,6 +209,12 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 										required
 									/>
 								</div>
+
+								{error && (
+									<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+										{error}
+									</div>
+								)}
 							</div>
 
 							<div className="flex justify-end space-x-3 mt-6">

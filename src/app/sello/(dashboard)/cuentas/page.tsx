@@ -1,14 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import {
+	Pencil,
+	Trash2,
+	Plus,
+	X,
+	AlertTriangle,
+	CheckCircle,
+} from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import UpdateArtistaModal from '@/components/updateArtistaModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import UpdateAdminModal from '@/components/UpdateAdminModal';
 import { UpdateContributorModal } from '@/components/UpdateContributorModal';
 import { UpdatePublisherModal } from '@/components/UpdatePublisherModal';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 interface User {
 	_id: string;
@@ -37,7 +46,7 @@ export default function UsuariosPage() {
 	const [users, setUsers] = useState<User[]>([]);
 	const [editingUserId, setEditingUserId] = useState<string | null>(null);
 	const [editedUser, setEditedUser] = useState<User | null>(null);
-	const [isDeleting, setIsDeleting] = useState<string | null>(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const [showArtistModal, setShowArtistModal] = useState(false);
 	const [selectedArtist, setSelectedArtist] = useState<User | null>(null);
 	const [showSelloModal, setShowSelloModal] = useState(false);
@@ -51,6 +60,12 @@ export default function UsuariosPage() {
 	const [showPublisherModal, setShowPublisherModal] = useState(false);
 	const [selectedPublisher, setSelectedPublisher] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
+	const [userToDelete, setUserToDelete] = useState<any>(null);
+	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [deletedUserName, setDeletedUserName] = useState<string>('');
+	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const router = useRouter();
 
 	useEffect(() => {
 		const fetchUsers = async () => {
@@ -149,32 +164,53 @@ export default function UsuariosPage() {
 		setEditedUser(null);
 	};
 
-	const handleDelete = async (e: React.MouseEvent, user: User) => {
-		e.stopPropagation();
+	const handleDeleteClick = (user: any) => {
+		setUserToDelete(user);
+		setShowDeleteModal(true);
+	};
 
-		if (!confirm(`¿Estás seguro de que deseas eliminar "${user.name}"?`)) {
-			return;
-		}
-
-		setIsDeleting(user._id);
+	const handleConfirmDelete = async () => {
+		if (!userToDelete) return;
+		setIsDeleting(true);
+		setDeleteError(null);
 
 		try {
-			const response = await fetch(`/api/admin/deleteUser/${user._id}`, {
-				method: 'DELETE',
-			});
+			const response = await fetch(
+				`/api/admin/deleteUser/${userToDelete._id}`,
+				{
+					method: 'DELETE',
+				}
+			);
 
-			const data = await response.json();
-
-			if (response.ok) {
-				setUsers(prev => prev.filter(u => u._id !== user._id));
-			} else {
-				alert(data.message || 'Error al eliminar el usuario');
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.message || 'Error al eliminar el usuario');
 			}
+
+			// Guardamos el nombre del usuario eliminado
+			setDeletedUserName(userToDelete.name);
+
+			// Actualizamos el estado local
+			setUsers(prevUsers => prevUsers.filter(u => u._id !== userToDelete._id));
+
+			// Cerramos el modal y mostramos el mensaje de éxito
+			setShowDeleteModal(false);
+			setUserToDelete(null);
+			setShowSuccessMessage(true);
+			router.refresh();
+
+			// Ocultamos el mensaje después de 5 segundos
+			setTimeout(() => {
+				setShowSuccessMessage(false);
+				setDeletedUserName('');
+			}, 5000);
 		} catch (error) {
 			console.error('Error deleting user:', error);
-			alert('Error al eliminar el usuario');
+			setDeleteError(
+				error instanceof Error ? error.message : 'Error al eliminar el usuario'
+			);
 		} finally {
-			setIsDeleting(null);
+			setIsDeleting(false);
 		}
 	};
 
@@ -316,6 +352,18 @@ export default function UsuariosPage() {
 
 	return (
 		<div className="space-y-6">
+			{showSuccessMessage && (
+				<motion.div
+					initial={{ opacity: 0, y: -20 }}
+					animate={{ opacity: 1, y: 0 }}
+					exit={{ opacity: 0, y: -20 }}
+					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
+				>
+					<CheckCircle size={18} />
+					<span>{deletedUserName} eliminado/a exitosamente</span>
+				</motion.div>
+			)}
+
 			<div className="flex justify-between items-center">
 				<h2 className="text-2xl font-bold text-blue-700">
 					Gestión de Usuarios
@@ -433,18 +481,13 @@ export default function UsuariosPage() {
 											<motion.button
 												whileHover={{ scale: 1.05 }}
 												whileTap={{ scale: 0.95 }}
-												onClick={e => handleDelete(e, user)}
-												disabled={isDeleting === user._id}
+												onClick={() => handleDeleteClick(user)}
 												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 											>
-												{isDeleting === user._id ? (
-													<div className="h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-												) : (
-													<Trash2
-														className="text-red-500 hover:text-red-700"
-														size={18}
-													/>
-												)}
+												<Trash2
+													className="text-red-500 hover:text-red-700"
+													size={18}
+												/>
 											</motion.button>
 										</div>
 									</td>
@@ -546,6 +589,84 @@ export default function UsuariosPage() {
 					/>
 				</>
 			)}
+
+			<AnimatePresence>
+				{showDeleteModal && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+						onClick={() => !isDeleting && setShowDeleteModal(false)}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+							className="bg-white rounded-xl shadow-xl w-full max-w-md"
+							onClick={e => e.stopPropagation()}
+						>
+							<div className="p-6 border-b border-gray-200 flex justify-between items-center">
+								<h2 className="text-xl font-semibold text-gray-800">
+									Confirmar Eliminación
+								</h2>
+								<button
+									onClick={() => !isDeleting && setShowDeleteModal(false)}
+									className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+									disabled={isDeleting}
+								>
+									<X size={20} className="text-gray-500" />
+								</button>
+							</div>
+
+							<div className="p-6">
+								<div className="flex items-center gap-3 mb-4">
+									<AlertTriangle className="h-6 w-6 text-red-500" />
+									<p className="text-gray-700">
+										¿Estás seguro de que deseas eliminar al usuario{' '}
+										<span className="font-semibold">{userToDelete?.name}</span>?
+									</p>
+								</div>
+								<p className="text-sm text-gray-500 mb-6">
+									Esta acción no se puede deshacer. Todos los datos asociados a
+									este usuario serán eliminados permanentemente.
+								</p>
+
+								{deleteError && (
+									<div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+										{deleteError}
+									</div>
+								)}
+
+								<div className="flex justify-end space-x-3">
+									<button
+										onClick={() => !isDeleting && setShowDeleteModal(false)}
+										className="px-4 py-2 rounded-md text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										disabled={isDeleting}
+									>
+										Cancelar
+									</button>
+									<button
+										onClick={handleConfirmDelete}
+										className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										disabled={isDeleting}
+									>
+										{isDeleting ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												<span>Eliminando...</span>
+											</>
+										) : (
+											'Eliminar'
+										)}
+									</button>
+								</div>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 }

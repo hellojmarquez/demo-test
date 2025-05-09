@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import User from '@/models/UserModel';
+import { Admin } from '@/models/UserModel';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
-	console.log('create single request received');
+	console.log('create admin request received');
 
 	try {
 		await dbConnect();
 
 		const { name, email, password, picture } = await request.json();
-
+		console.log(name, email, password);
 		// Validar campos requeridos
 		if (!name || !email || !password) {
 			return NextResponse.json(
@@ -20,8 +20,8 @@ export async function POST(request: Request) {
 		}
 
 		// Verificar si el email ya existe
-		const existingUser = await User.findOne({ email });
-		if (existingUser) {
+		const existingAdmin = await Admin.findOne({ email });
+		if (existingAdmin) {
 			return NextResponse.json(
 				{ message: 'El email ya está registrado' },
 				{ status: 400 }
@@ -37,8 +37,8 @@ export async function POST(request: Request) {
 			pictureBuffer = Buffer.from(picture.base64, 'base64');
 		}
 
-		// Crear el nuevo usuario administrador
-		const newAdmin = await User.create({
+		// Crear el nuevo administrador usando el discriminador Admin
+		const newAdmin = await Admin.create({
 			name,
 			email,
 			password: hashedPassword,
@@ -47,14 +47,11 @@ export async function POST(request: Request) {
 			status: 'active',
 			permissions: ['admin'],
 		});
-
-		// Omitir la contraseña en la respuesta
-		const { password: _, ...adminWithoutPassword } = newAdmin.toObject();
-
+		console.log('newAdmin: ', newAdmin);
+		console.log(newAdmin);
 		return NextResponse.json(
 			{
 				message: 'Administrador creado exitosamente',
-				admin: adminWithoutPassword,
 			},
 			{ status: 201 }
 		);

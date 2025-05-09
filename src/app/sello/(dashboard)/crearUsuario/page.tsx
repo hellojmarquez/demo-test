@@ -53,6 +53,7 @@ const reactSelectStyles = {
 export default function CrearUsuarioPage() {
 	const [userType, setUserType] = useState<string>('');
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [successUserType, setSuccessUserType] = useState<string>('');
 	const [userRole, setUserRole] = useState<string>('');
 	const [showUpdateModal, setShowUpdateModal] = useState(false);
 	const [currentUser, setCurrentUser] = useState<any>(null);
@@ -198,12 +199,16 @@ export default function CrearUsuarioPage() {
 									);
 								}
 
+								toast.success('Administrador creado exitosamente');
+								setSuccessUserType('admin');
 								setShowSuccessMessage(true);
+								setUserType('');
+								router.refresh();
+
 								setTimeout(() => {
 									setShowSuccessMessage(false);
-									setUserType('');
-								}, 3000);
-								router.refresh();
+									setSuccessUserType('');
+								}, 5000);
 							} catch (error) {
 								console.error('Error creating admin:', error);
 								toast.error(
@@ -338,13 +343,13 @@ export default function CrearUsuarioPage() {
 				>
 					<CheckCircle size={18} />
 					<span>
-						{userType === 'admin'
+						{successUserType === 'admin'
 							? 'Administrador creado exitosamente'
-							: userType === 'sello'
+							: successUserType === 'sello'
 							? 'Sello creado exitosamente'
-							: userType === 'contribuidor'
+							: successUserType === 'contribuidor'
 							? 'Contribuidor creado exitosamente'
-							: userType === 'publisher'
+							: successUserType === 'publisher'
 							? 'Publisher creado exitosamente'
 							: 'Artista creado exitosamente'}
 					</span>

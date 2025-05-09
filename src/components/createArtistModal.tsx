@@ -49,10 +49,10 @@ function CreateArtistModal({
 	useEffect(() => {
 		const fetchAvailableParents = async () => {
 			try {
-				const response = await fetch('/api/label/subaccounts');
+				const response = await fetch('/api/admin/getAllUsers');
 				if (response.ok) {
 					const data = await response.json();
-					setAvailableParents(data.subaccounts || []);
+					setAvailableParents(data.users || []);
 				}
 			} catch (error) {
 				console.error('Error fetching available parents:', error);
@@ -132,8 +132,18 @@ function CreateArtistModal({
 				formData.spotify_identifier || ''
 			);
 			formDataToSend.append('isSubaccount', formData.isSubaccount.toString());
+			formDataToSend.append(
+				'tipo',
+				formData.isSubaccount ? 'subcuenta' : 'principal'
+			);
 			if (formData.isSubaccount && formData.parentUserId) {
 				formDataToSend.append('parentUserId', formData.parentUserId);
+				const selectedParent = availableParents.find(
+					parent => parent._id === formData.parentUserId
+				);
+				if (selectedParent) {
+					formDataToSend.append('parentName', selectedParent.name);
+				}
 			}
 
 			if (formData.picture?.base64) {
@@ -164,8 +174,6 @@ function CreateArtistModal({
 			const response = await fetch('/api/admin/createArtist', {
 				method: 'POST',
 				body: formDataToSend,
-				// No es necesario establecer Content-Type para FormData
-				// El navegador lo establecerá automáticamente con el boundary correcto
 			});
 
 			if (!response.ok) {
@@ -198,7 +206,7 @@ function CreateArtistModal({
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0.9, opacity: 0 }}
 						transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-						className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+						className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
 						onClick={e => e.stopPropagation()}
 					>
 						<div className="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -213,8 +221,8 @@ function CreateArtistModal({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="flex flex-col flex-1">
-							<div className="p-4 space-y-4 overflow-y-auto flex-1">
+						<form onSubmit={handleSubmit} className="p-4">
+							<div className="space-y-4">
 								<div className="space-y-3">
 									<div className="space-y-2">
 										<label className="block text-sm font-medium text-gray-700">
@@ -430,12 +438,12 @@ function CreateArtistModal({
 								</div>
 							</div>
 
-							<div className="flex justify-end gap-3 p-4 border-t border-gray-200">
+							<div className="flex justify-end space-x-3 mt-6">
 								<button
 									type="button"
 									onClick={onClose}
 									disabled={isSubmitting}
-									className="px-3 py-1.5 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+									className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
 									<span className="group-hover:text-brand-dark">Cancelar</span>
@@ -443,7 +451,7 @@ function CreateArtistModal({
 								<button
 									type="submit"
 									disabled={isSubmitting}
-									className="px-3 py-1.5 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									{isSubmitting ? (
 										<>

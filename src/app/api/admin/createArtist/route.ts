@@ -56,9 +56,14 @@ export async function POST(req: NextRequest) {
 		const deezer_identifier = formData.get('deezer_identifier') as string;
 		const spotify_identifier = formData.get('spotify_identifier') as string;
 		const picture = formData.get('picture') as File | null;
+		const isSubaccount = formData.get('isSubaccount') === 'true';
+		const parentUserId = formData.get('parentUserId') as string;
+		const parentName = formData.get('parentName') as string;
+		const tipo = formData.get('tipo') as string;
 
 		console.log('Extracted fields:', {
 			name,
+			role: 'artista',
 			email,
 			hasPassword: !!password,
 			hasPicture: !!picture,
@@ -66,10 +71,14 @@ export async function POST(req: NextRequest) {
 			apple_identifier,
 			deezer_identifier,
 			spotify_identifier,
+			isSubaccount,
+			parentUserId,
+			parentName,
+			tipo,
 		});
 
 		// Validar campos requeridos
-		if (!name) {
+		if (!name || !email || !password) {
 			return NextResponse.json(
 				{ message: 'Nombre, email y contraseña son requeridos' },
 				{ status: 400 }
@@ -100,6 +109,7 @@ export async function POST(req: NextRequest) {
 				);
 			}
 		}
+
 		name = name
 			.split(' ')
 			.map(
@@ -107,6 +117,7 @@ export async function POST(req: NextRequest) {
 					word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 			)
 			.join(' ');
+
 		const artistToApi = {
 			name,
 			email,
@@ -115,6 +126,8 @@ export async function POST(req: NextRequest) {
 			deezer_identifier,
 			spotify_identifier,
 		};
+
+		console.log('artistToApi: ', artistToApi);
 		const artistaReq = await fetch(`${process.env.MOVEMUSIC_API}/artists/`, {
 			method: 'POST',
 			headers: {
@@ -127,7 +140,8 @@ export async function POST(req: NextRequest) {
 		});
 
 		const artistaRes = await artistaReq.json();
-		console.log(artistaRes);
+		console.log('api res', artistaRes);
+
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			external_id: artistaRes.id,
@@ -142,19 +156,23 @@ export async function POST(req: NextRequest) {
 			apple_identifier,
 			deezer_identifier,
 			spotify_identifier,
+			isSubaccount,
+			parentId: isSubaccount ? parentUserId : null,
+			parentName: isSubaccount ? parentName : null,
+			tipo: tipo || 'principal',
 		});
 
+		// Si es una subcuenta, actualizar el usuario padre
+		if (isSubaccount && parentUserId) {
+			await User.findByIdAndUpdate(parentUserId, {
+				$push: { subaccounts: newArtist._id },
+			});
+		}
+
+		console.log(newArtist);
 		return NextResponse.json({
 			success: true,
-			data: {
-				id: newArtist._id,
-				name: newArtist.name,
-				email: newArtist.email,
-				role: newArtist.role,
-				picture: pictureBuffer
-					? { base64: pictureBuffer.toString('base64') }
-					: null,
-			},
+			artist: newArtist,
 		});
 	} catch (error) {
 		console.error('Error creating artist:', error);

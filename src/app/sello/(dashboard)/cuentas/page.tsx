@@ -204,13 +204,13 @@ export default function UsuariosPage() {
 
 	const handleArtistSave = async (updatedArtist: any) => {
 		try {
-			// Asegurarse de que el artista tenga el rol 'artist'
+			// Asegurarse de que el artista tenga el rol 'artista'
 			const artistToSave = {
 				...updatedArtist,
-				role: 'artist',
+				role: 'artista',
 			};
 
-			console.log('Updating artist with data:', {
+			console.log('Updating artista with data:', {
 				external_id: artistToSave.external_id,
 				_id: artistToSave._id,
 			});

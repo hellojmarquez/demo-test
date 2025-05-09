@@ -1,6 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { User, Pencil, Trash2, Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+	User,
+	Pencil,
+	Trash2,
+	Plus,
+	ChevronDown,
+	ChevronUp,
+	Hash,
+	Tag,
+	Calendar,
+	Clock,
+	Music,
+	Building2,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import UpdateUserModal from '@/components/updateUserModal';
 import { UpdatePublisherModal } from '@/components/UpdatePublisherModal';
 import { UpdateContributorModal } from '@/components/UpdateContributorModal';
@@ -43,7 +56,9 @@ interface Persona {
 	information_accepted?: boolean;
 	label_approved?: boolean;
 	assigned_artists?: string[];
-	[key: string]: any;
+	createdAt?: string;
+	updatedAt?: string;
+	parentName?: string;
 }
 
 const Personas = () => {
@@ -64,44 +79,77 @@ const Personas = () => {
 	const [selectedArtista, setSelectedArtista] = useState<Persona | null>(null);
 	const [showSelloModal, setShowSelloModal] = useState(false);
 	const [selectedSello, setSelectedSello] = useState<Persona | null>(null);
+	const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
-	useEffect(() => {
-		fetchPersonas();
-	}, []);
-
-	const fetchPersonas = async () => {
+	const fetchUsers = async () => {
 		try {
-			const res = await fetch('/api/admin/getAllArtists');
-			const r = await res.json();
-			if (r.success) {
-				console.log(r.data);
-				setPersonas(r.data);
+			const response = await fetch('/api/admin/getAllPersonas');
+			if (response.ok) {
+				const data = await response.json();
+				setPersonas(data.data || []);
 			}
 			setIsLoading(false);
 		} catch (error) {
-			console.error('Error fetching personas:', error);
+			console.error('Error fetching users:', error);
 			setIsLoading(false);
 		}
 	};
 
+	useEffect(() => {
+		fetchUsers();
+	}, []);
+
 	const handleDelete = async (e: React.MouseEvent, persona: Persona) => {
+		e.preventDefault();
 		e.stopPropagation();
-		if (window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
-			setIsDeleting(persona._id);
+		if (window.confirm('¿Estás seguro de que deseas eliminar esta persona?')) {
 			try {
-				const response = await fetch(`/api/admin/deleteUser/${persona._id}`, {
+				const res = await fetch(`/api/admin/deleteUser/${persona._id}`, {
 					method: 'DELETE',
 				});
-				if (response.ok) {
-					setPersonas(personas.filter(p => p._id !== persona._id));
-					setShowSuccessMessage(true);
-					setTimeout(() => setShowSuccessMessage(false), 3000);
+				if (res.ok) {
+					// Actualizar la lista después de eliminar
+					fetchUsers();
 				}
 			} catch (error) {
 				console.error('Error deleting persona:', error);
-			} finally {
-				setIsDeleting(null);
 			}
+		}
+	};
+
+	const handleSave = async (persona: Persona) => {
+		try {
+			const res = await fetch(`/api/admin/updateUser/${persona._id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(persona),
+			});
+			if (res.ok) {
+				// Actualizar la lista después de editar
+				fetchUsers();
+			}
+		} catch (error) {
+			console.error('Error updating persona:', error);
+		}
+	};
+
+	const handleCreate = async (persona: Persona) => {
+		try {
+			const res = await fetch('/api/admin/createUser', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(persona),
+			});
+			if (res.ok) {
+				// Actualizar la lista después de crear
+				fetchUsers();
+			}
+		} catch (error) {
+			console.error('Error creating persona:', error);
 		}
 	};
 
@@ -164,20 +212,20 @@ const Personas = () => {
 
 	const handlePublisherUpdate = () => {
 		// Recargar la lista de personas después de actualizar un publisher
-		fetchPersonas();
+		fetchUsers();
 	};
 
 	const handleContributorUpdate = () => {
 		// Recargar la lista de personas después de actualizar un contribuidor
-		fetchPersonas();
+		fetchUsers();
 	};
 
 	const handleArtistaUpdate = async (updatedArtista: Artista) => {
 		try {
-			// Asegurarse de que el artista tenga el rol 'artist'
+			// Asegurarse de que el artista tenga el rol 'artista'
 			const artistToSave = {
 				...updatedArtista,
-				role: 'artist',
+				role: 'artista',
 			};
 
 			console.log('Updating artist with data:', {
@@ -207,7 +255,7 @@ const Personas = () => {
 			const data = await res.json();
 			if (data.success) {
 				// Recargar la lista de personas después de actualizar un artista
-				fetchPersonas();
+				fetchUsers();
 				setShowArtistaModal(false);
 				setSelectedArtista(null);
 			}
@@ -237,7 +285,7 @@ const Personas = () => {
 			const data = await res.json();
 			if (data.success) {
 				// Recargar la lista de personas después de actualizar un sello
-				fetchPersonas();
+				fetchUsers();
 				setShowSelloModal(false);
 				setSelectedSello(null);
 			}
@@ -245,6 +293,19 @@ const Personas = () => {
 			console.error('Error updating sello:', error);
 			alert('Error al actualizar el sello');
 		}
+	};
+
+	const toggleExpand = (userId: string) => {
+		setExpandedUser(expandedUser === userId ? null : userId);
+	};
+
+	const formatDate = (dateString: string) => {
+		const date = new Date(dateString);
+		return date.toLocaleDateString('es-ES', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+		});
 	};
 
 	if (isLoading) {
@@ -299,82 +360,278 @@ const Personas = () => {
 					</thead>
 					<tbody className="bg-white divide-y divide-gray-200">
 						{personas.map(persona => (
-							<tr key={persona._id} className="hover:bg-gray-50">
-								<td className="px-6 py-4 whitespace-nowrap">
-									<div className="flex items-center">
-										<div className="flex-shrink-0 h-10 w-10">
-											{persona.picture?.base64 ? (
-												<motion.img
-													whileHover={{ scale: 1.05 }}
-													transition={{ duration: 0.2 }}
-													src={`data:image/jpeg;base64,${persona.picture.base64}`}
-													alt={persona.name}
-													className="h-10 w-10 rounded-full object-cover"
-												/>
-											) : (
-												<div className="h-10 w-10 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-full">
-													<User className="h-6 w-6 text-gray-400" />
+							<React.Fragment key={persona._id}>
+								<tr
+									className="hover:bg-gray-50 cursor-pointer"
+									onClick={() => toggleExpand(persona._id)}
+								>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<div className="flex items-center">
+											<div className="flex-shrink-0 h-10 w-10">
+												{persona.picture?.base64 ? (
+													<motion.img
+														whileHover={{ scale: 1.05 }}
+														transition={{ duration: 0.2 }}
+														src={`data:image/jpeg;base64,${persona.picture.base64}`}
+														alt={persona.name}
+														className="h-10 w-10 rounded-full object-cover"
+													/>
+												) : (
+													<div className="h-10 w-10 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-full">
+														<User className="h-6 w-6 text-gray-400" />
+													</div>
+												)}
+											</div>
+											<div className="ml-4">
+												<div className="text-sm font-medium text-gray-900">
+													{persona.name}
 												</div>
-											)}
-										</div>
-										<div className="ml-4">
-											<div className="text-sm font-medium text-gray-900">
-												{persona.name}
 											</div>
 										</div>
-									</div>
-								</td>
-								<td className="px-6 py-4 whitespace-nowrap">
-									<div className="text-sm text-gray-900">{persona.email}</div>
-								</td>
-								<td className="px-6 py-4 whitespace-nowrap">
-									<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-										{persona.role}
-									</span>
-								</td>
-								<td className="px-6 py-4 whitespace-nowrap">
-									<span
-										className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-											persona.status === 'active'
-												? 'bg-green-100 text-green-800'
-												: 'bg-red-100 text-red-800'
-										}`}
-									>
-										{persona.status}
-									</span>
-								</td>
-								<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-									<div className="flex items-center space-x-2">
-										<motion.button
-											whileHover={{ scale: 1.05 }}
-											whileTap={{ scale: 0.95 }}
-											onClick={e => handleEdit(e, persona)}
-											className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<div className="text-sm text-gray-900">{persona.email}</div>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+											{persona.role}
+										</span>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<span
+											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+												persona.status === 'active'
+													? 'bg-green-100 text-green-800'
+													: 'bg-red-100 text-red-800'
+											}`}
 										>
-											<Pencil
-												className="text-brand-light hover:text-brand-dark"
-												size={18}
-											/>
-										</motion.button>
-										<motion.button
-											whileHover={{ scale: 1.05 }}
-											whileTap={{ scale: 0.95 }}
-											onClick={e => handleDelete(e, persona)}
-											disabled={isDeleting === persona._id}
-											className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
-										>
-											{isDeleting === persona._id ? (
-												<div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-											) : (
-												<Trash2
-													className="text-red-500 hover:text-red-700"
+											{persona.status}
+										</span>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+										<div className="flex items-center space-x-2">
+											<motion.button
+												whileHover={{ scale: 1.05 }}
+												whileTap={{ scale: 0.95 }}
+												onClick={e => {
+													e.stopPropagation();
+													handleEdit(e, persona);
+												}}
+												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+											>
+												<Pencil
+													className="text-brand-light hover:text-brand-dark"
 													size={18}
 												/>
+											</motion.button>
+											<motion.button
+												whileHover={{ scale: 1.05 }}
+												whileTap={{ scale: 0.95 }}
+												onClick={e => {
+													e.stopPropagation();
+													handleDelete(e, persona);
+												}}
+												disabled={isDeleting === persona._id}
+												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+											>
+												{isDeleting === persona._id ? (
+													<div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+												) : (
+													<Trash2
+														className="text-red-500 hover:text-red-700"
+														size={18}
+													/>
+												)}
+											</motion.button>
+											{expandedUser === persona._id ? (
+												<ChevronUp className="h-5 w-5 text-gray-400" />
+											) : (
+												<ChevronDown className="h-5 w-5 text-gray-400" />
 											)}
-										</motion.button>
-									</div>
-								</td>
-							</tr>
+										</div>
+									</td>
+								</tr>
+								<AnimatePresence>
+									{expandedUser === persona._id && (
+										<tr>
+											<td colSpan={5} className="px-6 py-4 bg-gray-50">
+												<motion.div
+													initial={{ height: 0, opacity: 0 }}
+													animate={{ height: 'auto', opacity: 1 }}
+													exit={{ height: 0, opacity: 0 }}
+													transition={{ duration: 0.2 }}
+													className="overflow-hidden"
+												>
+													<div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+														<div className="space-y-3">
+															<p className="flex items-center gap-2">
+																<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																	<Hash className="h-4 w-4 text-brand-light" />{' '}
+																	ID:
+																</span>
+																<span className="text-gray-600">
+																	{persona._id}
+																</span>
+															</p>
+															{persona.external_id && (
+																<p className="flex items-center gap-2">
+																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																		<Tag className="h-4 w-4 text-brand-light" />{' '}
+																		External ID:
+																	</span>
+																	<span className="text-gray-600">
+																		{persona.external_id}
+																	</span>
+																</p>
+															)}
+															{persona.role?.toLowerCase() === 'artista' && (
+																<>
+																	<p className="flex items-center gap-2">
+																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																			<Music className="h-4 w-4 text-brand-light" />{' '}
+																			Amazon Music:
+																		</span>
+																		<span
+																			className={`text-gray-600 ${
+																				!persona.amazon_music_identifier
+																					? 'text-gray-400 italic'
+																					: ''
+																			}`}
+																		>
+																			{persona.amazon_music_identifier ||
+																				'Cuenta no encontrada'}
+																		</span>
+																	</p>
+																	<p className="flex items-center gap-2">
+																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																			<Music className="h-4 w-4 text-brand-light" />{' '}
+																			Apple Music:
+																		</span>
+																		<span
+																			className={`text-gray-600 ${
+																				!persona.apple_identifier
+																					? 'text-gray-400 italic'
+																					: ''
+																			}`}
+																		>
+																			{persona.apple_identifier ||
+																				'Cuenta no encontrada'}
+																		</span>
+																	</p>
+																	<p className="flex items-center gap-2">
+																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																			<Music className="h-4 w-4 text-brand-light" />{' '}
+																			Deezer:
+																		</span>
+																		<span
+																			className={`text-gray-600 ${
+																				!persona.deezer_identifier
+																					? 'text-gray-400 italic'
+																					: ''
+																			}`}
+																		>
+																			{persona.deezer_identifier ||
+																				'Cuenta no encontrada'}
+																		</span>
+																	</p>
+																	<p className="flex items-center gap-2">
+																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																			<Music className="h-4 w-4 text-brand-light" />{' '}
+																			Spotify:
+																		</span>
+																		<span
+																			className={`text-gray-600 ${
+																				!persona.spotify_identifier
+																					? 'text-gray-400 italic'
+																					: ''
+																			}`}
+																		>
+																			{persona.spotify_identifier ||
+																				'Cuenta no encontrada'}
+																		</span>
+																	</p>
+																</>
+															)}
+															{persona.role?.toLowerCase() === 'sello' && (
+																<>
+																	{persona.catalog_num && (
+																		<p className="flex items-center gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																				<Tag className="h-4 w-4 text-brand-light" />{' '}
+																				Catálogo:
+																			</span>
+																			<span className="text-gray-600">
+																				{persona.catalog_num}
+																			</span>
+																		</p>
+																	)}
+																	{persona.year && (
+																		<p className="flex items-center gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																				<Calendar className="h-4 w-4 text-brand-light" />{' '}
+																				Año:
+																			</span>
+																			<span className="text-gray-600">
+																				{persona.year}
+																			</span>
+																		</p>
+																	)}
+																	{persona.primary_genre && (
+																		<p className="flex items-center gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																				<Music className="h-4 w-4 text-brand-light" />{' '}
+																				Género:
+																			</span>
+																			<span className="text-gray-600">
+																				{persona.primary_genre}
+																			</span>
+																		</p>
+																	)}
+																</>
+															)}
+														</div>
+														<div className="space-y-3">
+															{persona.createdAt && (
+																<p className="flex items-center gap-2">
+																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																		<Clock className="h-4 w-4 text-brand-light" />{' '}
+																		Creado:
+																	</span>
+																	<span className="text-gray-600">
+																		{formatDate(persona.createdAt)}
+																	</span>
+																</p>
+															)}
+															{persona.updatedAt && (
+																<p className="flex items-center gap-2">
+																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																		<Clock className="h-4 w-4 text-brand-light" />{' '}
+																		Actualizado:
+																	</span>
+																	<span className="text-gray-600">
+																		{formatDate(persona.updatedAt)}
+																	</span>
+																</p>
+															)}
+															{persona.parentName && (
+																<p className="flex items-center gap-2">
+																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																		<Building2 className="h-4 w-4 text-brand-light" />{' '}
+																		Cuenta Principal:
+																	</span>
+																	<span className="text-gray-600">
+																		{persona.parentName}
+																	</span>
+																</p>
+															)}
+														</div>
+													</div>
+												</motion.div>
+											</td>
+										</tr>
+									)}
+								</AnimatePresence>
+							</React.Fragment>
 						))}
 					</tbody>
 				</table>

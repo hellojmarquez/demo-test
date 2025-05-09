@@ -4,6 +4,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 
+interface UpdateArtistBody {
+	name: FormDataEntryValue | null;
+	email: FormDataEntryValue | null;
+	password: FormDataEntryValue | null;
+	amazon_music_identifier: FormDataEntryValue | null;
+	apple_identifier: FormDataEntryValue | null;
+	deezer_identifier: FormDataEntryValue | null;
+	spotify_identifier: FormDataEntryValue | null;
+	role: string;
+	picture?: Buffer;
+}
+
 export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
@@ -33,22 +45,45 @@ export async function PUT(
 			);
 		}
 
-		const body = await req.json();
+		const contentType = req.headers.get('content-type');
+		let body: UpdateArtistBody;
 
-		console.log(params.id);
-		// Si hay una imagen en base64, convertirla a Buffer
-		if (body.picture && body.picture.base64) {
-			body.picture = Buffer.from(body.picture.base64, 'base64');
+		if (contentType?.includes('multipart/form-data')) {
+			const formData = await req.formData();
+			body = {
+				name: formData.get('name'),
+				email: formData.get('email'),
+				password: formData.get('password'),
+				amazon_music_identifier: formData.get('amazon_music_identifier'),
+				apple_identifier: formData.get('apple_identifier'),
+				deezer_identifier: formData.get('deezer_identifier'),
+				spotify_identifier: formData.get('spotify_identifier'),
+				role: 'artista',
+			};
+
+			// Procesar la imagen si existe
+			const picture = formData.get('picture') as File | null;
+			if (picture) {
+				const arrayBuffer = await picture.arrayBuffer();
+				body.picture = Buffer.from(arrayBuffer);
+			}
+		} else {
+			body = await req.json();
+			body.role = 'artista';
 		}
+
+		console.log('update: ', body);
+
+		// Actualizar artista en la API externa
 		const artistToApi = {
 			name: body.name,
 			amazon_music_identifier: body.amazon_music_identifier,
 			apple_identifier: body.apple_identifier,
-			deezer_identifie: body.deezer_identifie,
+			deezer_identifier: body.deezer_identifier,
 			spotify_identifier: body.spotify_identifier,
 			email: body.email,
 		};
-		// Actualizar artista en la API externa
+
 		const artistReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/artists/${params.id}`,
 			{
@@ -65,28 +100,30 @@ export async function PUT(
 
 		const artistRes = await artistReq.json();
 		console.log(artistRes);
+
 		// Conectar a la base de datos local
 		await dbConnect();
 
-		// Actualizar el publisher en la base de datos local
-		const updatedContributor = await User.findOneAndUpdate(
+		// Actualizar el usuario en la base de datos local
+		const updatedArtist = await User.findOneAndUpdate(
 			{ external_id: params.id },
-			body,
-			{ runValidators: true }
+			{ $set: body },
+			{ new: true, runValidators: true }
 		);
 
-		if (!updatedContributor) {
+		if (!updatedArtist) {
 			return NextResponse.json(
-				{ success: false, error: 'Contributor not found' },
+				{ success: false, error: 'Artist not found' },
 				{ status: 404 }
 			);
 		}
 
 		return NextResponse.json({
 			success: true,
+			artist: updatedArtist,
 		});
 	} catch (error) {
-		console.error('Error updating publisher:', error);
+		console.error('Error updating artist:', error);
 		return NextResponse.json(
 			{ success: false, error: 'Internal Server Error' },
 			{ status: 500 }

@@ -3,7 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import Release from '@/models/ReleaseModel';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
-
+import { v4 as uuidv4 } from 'uuid';
 export async function POST(req: NextRequest) {
 	console.log('Create release request received');
 
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 				console.error('Error parsing subgenre:', e);
 			}
 		}
-
+		const temp_id = uuidv4();
 		let newRelease = {
 			name,
 			label,
@@ -111,21 +111,21 @@ export async function POST(req: NextRequest) {
 			backcatalog,
 			auto_detect_language,
 			generate_ean,
-			genre: genre.id,
-			subgenre: subgenre.id,
+			genre: Number(genre),
+			subgenre: Number(subgenre),
 			youtube_declaration,
 			release_version,
 			publisher,
 			publisher_year,
+			catalogue_number: 'ISLASOUNDS' + external_id,
 			copyright_holder,
 			copyright_holder_year,
-			catalogue_number,
-			is_new_release,
+			is_new_release: 1,
 			official_date,
 			original_date,
 			territory,
 		};
-
+		console.log(newRelease);
 		if (picture) {
 			console.log('ACTUALIZANDO TRAck');
 			const uploadArtworkReq = await fetch(
@@ -192,8 +192,6 @@ export async function POST(req: NextRequest) {
 				kind: artist.kind,
 			})),
 		};
-		console.log('Artists formatted:', releaseToApiData.artists);
-		console.log('Release data:', releaseToApiData);
 
 		const releaseToApi = await fetch(`${process.env.MOVEMUSIC_API}/releases`, {
 			method: 'POST',
@@ -221,6 +219,7 @@ export async function POST(req: NextRequest) {
 			label_name: String(label_name),
 			artists,
 		};
+
 		const savedRelease = await Release.create(releaseToSave);
 
 		console.log('release en mongo: ', savedRelease);

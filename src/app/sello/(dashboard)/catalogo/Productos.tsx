@@ -23,6 +23,8 @@ import Link from 'next/link';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import CreateInitRelease from '@/components/CreateInitRelease';
+import { toast } from 'react-hot-toast';
 
 interface PictureObject {
 	base64: string;
@@ -79,8 +81,12 @@ const Productos: React.FC = () => {
 	const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [successMessageType, setSuccessMessageType] = useState<
+		'create' | 'delete' | null
+	>(null);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [isModalOpen, setIsModalOpen] = useState(false);
 	const router = useRouter();
 	useEffect(() => {
 		const fetchReleases = async () => {
@@ -146,7 +152,11 @@ const Productos: React.FC = () => {
 				setIsEditModalOpen(false);
 				setSelectedRelease(null);
 				setShowSuccessMessage(true);
-				setTimeout(() => setShowSuccessMessage(false), 3000);
+				setSuccessMessageType('create');
+				setTimeout(() => {
+					setShowSuccessMessage(false);
+					setSuccessMessageType(null);
+				}, 3000);
 			} else {
 				console.error('Error updating release');
 			}
@@ -174,7 +184,11 @@ const Productos: React.FC = () => {
 			if (response.ok) {
 				setReleases(prev => prev.filter(r => r._id !== release._id));
 				setShowSuccessMessage(true);
-				setTimeout(() => setShowSuccessMessage(false), 3000);
+				setSuccessMessageType('delete');
+				setTimeout(() => {
+					setShowSuccessMessage(false);
+					setSuccessMessageType(null);
+				}, 3000);
 			} else {
 				alert(data.message || 'Error al eliminar el producto');
 			}
@@ -184,6 +198,19 @@ const Productos: React.FC = () => {
 		} finally {
 			setIsDeleting(null);
 		}
+	};
+
+	const handleCreateRelease = async (data: {
+		title: string;
+		image: File | null;
+	}) => {
+		setIsModalOpen(false);
+		setShowSuccessMessage(true);
+		setSuccessMessageType('create');
+		setTimeout(() => {
+			setShowSuccessMessage(false);
+			setSuccessMessageType(null);
+		}, 3000);
 	};
 
 	if (loading) {
@@ -196,16 +223,6 @@ const Productos: React.FC = () => {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex justify-end mb-4">
-				<Link
-					href="/sello/catalogo/crear-release"
-					className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group min-w-[180px]"
-				>
-					<Plus className="h-4 w-4" />
-					<span>Crear lanzamiento</span>
-				</Link>
-			</div>
-
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
@@ -214,9 +231,25 @@ const Productos: React.FC = () => {
 					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
 				>
 					<CheckCircle size={18} />
-					<span>Producto eliminado exitosamente</span>
+					<span>
+						{successMessageType === 'create'
+							? 'Producto creado exitosamente'
+							: 'Producto eliminado exitosamente'}
+					</span>
 				</motion.div>
 			)}
+			<div className="flex justify-end mb-4">
+				<motion.button
+					whileHover={{ scale: 1.05 }}
+					whileTap={{ scale: 0.95 }}
+					onClick={() => setIsModalOpen(true)}
+					className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group min-w-[180px]"
+				>
+					<Plus className="h-4 w-4" />
+					<span>Crear lanzamiento</span>
+				</motion.button>
+			</div>
+
 			{releases.length === 0 ? (
 				<motion.div
 					key="no-releases"
@@ -549,6 +582,18 @@ const Productos: React.FC = () => {
 					}}
 					onSave={handleSaveEdit}
 				/>
+			)}
+
+			{/* Modal */}
+			{isModalOpen && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+					<div className="relative">
+						<CreateInitRelease
+							onCancel={() => setIsModalOpen(false)}
+							onSubmit={handleCreateRelease}
+						/>
+					</div>
+				</div>
 			)}
 		</div>
 	);

@@ -207,6 +207,18 @@ const Productos: React.FC = () => {
 		setIsModalOpen(false);
 		setShowSuccessMessage(true);
 		setSuccessMessageType('create');
+
+		// Actualizar la lista de productos
+		try {
+			const res = await fetch('/api/admin/getAllReleases');
+			const response = await res.json();
+			if (response.success) {
+				setReleases(response.data);
+			}
+		} catch (error) {
+			console.error('Error fetching releases:', error);
+		}
+
 		setTimeout(() => {
 			setShowSuccessMessage(false);
 			setSuccessMessageType(null);

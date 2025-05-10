@@ -92,7 +92,12 @@ const Productos: React.FC = () => {
 		const fetchReleases = async () => {
 			setLoading(true);
 			try {
-				const res = await fetch('/api/admin/getAllReleases');
+				const res = await fetch('/api/admin/getAllReleases', {
+					cache: 'no-store',
+					headers: {
+						'Cache-Control': 'no-cache',
+					},
+				});
 				const data = await res.json();
 				if (data.success) {
 					setReleases(data.data as Release[]);

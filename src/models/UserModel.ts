@@ -34,17 +34,6 @@ const baseUserSchema = new mongoose.Schema(
 			default: 'principal',
 			required: true,
 		},
-		subaccounts: {
-			type: Array,
-			default: [],
-			required: function (this: any) {
-				return this.tipo === 'principal';
-			},
-		},
-		parentName: {
-			type: String,
-			default: null,
-		},
 		createdAt: {
 			type: Date,
 			default: Date.now,
@@ -99,11 +88,6 @@ const selloSchema = new mongoose.Schema({
 
 // Esquema específico para artistas
 const artistSchema = new mongoose.Schema({
-	parentId: {
-		type: mongoose.Schema.Types.ObjectId,
-		ref: 'User',
-		default: null,
-	},
 	amazon_music_identifier: {
 		type: String,
 		default: '',
@@ -117,10 +101,6 @@ const artistSchema = new mongoose.Schema({
 		default: '',
 	},
 	spotify_identifier: {
-		type: String,
-		default: '',
-	},
-	primary_genre: {
 		type: String,
 		default: '',
 	},

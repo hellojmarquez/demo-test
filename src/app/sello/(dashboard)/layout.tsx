@@ -67,106 +67,182 @@ export default function DashboardLayout({
 				<header className="bg-white shadow">
 					<div className="max-w-7xl mx-auto">
 						{/* Top Bar */}
-						<div className="flex h-28 px-4 sm:px-6 lg:px-8 bg-brand-dark justify-between items-center py-4">
-							<img src="/logo_white.png" alt="Isla Sounds" className="h-4" />
+						<div className="flex bg-brand-dark justify-between md:justify-start px-6 items-center md:space-x-10 py-4">
 							<div className="flex items-center">
-								<button
-									onClick={toggleMobileMenu}
-									className="md:hidden mr-4 text-gray-500 hover:text-gray-700"
-								>
-									{mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-								</button>
-								<h1 className="text-md text-white mb-4">
-									Bienvenido {user?.name}{' '}
-									{currentAccount &&
-										` - ${currentAccount.name} (${currentAccount.type})`}
-								</h1>
-								<div className="flex items-center space-x-4">
-									<AccountSwitchButton />
-								</div>
+								<img src="/logo_white.png" alt="Isla Sounds" className="h-3" />
 							</div>
+
+							{/* Mobile menu button */}
+							<button
+								onClick={toggleMobileMenu}
+								className="md:hidden text-white p-2"
+								aria-label="Toggle menu"
+							>
+								{mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+							</button>
+
+							{/* Desktop Navigation */}
+							<nav className="hidden md:block">
+								<div className="flex items-center space-x-4">
+									<Link
+										href="/sello"
+										className={`flex items-center p-2 transition-colors relative group ${
+											isActive('/sello')
+												? 'text-white border-b-2'
+												: 'text-white'
+										}`}
+										onClick={() => setMobileMenuOpen(false)}
+									>
+										<Home size={18} className="mr-2" />
+										<span>Dashboard</span>
+										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+									</Link>
+									<Link
+										href="/sello/cuentas"
+										className={`flex items-center p-2 transition-colors relative group ${
+											isActive('/sello/cuentas')
+												? 'text-white border-b-2'
+												: 'text-white'
+										}`}
+										onClick={() => setMobileMenuOpen(false)}
+									>
+										<Users size={18} className="mr-2" />
+										<span>Usuarios</span>
+										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+									</Link>
+									<a
+										href="/admin/mensajes"
+										className={`flex items-center p-2 transition-colors relative group ${
+											isActive('/admin/mensajes')
+												? 'text-white border-b-2'
+												: 'text-white'
+										}`}
+										onClick={() => setMobileMenuOpen(false)}
+									>
+										<MessageSquare size={18} className="mr-2" />
+										<span>Mensajes</span>
+										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+									</a>
+									<Link
+										href="/sello/catalogo"
+										className={`flex items-center p-2 transition-colors relative group ${
+											isActive('/sello/catalogo')
+												? 'text-white border-b-2'
+												: 'text-white'
+										}`}
+										onClick={() => setMobileMenuOpen(false)}
+									>
+										<FileMusic size={18} className="mr-2" />
+										<span>Catálogo</span>
+										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+									</Link>
+									<a
+										href="/admin/config"
+										className={`flex items-center p-2 transition-colors relative group ${
+											isActive('/admin/config')
+												? 'text-white border-b-2'
+												: 'text-white'
+										}`}
+										onClick={() => setMobileMenuOpen(false)}
+									>
+										<Settings size={18} className="mr-2" />
+										<span>Configuraciones</span>
+										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+									</a>
+								</div>
+							</nav>
+
+							{/* Mobile Navigation */}
+							<nav
+								className={`${
+									mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+								} md:hidden fixed top-0 left-0 h-full w-64 bg-brand-dark shadow-lg z-50 transition-transform duration-300 ease-in-out`}
+							>
+								<div className="flex flex-col h-full">
+									<div className="flex justify-end p-4">
+										<button
+											onClick={toggleMobileMenu}
+											className="text-white p-2"
+											aria-label="Close menu"
+										>
+											<X size={24} />
+										</button>
+									</div>
+									<div className="flex flex-col px-4 py-2">
+										<Link
+											href="/sello"
+											className={`flex items-center p-3 transition-colors relative group ${
+												isActive('/sello')
+													? 'text-white border-l-2 border-white'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<Home size={18} className="mr-2" />
+											<span>Dashboard</span>
+										</Link>
+										<Link
+											href="/sello/cuentas"
+											className={`flex items-center p-3 transition-colors relative group ${
+												isActive('/sello/cuentas')
+													? 'text-white border-l-2 border-white'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<Users size={18} className="mr-2" />
+											<span>Usuarios</span>
+										</Link>
+										<a
+											href="/admin/mensajes"
+											className={`flex items-center p-3 transition-colors relative group ${
+												isActive('/admin/mensajes')
+													? 'text-white border-l-2 border-white'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<MessageSquare size={18} className="mr-2" />
+											<span>Mensajes</span>
+										</a>
+										<Link
+											href="/sello/catalogo"
+											className={`flex items-center p-3 transition-colors relative group ${
+												isActive('/sello/catalogo')
+													? 'text-white border-l-2 border-white'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<FileMusic size={18} className="mr-2" />
+											<span>Catálogo</span>
+										</Link>
+										<a
+											href="/admin/config"
+											className={`flex items-center p-3 transition-colors relative group ${
+												isActive('/admin/config')
+													? 'text-white border-l-2 border-white'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<Settings size={18} className="mr-2" />
+											<span>Configuraciones</span>
+										</a>
+									</div>
+								</div>
+							</nav>
+
+							{/* Overlay for mobile menu */}
+							{mobileMenuOpen && (
+								<div
+									className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+									onClick={toggleMobileMenu}
+								/>
+							)}
 						</div>
 
 						{/* Navigation Menu */}
-						<nav
-							className={`${
-								mobileMenuOpen ? 'block' : 'hidden'
-							} md:block border-t border-gray-200 `}
-						>
-							<div className="flex flex-col md:flex-row md:items-center md:space-x-4 py-2  px-4 sm:px-6 lg:px-8">
-								<Link
-									href="/sello"
-									className={`flex items-center p-2 rounded-md transition-colors ${
-										isActive('/sello')
-											? 'bg-[#f0ecf1] text-[#0f4ccc]'
-											: 'text-gray-700 hover:bg-[#f0ecf1] hover:text-[#0f4ccc]'
-									}`}
-									onClick={() => setMobileMenuOpen(false)}
-								>
-									<Home size={18} className="mr-2" />
-									<span>Dashboard</span>
-								</Link>
-								<Link
-									href="/sello/cuentas"
-									className={`flex items-center p-2 rounded-md transition-colors ${
-										isActive('/sello/cuentas')
-											? 'bg-[#f0ecf1] text-[#0f4ccc]'
-											: 'text-gray-700 hover:bg-[#f0ecf1] hover:text-[#0f4ccc]'
-									}`}
-									onClick={() => setMobileMenuOpen(false)}
-								>
-									<Users size={18} className="mr-2" />
-									<span>Usuarios</span>
-								</Link>
-								<a
-									href="/admin/mensajes"
-									className={`flex items-center p-2 rounded-md transition-colors ${
-										isActive('/admin/mensajes')
-											? 'bg-[#f0ecf1] text-[#0f4ccc]'
-											: 'text-gray-700 hover:bg-[#f0ecf1] hover:text-[#0f4ccc]'
-									}`}
-									onClick={() => setMobileMenuOpen(false)}
-								>
-									<MessageSquare size={18} className="mr-2" />
-									<span>Mensajes</span>
-								</a>
-								<Link
-									href="/sello/catalogo"
-									className={`flex items-center p-2 rounded-md transition-colors ${
-										isActive('/sello/catalogo')
-											? 'bg-[#f0ecf1] text-[#0f4ccc]'
-											: 'text-gray-700 hover:bg-[#f0ecf1] hover:text-[#0f4ccc]'
-									}`}
-									onClick={() => setMobileMenuOpen(false)}
-								>
-									<FileMusic size={18} className="mr-2" />
-									<span>Catálogo</span>
-								</Link>
-								<a
-									href="/admin/config"
-									className={`flex items-center p-2 rounded-md transition-colors ${
-										isActive('/admin/config')
-											? 'bg-[#f0ecf1] text-[#0f4ccc]'
-											: 'text-gray-700 hover:bg-[#f0ecf1] hover:text-[#0f4ccc]'
-									}`}
-									onClick={() => setMobileMenuOpen(false)}
-								>
-									<Settings size={18} className="mr-2" />
-									<span>Configuraciones</span>
-								</a>
-								<button
-									onClick={() => {
-										document.cookie =
-											'session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-										window.location.href = 'https://login.islasounds.com';
-									}}
-									className="flex items-center p-2 rounded-md hover:bg-red-50 hover:text-red-600 transition-colors text-gray-700"
-								>
-									<LogOut size={18} className="mr-2" />
-									<span>Cerrar sesión</span>
-								</button>
-							</div>
-						</nav>
 					</div>
 				</header>
 

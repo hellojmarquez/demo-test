@@ -39,7 +39,7 @@ const VinylLoader: React.FC<VinylLoaderProps> = ({
 				className="italic text-gray-400 text-sm"
 				style={{ animation: 'blink 1s infinite' }}
 			>
-				Grabando...
+				Creando producto...
 			</span>
 
 			<style jsx>{`

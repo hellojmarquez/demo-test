@@ -1,62 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-	X,
 	Upload,
 	Image as ImageIcon,
 	Save,
 	XCircle,
 	Trash2,
 	Plus,
+	ArrowBigUp,
 } from 'lucide-react';
-import Cleave from 'cleave.js';
 import Select, { SingleValue } from 'react-select';
-
-interface Release {
-	_id: string;
-	__v: number;
-	name: string;
-	picture: {
-		base64: string;
-	} | null;
-	artists: {
-		order: number;
-		artist: number;
-		kind: string;
-		name: string;
-	}[];
-	tracks: {
-		_id: string;
-		order: number;
-		track: number;
-		name: string;
-		isrc: string;
-		ISRC: string;
-		genre: string;
-		subgenre: string;
-		track_length: string;
-		explicit_content: boolean;
-		album_only: boolean;
-		generate_isrc: boolean;
-		artists: {
-			order: number;
-			artist: number;
-			kind: string;
-			name: string;
-		}[];
-	}[];
-	auto_detect_language: boolean;
-	backcatalog: boolean;
-	countries: string[];
-	createdAt: string;
-	updatedAt: string;
-	dolby_atmos: boolean;
-	generate_ean: boolean;
-	kind: string;
-	label: string;
-	language: string;
-	youtube_declaration: boolean;
-	track_length: string;
-}
+import { Release, Artist } from '@/types/release';
+import UploadTrackToRelease from './UploadTrackToRelease';
 
 interface ArtistData {
 	external_id: number;
@@ -70,29 +24,37 @@ interface TrackData {
 	ISRC: string;
 }
 
-interface UpdateReleaseModalProps {
+interface UpdateReleasePageProps {
 	release: Release;
-	isOpen: boolean;
-	onClose: () => void;
-	onSave: (updatedRelease: Release) => void;
+	onSave: (updatedRelease: Release) => Promise<void>;
 }
 
-const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
+interface ArtistOption {
+	value: number;
+	label: string;
+}
+
+interface KindOption {
+	value: string;
+	label: string;
+}
+
+const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
-	isOpen,
-	onClose,
 	onSave,
 }) => {
-	const [formData, setFormData] = useState<Release>({
+	const [formData, setFormData] = useState<Release>(() => ({
 		...release,
-		picture: release.picture ? { base64: release.picture.base64 } : null,
-	});
-	const [imagePreview, setImagePreview] = useState<string | null>(
-		release.picture?.base64
-			? `data:image/jpeg;base64,${release.picture.base64}`
-			: null
-	);
+		picture: release.picture || undefined,
+		artists: release.artists || [],
+		tracks: (release.tracks || []).filter(track => track !== null),
+		countries: release.countries || [],
+		createdAt: release.createdAt || new Date().toISOString(),
+		updatedAt: release.updatedAt || new Date().toISOString(),
+	}));
+	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
 	const [trackData, setTrackData] = useState<TrackData[]>([]);
@@ -133,6 +95,19 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 			zIndex: 9999,
 		}),
 	};
+
+	// Efecto para cargar la imagen inicial
+	useEffect(() => {
+		if (release.picture) {
+			// Si la imagen es una URL, la usamos directamente
+			if (release.picture.startsWith('http')) {
+				setImagePreview(release.picture);
+			} else {
+				// Si es base64, la convertimos a URL
+				setImagePreview(`data:image/jpeg;base64,${release.picture}`);
+			}
+		}
+	}, [release.picture]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -176,14 +151,13 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				const base64String = reader.result as string;
-				// Remove the data:image/jpeg;base64, prefix
-				const base64Data = base64String.split(',')[1];
+				// Mostramos el preview de la imagen subida
 				setImagePreview(base64String);
+				// Guardamos solo la parte base64 sin el prefijo
+				const base64Data = base64String.split(',')[1];
 				setFormData(prev => ({
 					...prev,
-					picture: {
-						base64: base64Data,
-					},
+					picture: base64Data,
 				}));
 			};
 			reader.readAsDataURL(file);
@@ -204,7 +178,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 	const handleDeleteArtist = (index: number) => {
 		setFormData(prev => ({
 			...prev,
-			artists: prev.artists.filter((_, i) => i !== index),
+			artists: prev.artists?.filter((_, i) => i !== index) || [],
 		}));
 	};
 
@@ -212,9 +186,9 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		setFormData(prev => ({
 			...prev,
 			artists: [
-				...prev.artists,
+				...(prev.artists || []),
 				{
-					order: prev.artists.length,
+					order: prev.artists?.length || 0,
 					artist: 0,
 					kind: '',
 					name: '',
@@ -225,57 +199,31 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 
 	const handleArtistChange = (
 		index: number,
-		field: string,
+		field: keyof Artist,
 		value: string | number
 	) => {
 		setFormData(prev => {
-			const newArtists = [...prev.artists];
-			if (!newArtists[index]) {
-				newArtists[index] = { order: 0, artist: 0, kind: 'main', name: '' };
-			}
-
-			if (field === 'artist') {
-				const numValue =
-					typeof value === 'string' ? parseInt(value) : Number(value);
-				if (!isNaN(numValue)) {
-					const selectedArtist = artistData.find(
-						a => a.external_id === numValue
-					);
-					if (selectedArtist) {
-						newArtists[index] = {
-							...newArtists[index],
-							artist: selectedArtist.external_id,
-							name: selectedArtist.name || '',
-						};
-					}
-				}
-			} else if (field === 'kind') {
-				newArtists[index] = {
-					...newArtists[index],
-					kind: value as string,
+			const artists = [...(prev.artists || [])];
+			if (!artists[index]) {
+				artists[index] = {
+					artist: 0,
+					name: '',
+					kind: 'main',
+					order: 0,
 				};
-			} else if (field === 'order') {
-				const numValue =
-					typeof value === 'string' ? parseInt(value) : Number(value);
-				if (!isNaN(numValue)) {
-					newArtists[index] = {
-						...newArtists[index],
-						order: numValue,
-					};
-				}
 			}
-
-			return {
-				...prev,
-				artists: newArtists,
+			artists[index] = {
+				...artists[index],
+				[field]: value,
 			};
+			return { ...prev, artists };
 		});
 	};
 
 	const handleDeleteTrack = (index: number) => {
 		setFormData(prev => ({
 			...prev,
-			tracks: prev.tracks.filter((_, i) => i !== index),
+			tracks: prev.tracks?.filter((_, i) => i !== index) || [],
 		}));
 	};
 
@@ -285,39 +233,35 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		value: string | number
 	) => {
 		setFormData(prev => {
-			const newTracks = [...prev.tracks];
+			const newTracks = [...(prev.tracks || [])];
 			if (!newTracks[index]) {
 				newTracks[index] = {
-					_id: '',
-					order: prev.tracks.length,
-					track: 0,
+					order: (prev.tracks || []).length,
 					name: '',
-					isrc: '',
-					ISRC: '',
-					genre: '',
-					subgenre: '',
-					track_length: '',
-					explicit_content: false,
-					album_only: false,
-					generate_isrc: false,
 					artists: [],
+					ISRC: '',
+					generate_isrc: false,
+					DA_ISRC: '',
+					genre: 0,
+					subgenre: 0,
+					mix_name: '',
+					resource: '',
+					dolby_atmos_resource: '',
+					album_only: false,
+					explicit_content: false,
+					track_length: '',
 				};
 			}
 
 			if (field === 'track') {
-				const numValue =
-					typeof value === 'string' ? parseInt(value) : Number(value);
-				if (!isNaN(numValue)) {
-					const selectedTrack = trackData.find(t => t._id === value);
-					if (selectedTrack) {
-						newTracks[index] = {
-							...newTracks[index],
-							track: numValue,
-							name: selectedTrack.name,
-							ISRC: selectedTrack.ISRC,
-							order: prev.tracks.length,
-						};
-					}
+				const selectedTrack = trackData.find(t => t._id === value);
+				if (selectedTrack) {
+					newTracks[index] = {
+						...newTracks[index],
+						name: selectedTrack.name,
+						ISRC: selectedTrack.ISRC,
+						order: (prev.tracks || []).length,
+					};
 				}
 			} else if (field === 'order') {
 				const numValue =
@@ -341,48 +285,44 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 		setFormData(prev => ({
 			...prev,
 			tracks: [
-				...prev.tracks,
+				...(prev.tracks || []),
 				{
-					_id: '',
-					order: prev.tracks.length,
-					track: 0,
+					order: (prev.tracks || []).length,
 					name: '',
-					isrc: '',
-					ISRC: '',
-					genre: '',
-					subgenre: '',
-					track_length: '',
-					explicit_content: false,
-					album_only: false,
-					generate_isrc: false,
 					artists: [],
+					ISRC: '',
+					generate_isrc: false,
+					DA_ISRC: '',
+					genre: 0,
+					subgenre: 0,
+					mix_name: '',
+					resource: '',
+					dolby_atmos_resource: '',
+					album_only: false,
+					explicit_content: false,
+					track_length: '',
 				},
 			],
 		}));
 	};
 
-	if (!isOpen) return null;
+	const handleUploadTrack = (data: {
+		title: string;
+		mixName: string;
+		file: File;
+	}) => {
+		console.log('Track data:', data);
+		// Aquí irá la lógica para subir el track
+		setIsUploadModalOpen(false);
+	};
 
 	return (
-		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-				<div className="flex justify-between items-center mb-4">
-					<h2 className="text-xl font-bold">Editar Lanzamiento</h2>
-					<button
-						onClick={onClose}
-						className="p-2 hover:bg-gray-100 rounded-full"
-					>
-						<X size={20} />
-					</button>
-				</div>
-
+		<div className="container mx-auto px-4 py-8">
+			<div className="bg-white rounded-lg p-6">
 				<form onSubmit={handleSubmit} className="space-y-4">
-					<div className="space-y-2">
-						<label className="block text-sm font-medium text-gray-700">
-							Imagen de portada
-						</label>
+					<div className="space-y-2 bg-slate-50">
 						<div className="flex items-center gap-4">
-							<div className="w-32 h-32 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+							<div className="w-52 h-52 border-2 border-gray-200 flex items-center justify-center overflow-hidden relative group">
 								{imagePreview ? (
 									<img
 										src={imagePreview}
@@ -397,24 +337,34 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 										</span>
 									</div>
 								)}
+								<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-end justify-center p-2">
+									<input
+										type="file"
+										ref={fileInputRef}
+										onChange={handleImageChange}
+										accept="image/*"
+										className="hidden"
+									/>
+									<button
+										type="button"
+										onClick={() => fileInputRef.current?.click()}
+										className="inline-flex items-center px-3 py-2 border border-white shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-gray-700 transition-all duration-200"
+									>
+										<Upload className="h-4 w-4 mr-2" />
+										Cambiar imagen
+									</button>
+								</div>
 							</div>
-							<div>
-								<input
-									type="file"
-									ref={fileInputRef}
-									onChange={handleImageChange}
-									accept="image/*"
-									className="hidden"
-								/>
-								<button
-									type="button"
-									onClick={() => fileInputRef.current?.click()}
-									className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-								>
-									<Upload className="h-4 w-4 mr-2" />
-									Cambiar imagen
-								</button>
-							</div>
+						</div>
+						<div className="flex justify-end border-t border-gray-300 mt-4">
+							<button
+								type="button"
+								onClick={() => setIsUploadModalOpen(true)}
+								className="inline-flex items-center text-brand-light px-4 py-2 text-sm font-medium hover:text-gray-900 transition-colors duration-200"
+							>
+								<ArrowBigUp className="h-6 w-6 mr-2 fill-current" />
+								Subir track
+							</button>
 						</div>
 					</div>
 
@@ -452,7 +402,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							<Select
 								name="language"
 								value={{
-									value: formData.language,
+									value: formData.language || '',
 									label: formData.language === 'ES' ? 'Español' : 'English',
 								}}
 								onChange={(
@@ -497,7 +447,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 						</label>
 						<textarea
 							name="countries"
-							value={formData.countries.join(', ')}
+							value={(formData.countries || []).join(', ')}
 							onChange={e => {
 								const countries = e.target.value.split(',').map(c => c.trim());
 								setFormData(prev => ({ ...prev, countries }));
@@ -512,23 +462,18 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							Artistas
 						</label>
 						<div className="space-y-2">
-							{formData.artists.length === 0 ? (
+							{(formData.artists || []).length === 0 ? (
 								<div className="flex items-center gap-2">
-									<Select
+									<Select<ArtistOption>
 										value={
-											formData.artists[0]?.artist
+											(formData.artists || [])[0]?.artist
 												? {
-														value: formData.artists[0].artist,
-														label: formData.artists[0].name,
+														value: (formData.artists || [])[0].artist,
+														label: (formData.artists || [])[0].name || '',
 												  }
-												: null
+												: { value: 0, label: '' }
 										}
-										onChange={(
-											selectedOption: SingleValue<{
-												value: number;
-												label: string;
-											}>
-										) => {
+										onChange={(selectedOption: SingleValue<ArtistOption>) => {
 											if (selectedOption) {
 												handleArtistChange(0, 'artist', selectedOption.value);
 											}
@@ -543,26 +488,22 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 										styles={reactSelectStyles}
 									/>
 
-									<Select
+									<Select<KindOption>
 										value={
-											formData.artists[0]?.kind
+											(formData.artists || [])[0]?.kind
 												? {
-														value: formData.artists[0].kind,
+														value: (formData.artists || [])[0].kind,
 														label:
-															formData.artists[0].kind === 'main'
+															(formData.artists || [])[0].kind === 'main'
 																? 'Principal'
-																: formData.artists[0].kind === 'featuring'
+																: (formData.artists || [])[0].kind ===
+																  'featuring'
 																? 'Invitado'
 																: 'Remixer',
 												  }
-												: null
+												: { value: 'main', label: 'Principal' }
 										}
-										onChange={(
-											selectedOption: SingleValue<{
-												value: string;
-												label: string;
-											}>
-										) => {
+										onChange={(selectedOption: SingleValue<KindOption>) => {
 											if (selectedOption) {
 												handleArtistChange(0, 'kind', selectedOption.value);
 											}
@@ -581,8 +522,8 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 									<input
 										type="number"
 										value={
-											typeof formData.artists[0]?.order === 'number'
-												? formData.artists[0].order
+											typeof (formData.artists || [])[0]?.order === 'number'
+												? (formData.artists || [])[0].order
 												: 0
 										}
 										onChange={e => {
@@ -594,23 +535,18 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 									/>
 								</div>
 							) : (
-								formData.artists.map((artist, index) => (
+								(formData.artists || []).map((artist, index) => (
 									<div key={index} className="flex items-center gap-2">
-										<Select
+										<Select<ArtistOption>
 											value={
 												artist.artist
 													? {
 															value: artist.artist,
-															label: artist.name,
+															label: artist.name || '',
 													  }
-													: null
+													: { value: 0, label: '' }
 											}
-											onChange={(
-												selectedOption: SingleValue<{
-													value: number;
-													label: string;
-												}>
-											) => {
+											onChange={(selectedOption: SingleValue<ArtistOption>) => {
 												if (selectedOption) {
 													handleArtistChange(
 														index,
@@ -629,7 +565,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 											styles={reactSelectStyles}
 										/>
 
-										<Select
+										<Select<KindOption>
 											value={
 												artist.kind
 													? {
@@ -641,14 +577,9 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 																	? 'Invitado'
 																	: 'Remixer',
 													  }
-													: null
+													: { value: 'main', label: 'Principal' }
 											}
-											onChange={(
-												selectedOption: SingleValue<{
-													value: string;
-													label: string;
-												}>
-											) => {
+											onChange={(selectedOption: SingleValue<KindOption>) => {
 												if (selectedOption) {
 													handleArtistChange(
 														index,
@@ -681,11 +612,11 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 													isNaN(val) ? 0 : val
 												);
 											}}
-											className="w-20 px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+											className={inputStyles}
 											placeholder="Orden"
 										/>
 
-										{formData.artists.length > 1 && (
+										{(formData.artists || []).length > 1 && (
 											<button
 												onClick={() => handleDeleteArtist(index)}
 												className="p-2 text-red-600 hover:text-red-800"
@@ -714,25 +645,23 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 							Tracks
 						</label>
 						<div className="space-y-2">
-							{formData.tracks.map((track, index) => (
-								<div
-									key={track._id || index}
-									className="flex items-center gap-2"
-								>
-									<div className="flex-1 p-2 border rounded bg-gray-50">
-										{track.name}
+							{formData.tracks
+								?.filter(track => track !== null)
+								.map((track, index) => (
+									<div key={index} className="flex items-center gap-2">
+										<div className="flex-1 p-2 border rounded bg-gray-50">
+											{track?.name || 'Track sin nombre'}
+										</div>
+										<button
+											onClick={() => handleDeleteTrack(index)}
+											className="p-2 text-red-600 hover:text-red-800"
+										>
+											<Trash2 size={20} />
+										</button>
 									</div>
+								))}
 
-									<button
-										onClick={() => handleDeleteTrack(index)}
-										className="p-2 text-red-600 hover:text-red-800"
-									>
-										<Trash2 size={20} />
-									</button>
-								</div>
-							))}
-
-							{formData.tracks.length === 0 && (
+							{(!formData.tracks || formData.tracks.length === 0) && (
 								<div className="text-sm text-gray-500">
 									No hay tracks agregados
 								</div>
@@ -753,7 +682,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 											);
 											if (selectedTrack) {
 												handleTrackChange(
-													formData.tracks.length,
+													(formData.tracks || []).length,
 													'track',
 													selectedTrack._id
 												);
@@ -850,21 +779,7 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 						</div>
 					</div>
 
-					<div className="text-sm text-gray-500 mt-4">
-						<p>Creado: {new Date(formData.createdAt).toLocaleString()}</p>
-						<p>Actualizado: {new Date(formData.updatedAt).toLocaleString()}</p>
-					</div>
-
 					<div className="flex justify-end space-x-3 mt-6">
-						<button
-							type="button"
-							onClick={onClose}
-							disabled={isLoading}
-							className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
-							<span className="group-hover:text-brand-dark">Cancelar</span>
-						</button>
 						<button
 							type="submit"
 							disabled={isLoading}
@@ -887,8 +802,15 @@ const UpdateReleaseModal: React.FC<UpdateReleaseModalProps> = ({
 					</div>
 				</form>
 			</div>
+
+			<UploadTrackToRelease
+				isOpen={isUploadModalOpen}
+				onClose={() => setIsUploadModalOpen(false)}
+				onSubmit={handleUploadTrack}
+				releaseId={release._id}
+			/>
 		</div>
 	);
 };
 
-export default UpdateReleaseModal;
+export default UpdateReleasePage;

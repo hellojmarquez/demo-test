@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, XCircle, Plus, Trash2, Upload } from 'lucide-react';
+import { Save, Plus, Trash2, Upload } from 'lucide-react';
 import { Track } from '@/types/track';
 import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
@@ -57,19 +57,15 @@ interface TrackContributor {
 	order: number;
 }
 
-interface UpdateTrackModalProps {
+interface UpdateTrackPageProps {
 	track: Track;
-	isOpen: boolean;
-	onClose: () => void;
-	onSave: (updatedTrack: Track) => void;
+	onSave: (updatedTrack: Track) => Promise<void>;
 }
 
-const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
+const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 	track,
-	isOpen,
-	onClose,
 	onSave,
-}: UpdateTrackModalProps): JSX.Element | null => {
+}: UpdateTrackPageProps): JSX.Element => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -95,7 +91,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		copyright_holder: track.copyright_holder || '',
 		copyright_holder_year: track.copyright_holder_year || '',
 		dolby_atmos_resource: track.dolby_atmos_resource || '',
-		label_share: track.label_share ?? null,
+		label_share: track.label_share || undefined,
 		resource: track.resource || null,
 		sample_start: track.sample_start || '',
 		track_lenght: track.track_lenght || '',
@@ -210,7 +206,7 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 									g.id ===
 									(typeof track.genre === 'number'
 										? track.genre
-										: track.genre.id)
+										: track.genre?.id)
 							);
 							if (genreById) {
 								setCurrentGenreId(genreById.id);
@@ -289,18 +285,16 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 				} catch (genreError) {
 					console.error('Error específico al cargar géneros:', genreError);
 				}
-			} catch (err) {
-				console.error('Error fetching data:', err);
-				setError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
+			} catch (error) {
+				console.error('Error fetching data:', error);
+				setError('Error al cargar los datos');
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
-		if (isOpen) {
-			fetchData();
-		}
-	}, [isOpen, track.genre, track.subgenre]);
+		fetchData();
+	}, [track.genre, track.subgenre]);
 
 	useEffect(() => {
 		if (track) {
@@ -590,7 +584,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		setIsLoading(true);
 		try {
 			await onSave(formData);
-			onClose();
 		} catch (error) {
 			console.error('Error saving track:', error);
 		} finally {
@@ -598,10 +591,13 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 		}
 	};
 
-	if (!isOpen) return null;
+	if (!isLoading) return null;
 
 	const inputStyles =
-		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-clear-button]:hidden [&::-webkit-outer-spin-button]:hidden';
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+	const selectStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
+	const selectWrapperStyles = 'relative';
 
 	const handleTimeChange = (name: string, value: string) => {
 		setFormData(prev => ({
@@ -639,16 +635,10 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	};
 
 	return (
-		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-				<div className="flex justify-between items-center mb-4">
+		<div className="container mx-auto px-4 py-8">
+			<div className="bg-white rounded-lg p-6">
+				<div className="mb-4">
 					<h2 className="text-xl font-bold">Editar Track</h2>
-					<button
-						onClick={onClose}
-						className="p-2 hover:bg-gray-100 rounded-full"
-					>
-						<X size={20} />
-					</button>
 				</div>
 
 				{isLoading ? (
@@ -657,11 +647,10 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 					</div>
 				) : error ? (
 					<div className="p-8 text-center text-red-500">
-						<XCircle size={48} className="mx-auto mb-2" />
 						<p>{error}</p>
 					</div>
 				) : (
-					<form onSubmit={handleSubmit} className="space-y-6">
+					<form onSubmit={handleSubmit} className="space-y-4">
 						<div className="flex flex-col gap-2">
 							<Select
 								value={
@@ -1076,15 +1065,6 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 
 						<div className="flex justify-end space-x-3 mt-6">
 							<button
-								type="button"
-								onClick={onClose}
-								disabled={isLoading}
-								className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
-								<span className="group-hover:text-brand-dark">Cancelar</span>
-							</button>
-							<button
 								type="submit"
 								disabled={isLoading}
 								className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1111,4 +1091,4 @@ const UpdateTrackModal: React.FC<UpdateTrackModalProps> = ({
 	);
 };
 
-export default UpdateTrackModal;
+export default UpdateTrackPage;

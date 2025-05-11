@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 					: null,
 			};
 		});
-		console.log(personasWithBase64);
+
 		return NextResponse.json({
 			success: true,
 			data: personasWithBase64,

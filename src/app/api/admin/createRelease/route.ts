@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
 		// Guardar en la base de datos
 		const releaseToSave = {
 			...newRelease,
-			external_id: Number(apiRes.id || external_id),
+			external_id: apiRes.id,
 			picture: String(picture_url || '/cd_cover.png'),
 			genre_name: genre.name,
 			subgenre_name: subgenre.name,

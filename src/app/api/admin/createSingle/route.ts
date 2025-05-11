@@ -33,13 +33,15 @@ export async function POST(req: NextRequest) {
 
 		const contentType = req.headers.get('content-type') || '';
 		let trackData: Record<string, any> = {};
-		let fileName = '';
-		let resource_url = '';
+
+		let picture_url = '';
+		let picture_path = '';
+
 		if (contentType.includes('multipart/form-data')) {
 			const formData = await req.formData();
 			const file = formData.get('file') as File | null;
 			let data = formData.get('data') as string | null;
-
+			console.log(file);
 			if (data) {
 				trackData = JSON.parse(data);
 				console.log('trackData: ', trackData);
@@ -53,20 +55,9 @@ export async function POST(req: NextRequest) {
 					}));
 				}
 
-				// Asegurarse de que los contribuidores tengan el formato correcto
-				if (trackData.contributors) {
-					trackData.contributors = trackData.contributors.map(
-						(contributor: any) => ({
-							external_id: Number(contributor.external_id) || 0,
-							name: String(contributor.name || ''),
-							role: Number(contributor.role) || 0,
-							order: Number(contributor.order) || 0,
-						})
-					);
-				}
-
 				if (file) {
-					fileName = file.name.toLowerCase();
+					console.log(file);
+
 					console.log('ACTUALIZANDO TRAck');
 					const uploadTrackReq = await fetch(
 						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
@@ -106,7 +97,11 @@ export async function POST(req: NextRequest) {
 						body: trackFormData,
 					});
 
-					resource_url = signedUrl;
+					picture_url = uploadResponse?.headers?.get('location') || '';
+					picture_path = decodeURIComponent(
+						new URL(picture_url).pathname.slice(1)
+					);
+					console.log(uploadResponse);
 
 					if (!uploadResponse.ok) {
 						console.error(
@@ -126,28 +121,6 @@ export async function POST(req: NextRequest) {
 		} else if (contentType.includes('application/json')) {
 			trackData = await req.json();
 			console.log('JSON trackData:', trackData);
-
-			// Asegurarse de que los artistas tengan el formato correcto
-			if (trackData.artists) {
-				trackData.artists = trackData.artists.map((artist: any) => ({
-					artist: Number(artist.artist) || 0,
-					kind: String(artist.kind || 'main'),
-					order: Number(artist.order || 0),
-					name: String(artist.name || ''),
-				}));
-			}
-
-			// Asegurarse de que los contribuidores tengan el formato correcto
-			if (trackData.contributors) {
-				trackData.contributors = trackData.contributors.map(
-					(contributor: any) => ({
-						external_id: Number(contributor.external_id) || 0,
-						name: String(contributor.name || ''),
-						role: Number(contributor.role) || 0,
-						order: Number(contributor.order) || 0,
-					})
-				);
-			}
 		} else {
 			return NextResponse.json(
 				{ success: false, error: 'Invalid content type' },
@@ -155,82 +128,42 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Asegurarse de que el género tenga el formato correcto
-		if (trackData.genre) {
-			if (typeof trackData.genre === 'number') {
-				trackData.genre = {
-					id: trackData.genre,
-					name: '',
-				};
-			} else if (typeof trackData.genre === 'object') {
-				trackData.genre = {
-					id: trackData.genre.id || 0,
-					name: trackData.genre.name || '',
-				};
-			}
-		} else {
-			trackData.genre = null;
-		}
+		trackData.resource = picture_path;
+		let dataToapi = JSON.parse(JSON.stringify(trackData));
+		dataToapi.genre = trackData.genre.id;
+		dataToapi.subgenre = trackData.subgenre.id;
+		console.log('data a api: ', dataToapi);
+		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `JWT ${moveMusicAccessToken}`,
+				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+				Referer: process.env.MOVEMUSIC_REFERER || '',
+			},
+			body: JSON.stringify(dataToapi),
+		});
 
-		// Asegurarse de que el subgénero tenga el formato correcto
-		if (trackData.subgenre) {
-			if (typeof trackData.subgenre === 'number') {
-				trackData.subgenre = {
-					id: trackData.subgenre,
-					name: '',
-				};
-			} else if (typeof trackData.subgenre === 'object') {
-				trackData.subgenre = {
-					id: trackData.subgenre.id || 0,
-					name: trackData.subgenre.name || '',
-				};
-			}
-		} else {
-			trackData.subgenre = null;
-		}
-
-		// Asegurarse de que los campos requeridos estén presentes y con el formato correcto
-		const requiredFields = {
-			name: trackData.name || '',
-			language: trackData.language || 'ES',
-			track_length: trackData.track_lenght || '00:00:00',
-			vocals: trackData.vocals || 'ES',
-			status: 'Borrador',
-			artists: trackData.artists || [],
-			publishers: trackData.publishers || [],
-			contributors: trackData.contributors || [],
-			genre: trackData.genre || null,
-			subgenre: trackData.subgenre || null,
-		};
-
-		// Validar campos requeridos
-		if (!requiredFields.name) {
-			return NextResponse.json(
-				{ success: false, error: 'El nombre del track es requerido' },
-				{ status: 400 }
-			);
-		}
-
-		if (!requiredFields.language) {
-			return NextResponse.json(
-				{ success: false, error: 'El idioma del track es requerido' },
-				{ status: 400 }
-			);
-		}
+		const trackRes = await trackReq.json();
+		console.log('trackRes: ', trackRes);
 
 		// Actualizar trackData con los campos corregidos
-		trackData = {
-			...trackData,
-			...requiredFields,
-		};
-
-		console.log('Datos finales del track:', trackData);
+		trackData.external_id = trackRes.id;
+		trackData.resource = picture_url;
+		console.log('trackData: ', trackData);
 
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
 		console.log('bbdd res: ', createTrack);
 
-		return NextResponse.json({ success: true });
+		return NextResponse.json({
+			success: true,
+			data: {
+				_id: createTrack._id,
+				external_id: createTrack.external_id,
+				resource: createTrack.resource,
+			},
+		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);
 		return NextResponse.json(

@@ -25,7 +25,7 @@ const PublisherSchema = new mongoose.Schema(
 // Esquema para cada contributor asociado
 const ContributorSchema = new mongoose.Schema(
 	{
-		external_id: { type: Number, required: true },
+		external_id: { type: Number, required: false },
 		name: { type: String, required: true },
 		role: { type: Number, required: true },
 		order: { type: Number, required: true },
@@ -63,8 +63,7 @@ const SingleTrackSchema = new mongoose.Schema(
 			default: 0,
 		},
 		release: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: 'Release',
+			type: Number,
 			default: null,
 		},
 		status: {

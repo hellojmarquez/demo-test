@@ -7,20 +7,10 @@ interface Artist {
 }
 
 interface Track {
-	order: number;
-	name: string;
-	artists: Artist[];
-	ISRC: string;
-	generate_isrc: boolean;
-	DA_ISRC: string;
-	genre: number;
-	subgenre: number;
-	mix_name: string;
-	resource: string | File | null;
-	dolby_atmos_resource: string;
-	album_only: boolean;
-	explicit_content: boolean;
-	track_length: string;
+	title: string;
+	mixName: string;
+	external_id: number;
+	resource: string;
 }
 
 const artistSchema = new Schema<Artist>({
@@ -30,20 +20,10 @@ const artistSchema = new Schema<Artist>({
 });
 
 const trackSchema = new Schema<Track>({
-	order: { type: Number, required: true },
-	name: { type: String, required: true },
-	artists: { type: [artistSchema], required: true },
-	ISRC: { type: String, required: true },
-	generate_isrc: { type: Boolean, required: true },
-	DA_ISRC: { type: String, required: true },
-	genre: { type: Number, required: true },
-	subgenre: { type: Number, required: true },
-	mix_name: { type: String, required: true },
+	title: { type: String, required: true },
+	mixName: { type: String, required: false },
+	external_id: { type: Number, required: true },
 	resource: { type: String, required: true },
-	dolby_atmos_resource: { type: String, required: true },
-	album_only: { type: Boolean, required: true },
-	explicit_content: { type: Boolean, required: true },
-	track_length: { type: String, required: true },
 });
 
 const releaseSchema = new Schema(

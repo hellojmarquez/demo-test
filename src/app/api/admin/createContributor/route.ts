@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
+			data: contributor,
 		});
 	} catch (error) {
 		console.error('Error creating contributor:', error);

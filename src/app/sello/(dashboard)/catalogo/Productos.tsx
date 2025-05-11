@@ -118,8 +118,7 @@ const Productos: React.FC = () => {
 
 	const handleEdit = (e: React.MouseEvent, release: Release) => {
 		e.stopPropagation();
-		setSelectedRelease(release);
-		setIsEditModalOpen(true);
+		router.push(`/sello/catalogo/edit?releaseId=${release._id}`);
 	};
 
 	const handleSaveEdit = async (updatedRelease: ReleaseForModal) => {
@@ -582,7 +581,7 @@ const Productos: React.FC = () => {
 				))
 			)}
 
-			{selectedRelease && (
+			{/* {selectedRelease && (
 				<UpdateReleaseModal
 					release={
 						{
@@ -593,14 +592,14 @@ const Productos: React.FC = () => {
 							updatedAt: selectedRelease.updatedAt || new Date().toISOString(),
 						} as ReleaseForModal
 					}
-					isOpen={isEditModalOpen}
-					onClose={() => {
-						setIsEditModalOpen(false);
-						setSelectedRelease(null);
-					}}
+					// isOpen={isEditModalOpen}
+					// onClose={() => {
+					// 	setIsEditModalOpen(false);
+					// 	setSelectedRelease(null);
+					// }}
 					onSave={handleSaveEdit}
 				/>
-			)}
+			)} */}
 
 			{/* Modal */}
 			{isModalOpen && (

@@ -34,6 +34,10 @@ const baseUserSchema = new mongoose.Schema(
 			default: 'principal',
 			required: true,
 		},
+		external_id: {
+			type: Number,
+			required: false,
+		},
 		createdAt: {
 			type: Date,
 			default: Date.now,

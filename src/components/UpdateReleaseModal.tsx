@@ -49,7 +49,24 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		...release,
 		picture: release.picture || undefined,
 		artists: release.artists || [],
-		tracks: (release.tracks || []).filter(track => track !== null),
+		tracks: (release.tracks || [])
+			.filter(track => track !== null)
+			.map(track => ({
+				order: track.order || 0,
+				name: track.name || '',
+				artists: track.artists || [],
+				ISRC: track.ISRC || '',
+				generate_isrc: track.generate_isrc || false,
+				DA_ISRC: track.DA_ISRC || '',
+				genre: track.genre || 0,
+				subgenre: track.subgenre || 0,
+				mix_name: track.mix_name || '',
+				resource: track.resource || '',
+				dolby_atmos_resource: track.dolby_atmos_resource || '',
+				album_only: track.album_only || false,
+				explicit_content: track.explicit_content || false,
+				track_length: track.track_length || '',
+			})),
 		countries: release.countries || [],
 		createdAt: release.createdAt || new Date().toISOString(),
 		updatedAt: release.updatedAt || new Date().toISOString(),
@@ -130,17 +147,23 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}
 
 				// Fetch tracks
-				const tracksRes = await fetch('/api/admin/getAllTracks');
+				const tracksRes = await fetch(
+					`/api/admin/getTracksByRelease/${release._id}`
+				);
 				const tracksData = await tracksRes.json();
-				console.log(tracksData);
-				setTrackData(tracksData.singleTracks);
+				if (tracksData.success && Array.isArray(tracksData.data)) {
+					setFormData(prev => ({
+						...prev,
+						tracks: tracksData.data,
+					}));
+				}
 			} catch (error) {
 				console.error('Error fetching data:', error);
 			}
 		};
 
 		fetchData();
-	}, []);
+	}, [release._id]);
 
 	const handleChange = (
 		e: React.ChangeEvent<

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Upload } from 'lucide-react';
+import { Save, Plus, Trash2, Upload, XCircle } from 'lucide-react';
 import { Track } from '@/types/track';
 import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
@@ -60,12 +60,16 @@ interface TrackContributor {
 interface UpdateTrackPageProps {
 	track: Track;
 	onSave: (updatedTrack: Track) => Promise<void>;
+	isOpen: boolean;
+	onClose: () => void;
 }
 
-const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
+const UpdateTrackModal: React.FC<UpdateTrackPageProps> = ({
 	track,
 	onSave,
-}: UpdateTrackPageProps): JSX.Element => {
+	isOpen,
+	onClose,
+}: UpdateTrackPageProps): JSX.Element | undefined => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -91,7 +95,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 		copyright_holder: track.copyright_holder || '',
 		copyright_holder_year: track.copyright_holder_year || '',
 		dolby_atmos_resource: track.dolby_atmos_resource || '',
-		label_share: track.label_share || undefined,
+		label_share: track.label_share,
 		resource: track.resource || null,
 		sample_start: track.sample_start || '',
 		track_lenght: track.track_lenght || '',
@@ -225,7 +229,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 											s.id ===
 											(typeof track.subgenre === 'number'
 												? track.subgenre
-												: track.subgenre.id)
+												: track.subgenre?.id)
 									);
 									if (subgenreById) {
 										setFormData(prev => ({
@@ -243,7 +247,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 										g.name ===
 										(typeof track.genre === 'number'
 											? String(track.genre)
-											: track.genre.name)
+											: track.genre?.name)
 								);
 								if (genreByName) {
 									setCurrentGenreId(genreByName.id);
@@ -262,7 +266,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 												s.id ===
 												(typeof track.subgenre === 'number'
 													? track.subgenre
-													: track.subgenre.id)
+													: track.subgenre?.id)
 										);
 										if (subgenreById) {
 											setFormData(prev => ({
@@ -340,7 +344,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 		} else if (name === 'subgenre') {
 			// Manejo especial para el cambio de subgénero
 			const subgenreId = parseInt(value);
-			const currentGenre = genres.find(g => g.id === formData.genre.id);
+			const currentGenre = genres.find(g => g.id === formData.genre?.id);
 			const selectedSubgenre = currentGenre?.subgenres?.find(
 				s => s.id === subgenreId
 			);
@@ -591,7 +595,13 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 		}
 	};
 
-	if (!isLoading) return null;
+	if (isLoading) {
+		return (
+			<div className="flex justify-center items-center h-64">
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
+			</div>
+		);
+	}
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -635,460 +645,471 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 	};
 
 	return (
-		<div className="container mx-auto px-4 py-8">
-			<div className="bg-white rounded-lg p-6">
-				<div className="mb-4">
-					<h2 className="text-xl font-bold">Editar Track</h2>
-				</div>
-
-				{isLoading ? (
-					<div className="flex justify-center items-center h-64">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
-					</div>
-				) : error ? (
-					<div className="p-8 text-center text-red-500">
-						<p>{error}</p>
-					</div>
-				) : (
-					<form onSubmit={handleSubmit} className="space-y-4">
-						<div className="flex flex-col gap-2">
-							<Select
-								value={
-									formData.release
-										? {
-												value: formData.release,
-												label:
-													releases.find(r => r._id === formData.release)
-														?.name || '',
-										  }
-										: null
-								}
-								onChange={(selectedOption: any) => {
-									if (selectedOption) {
-										setFormData(prev => ({
-											...prev,
-											release: selectedOption.value || '',
-										}));
-									}
-								}}
-								options={releases.map(release => ({
-									value: release._id || '',
-									label: release.name || '',
-								}))}
-								placeholder="Seleccionar lanzamiento"
-								styles={reactSelectStyles}
-								isClearable
-							/>
-
-							{formData.release && (
-								<div className="flex items-center gap-2 mb-2">
-									{releases.find(r => r._id === formData.release)?.picture
-										?.base64 && (
-										<img
-											src={`data:image/jpeg;base64,${
-												releases.find(r => r._id === formData.release)?.picture
-													?.base64
-											}`}
-											alt="Release cover"
-											className="w-12 h-12 object-cover rounded"
-										/>
-									)}
-									<span className="text-sm">
-										{releases.find(r => r._id === formData.release)?.name || ''}
-									</span>
-								</div>
-							)}
-						</div>
-
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Nombre
-								</label>
-								<input
-									type="text"
-									name="name"
-									value={formData.name}
-									onChange={handleChange}
-									className={inputStyles}
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Mix Name
-								</label>
-								<input
-									type="text"
-									name="mix_name"
-									value={formData.mix_name}
-									onChange={handleChange}
-									className={inputStyles}
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									ISRC
-								</label>
-								<input
-									type="text"
-									name="ISRC"
-									value={formData.ISRC}
-									onChange={handleChange}
-									className={inputStyles}
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									DA ISRC
-								</label>
-								<input
-									type="text"
-									name="DA_ISRC"
-									value={formData.DA_ISRC}
-									onChange={handleChange}
-									className={inputStyles}
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Género
-								</label>
-								<Select
-									value={
-										formData.genre.id
-											? {
-													value: formData.genre.id,
-													label: formData.genre.name,
-											  }
-											: null
-									}
-									onChange={(selectedOption: any) => {
-										if (selectedOption) {
-											handleChange({
-												target: {
-													name: 'genre',
-													value: selectedOption.value,
-												},
-											} as React.ChangeEvent<HTMLSelectElement>);
-										}
-									}}
-									options={genres.map(genre => ({
-										value: genre.id,
-										label: genre.name,
-									}))}
-									placeholder="Seleccionar género"
-									styles={reactSelectStyles}
-									isClearable
-								/>
-								{formData.genre.name && (
-									<p className="text-xs text-gray-500 mt-1">
-										Género actual: {formData.genre.name}
-									</p>
-								)}
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Subgénero
-								</label>
-								<Select
-									value={
-										formData.subgenre.id
-											? {
-													value: formData.subgenre.id,
-													label: formData.subgenre.name,
-											  }
-											: null
-									}
-									onChange={(selectedOption: any) => {
-										if (selectedOption) {
-											handleChange({
-												target: {
-													name: 'subgenre',
-													value: selectedOption.value,
-												},
-											} as React.ChangeEvent<HTMLSelectElement>);
-										}
-									}}
-									options={
-										genres
-											.find(g => g.id === formData.genre.id)
-											?.subgenres?.map(subgenre => ({
-												value: subgenre.id,
-												label: subgenre.name,
-											})) || []
-									}
-									placeholder="Seleccionar subgénero"
-									styles={reactSelectStyles}
-									isClearable
-								/>
-								{formData.subgenre.name && (
-									<p className="text-xs text-gray-500 mt-1">
-										Subgénero actual: {formData.subgenre.name}
-									</p>
-								)}
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Idioma
-								</label>
-								<Select
-									value={
-										formData.language
-											? {
-													value: formData.language,
-													label:
-														formData.language === 'ES' ? 'Español' : 'English',
-											  }
-											: null
-									}
-									onChange={(selectedOption: any) => {
-										if (selectedOption) {
-											handleChange({
-												target: {
-													name: 'language',
-													value: selectedOption.value,
-												},
-											} as React.ChangeEvent<HTMLSelectElement>);
-										}
-									}}
-									options={[
-										{ value: 'ES', label: 'Español' },
-										{ value: 'EN', label: 'English' },
-									]}
-									placeholder="Seleccionar idioma"
-									styles={reactSelectStyles}
-									isClearable
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Duración
-								</label>
-								<Cleave
-									options={{
-										time: true,
-										timePattern: ['h', 'm', 's'],
-										timeFormat: 'HH:mm:ss',
-										blocks: [2, 2, 2],
-										delimiter: ':',
-									}}
-									name="track_lenght"
-									value={formData.track_lenght || ''}
-									onChange={e =>
-										handleTimeChange('track_lenght', e.target.value)
-									}
-									className={inputStyles}
-									placeholder="00:00:00"
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Vocals
-								</label>
-								<Select
-									value={
-										formData.vocals
-											? {
-													value: formData.vocals,
-													label:
-														formData.vocals === 'ES' ? 'Español' : 'English',
-											  }
-											: null
-									}
-									onChange={(selectedOption: any) => {
-										if (selectedOption) {
-											handleChange({
-												target: {
-													name: 'vocals',
-													value: selectedOption.value,
-												},
-											} as React.ChangeEvent<HTMLSelectElement>);
-										}
-									}}
-									options={[
-										{ value: 'ES', label: 'Español' },
-										{ value: 'EN', label: 'English' },
-									]}
-									placeholder="Seleccionar idioma"
-									styles={reactSelectStyles}
-									isClearable
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Copyright Holder
-								</label>
-								<input
-									type="text"
-									name="copyright_holder"
-									value={formData.copyright_holder}
-									onChange={handleChange}
-									className={inputStyles}
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Año de Copyright
-								</label>
-								<Select
-									value={
-										formData.copyright_holder_year
-											? {
-													value: formData.copyright_holder_year,
-													label: formData.copyright_holder_year,
-											  }
-											: null
-									}
-									onChange={(selectedOption: any) => {
-										if (selectedOption) {
-											handleChange({
-												target: {
-													name: 'copyright_holder_year',
-													value: selectedOption.value,
-												},
-											} as React.ChangeEvent<HTMLSelectElement>);
-										}
-									}}
-									options={Array.from(
-										{ length: new Date().getFullYear() - 1899 },
-										(_, i) => {
-											const year = new Date().getFullYear() - i;
-											return {
-												value: year.toString(),
-												label: year.toString(),
-											};
-										}
-									)}
-									placeholder="Seleccionar año"
-									styles={reactSelectStyles}
-									isClearable
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Label Share
-								</label>
-								<input
-									type="text"
-									name="label_share"
-									value={formData.label_share?.toString() || ''}
-									onChange={handleChange}
-									className={inputStyles}
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Dolby Atmos Resource
-								</label>
-								<input
-									type="text"
-									name="dolby_atmos_resource"
-									value={formData.dolby_atmos_resource}
-									onChange={handleChange}
-									className={inputStyles}
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Sample Start
-								</label>
-								<Cleave
-									options={{
-										time: true,
-										timePattern: ['h', 'm', 's'],
-										timeFormat: 'HH:mm:ss',
-										blocks: [2, 2, 2],
-										delimiter: ':',
-									}}
-									name="sample_start"
-									value={formData.sample_start}
-									onChange={e =>
-										handleTimeChange('sample_start', e.target.value)
-									}
-									className={inputStyles}
-									placeholder="00:00:00"
-								/>
-							</div>
-
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Archivo WAV
-								</label>
-								<div>
-									<input
-										type="file"
-										ref={fileInputRef}
-										onChange={handleFileChange}
-										accept=".wav"
-										className="hidden"
-									/>
-									<button
-										type="button"
-										onClick={() => fileInputRef.current?.click()}
-										className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-									>
-										<Upload className="h-4 w-4 mr-2" />
-										Subir archivo
-									</button>
-								</div>
-								{uploadProgress > 0 && (
-									<div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-										<div
-											className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
-											style={{ width: `${uploadProgress}%` }}
-										></div>
-									</div>
-								)}
-								{formData.resource && (
-									<div className="text-sm text-gray-500 mt-1">
-										Archivo actual:{' '}
-										{typeof formData.resource === 'string'
-											? formData.resource
-											: formData.resource.name}
-									</div>
-								)}
-							</div>
-						</div>
-
-						<div className="flex justify-end space-x-3 mt-6">
+		<>
+			{isOpen && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+					<div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+						<div className="flex justify-between items-center mb-4">
+							<h2 className="text-xl font-bold">Editar Track</h2>
 							<button
-								type="submit"
-								disabled={isLoading}
-								className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+								onClick={onClose}
+								className="text-gray-500 hover:text-gray-700"
 							>
-								{isLoading ? (
-									<>
-										<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-										<span>Actualizando...</span>
-									</>
-								) : (
-									<>
-										<Save className="h-4 w-4 group-hover:text-brand-dark" />
-										<span className="group-hover:text-brand-dark">
-											Actualizar
-										</span>
-									</>
-								)}
+								<XCircle size={24} />
 							</button>
 						</div>
-					</form>
-				)}
-			</div>
-		</div>
+
+						{error ? (
+							<div className="p-8 text-center text-red-500">
+								<p>{error}</p>
+							</div>
+						) : (
+							<form onSubmit={handleSubmit} className="space-y-4">
+								<div className="flex flex-col gap-2">
+									<Select
+										value={
+											formData.release
+												? {
+														value: formData.release,
+														label:
+															releases.find(r => r._id === formData.release)
+																?.name || '',
+												  }
+												: null
+										}
+										onChange={(selectedOption: any) => {
+											if (selectedOption) {
+												setFormData(prev => ({
+													...prev,
+													release: selectedOption.value || '',
+												}));
+											}
+										}}
+										options={releases.map(release => ({
+											value: release._id || '',
+											label: release.name || '',
+										}))}
+										placeholder="Seleccionar lanzamiento"
+										styles={reactSelectStyles}
+										isClearable
+									/>
+
+									{formData.release && (
+										<div className="flex items-center gap-2 mb-2">
+											{releases.find(r => r._id === formData.release)?.picture
+												?.base64 && (
+												<img
+													src={`data:image/jpeg;base64,${
+														releases.find(r => r._id === formData.release)
+															?.picture?.base64
+													}`}
+													alt="Release cover"
+													className="w-12 h-12 object-cover rounded"
+												/>
+											)}
+											<span className="text-sm">
+												{releases.find(r => r._id === formData.release)?.name ||
+													''}
+											</span>
+										</div>
+									)}
+								</div>
+
+								<div className="grid grid-cols-2 gap-4">
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Nombre
+										</label>
+										<input
+											type="text"
+											name="name"
+											value={formData.name}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Mix Name
+										</label>
+										<input
+											type="text"
+											name="mix_name"
+											value={formData.mix_name}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											ISRC
+										</label>
+										<input
+											type="text"
+											name="ISRC"
+											value={formData.ISRC}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											DA ISRC
+										</label>
+										<input
+											type="text"
+											name="DA_ISRC"
+											value={formData.DA_ISRC}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Género
+										</label>
+										<Select
+											value={
+												formData.genre?.id
+													? {
+															value: formData.genre.id,
+															label: formData.genre.name || '',
+													  }
+													: null
+											}
+											onChange={(selectedOption: any) => {
+												if (selectedOption) {
+													handleChange({
+														target: {
+															name: 'genre',
+															value: selectedOption.value,
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}
+											}}
+											options={genres.map(genre => ({
+												value: genre.id,
+												label: genre.name,
+											}))}
+											placeholder="Seleccionar género"
+											styles={reactSelectStyles}
+											isClearable
+										/>
+										{formData.genre?.name && (
+											<p className="text-xs text-gray-500 mt-1">
+												Género actual: {formData.genre.name}
+											</p>
+										)}
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Subgénero
+										</label>
+										<Select
+											value={
+												formData.subgenre?.id
+													? {
+															value: formData.subgenre.id,
+															label: formData.subgenre.name || '',
+													  }
+													: null
+											}
+											onChange={(selectedOption: any) => {
+												if (selectedOption) {
+													handleChange({
+														target: {
+															name: 'subgenre',
+															value: selectedOption.value,
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}
+											}}
+											options={
+												genres
+													.find(g => g.id === formData.genre?.id)
+													?.subgenres?.map(subgenre => ({
+														value: subgenre.id,
+														label: subgenre.name,
+													})) || []
+											}
+											placeholder="Seleccionar subgénero"
+											styles={reactSelectStyles}
+											isClearable
+										/>
+										{formData.subgenre?.name && (
+											<p className="text-xs text-gray-500 mt-1">
+												Subgénero actual: {formData.subgenre?.name}
+											</p>
+										)}
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Idioma
+										</label>
+										<Select
+											value={
+												formData.language
+													? {
+															value: formData.language,
+															label:
+																formData.language === 'ES'
+																	? 'Español'
+																	: 'English',
+													  }
+													: null
+											}
+											onChange={(selectedOption: any) => {
+												if (selectedOption) {
+													handleChange({
+														target: {
+															name: 'language',
+															value: selectedOption.value,
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}
+											}}
+											options={[
+												{ value: 'ES', label: 'Español' },
+												{ value: 'EN', label: 'English' },
+											]}
+											placeholder="Seleccionar idioma"
+											styles={reactSelectStyles}
+											isClearable
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Duración
+										</label>
+										<Cleave
+											options={{
+												time: true,
+												timePattern: ['h', 'm', 's'],
+												timeFormat: 'HH:mm:ss',
+												blocks: [2, 2, 2],
+												delimiter: ':',
+											}}
+											name="track_lenght"
+											value={formData.track_lenght || ''}
+											onChange={e =>
+												handleTimeChange('track_lenght', e.target.value)
+											}
+											className={inputStyles}
+											placeholder="00:00:00"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Vocals
+										</label>
+										<Select
+											value={
+												formData.vocals
+													? {
+															value: formData.vocals,
+															label:
+																formData.vocals === 'ES'
+																	? 'Español'
+																	: 'English',
+													  }
+													: null
+											}
+											onChange={(selectedOption: any) => {
+												if (selectedOption) {
+													handleChange({
+														target: {
+															name: 'vocals',
+															value: selectedOption.value,
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}
+											}}
+											options={[
+												{ value: 'ES', label: 'Español' },
+												{ value: 'EN', label: 'English' },
+											]}
+											placeholder="Seleccionar idioma"
+											styles={reactSelectStyles}
+											isClearable
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Copyright Holder
+										</label>
+										<input
+											type="text"
+											name="copyright_holder"
+											value={formData.copyright_holder}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Año de Copyright
+										</label>
+										<Select
+											value={
+												formData.copyright_holder_year
+													? {
+															value: formData.copyright_holder_year,
+															label: formData.copyright_holder_year,
+													  }
+													: null
+											}
+											onChange={(selectedOption: any) => {
+												if (selectedOption) {
+													handleChange({
+														target: {
+															name: 'copyright_holder_year',
+															value: selectedOption.value,
+														},
+													} as React.ChangeEvent<HTMLSelectElement>);
+												}
+											}}
+											options={Array.from(
+												{ length: new Date().getFullYear() - 1899 },
+												(_, i) => {
+													const year = new Date().getFullYear() - i;
+													return {
+														value: year.toString(),
+														label: year.toString(),
+													};
+												}
+											)}
+											placeholder="Seleccionar año"
+											styles={reactSelectStyles}
+											isClearable
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Label Share
+										</label>
+										<input
+											type="text"
+											name="label_share"
+											value={formData.label_share?.toString() || ''}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Dolby Atmos Resource
+										</label>
+										<input
+											type="text"
+											name="dolby_atmos_resource"
+											value={formData.dolby_atmos_resource}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Sample Start
+										</label>
+										<Cleave
+											options={{
+												time: true,
+												timePattern: ['h', 'm', 's'],
+												timeFormat: 'HH:mm:ss',
+												blocks: [2, 2, 2],
+												delimiter: ':',
+											}}
+											name="sample_start"
+											value={formData.sample_start}
+											onChange={e =>
+												handleTimeChange('sample_start', e.target.value)
+											}
+											className={inputStyles}
+											placeholder="00:00:00"
+										/>
+									</div>
+
+									<div>
+										<label className="block text-sm font-medium text-gray-700">
+											Archivo WAV
+										</label>
+										<div>
+											<input
+												type="file"
+												ref={fileInputRef}
+												onChange={handleFileChange}
+												accept=".wav"
+												className="hidden"
+											/>
+											<button
+												type="button"
+												onClick={() => fileInputRef.current?.click()}
+												className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+											>
+												<Upload className="h-4 w-4 mr-2" />
+												Subir archivo
+											</button>
+										</div>
+										{uploadProgress > 0 && (
+											<div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+												<div
+													className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
+													style={{ width: `${uploadProgress}%` }}
+												></div>
+											</div>
+										)}
+										{formData.resource && (
+											<div className="text-sm text-gray-500 mt-1">
+												Archivo actual:{' '}
+												{typeof formData.resource === 'string'
+													? formData.resource
+													: formData.resource.name}
+											</div>
+										)}
+									</div>
+								</div>
+
+								<div className="flex justify-end space-x-3 mt-6">
+									<button
+										type="submit"
+										disabled={isLoading}
+										className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										{isLoading ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												<span>Actualizando...</span>
+											</>
+										) : (
+											<>
+												<Save className="h-4 w-4 group-hover:text-brand-dark" />
+												<span className="group-hover:text-brand-dark">
+													Actualizar
+												</span>
+											</>
+										)}
+									</button>
+								</div>
+							</form>
+						)}
+					</div>
+				</div>
+			)}
+		</>
 	);
 };
 
-export default UpdateTrackPage;
+export default UpdateTrackModal;

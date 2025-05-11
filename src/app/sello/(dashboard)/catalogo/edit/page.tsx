@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import UpdateReleasePage from '@/components/UpdateReleaseModal';
-import UpdateTrackPage from '@/components/UpdateTrackModal';
+import UpdateTrackModal from '@/components/UpdateTrackModal';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
@@ -30,6 +30,8 @@ export default function EditPage() {
 	const router = useRouter();
 	const [activeTab, setActiveTab] = useState<'release' | 'track'>('release');
 	const releaseId = searchParams.get('releaseId');
+	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+	const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
 
 	const {
 		data: releaseData,
@@ -193,11 +195,34 @@ export default function EditPage() {
 					{tracksData?.data &&
 						Array.isArray(tracksData.data) &&
 						tracksData.data.map(track => (
-							<UpdateTrackPage
+							<div
 								key={track._id}
-								track={track}
-								onSave={handleTrackSave}
-							/>
+								className="flex items-center justify-between p-4 border-b"
+							>
+								<div>
+									<h3 className="text-lg font-medium">{track.name}</h3>
+									<p className="text-sm text-gray-500">{track.mix_name}</p>
+								</div>
+								<button
+									onClick={() => {
+										setSelectedTrack(track);
+										setIsTrackModalOpen(true);
+									}}
+									className="px-4 py-2 text-sm font-medium text-white bg-brand-light rounded-md hover:bg-brand-dark"
+								>
+									Editar
+								</button>
+								<UpdateTrackModal
+									key={track._id}
+									track={track}
+									onSave={handleTrackSave}
+									isOpen={selectedTrack?._id === track._id && isTrackModalOpen}
+									onClose={() => {
+										setIsTrackModalOpen(false);
+										setSelectedTrack(null);
+									}}
+								/>
+							</div>
 						))}
 					<button
 						type="button"

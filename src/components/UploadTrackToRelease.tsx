@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Plus, ArrowBigUp, Trash2 } from 'lucide-react';
 
 interface UploadTrackToReleaseProps {
@@ -15,14 +15,6 @@ interface AssetRow {
 	file: File | null;
 }
 
-interface Track {
-	_id: string;
-	name: string;
-	mix_name: string;
-	resource: string;
-	order: number;
-}
-
 const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	isOpen,
 	onClose,
@@ -31,8 +23,6 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 }) => {
 	const [assets, setAssets] = useState<AssetRow[]>([]);
 	const [error, setError] = useState('');
-	const [tracks, setTracks] = useState<Track[]>([]);
-	const [isLoadingTracks, setIsLoadingTracks] = useState(false);
 	const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -147,10 +137,6 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			// Limpiar el formulario y cerrar el modal
 			setAssets([]);
 			setError('');
-
-			// Recargar los tracks después de crear nuevos
-			await fetchTracks();
-
 			onClose();
 		} catch (err: any) {
 			console.error('Error al crear tracks:', err);
@@ -168,47 +154,6 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 		setAssets(assets.filter(asset => asset.id !== id));
 	};
 
-	// Función para obtener los tracks
-	const fetchTracks = async () => {
-		try {
-			setIsLoadingTracks(true);
-			console.log('Iniciando fetchTracks para releaseId:', releaseId);
-
-			const response = await fetch(
-				`/api/admin/getTracksByRelease/${releaseId}`
-			);
-			const data = await response.json();
-			console.log('Datos recibidos de getTracksByRelease:', data);
-
-			if (data.success) {
-				// Limpiar los tracks actuales antes de establecer los nuevos
-				setTracks([]);
-				console.log('Tracks a establecer:', data.data);
-				setTracks(data.data);
-			} else {
-				console.error('Error en la respuesta:', data);
-				setError('Error al cargar los tracks');
-			}
-		} catch (err) {
-			console.error('Error al cargar tracks:', err);
-			setError('Error al cargar los tracks');
-		} finally {
-			setIsLoadingTracks(false);
-		}
-	};
-
-	// Cargar tracks cuando se abre el modal
-	useEffect(() => {
-		if (isOpen) {
-			console.log('Modal abierto, cargando tracks...');
-			fetchTracks();
-		} else {
-			// Limpiar los tracks cuando se cierra el modal
-			console.log('Modal cerrado, limpiando tracks...');
-			setTracks([]);
-		}
-	}, [isOpen, releaseId]);
-
 	if (!isOpen) return null;
 
 	return (
@@ -222,50 +167,6 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					>
 						<X className="h-6 w-6" />
 					</button>
-				</div>
-
-				{/* Sección de tracks existentes */}
-				<div className="mb-6">
-					<h3 className="text-lg font-medium text-gray-900 mb-3">
-						Tracks Existentes
-					</h3>
-					{isLoadingTracks ? (
-						<div className="flex justify-center">
-							<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-light"></div>
-						</div>
-					) : tracks.length > 0 ? (
-						<div className="space-y-2">
-							{Array.from(
-								new Map(tracks.map(track => [track._id, track])).values()
-							).map(track => {
-								console.log('Renderizando track único:', track);
-								return (
-									<div
-										key={track._id}
-										className="flex items-center justify-between p-3 bg-gray-50 rounded"
-									>
-										<div className="flex items-center space-x-3">
-											<span className="text-sm font-medium">
-												{track.name || 'Track sin nombre'}
-											</span>
-											{track.mix_name && (
-												<span className="text-sm text-gray-500">
-													({track.mix_name})
-												</span>
-											)}
-										</div>
-										<div className="text-sm text-gray-500">
-											Orden: {track.order}
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					) : (
-						<p className="text-sm text-gray-500">
-							No hay tracks en este release
-						</p>
-					)}
 				</div>
 
 				<div className="overflow-x-auto">

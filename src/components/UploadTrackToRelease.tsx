@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Plus, ArrowBigUp, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface UploadTrackToReleaseProps {
 	isOpen: boolean;
@@ -29,6 +30,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	onUploadComplete,
 	onUploadProgress,
 }) => {
+	const router = useRouter();
 	const [assets, setAssets] = useState<AssetRow[]>([]);
 	const [error, setError] = useState('');
 	const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
@@ -101,7 +103,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 
 			// Crear FormData con todos los tracks
 			const formData = new FormData();
-			validAssets.forEach((asset, index) => {
+			const trackPromises = validAssets.map(async (asset, index) => {
 				// Crear el objeto de datos para el track
 				const trackData = {
 					order: index + 1,
@@ -152,55 +154,99 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					track_lenght: '',
 				};
 
-				formData.append('data', JSON.stringify(trackData));
+				const trackFormData = new FormData();
+				trackFormData.append('data', JSON.stringify(trackData));
 				if (asset.file) {
-					formData.append('file', asset.file);
+					trackFormData.append('file', asset.file);
 				}
+
+				// Crear una promesa para manejar la respuesta
+				return new Promise<{
+					success: boolean;
+					message?: string;
+					data: { external_id: string; resource: string };
+				}>((resolve, reject) => {
+					const xhr = new XMLHttpRequest();
+
+					xhr.upload.onprogress = event => {
+						if (event.lengthComputable) {
+							onUploadProgress?.({
+								total: event.total,
+								loaded: event.loaded,
+								percentage: Math.round((event.loaded / event.total) * 100),
+							});
+						}
+					};
+
+					xhr.onload = () => {
+						if (xhr.status >= 200 && xhr.status < 300) {
+							try {
+								const response = JSON.parse(xhr.responseText);
+								resolve(response);
+							} catch (e) {
+								reject(
+									new Error('Error al procesar la respuesta del servidor')
+								);
+							}
+						} else {
+							reject(new Error(xhr.responseText || 'Error en la petición'));
+						}
+					};
+
+					xhr.onerror = () => {
+						reject(new Error('Error de red'));
+					};
+
+					xhr.open('POST', `/api/admin/createSingle`);
+					xhr.send(trackFormData);
+				});
 			});
 
 			// Cerrar el modal inmediatamente
 			onClose();
 
-			// Crear una promesa para manejar la respuesta
-			const response = await new Promise<{
-				success: boolean;
-				message?: string;
-			}>((resolve, reject) => {
-				const xhr = new XMLHttpRequest();
+			// Esperar a que todos los tracks se creen
+			const trackResponses = await Promise.all(trackPromises);
 
-				xhr.upload.onprogress = event => {
-					if (event.lengthComputable) {
-						onUploadProgress?.({
-							total: event.total,
-							loaded: event.loaded,
-							percentage: Math.round((event.loaded / event.total) * 100),
-						});
-					}
-				};
+			// Verificar si hubo algún error
+			const failedTracks = trackResponses.filter(response => !response.success);
+			if (failedTracks.length > 0) {
+				throw new Error('Error al crear algunos tracks');
+			}
 
-				xhr.onload = () => {
-					if (xhr.status >= 200 && xhr.status < 300) {
-						try {
-							const response = JSON.parse(xhr.responseText);
-							resolve(response);
-						} catch (e) {
-							reject(new Error('Error al procesar la respuesta del servidor'));
-						}
-					} else {
-						reject(new Error(xhr.responseText || 'Error en la petición'));
-					}
-				};
+			// Obtener el release actual
+			const releaseRes = await fetch(`/api/admin/getReleaseById/${releaseId}`);
+			if (!releaseRes.ok) {
+				throw new Error('Error al obtener el release actual');
+			}
+			const releaseData = await releaseRes.json();
+			const currentRelease = releaseData.data;
 
-				xhr.onerror = () => {
-					reject(new Error('Error de red'));
-				};
+			// Actualizar el release con todos los nuevos tracks
+			const updateFormData = new FormData();
+			updateFormData.append(
+				'data',
+				JSON.stringify({
+					tracks: [
+						...(currentRelease.tracks || []),
+						...trackResponses.map(response => ({
+							external_id: Number(response.data.external_id),
+							resource: response.data.resource,
+						})),
+					],
+				})
+			);
 
-				xhr.open('POST', `/api/admin/createSingle`);
-				xhr.send(formData);
-			});
+			const updateReleaseRes = await fetch(
+				`/api/admin/updateRelease/${releaseId}`,
+				{
+					method: 'PUT',
+					body: updateFormData,
+				}
+			);
 
-			if (!response.success) {
-				throw new Error(response.message || 'Error al crear los tracks');
+			if (!updateReleaseRes.ok) {
+				throw new Error('Error al actualizar el release con los nuevos tracks');
 			}
 
 			// Notificar al componente padre sobre los tracks subidos
@@ -215,6 +261,14 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			// Limpiar el formulario
 			setAssets([]);
 			setError('');
+
+			// Forzar una actualización completa de los datos
+			router.refresh();
+
+			// Cerrar el modal después de un breve retraso para asegurar que los datos se actualicen
+			setTimeout(() => {
+				onClose();
+			}, 500);
 		} catch (err: any) {
 			console.error('Error al crear tracks:', err);
 			setError(err.message || 'Error al crear los tracks');

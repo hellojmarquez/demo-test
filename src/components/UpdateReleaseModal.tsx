@@ -146,24 +146,18 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					setArtistData(artistsData.data);
 				}
 
-				// Fetch tracks
-				const tracksRes = await fetch(
-					`/api/admin/getTracksByRelease/${release._id}`
-				);
-				const tracksData = await tracksRes.json();
-				if (tracksData.success && Array.isArray(tracksData.data)) {
-					setFormData(prev => ({
-						...prev,
-						tracks: tracksData.data,
-					}));
-				}
+				// Actualizar los tracks del release
+				setFormData(prev => ({
+					...prev,
+					tracks: release.tracks || [],
+				}));
 			} catch (error) {
 				console.error('Error fetching data:', error);
 			}
 		};
 
 		fetchData();
-	}, [release._id]);
+	}, [release._id, release.tracks]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -351,15 +345,15 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		tracks: { title: string; mixName: string; file: File }[]
 	) => {
 		try {
-			// Actualizar el estado local primero
+			// Actualizar el estado local con los tracks subidos
 			setFormData(prev => ({
 				...prev,
 				tracks: [
 					...(prev.tracks || []),
 					...tracks.map(track => ({
+						order: (prev.tracks || []).length + 1,
 						name: track.title,
 						mix_name: track.mixName,
-						order: (prev.tracks || []).length,
 						artists: [],
 						ISRC: '',
 						generate_isrc: false,
@@ -378,6 +372,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			// Limpiar el estado de subida
 			setUploadedTracks([]);
 			setUploadProgress(null);
+
+			// Cerrar el modal
+			setIsUploadModalOpen(false);
 
 			// Refrescar los datos del servidor
 			router.refresh();

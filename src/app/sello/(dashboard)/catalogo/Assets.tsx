@@ -345,7 +345,8 @@ const Assets = () => {
 													<Tag className="h-4 w-4 text-brand-light" /> Género:
 												</span>
 												<span className="text-gray-600">
-													{track.genre.name} / {track.subgenre.name}
+													{track.genre?.name || 'Sin género'} /{' '}
+													{track.subgenre?.name || 'Sin subgénero'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

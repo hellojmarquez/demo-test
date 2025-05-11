@@ -91,14 +91,14 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 		generate_isrc: false,
 		genre: { id: 0, name: '' },
 		subgenre: { id: 0, name: '' },
-		label_share: null,
+		label_share: undefined,
 		language: '',
-		order: null,
+		order: undefined,
 		publishers: [],
 		release: '',
 		resource: null,
 		sample_start: '',
-		track_lenght: null,
+		track_lenght: undefined,
 		vocals: '',
 	});
 
@@ -391,7 +391,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 				},
 			}));
 		} else if (name === 'label_share') {
-			const numericValue = value === '' ? null : parseFloat(value);
+			const numericValue = value === '' ? undefined : parseFloat(value);
 			setFormData(prev => ({
 				...prev,
 				label_share: numericValue,
@@ -716,7 +716,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 													...prev,
 													label_share: e.target.value
 														? parseFloat(e.target.value)
-														: null,
+														: undefined,
 												}))
 											}
 											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"

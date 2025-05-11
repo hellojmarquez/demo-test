@@ -197,6 +197,8 @@ export default function EditPage() {
 								key={track._id}
 								track={track}
 								onSave={handleTrackSave}
+								isOpen={true}
+								onClose={() => {}}
 							/>
 						))}
 					<button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Upload } from 'lucide-react';
+import { Save, Plus, Trash2, Upload, X } from 'lucide-react';
 import { Track } from '@/types/track';
 import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
@@ -59,11 +59,15 @@ interface TrackContributor {
 
 interface UpdateTrackPageProps {
 	track: Track;
+	isOpen: boolean;
+	onClose: () => void;
 	onSave: (updatedTrack: Track) => Promise<void>;
 }
 
 const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 	track,
+	isOpen,
+	onClose,
 	onSave,
 }: UpdateTrackPageProps): JSX.Element => {
 	const [isLoading, setIsLoading] = useState(true);
@@ -96,38 +100,87 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 		sample_start: track.sample_start || '',
 		track_lenght: track.track_lenght || '',
 		vocals: track.vocals || '',
-		genre: {
-			id: typeof track.genre === 'number' ? track.genre : track.genre?.id || 0,
-			name: typeof track.genre === 'number' ? '' : track.genre?.name || '',
-		},
-		subgenre: {
-			id:
-				typeof track.subgenre === 'number'
-					? track.subgenre
-					: track.subgenre?.id || 0,
-			name:
-				typeof track.subgenre === 'number' ? '' : track.subgenre?.name || '',
-		},
-		artists: track.artists.map(artist => ({
-			...artist,
-			artist: Number(artist.artist) || 0,
-			kind: artist.kind || '',
-			order: Number(artist.order) || 0,
-			name: artist.name || '',
-		})),
-		contributors: track.contributors.map(contributor => ({
-			contributor: Number(contributor.contributor) || 0,
-			name: contributor.name || '',
-			role: Number(contributor.role) || 0,
-			order: Number(contributor.order) || 0,
-			role_name: contributor.role_name || '',
-		})),
-		publishers: track.publishers.map(publisher => ({
-			publisher: Number(publisher.publisher) || 0,
-			author: publisher.author || '',
-			order: Number(publisher.order) || 0,
-		})),
+		genre: track.genre
+			? {
+					id:
+						typeof track.genre === 'number' ? track.genre : track.genre.id || 0,
+					name: typeof track.genre === 'number' ? '' : track.genre.name || '',
+			  }
+			: { id: 0, name: '' },
+		subgenre: track.subgenre
+			? {
+					id:
+						typeof track.subgenre === 'number'
+							? track.subgenre
+							: track.subgenre.id || 0,
+					name:
+						typeof track.subgenre === 'number' ? '' : track.subgenre.name || '',
+			  }
+			: { id: 0, name: '' },
+		artists:
+			track.artists?.map(artist => ({
+				...artist,
+				artist: Number(artist.artist) || 0,
+				kind: artist.kind || '',
+				order: Number(artist.order) || 0,
+				name: artist.name || '',
+			})) || [],
+		contributors:
+			track.contributors?.map(contributor => ({
+				contributor: Number(contributor.contributor) || 0,
+				name: contributor.name || '',
+				role: Number(contributor.role) || 0,
+				order: Number(contributor.order) || 0,
+				role_name: contributor.role_name || '',
+			})) || [],
+		publishers:
+			track.publishers?.map(publisher => ({
+				publisher: Number(publisher.publisher) || 0,
+				author: publisher.author || '',
+				order: Number(publisher.order) || 0,
+			})) || [],
 	});
+
+	const inputStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+	const selectStyles =
+		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
+	const selectWrapperStyles = 'relative';
+
+	const handleTimeChange = (name: string, value: string) => {
+		setFormData(prev => ({
+			...prev,
+			[name]: value,
+		}));
+	};
+
+	// Styles for react-select components
+	const reactSelectStyles = {
+		control: (base: any) => ({
+			...base,
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			backgroundColor: 'transparent',
+			'&:hover': {
+				borderBottom: '2px solid #4B5563',
+			},
+		}),
+		option: (base: any, state: { isSelected: boolean }) => ({
+			...base,
+			backgroundColor: state.isSelected ? '#4B5563' : 'white',
+			color: state.isSelected ? 'white' : '#1F2937',
+			'&:hover': {
+				backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+			},
+		}),
+		menu: (base: any) => ({
+			...base,
+			boxShadow: 'none',
+			border: '1px solid #E5E7EB',
+		}),
+	};
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -225,7 +278,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 											s.id ===
 											(typeof track.subgenre === 'number'
 												? track.subgenre
-												: track.subgenre.id)
+												: track.subgenre?.id)
 									);
 									if (subgenreById) {
 										setFormData(prev => ({
@@ -243,7 +296,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 										g.name ===
 										(typeof track.genre === 'number'
 											? String(track.genre)
-											: track.genre.name)
+											: track.genre?.name)
 								);
 								if (genreByName) {
 									setCurrentGenreId(genreByName.id);
@@ -262,7 +315,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 												s.id ===
 												(typeof track.subgenre === 'number'
 													? track.subgenre
-													: track.subgenre.id)
+													: track.subgenre?.id)
 										);
 										if (subgenreById) {
 											setFormData(prev => ({
@@ -340,7 +393,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 		} else if (name === 'subgenre') {
 			// Manejo especial para el cambio de subgénero
 			const subgenreId = parseInt(value);
-			const currentGenre = genres.find(g => g.id === formData.genre.id);
+			const currentGenre = genres.find(g => g.id === formData.genre?.id);
 			const selectedSubgenre = currentGenre?.subgenres?.find(
 				s => s.id === subgenreId
 			);
@@ -591,61 +644,30 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 		}
 	};
 
-	if (!isLoading) return null;
+	if (isLoading) {
+		return (
+			<div className="flex justify-center items-center h-64">
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
+			</div>
+		);
+	}
 
-	const inputStyles =
-		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
-	const selectStyles =
-		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
-	const selectWrapperStyles = 'relative';
-
-	const handleTimeChange = (name: string, value: string) => {
-		setFormData(prev => ({
-			...prev,
-			[name]: value,
-		}));
-	};
-
-	// Styles for react-select components
-	const reactSelectStyles = {
-		control: (base: any) => ({
-			...base,
-			border: 'none',
-			borderBottom: '2px solid #E5E7EB',
-			borderRadius: '0',
-			boxShadow: 'none',
-			backgroundColor: 'transparent',
-			'&:hover': {
-				borderBottom: '2px solid #4B5563',
-			},
-		}),
-		option: (base: any, state: { isSelected: boolean }) => ({
-			...base,
-			backgroundColor: state.isSelected ? '#4B5563' : 'white',
-			color: state.isSelected ? 'white' : '#1F2937',
-			'&:hover': {
-				backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
-			},
-		}),
-		menu: (base: any) => ({
-			...base,
-			boxShadow: 'none',
-			border: '1px solid #E5E7EB',
-		}),
-	};
+	if (!isOpen) return <></>;
 
 	return (
-		<div className="container mx-auto px-4 py-8">
-			<div className="bg-white rounded-lg p-6">
-				<div className="mb-4">
-					<h2 className="text-xl font-bold">Editar Track</h2>
+		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+			<div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+				<div className="flex justify-between items-center mb-4">
+					<h2 className="text-xl font-semibold text-gray-900">Editar Track</h2>
+					<button
+						onClick={onClose}
+						className="text-gray-500 hover:text-gray-700"
+					>
+						<X className="h-6 w-6" />
+					</button>
 				</div>
 
-				{isLoading ? (
-					<div className="flex justify-center items-center h-64">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
-					</div>
-				) : error ? (
+				{error ? (
 					<div className="p-8 text-center text-red-500">
 						<p>{error}</p>
 					</div>
@@ -759,7 +781,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 								</label>
 								<Select
 									value={
-										formData.genre.id
+										formData.genre?.id
 											? {
 													value: formData.genre.id,
 													label: formData.genre.name,
@@ -784,10 +806,12 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 									styles={reactSelectStyles}
 									isClearable
 								/>
-								{formData.genre.name && (
-									<p className="text-xs text-gray-500 mt-1">
-										Género actual: {formData.genre.name}
-									</p>
+								{formData.genre && (
+									<div className="flex items-center gap-2 mb-2">
+										<span className="text-sm">
+											Género actual: {formData.genre.name}
+										</span>
+									</div>
 								)}
 							</div>
 
@@ -797,7 +821,7 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 								</label>
 								<Select
 									value={
-										formData.subgenre.id
+										formData.subgenre?.id
 											? {
 													value: formData.subgenre.id,
 													label: formData.subgenre.name,
@@ -815,18 +839,20 @@ const UpdateTrackPage: React.FC<UpdateTrackPageProps> = ({
 										}
 									}}
 									options={
-										genres
-											.find(g => g.id === formData.genre.id)
-											?.subgenres?.map(subgenre => ({
-												value: subgenre.id,
-												label: subgenre.name,
-											})) || []
+										formData.genre?.id
+											? genres
+													.find(g => g.id === formData.genre?.id)
+													?.subgenres?.map(subgenre => ({
+														value: subgenre.id,
+														label: subgenre.name,
+													})) ?? []
+											: []
 									}
 									placeholder="Seleccionar subgénero"
 									styles={reactSelectStyles}
 									isClearable
 								/>
-								{formData.subgenre.name && (
+								{formData.subgenre && (
 									<p className="text-xs text-gray-500 mt-1">
 										Subgénero actual: {formData.subgenre.name}
 									</p>

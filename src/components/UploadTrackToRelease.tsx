@@ -102,11 +102,59 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			// Crear FormData con todos los tracks
 			const formData = new FormData();
 			validAssets.forEach((asset, index) => {
-				formData.append('tracks[]', index.toString());
-				formData.append('titles[]', asset.title.trim());
-				formData.append('mixNames[]', asset.mixName.trim() || '');
+				// Crear el objeto de datos para el track
+				const trackData = {
+					order: index + 1,
+					name: asset.title.trim(),
+					mix_name: asset.mixName.trim() || '',
+					language: 'AB',
+					vocals: 'ZXX',
+					artists: [
+						{
+							id: 22310,
+							order: 2147483647,
+							artist: 1541,
+							kind: 'main',
+							name: 'Jhon Doe',
+						},
+					],
+					publishers: [
+						{
+							order: 3,
+							publisher: 70,
+							author: 'Juan Cisneros',
+						},
+					],
+					contributors: [
+						{
+							id: 555,
+							order: 3,
+							contributor: 1046,
+							role: 2,
+							name: 'Jhon Doe',
+						},
+					],
+					label_share: '',
+					genre: { id: 3, name: 'Alternative' },
+					subgenre: {
+						id: 90,
+						name: 'Alternative',
+					},
+					dolby_atmos_resource: '',
+					copyright_holder: 'ISLA sOUNDS',
+					copyright_holder_year: '2025',
+					album_only: true,
+					sample_start: '',
+					explicit_content: true,
+					ISRC: '',
+					generate_isrc: true,
+					DA_ISRC: '',
+					track_lenght: '',
+				};
+
+				formData.append('data', JSON.stringify(trackData));
 				if (asset.file) {
-					formData.append('files[]', asset.file);
+					formData.append('file', asset.file);
 				}
 			});
 
@@ -147,7 +195,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					reject(new Error('Error de red'));
 				};
 
-				xhr.open('PUT', `/api/admin/updateRelease/${releaseId}`);
+				xhr.open('POST', `/api/admin/createSingle`);
 				xhr.send(formData);
 			});
 

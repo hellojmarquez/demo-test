@@ -4,8 +4,15 @@ import { X, Plus, ArrowBigUp, Trash2 } from 'lucide-react';
 interface UploadTrackToReleaseProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onSubmit: (data: { title: string; mixName: string; file: File }) => void;
 	releaseId: string;
+	onUploadComplete?: (
+		uploadedTracks: { title: string; mixName: string; file: File }[]
+	) => void;
+	onUploadProgress?: (progress: {
+		total: number;
+		loaded: number;
+		percentage: number;
+	}) => void;
 }
 
 interface AssetRow {
@@ -18,8 +25,9 @@ interface AssetRow {
 const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	isOpen,
 	onClose,
-	onSubmit,
 	releaseId,
+	onUploadComplete,
+	onUploadProgress,
 }) => {
 	const [assets, setAssets] = useState<AssetRow[]>([]);
 	const [error, setError] = useState('');
@@ -91,19 +99,9 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				return;
 			}
 
-			console.log('Assets válidos antes de enviar:', validAssets);
-
 			// Crear FormData con todos los tracks
 			const formData = new FormData();
 			validAssets.forEach((asset, index) => {
-				console.log('Procesando asset para enviar:', {
-					index,
-					title: asset.title,
-					titleLength: asset.title.length,
-					mixName: asset.mixName,
-					file: asset.file?.name,
-				});
-
 				formData.append('tracks[]', index.toString());
 				formData.append('titles[]', asset.title.trim());
 				formData.append('mixNames[]', asset.mixName.trim() || '');
@@ -112,32 +110,63 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				}
 			});
 
-			// Verificar los datos antes de enviar
-			console.log('Datos a enviar:', {
-				tracks: formData.getAll('tracks[]'),
-				titles: formData.getAll('titles[]'),
-				mixNames: formData.getAll('mixNames[]'),
-				files: formData.getAll('files[]').map((f: any) => f.name),
+			// Cerrar el modal inmediatamente
+			onClose();
+
+			// Crear una promesa para manejar la respuesta
+			const response = await new Promise<{
+				success: boolean;
+				message?: string;
+			}>((resolve, reject) => {
+				const xhr = new XMLHttpRequest();
+
+				xhr.upload.onprogress = event => {
+					if (event.lengthComputable) {
+						onUploadProgress?.({
+							total: event.total,
+							loaded: event.loaded,
+							percentage: Math.round((event.loaded / event.total) * 100),
+						});
+					}
+				};
+
+				xhr.onload = () => {
+					if (xhr.status >= 200 && xhr.status < 300) {
+						try {
+							const response = JSON.parse(xhr.responseText);
+							resolve(response);
+						} catch (e) {
+							reject(new Error('Error al procesar la respuesta del servidor'));
+						}
+					} else {
+						reject(new Error(xhr.responseText || 'Error en la petición'));
+					}
+				};
+
+				xhr.onerror = () => {
+					reject(new Error('Error de red'));
+				};
+
+				xhr.open('PUT', `/api/admin/updateRelease/${releaseId}`);
+				xhr.send(formData);
 			});
 
-			// Enviar los datos al endpoint de actualizar release
-			const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
-				method: 'PUT',
-				body: formData,
-				credentials: 'include',
-			});
-
-			const result = await response.json();
-			console.log('Respuesta del servidor:', result);
-
-			if (!result.success) {
-				throw new Error(result.message || 'Error al crear los tracks');
+			if (!response.success) {
+				throw new Error(response.message || 'Error al crear los tracks');
 			}
 
-			// Limpiar el formulario y cerrar el modal
+			// Notificar al componente padre sobre los tracks subidos
+			onUploadComplete?.(
+				validAssets.map(asset => ({
+					title: asset.title.trim(),
+					mixName: asset.mixName.trim(),
+					file: asset.file!,
+				}))
+			);
+
+			// Limpiar el formulario
 			setAssets([]);
 			setError('');
-			onClose();
 		} catch (err: any) {
 			console.error('Error al crear tracks:', err);
 			setError(err.message || 'Error al crear los tracks');
@@ -286,9 +315,10 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 						<button
 							type="button"
 							onClick={handleSubmit}
-							className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md"
+							disabled={isLoading}
+							className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
 						>
-							Crear Assets
+							{isLoading ? 'Subiendo...' : 'Crear Assets'}
 						</button>
 					</div>
 				</div>

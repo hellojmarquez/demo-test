@@ -11,6 +11,7 @@ import {
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
 import UploadTrackToRelease from './UploadTrackToRelease';
+import { useRouter } from 'next/navigation';
 
 interface ArtistData {
 	external_id: number;
@@ -43,6 +44,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
 	onSave,
 }) => {
+	const router = useRouter();
 	const [formData, setFormData] = useState<Release>(() => ({
 		...release,
 		picture: release.picture || undefined,
@@ -55,6 +57,14 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+	} | null>(null);
+	const [uploadedTracks, setUploadedTracks] = useState<
+		{ title: string; mixName: string; file: File }[]
+	>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
 	const [trackData, setTrackData] = useState<TrackData[]>([]);
@@ -306,14 +316,51 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}));
 	};
 
-	const handleUploadTrack = (data: {
-		title: string;
-		mixName: string;
-		file: File;
+	const handleUploadProgress = (progress: {
+		total: number;
+		loaded: number;
+		percentage: number;
 	}) => {
-		console.log('Track data:', data);
-		// Aquí irá la lógica para subir el track
-		setIsUploadModalOpen(false);
+		setUploadProgress(progress);
+	};
+
+	const handleUploadComplete = async (
+		tracks: { title: string; mixName: string; file: File }[]
+	) => {
+		try {
+			// Actualizar el estado local primero
+			setFormData(prev => ({
+				...prev,
+				tracks: [
+					...(prev.tracks || []),
+					...tracks.map(track => ({
+						name: track.title,
+						mix_name: track.mixName,
+						order: (prev.tracks || []).length,
+						artists: [],
+						ISRC: '',
+						generate_isrc: false,
+						DA_ISRC: '',
+						genre: 0,
+						subgenre: 0,
+						resource: '',
+						dolby_atmos_resource: '',
+						album_only: false,
+						explicit_content: false,
+						track_length: '',
+					})),
+				],
+			}));
+
+			// Limpiar el estado de subida
+			setUploadedTracks([]);
+			setUploadProgress(null);
+
+			// Refrescar los datos del servidor
+			router.refresh();
+		} catch (error) {
+			console.error('Error al actualizar los tracks:', error);
+		}
 	};
 
 	return (
@@ -367,7 +414,113 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</button>
 						</div>
 					</div>
+					<div className="space-y-2">
+						<label className="block text-sm font-medium text-gray-700">
+							Tracks
+						</label>
+						<div className="space-y-2">
+							{formData.tracks
+								?.filter(track => track !== null)
+								.map((track, index) => (
+									<div key={index} className="flex items-center gap-2">
+										<div className="flex-1 p-2 border rounded bg-gray-50">
+											{track?.name || 'Track sin nombre'}
+										</div>
+										<button
+											onClick={() => handleDeleteTrack(index)}
+											className="p-2 text-red-600 hover:text-red-800"
+										>
+											<Trash2 size={20} />
+										</button>
+									</div>
+								))}
 
+							{uploadedTracks.map((track, index) => (
+								<div
+									key={`uploaded-${index}`}
+									className="flex items-center gap-2"
+								>
+									<div className="flex-1 p-2 border rounded bg-gray-50">
+										{track.title} {track.mixName ? `(${track.mixName})` : ''}
+									</div>
+									<button
+										onClick={() => {
+											setUploadedTracks(prev =>
+												prev.filter((_, i) => i !== index)
+											);
+										}}
+										className="p-2 text-red-600 hover:text-red-800"
+									>
+										<Trash2 size={20} />
+									</button>
+								</div>
+							))}
+
+							{(!formData.tracks || formData.tracks.length === 0) &&
+								uploadedTracks.length === 0 && (
+									<div className="text-sm text-gray-500">
+										No hay tracks agregados
+									</div>
+								)}
+
+							{uploadProgress && (
+								<div className="mt-2">
+									<div className="w-full bg-gray-200 rounded-full h-2.5">
+										<div
+											className="bg-[#1DB954] h-2.5 rounded-full transition-all duration-300"
+											style={{ width: `${uploadProgress.percentage}%` }}
+										></div>
+									</div>
+									<p className="text-sm text-gray-600 mt-1">
+										Subiendo... {uploadProgress.percentage}%
+									</p>
+								</div>
+							)}
+
+							<div className="flex items-center gap-2">
+								<Select
+									value={null}
+									onChange={(
+										selectedOption: SingleValue<{
+											value: string;
+											label: string;
+										}>
+									) => {
+										if (selectedOption) {
+											const selectedTrack = trackData.find(
+												t => t._id === selectedOption.value
+											);
+											if (selectedTrack) {
+												handleTrackChange(
+													(formData.tracks || []).length,
+													'track',
+													selectedTrack._id
+												);
+											}
+										}
+									}}
+									options={trackData.map(track => ({
+										value: track._id,
+										label: track.name,
+									}))}
+									placeholder="Seleccionar track"
+									className="react-select-container flex-1"
+									classNamePrefix="react-select"
+									styles={reactSelectStyles}
+								/>
+							</div>
+						</div>
+
+						<div className="flex justify-end">
+							<button
+								type="button"
+								onClick={() => setIsUploadModalOpen(true)}
+								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+							>
+								<Plus size={20} />
+							</button>
+						</div>
+					</div>
 					<div className="grid grid-cols-2 gap-4">
 						<div>
 							<label className="block text-sm font-medium text-gray-700">
@@ -640,78 +793,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						</div>
 					</div>
 
-					<div className="space-y-2">
-						<label className="block text-sm font-medium text-gray-700">
-							Tracks
-						</label>
-						<div className="space-y-2">
-							{formData.tracks
-								?.filter(track => track !== null)
-								.map((track, index) => (
-									<div key={index} className="flex items-center gap-2">
-										<div className="flex-1 p-2 border rounded bg-gray-50">
-											{track?.name || 'Track sin nombre'}
-										</div>
-										<button
-											onClick={() => handleDeleteTrack(index)}
-											className="p-2 text-red-600 hover:text-red-800"
-										>
-											<Trash2 size={20} />
-										</button>
-									</div>
-								))}
-
-							{(!formData.tracks || formData.tracks.length === 0) && (
-								<div className="text-sm text-gray-500">
-									No hay tracks agregados
-								</div>
-							)}
-
-							<div className="flex items-center gap-2">
-								<Select
-									value={null}
-									onChange={(
-										selectedOption: SingleValue<{
-											value: string;
-											label: string;
-										}>
-									) => {
-										if (selectedOption) {
-											const selectedTrack = trackData.find(
-												t => t._id === selectedOption.value
-											);
-											if (selectedTrack) {
-												handleTrackChange(
-													(formData.tracks || []).length,
-													'track',
-													selectedTrack._id
-												);
-											}
-										}
-									}}
-									options={trackData.map(track => ({
-										value: track._id,
-										label: track.name,
-									}))}
-									placeholder="Seleccionar track"
-									className="react-select-container flex-1"
-									classNamePrefix="react-select"
-									styles={reactSelectStyles}
-								/>
-							</div>
-						</div>
-
-						<div className="flex justify-end">
-							<button
-								type="button"
-								onClick={handleAddTrack}
-								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-							>
-								<Plus size={20} />
-							</button>
-						</div>
-					</div>
-
 					<div className="grid grid-cols-2 gap-4">
 						<div className="flex items-center">
 							<input
@@ -806,8 +887,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			<UploadTrackToRelease
 				isOpen={isUploadModalOpen}
 				onClose={() => setIsUploadModalOpen(false)}
-				onSubmit={handleUploadTrack}
 				releaseId={release._id}
+				onUploadProgress={handleUploadProgress}
+				onUploadComplete={handleUploadComplete}
 			/>
 		</div>
 	);

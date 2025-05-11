@@ -51,12 +51,12 @@ export default function EditPage() {
 
 	const handleReleaseSave = async (updatedRelease: Release) => {
 		try {
+			const formData = new FormData();
+			formData.append('data', JSON.stringify(updatedRelease));
+
 			const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(updatedRelease),
+				body: formData,
 			});
 
 			if (!response.ok) {

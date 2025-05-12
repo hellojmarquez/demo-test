@@ -10,6 +10,7 @@ import {
 	Play,
 	Pause,
 	Music,
+	User,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -31,6 +32,8 @@ interface TrackData {
 interface UpdateReleasePageProps {
 	release: Release;
 	onSave: (updatedRelease: Release) => Promise<void>;
+	formData: Release;
+	setFormData: React.Dispatch<React.SetStateAction<Release>>;
 }
 
 interface ArtistOption {
@@ -43,23 +46,58 @@ interface KindOption {
 	label: string;
 }
 
+interface LabelOption {
+	value: number;
+	label: string;
+}
+
+const RELEASE_TYPES: KindOption[] = [
+	{ value: 'single', label: 'Single' },
+	{ value: 'ep', label: 'EP' },
+	{ value: 'album', label: 'Album' },
+];
+
+const CustomSwitch: React.FC<{
+	checked: boolean;
+	onChange: (checked: boolean) => void;
+	className?: string;
+}> = ({ checked, onChange, className = '' }) => (
+	<button
+		type="button"
+		role="switch"
+		aria-checked={checked}
+		tabIndex={0}
+		onClick={() => onChange(!checked)}
+		className={`relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex items-center ${
+			checked ? 'bg-brand-light' : 'bg-gray-700'
+		} ${className}`}
+	>
+		{/* Línea blanca solo cuando está encendido */}
+		{checked && (
+			<span className="absolute left-1.5 w-px h-1.5 bg-white rounded-sm z-10"></span>
+		)}
+		{/* Círculo de la derecha (ring) solo cuando está apagado */}
+		{!checked && (
+			<span className="absolute right-1 top-1.1 w-2.5 h-2.5 rounded-full border-2 border-gray-300 bg-transparent z-10"></span>
+		)}
+		{/* Círculo principal */}
+		<span
+			className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 z-20 ${
+				checked ? 'translate-x-4' : ''
+			} ${checked ? '' : 'border-2 border-gray-300'}`}
+		></span>
+	</button>
+);
+
 const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
 	onSave,
+	formData,
+	setFormData,
 }) => {
 	console.log('Release completo:', release);
 
 	const router = useRouter();
-	const [formData, setFormData] = useState<Release>(() => ({
-		...release,
-		picture: release.picture || undefined,
-		artists: release.artists || [],
-		tracks: release.tracks || [],
-		countries: release.countries || [],
-		createdAt: release.createdAt || new Date().toISOString(),
-		updatedAt: release.updatedAt || new Date().toISOString(),
-	}));
-	console.log('formData.tracks:', formData.tracks);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -79,6 +117,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [playingTrack, setPlayingTrack] = useState<string | null>(null);
 	const [playList, setPlayList] = useState<any[]>([]);
 	const [progress, setProgress] = useState<number>(0);
+	const [labels, setLabels] = useState<LabelOption[]>([]);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 
 	// Add the common input styles at the top of the component
@@ -141,11 +180,26 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					setArtistData(artistsData.data);
 				}
 
+				// Fetch labels
+				const labelsRes = await fetch('/api/admin/getAllSellos');
+				const labelsData = await labelsRes.json();
+				if (labelsData.success && Array.isArray(labelsData.data)) {
+					setLabels(
+						labelsData.data.map((label: any) => ({
+							value: label._id,
+							label: label.name,
+						}))
+					);
+				}
+
 				// Actualizar los tracks del release
-				setFormData(prev => ({
-					...prev,
-					tracks: release.tracks || [],
-				}));
+				setFormData(prev => {
+					if (!prev) return prev;
+					return {
+						...prev,
+						tracks: release.tracks || [],
+					};
+				});
 			} catch (error) {
 				console.error('Error fetching data:', error);
 			}
@@ -242,27 +296,16 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}));
 	};
 
-	const handleArtistChange = (
-		index: number,
-		field: keyof Artist,
-		value: string | number
-	) => {
-		setFormData(prev => {
-			const artists = [...(prev.artists || [])];
-			if (!artists[index]) {
-				artists[index] = {
-					artist: 0,
-					name: '',
-					kind: 'main',
-					order: 0,
-				};
-			}
-			artists[index] = {
-				...artists[index],
-				[field]: value,
-			};
-			return { ...prev, artists };
-		});
+	const handleArtistChange = (selectedOptions: any) => {
+		setFormData(prev => ({
+			...prev,
+			artists: selectedOptions.map((option: any) => ({
+				order: 0,
+				artist: option.value,
+				kind: 'main',
+				name: option.label,
+			})),
+		}));
 	};
 
 	const handleDeleteTrack = (index: number) => {
@@ -272,58 +315,14 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}));
 	};
 
-	const handleTrackChange = (
-		index: number,
-		field: string,
-		value: string | number
-	) => {
-		setFormData(prev => {
-			const newTracks = [...(prev.tracks || [])];
-			if (!newTracks[index]) {
-				newTracks[index] = {
-					order: (prev.tracks || []).length,
-					title: '',
-					artists: [],
-					ISRC: '',
-					generate_isrc: false,
-					DA_ISRC: '',
-					genre: 0,
-					subgenre: 0,
-					mix_name: '',
-					resource: '',
-					dolby_atmos_resource: '',
-					album_only: false,
-					explicit_content: false,
-					track_length: '',
-				};
-			}
-
-			if (field === 'track') {
-				const selectedTrack = trackData.find(t => t._id === value);
-				if (selectedTrack) {
-					newTracks[index] = {
-						...newTracks[index],
-						title: selectedTrack.name,
-						ISRC: selectedTrack.ISRC,
-						order: (prev.tracks || []).length,
-					};
-				}
-			} else if (field === 'order') {
-				const numValue =
-					typeof value === 'string' ? parseInt(value) : Number(value);
-				if (!isNaN(numValue)) {
-					newTracks[index] = {
-						...newTracks[index],
-						order: numValue,
-					};
-				}
-			}
-
-			return {
-				...prev,
-				tracks: newTracks,
-			};
-		});
+	const handleTrackChange = (trackId: number, field: string, value: any) => {
+		setFormData(prev => ({
+			...prev,
+			tracks:
+				prev.tracks?.map(track =>
+					track.order === trackId ? { ...track, [field]: value } : track
+				) || [],
+		}));
 	};
 
 	const handleAddTrack = () => {
@@ -460,7 +459,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			<audio ref={audioRef} />
 			<div className="bg-white rounded-lg p-6">
 				<form onSubmit={handleSubmit} className="space-y-4">
-					<div className="space-y-2 bg-slate-50">
+					<div className="space-y-2 bg-slate-50 p-2">
 						<div className="flex items-center gap-4">
 							<div className="w-52 h-52 border-2 border-gray-200 flex items-center justify-center overflow-hidden relative group">
 								{imagePreview ? (
@@ -652,12 +651,22 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<label className="block text-sm font-medium text-gray-700">
 								Label
 							</label>
-							<input
-								type="text"
-								name="label"
-								value={formData.label}
-								onChange={handleChange}
-								className={inputStyles}
+							<Select
+								value={labels.find(label => label.value === formData.label)}
+								onChange={(selectedOption: SingleValue<LabelOption>) => {
+									if (selectedOption) {
+										setFormData(prev => ({
+											...prev,
+											label: selectedOption.value,
+											label_name: selectedOption.label,
+										}));
+									}
+								}}
+								options={labels}
+								placeholder="Seleccionar label"
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={reactSelectStyles}
 							/>
 						</div>
 
@@ -697,12 +706,21 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<label className="block text-sm font-medium text-gray-700">
 								Tipo
 							</label>
-							<input
-								type="text"
-								name="kind"
-								value={formData.kind}
-								onChange={handleChange}
-								className={inputStyles}
+							<Select
+								value={RELEASE_TYPES.find(type => type.value === formData.kind)}
+								onChange={(selectedOption: SingleValue<KindOption>) => {
+									if (selectedOption) {
+										setFormData(prev => ({
+											...prev,
+											kind: selectedOption.value,
+										}));
+									}
+								}}
+								options={RELEASE_TYPES}
+								placeholder="Seleccionar tipo"
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={reactSelectStyles}
 							/>
 						</div>
 					</div>
@@ -727,182 +745,85 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						<label className="block text-sm font-medium text-gray-700">
 							Artistas
 						</label>
-						<div className="space-y-2">
-							{(formData.artists || []).length === 0 ? (
-								<div className="flex items-center gap-2">
-									<Select<ArtistOption>
-										value={
-											(formData.artists || [])[0]?.artist
-												? {
-														value: (formData.artists || [])[0].artist,
-														label: (formData.artists || [])[0].name || '',
-												  }
-												: { value: 0, label: '' }
-										}
-										onChange={(selectedOption: SingleValue<ArtistOption>) => {
-											if (selectedOption) {
-												handleArtistChange(0, 'artist', selectedOption.value);
-											}
-										}}
-										options={artistData.map(artist => ({
-											value: artist.external_id,
-											label: artist.name,
-										}))}
-										placeholder="Seleccionar artista"
-										className="react-select-container flex-1"
-										classNamePrefix="react-select"
-										styles={reactSelectStyles}
-									/>
+						<div className="space-y-4 flex flex-col p-2 bg-slate-100">
+							<Select<ArtistOption>
+								value={null}
+								onChange={(selectedOption: SingleValue<ArtistOption>) => {
+									if (selectedOption) {
+										setFormData(prev => ({
+											...prev,
+											artists: [
+												...(prev.artists || []),
+												{
+													order: (prev.artists || []).length,
+													artist: selectedOption.value,
+													kind: 'main',
+													name: selectedOption.label,
+												},
+											],
+										}));
+									}
+								}}
+								options={artistData.map(artist => ({
+									value: artist.external_id,
+									label: artist.name,
+								}))}
+								placeholder={
+									<div className="flex items-center gap-2">
+										<Plus className="w-4 h-4" />
+										<span>Seleccionar artista</span>
+									</div>
+								}
+								className="react-select-container w-72 self-end"
+								classNamePrefix="react-select"
+								styles={reactSelectStyles}
+							/>
 
-									<Select<KindOption>
-										value={
-											(formData.artists || [])[0]?.kind
-												? {
-														value: (formData.artists || [])[0].kind,
-														label:
-															(formData.artists || [])[0].kind === 'main'
-																? 'Principal'
-																: (formData.artists || [])[0].kind ===
-																  'featuring'
-																? 'Invitado'
-																: 'Remixer',
-												  }
-												: { value: 'main', label: 'Principal' }
-										}
-										onChange={(selectedOption: SingleValue<KindOption>) => {
-											if (selectedOption) {
-												handleArtistChange(0, 'kind', selectedOption.value);
-											}
-										}}
-										options={[
-											{ value: 'main', label: 'Principal' },
-											{ value: 'featuring', label: 'Invitado' },
-											{ value: 'remixer', label: 'Remixer' },
-										]}
-										placeholder="Seleccionar rol"
-										className="react-select-container flex-1"
-										classNamePrefix="react-select"
-										styles={reactSelectStyles}
-									/>
-
-									<input
-										type="number"
-										value={
-											typeof (formData.artists || [])[0]?.order === 'number'
-												? (formData.artists || [])[0].order
-												: 0
-										}
-										onChange={e => {
-											const val = parseInt(e.target.value);
-											handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
-										}}
-										className={inputStyles}
-										placeholder="Orden"
-									/>
-								</div>
-							) : (
-								(formData.artists || []).map((artist, index) => (
-									<div key={index} className="flex items-center gap-2">
-										<Select<ArtistOption>
-											value={
-												artist.artist
-													? {
-															value: artist.artist,
-															label: artist.name || '',
-													  }
-													: { value: 0, label: '' }
-											}
-											onChange={(selectedOption: SingleValue<ArtistOption>) => {
-												if (selectedOption) {
-													handleArtistChange(
-														index,
-														'artist',
-														selectedOption.value
-													);
-												}
-											}}
-											options={artistData.map(artist => ({
-												value: artist.external_id,
-												label: artist.name,
-											}))}
-											placeholder="Seleccionar artista"
-											className="react-select-container flex-1"
-											classNamePrefix="react-select"
-											styles={reactSelectStyles}
-										/>
-
-										<Select<KindOption>
-											value={
-												artist.kind
-													? {
-															value: artist.kind,
-															label:
-																artist.kind === 'main'
-																	? 'Principal'
-																	: artist.kind === 'featuring'
-																	? 'Invitado'
-																	: 'Remixer',
-													  }
-													: { value: 'main', label: 'Principal' }
-											}
-											onChange={(selectedOption: SingleValue<KindOption>) => {
-												if (selectedOption) {
-													handleArtistChange(
-														index,
-														'kind',
-														selectedOption.value
-													);
-												}
-											}}
-											options={[
-												{ value: 'main', label: 'Principal' },
-												{ value: 'featuring', label: 'Invitado' },
-												{ value: 'remixer', label: 'Remixer' },
-											]}
-											placeholder="Seleccionar rol"
-											className="react-select-container flex-1"
-											classNamePrefix="react-select"
-											styles={reactSelectStyles}
-										/>
-
-										<input
-											type="number"
-											value={
-												typeof artist.order === 'number' ? artist.order : 0
-											}
-											onChange={e => {
-												const val = parseInt(e.target.value);
-												handleArtistChange(
-													index,
-													'order',
-													isNaN(val) ? 0 : val
-												);
-											}}
-											className={inputStyles}
-											placeholder="Orden"
-										/>
-
-										{(formData.artists || []).length > 1 && (
+							<div className=" space-y-2   min-h-52 p-2">
+								<div className=" flex flex-wrap gap-2 items-center">
+									{(formData.artists || []).map((artist, index) => (
+										<div
+											key={index}
+											className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg"
+										>
+											<div className="flex  gap-3">
+												<div className="p-2 bg-white rounded-full">
+													<User className="w-14 h-14 text-gray-600" />
+												</div>
+												<div className="flex flex-col items-center">
+													<span className="font-medium ">{artist.name}</span>
+													<CustomSwitch
+														checked={artist.kind === 'main'}
+														onChange={checked => {
+															setFormData(prev => ({
+																...prev,
+																artists: (prev.artists || []).map((a, i) =>
+																	i === index
+																		? {
+																				...a,
+																				kind: checked ? 'main' : 'featuring',
+																		  }
+																		: a
+																),
+															}));
+														}}
+														className="mx-auto my-1"
+													/>
+													<span className="ml-2 text-xs text-gray-600">
+														{artist.kind === 'main' ? 'Principal' : 'Invitado'}
+													</span>
+												</div>
+											</div>
 											<button
 												onClick={() => handleDeleteArtist(index)}
-												className="p-2 text-red-600 hover:text-red-800"
+												className="p-2 text-gray-400 hover:text-red-600 transition-colors"
 											>
 												<Trash2 size={20} />
 											</button>
-										)}
-									</div>
-								))
-							)}
-						</div>
-
-						<div className="flex justify-end">
-							<button
-								type="button"
-								onClick={handleAddArtist}
-								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-							>
-								<Plus size={20} />
-							</button>
+										</div>
+									))}
+								</div>
+							</div>
 						</div>
 					</div>
 

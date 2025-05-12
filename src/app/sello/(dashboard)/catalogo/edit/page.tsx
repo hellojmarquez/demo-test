@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UpdateReleasePage from '@/components/UpdateReleaseModal';
 import UpdateTrackModal from '@/components/UpdateTrackModal';
 import { useSearchParams } from 'next/navigation';
@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { Release, ReleaseResponse } from '@/types/release';
 import { Track, TrackResponse } from '@/types/track';
+import { toast } from 'react-hot-toast';
 
 interface ApiError extends Error {
 	info?: any;
@@ -28,10 +29,46 @@ const fetcher = async (url: string) => {
 export default function EditPage() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
-	const [activeTab, setActiveTab] = useState<'release' | 'track'>('release');
+	const [activeTab, setActiveTab] = useState('details');
 	const releaseId = searchParams.get('releaseId');
 	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 	const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+	const [formData, setFormData] = useState<Release>({
+		_id: '',
+		name: '',
+		picture: '',
+		external_id: 0,
+		auto_detect_language: false,
+		generate_ean: false,
+		backcatalog: false,
+		youtube_declaration: false,
+		dolby_atmos: false,
+		artists: [],
+		tracks: [],
+		countries: [],
+		catalogue_number: '',
+		kind: '',
+		label: 0,
+		label_name: '',
+		language: '',
+		release_version: '',
+		publisher: '',
+		publisher_year: '',
+		copyright_holder: '',
+		copyright_holder_year: '',
+		genre: 0,
+		subgenre: 0,
+		artwork: '',
+		is_new_release: 0,
+		official_date: '',
+		original_date: '',
+		exclusive_shop: 0,
+		territory: '',
+		ean: '',
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+	});
+	const [isLoading, setIsLoading] = useState(true);
 
 	const {
 		data: releaseData,
@@ -51,25 +88,34 @@ export default function EditPage() {
 		fetcher
 	);
 
-	const handleReleaseSave = async (updatedRelease: Release) => {
-		try {
-			const formData = new FormData();
-			formData.append('data', JSON.stringify(updatedRelease));
+	useEffect(() => {
+		if (releaseData?.data) {
+			setFormData(releaseData.data);
+			setIsLoading(false);
+		}
+	}, [releaseData]);
 
+	const handleSave = async (updatedRelease: Release) => {
+		try {
 			const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
 				method: 'PUT',
-				body: formData,
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(updatedRelease),
 			});
 
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.message || 'Error al actualizar el release');
+			const data = await response.json();
+			if (data.success) {
+				setFormData(data.data);
+				toast.success('Release actualizado correctamente');
+				await mutateRelease();
+			} else {
+				toast.error(data.message || 'Error al actualizar el release');
 			}
-
-			await mutateRelease();
 		} catch (error) {
-			console.error('Error saving release:', error);
-			throw error;
+			console.error('Error updating release:', error);
+			toast.error('Error al actualizar el release');
 		}
 	};
 
@@ -124,71 +170,41 @@ export default function EditPage() {
 		}
 	};
 
-	if (!releaseId) {
-		return (
-			<div className="flex justify-center items-center h-screen">
-				<p className="text-red-500">
-					No se ha especificado un ID de lanzamiento
-				</p>
-			</div>
-		);
-	}
-
-	if (releaseError || tracksError) {
-		return (
-			<div className="flex justify-center items-center h-screen">
-				<p className="text-red-500">
-					{(releaseError as ApiError)?.info?.message ||
-						(tracksError as ApiError)?.info?.message ||
-						'Error al cargar los datos'}
-				</p>
-			</div>
-		);
-	}
-
-	if (!releaseData?.data) {
-		return (
-			<div className="flex justify-center items-center h-screen">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
-			</div>
-		);
+	if (isLoading || !formData) {
+		return <div>Cargando...</div>;
 	}
 
 	return (
-		<div className="container mx-auto px-4">
-			<div className="mb-6">
-				<div className="border-b border-gray-200">
-					<nav className="-mb-px flex space-x-8">
-						<button
-							type="button"
-							onClick={() => setActiveTab('release')}
-							className={`${
-								activeTab === 'release'
-									? 'border-brand-light text-brand-light'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-							} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-						>
-							Editar Lanzamiento
-						</button>
-						<button
-							type="button"
-							onClick={() => setActiveTab('track')}
-							className={`${
-								activeTab === 'track'
-									? 'border-brand-light text-brand-light'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-							} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-						>
-							Editar Track
-						</button>
-					</nav>
-				</div>
+		<div className="container mx-auto px-4 py-8">
+			<div className="flex space-x-4 mb-6">
+				<button
+					onClick={() => setActiveTab('details')}
+					className={`px-4 py-2 rounded-md ${
+						activeTab === 'details'
+							? 'bg-brand-light text-white'
+							: 'bg-gray-200 text-gray-700'
+					}`}
+				>
+					Detalles
+				</button>
+				<button
+					onClick={() => setActiveTab('tracks')}
+					className={`px-4 py-2 rounded-md ${
+						activeTab === 'tracks'
+							? 'bg-brand-light text-white'
+							: 'bg-gray-200 text-gray-700'
+					}`}
+				>
+					Tracks
+				</button>
 			</div>
 
-			{activeTab === 'release' ? (
+			{activeTab === 'details' ? (
 				<UpdateReleasePage
-					release={releaseData.data}
-					onSave={handleReleaseSave}
+					release={formData}
+					onSave={handleSave}
+					formData={formData}
+					setFormData={setFormData}
 				/>
 			) : (
 				<div className="space-y-4">

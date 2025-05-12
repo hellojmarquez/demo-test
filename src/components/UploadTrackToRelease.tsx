@@ -164,7 +164,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				return new Promise<{
 					success: boolean;
 					message?: string;
-					data: { external_id: string; resource: string };
+					data: { external_id: string; resource: string; name: string };
 				}>((resolve, reject) => {
 					const xhr = new XMLHttpRequest();
 
@@ -224,6 +224,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 
 			// Actualizar el release con todos los nuevos tracks
 			const updateFormData = new FormData();
+			console.log('response.data: ', trackResponses);
 			updateFormData.append(
 				'data',
 				JSON.stringify({
@@ -232,6 +233,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 						...trackResponses.map(response => ({
 							external_id: Number(response.data.external_id),
 							resource: response.data.resource,
+							title: response.data.name,
 						})),
 					],
 				})

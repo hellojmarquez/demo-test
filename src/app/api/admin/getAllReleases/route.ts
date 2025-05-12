@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
 		await dbConnect();
 		const releases = await Release.find({}).sort({ createdAt: -1 });
-
+		console.log('releases: ', releases);
 		return NextResponse.json(
 			{ success: true, data: releases },
 			{

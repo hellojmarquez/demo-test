@@ -162,6 +162,7 @@ export async function POST(req: NextRequest) {
 				_id: createTrack._id,
 				external_id: createTrack.external_id,
 				resource: createTrack.resource,
+				name: createTrack.name,
 			},
 		});
 	} catch (error: any) {

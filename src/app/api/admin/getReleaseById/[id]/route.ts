@@ -61,7 +61,7 @@ export async function GET(
 				{ status: 404 }
 			);
 		}
-
+		console.log('release byu id: ', release);
 		return NextResponse.json({
 			success: true,
 			data: release,

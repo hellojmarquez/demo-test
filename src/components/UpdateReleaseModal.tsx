@@ -44,33 +44,19 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
 	onSave,
 }) => {
+	console.log('Release completo:', release);
+
 	const router = useRouter();
 	const [formData, setFormData] = useState<Release>(() => ({
 		...release,
 		picture: release.picture || undefined,
 		artists: release.artists || [],
-		tracks: (release.tracks || [])
-			.filter(track => track !== null)
-			.map(track => ({
-				order: track.order || 0,
-				name: track.name || '',
-				artists: track.artists || [],
-				ISRC: track.ISRC || '',
-				generate_isrc: track.generate_isrc || false,
-				DA_ISRC: track.DA_ISRC || '',
-				genre: track.genre || 0,
-				subgenre: track.subgenre || 0,
-				mix_name: track.mix_name || '',
-				resource: track.resource || '',
-				dolby_atmos_resource: track.dolby_atmos_resource || '',
-				album_only: track.album_only || false,
-				explicit_content: track.explicit_content || false,
-				track_length: track.track_length || '',
-			})),
+		tracks: release.tracks || [],
 		countries: release.countries || [],
 		createdAt: release.createdAt || new Date().toISOString(),
 		updatedAt: release.updatedAt || new Date().toISOString(),
 	}));
+	console.log('formData.tracks:', formData.tracks);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -85,6 +71,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
 	const [trackData, setTrackData] = useState<TrackData[]>([]);
+	const [trackDetails, setTrackDetails] = useState<{ [key: string]: any }>({});
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
@@ -194,7 +181,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
-		console.log('enviado: ', formData);
+		console.log('Tracks al enviar:', formData.tracks);
 		try {
 			await onSave(formData);
 		} finally {
@@ -264,7 +251,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			if (!newTracks[index]) {
 				newTracks[index] = {
 					order: (prev.tracks || []).length,
-					name: '',
+					title: '',
 					artists: [],
 					ISRC: '',
 					generate_isrc: false,
@@ -285,7 +272,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				if (selectedTrack) {
 					newTracks[index] = {
 						...newTracks[index],
-						name: selectedTrack.name,
+						title: selectedTrack.name,
 						ISRC: selectedTrack.ISRC,
 						order: (prev.tracks || []).length,
 					};
@@ -315,7 +302,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				...(prev.tracks || []),
 				{
 					order: (prev.tracks || []).length,
-					name: '',
+					title: '',
 					artists: [],
 					ISRC: '',
 					generate_isrc: false,
@@ -352,7 +339,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					...(prev.tracks || []),
 					...tracks.map(track => ({
 						order: (prev.tracks || []).length + 1,
-						name: track.title,
+						title: track.title,
 						mix_name: track.mixName,
 						artists: [],
 						ISRC: '',
@@ -439,12 +426,27 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							Tracks
 						</label>
 						<div className="space-y-2">
-							{formData.tracks
-								?.filter(track => track !== null)
-								.map((track, index) => (
+							{release.tracks?.map((track, index) => {
+								console.log('Track del release:', track);
+								return (
 									<div key={index} className="flex items-center gap-2">
 										<div className="flex-1 p-2 border rounded bg-gray-50">
-											{track?.name || 'Track sin nombre'}
+											<div className="font-medium">
+												{track.title || 'Track sin nombre'}
+											</div>
+											<div className="text-sm text-gray-600">
+												{track.ISRC && <div>ISRC: {track.ISRC}</div>}
+												{track.mix_name && <div>Mix: {track.mix_name}</div>}
+												{track.resource && (
+													<div>Resource: {track.resource}</div>
+												)}
+												{track.dolby_atmos_resource && (
+													<div>Dolby: {track.dolby_atmos_resource}</div>
+												)}
+												{track.track_length && (
+													<div>Duración: {track.track_length}</div>
+												)}
+											</div>
 										</div>
 										<button
 											onClick={() => handleDeleteTrack(index)}
@@ -453,7 +455,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											<Trash2 size={20} />
 										</button>
 									</div>
-								))}
+								);
+							})}
 
 							{uploadedTracks.map((track, index) => (
 								<div
@@ -476,7 +479,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								</div>
 							))}
 
-							{(!formData.tracks || formData.tracks.length === 0) &&
+							{(!release.tracks || release.tracks.length === 0) &&
 								uploadedTracks.length === 0 && (
 									<div className="text-sm text-gray-500">
 										No hay tracks agregados
@@ -512,7 +515,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											);
 											if (selectedTrack) {
 												handleTrackChange(
-													(formData.tracks || []).length,
+													(release.tracks || []).length,
 													'track',
 													selectedTrack._id
 												);

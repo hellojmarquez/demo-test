@@ -18,7 +18,6 @@ const artistSchema = new Schema<Artist>({
 	artist: { type: Number, required: true },
 	kind: { type: String, required: true },
 });
-
 const trackSchema = new Schema<Track>({
 	title: { type: String, required: true },
 	mixName: { type: String, required: false },

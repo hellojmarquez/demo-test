@@ -18,7 +18,7 @@ export interface Release {
 	artists?: Artist[];
 	tracks?: Array<{
 		order: number;
-		name: string;
+		title: string;
 		artists: Artist[];
 		ISRC: string;
 		generate_isrc: boolean;

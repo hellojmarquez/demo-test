@@ -216,8 +216,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					? track.resource
 					: `${window.location.origin}${track.resource}`;
 
-				console.log('Track URL:', trackUrl);
-
 				return {
 					name: track.title || 'Track sin nombre',
 					writer: track.mix_name || '',
@@ -226,7 +224,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					id: index.toString(),
 				};
 			});
-			console.log('Playlist completa:', tracks);
+
 			setPlayList(tracks);
 		}
 	}, [release.tracks]);
@@ -260,17 +258,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}));
 			};
 			reader.readAsDataURL(file);
-		}
-	};
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setIsLoading(true);
-		console.log('Tracks al enviar:', formData.tracks);
-		try {
-			await onSave(formData);
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
@@ -458,340 +445,339 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		<div className="container mx-auto px-4 py-8">
 			<audio ref={audioRef} />
 			<div className="bg-white rounded-lg p-6">
-				<form onSubmit={handleSubmit} className="space-y-4">
-					<div className="space-y-2 bg-slate-50 p-2">
-						<div className="flex items-center gap-4">
-							<div className="w-52 h-52 border-2 border-gray-200 flex items-center justify-center overflow-hidden relative group">
-								{imagePreview ? (
-									<img
-										src={imagePreview}
-										alt="Preview"
-										className="w-full h-full object-cover"
-									/>
-								) : (
-									<div className="text-center">
-										<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
-										<span className="mt-1 block text-xs text-gray-500">
-											Sin imagen
-										</span>
-									</div>
-								)}
-								<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-end justify-center p-2">
-									<input
-										type="file"
-										ref={fileInputRef}
-										onChange={handleImageChange}
-										accept="image/*"
-										className="hidden"
-									/>
-									<button
-										type="button"
-										onClick={() => fileInputRef.current?.click()}
-										className="inline-flex items-center px-3 py-2 border border-white shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-gray-700 transition-all duration-200"
-									>
-										<Upload className="h-4 w-4 mr-2" />
-										Cambiar imagen
-									</button>
+				<div className="space-y-2 bg-slate-50 p-2">
+					<div className="flex items-center gap-4">
+						<div className="w-52 h-52 border-2 border-gray-200 flex items-center justify-center overflow-hidden relative group">
+							{imagePreview ? (
+								<img
+									src={imagePreview}
+									alt="Preview"
+									className="w-full h-full object-cover"
+								/>
+							) : (
+								<div className="text-center">
+									<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
+									<span className="mt-1 block text-xs text-gray-500">
+										Sin imagen
+									</span>
 								</div>
+							)}
+							<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-end justify-center p-2">
+								<input
+									type="file"
+									ref={fileInputRef}
+									onChange={handleImageChange}
+									accept="image/*"
+									className="hidden"
+								/>
+								<button
+									type="button"
+									onClick={() => fileInputRef.current?.click()}
+									className="inline-flex items-center px-3 py-2 border border-white shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-gray-700 transition-all duration-200"
+								>
+									<Upload className="h-4 w-4 mr-2" />
+									Cambiar imagen
+								</button>
 							</div>
 						</div>
-						<div className="flex justify-end border-t border-gray-300 mt-4">
-							<button
-								type="button"
-								onClick={() => setIsUploadModalOpen(true)}
-								className="inline-flex items-center text-brand-light px-4 py-2 text-sm font-medium hover:text-gray-900 transition-colors duration-200"
-							>
-								<ArrowBigUp className="h-6 w-6 mr-2 fill-current" />
-								Subir track
-							</button>
-						</div>
 					</div>
+					<div className="flex justify-end border-t border-gray-300 mt-4">
+						<button
+							type="button"
+							onClick={() => setIsUploadModalOpen(true)}
+							className="inline-flex items-center text-brand-light px-4 py-2 text-sm font-medium hover:text-gray-900 transition-colors duration-200"
+						>
+							<ArrowBigUp className="h-6 w-6 mr-2 fill-current" />
+							Subir track
+						</button>
+					</div>
+				</div>
+				<div className="space-y-2">
+					<label className="block text-sm font-medium text-gray-700">
+						Tracks
+					</label>
 					<div className="space-y-2">
-						<label className="block text-sm font-medium text-gray-700">
-							Tracks
-						</label>
-						<div className="space-y-2">
-							{release.tracks?.map((track, index) => {
-								console.log('Track del release:', track);
-								return (
-									<div
-										key={index}
-										className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3"
-									>
-										<div className="flex flex-col items-center gap-2">
-											<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-												<Music size={40} className="text-gray-400" />
-											</div>
-											<button
-												onClick={() => handlePlayPause(index, track.resource)}
-												className="p-2 text-brand-light hover:text-brand-dark transition-opacity duration-200 bg-white rounded-full shadow-sm hover:shadow-md"
-											>
-												{playingTrack === index.toString() ? (
-													<Pause size={16} />
-												) : (
-													<Play size={16} />
-												)}
-											</button>
-										</div>
-										<div className="flex-1">
-											<div className="text-xl text-brand-dark font-medium">
-												{track.title || 'Track sin nombre'}
-											</div>
-											{playingTrack === index.toString() && (
-												<div className="mt-2 w-full bg-gray-200 rounded-full h-1">
-													<div
-														className="bg-brand-light h-1 rounded-full transition-all duration-300"
-														style={{ width: `${progress}%` }}
-													></div>
-												</div>
-											)}
-											<div className="text-sm text-gray-500 space-y-1">
-												{track.ISRC && <div>ISRC: {track.ISRC}</div>}
-												{track.mix_name && <div>Mix: {track.mix_name}</div>}
-												{track.resource && (
-													<div className="text-[9px] truncate">
-														Resource: {track.resource}
-													</div>
-												)}
-												{track.dolby_atmos_resource && (
-													<div>Dolby: {track.dolby_atmos_resource}</div>
-												)}
-												{track.track_length && (
-													<div>Duración: {track.track_length}</div>
-												)}
-											</div>
+						{release.tracks?.map((track, index) => {
+							return (
+								<div
+									key={index}
+									className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3"
+								>
+									<div className="flex flex-col items-center gap-2">
+										<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+											<Music size={40} className="text-gray-400" />
 										</div>
 										<button
-											onClick={() => handleDeleteTrack(index)}
-											className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+											onClick={() => handlePlayPause(index, track.resource)}
+											className="p-2 text-brand-light hover:text-brand-dark transition-opacity duration-200 bg-white rounded-full shadow-sm hover:shadow-md"
 										>
-											<Trash2 size={20} />
+											{playingTrack === index.toString() ? (
+												<Pause size={16} />
+											) : (
+												<Play size={16} />
+											)}
 										</button>
 									</div>
-								);
-							})}
-
-							{uploadedTracks.map((track, index) => (
-								<div
-									key={`uploaded-${index}`}
-									className="flex items-center gap-2"
-								>
-									<div className="flex-1 p-2 border rounded bg-gray-50">
-										{track.title} {track.mixName ? `(${track.mixName})` : ''}
+									<div className="flex-1">
+										<div className="text-xl text-brand-dark font-medium">
+											{track.title || 'Track sin nombre'}
+										</div>
+										{playingTrack === index.toString() && (
+											<div className="mt-2 w-full bg-gray-200 rounded-full h-1">
+												<div
+													className="bg-brand-light h-1 rounded-full transition-all duration-300"
+													style={{ width: `${progress}%` }}
+												></div>
+											</div>
+										)}
+										<div className="text-sm text-gray-500 space-y-1">
+											{track.ISRC && <div>ISRC: {track.ISRC}</div>}
+											{track.mix_name && <div>Mix: {track.mix_name}</div>}
+											{track.resource && (
+												<div className="text-[9px] truncate">
+													Resource: {track.resource}
+												</div>
+											)}
+											{track.dolby_atmos_resource && (
+												<div>Dolby: {track.dolby_atmos_resource}</div>
+											)}
+											{track.track_length && (
+												<div>Duración: {track.track_length}</div>
+											)}
+										</div>
 									</div>
 									<button
-										onClick={() => {
-											setUploadedTracks(prev =>
-												prev.filter((_, i) => i !== index)
-											);
-										}}
-										className="p-2 text-red-600 hover:text-red-800"
+										onClick={() => handleDeleteTrack(index)}
+										className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
 									>
 										<Trash2 size={20} />
 									</button>
 								</div>
-							))}
+							);
+						})}
 
-							{(!release.tracks || release.tracks.length === 0) &&
-								uploadedTracks.length === 0 && (
-									<div className="text-sm text-gray-500">
-										No hay tracks agregados
-									</div>
-								)}
+						{uploadedTracks.map((track, index) => (
+							<div
+								key={`uploaded-${index}`}
+								className="flex items-center gap-2"
+							>
+								<div className="flex-1 p-2 border rounded bg-gray-50">
+									{track.title} {track.mixName ? `(${track.mixName})` : ''}
+								</div>
+								<button
+									onClick={() => {
+										setUploadedTracks(prev =>
+											prev.filter((_, i) => i !== index)
+										);
+									}}
+									className="p-2 text-red-600 hover:text-red-800"
+								>
+									<Trash2 size={20} />
+								</button>
+							</div>
+						))}
 
-							{(uploadProgress || isProcessing) && (
-								<div className="mt-2">
-									{uploadProgress && !isProcessing && (
-										<div className="w-full bg-gray-200 rounded-full h-2.5">
-											<div
-												className="bg-brand-light h-2.5 rounded-full transition-all duration-300"
-												style={{ width: `${uploadProgress.percentage}%` }}
-											></div>
-										</div>
-									)}
-									<p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
-										{isProcessing ? (
-											<>
-												<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-light border-t-transparent" />
-												<span>Procesando track...</span>
-											</>
-										) : (
-											`Subiendo... ${uploadProgress?.percentage}%`
-										)}
-									</p>
+						{(!release.tracks || release.tracks.length === 0) &&
+							uploadedTracks.length === 0 && (
+								<div className="text-sm text-gray-500">
+									No hay tracks agregados
 								</div>
 							)}
-						</div>
 
-						<div className="flex justify-end">
-							<button
-								type="button"
-								onClick={() => setIsUploadModalOpen(true)}
-								className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-							>
-								<Plus size={20} />
-							</button>
-						</div>
-					</div>
-					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<label className="block text-sm font-medium text-gray-700">
-								Nombre
-							</label>
-							<input
-								type="text"
-								name="name"
-								value={formData.name}
-								onChange={handleChange}
-								className={inputStyles}
-							/>
-						</div>
-
-						<div>
-							<label className="block text-sm font-medium text-gray-700">
-								Label
-							</label>
-							<Select
-								value={labels.find(label => label.value === formData.label)}
-								onChange={(selectedOption: SingleValue<LabelOption>) => {
-									if (selectedOption) {
-										setFormData(prev => ({
-											...prev,
-											label: selectedOption.value,
-											label_name: selectedOption.label,
-										}));
-									}
-								}}
-								options={labels}
-								placeholder="Seleccionar label"
-								className="react-select-container"
-								classNamePrefix="react-select"
-								styles={reactSelectStyles}
-							/>
-						</div>
-
-						<div>
-							<label className="block text-sm font-medium text-gray-700">
-								Idioma
-							</label>
-							<Select
-								name="language"
-								value={{
-									value: formData.language || '',
-									label: formData.language === 'ES' ? 'Español' : 'English',
-								}}
-								onChange={(
-									selectedOption: SingleValue<{ value: string; label: string }>
-								) => {
-									if (selectedOption) {
-										handleChange({
-											target: {
-												name: 'language',
-												value: selectedOption.value,
-											},
-										} as any);
-									}
-								}}
-								options={[
-									{ value: 'ES', label: 'Español' },
-									{ value: 'EN', label: 'English' },
-								]}
-								className="react-select-container"
-								classNamePrefix="react-select"
-								styles={reactSelectStyles}
-							/>
-						</div>
-
-						<div>
-							<label className="block text-sm font-medium text-gray-700">
-								Tipo
-							</label>
-							<Select
-								value={RELEASE_TYPES.find(type => type.value === formData.kind)}
-								onChange={(selectedOption: SingleValue<KindOption>) => {
-									if (selectedOption) {
-										setFormData(prev => ({
-											...prev,
-											kind: selectedOption.value,
-										}));
-									}
-								}}
-								options={RELEASE_TYPES}
-								placeholder="Seleccionar tipo"
-								className="react-select-container"
-								classNamePrefix="react-select"
-								styles={reactSelectStyles}
-							/>
-						</div>
+						{(uploadProgress || isProcessing) && (
+							<div className="mt-2">
+								{uploadProgress && !isProcessing && (
+									<div className="w-full bg-gray-200 rounded-full h-2.5">
+										<div
+											className="bg-brand-light h-2.5 rounded-full transition-all duration-300"
+											style={{ width: `${uploadProgress.percentage}%` }}
+										></div>
+									</div>
+								)}
+								<p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+									{isProcessing ? (
+										<>
+											<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-light border-t-transparent" />
+											<span>Procesando track...</span>
+										</>
+									) : (
+										`Subiendo... ${uploadProgress?.percentage}%`
+									)}
+								</p>
+							</div>
+						)}
 					</div>
 
-					<div className="space-y-2">
+					<div className="flex justify-end">
+						<button
+							type="button"
+							onClick={() => setIsUploadModalOpen(true)}
+							className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+						>
+							<Plus size={20} />
+						</button>
+					</div>
+				</div>
+				<div className="grid grid-cols-2 gap-4">
+					<div>
 						<label className="block text-sm font-medium text-gray-700">
-							Países
+							Nombre
 						</label>
-						<textarea
-							name="countries"
-							value={(formData.countries || []).join(', ')}
-							onChange={e => {
-								const countries = e.target.value.split(',').map(c => c.trim());
-								setFormData(prev => ({ ...prev, countries }));
-							}}
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-dark focus:ring-brand-dark"
-							rows={2}
+						<input
+							type="text"
+							name="name"
+							value={formData.name}
+							onChange={handleChange}
+							className={inputStyles}
 						/>
 					</div>
 
-					<div className="space-y-2">
+					<div>
 						<label className="block text-sm font-medium text-gray-700">
-							Artistas
+							Label
 						</label>
-						<div className="space-y-4 flex flex-col p-2 bg-slate-100">
-							<Select<ArtistOption>
-								value={null}
-								onChange={(selectedOption: SingleValue<ArtistOption>) => {
-									if (selectedOption) {
-										setFormData(prev => ({
-											...prev,
-											artists: [
-												...(prev.artists || []),
-												{
-													order: (prev.artists || []).length,
-													artist: selectedOption.value,
-													kind: 'main',
-													name: selectedOption.label,
-												},
-											],
-										}));
-									}
-								}}
-								options={artistData.map(artist => ({
-									value: artist.external_id,
-									label: artist.name,
-								}))}
-								placeholder={
-									<div className="flex items-center gap-2">
-										<Plus className="w-4 h-4" />
-										<span>Seleccionar artista</span>
-									</div>
+						<Select
+							value={labels.find(label => label.value === formData.label)}
+							onChange={(selectedOption: SingleValue<LabelOption>) => {
+								if (selectedOption) {
+									setFormData(prev => ({
+										...prev,
+										label: selectedOption.value,
+										label_name: selectedOption.label,
+									}));
 								}
-								className="react-select-container w-72 self-end"
-								classNamePrefix="react-select"
-								styles={reactSelectStyles}
-							/>
+							}}
+							options={labels}
+							placeholder="Seleccionar label"
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
 
-							<div className=" space-y-2   min-h-52 p-2">
-								<div className=" flex flex-wrap gap-2 items-center">
-									{(formData.artists || []).map((artist, index) => (
-										<div
-											key={index}
-											className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg"
-										>
-											<div className="flex  gap-3">
-												<div className="p-2 bg-white rounded-full">
-													<User className="w-14 h-14 text-gray-600" />
-												</div>
-												<div className="flex flex-col items-center">
-													<span className="font-medium ">{artist.name}</span>
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Idioma
+						</label>
+						<Select
+							name="language"
+							value={{
+								value: formData.language || '',
+								label: formData.language === 'ES' ? 'Español' : 'English',
+							}}
+							onChange={(
+								selectedOption: SingleValue<{ value: string; label: string }>
+							) => {
+								if (selectedOption) {
+									handleChange({
+										target: {
+											name: 'language',
+											value: selectedOption.value,
+										},
+									} as any);
+								}
+							}}
+							options={[
+								{ value: 'ES', label: 'Español' },
+								{ value: 'EN', label: 'English' },
+							]}
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Tipo
+						</label>
+						<Select
+							value={RELEASE_TYPES.find(type => type.value === formData.kind)}
+							onChange={(selectedOption: SingleValue<KindOption>) => {
+								if (selectedOption) {
+									setFormData(prev => ({
+										...prev,
+										kind: selectedOption.value,
+									}));
+								}
+							}}
+							options={RELEASE_TYPES}
+							placeholder="Seleccionar tipo"
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
+				</div>
+
+				<div className="space-y-2">
+					<label className="block text-sm font-medium text-gray-700">
+						Países
+					</label>
+					<textarea
+						name="countries"
+						value={(formData.countries || []).join(', ')}
+						onChange={e => {
+							const countries = e.target.value.split(',').map(c => c.trim());
+							setFormData(prev => ({ ...prev, countries }));
+						}}
+						className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-dark focus:ring-brand-dark"
+						rows={2}
+					/>
+				</div>
+
+				<div className="space-y-2">
+					<label className="block text-sm font-medium text-gray-700">
+						Artistas
+					</label>
+					<div className="space-y-4 flex flex-col p-2 bg-slate-100">
+						<Select<ArtistOption>
+							value={null}
+							onChange={(selectedOption: SingleValue<ArtistOption>) => {
+								if (selectedOption) {
+									setFormData(prev => ({
+										...prev,
+										artists: [
+											...(prev.artists || []),
+											{
+												order: (prev.artists || []).length,
+												artist: selectedOption.value,
+												kind: 'main',
+												name: selectedOption.label,
+											},
+										],
+									}));
+								}
+							}}
+							options={artistData.map(artist => ({
+								value: artist.external_id,
+								label: artist.name,
+							}))}
+							placeholder={
+								<div className="flex items-center gap-2">
+									<Plus className="w-4 h-4" />
+									<span>Seleccionar artista</span>
+								</div>
+							}
+							className="react-select-container w-72 self-end"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+
+						<div className=" space-y-2   min-h-52 p-2">
+							<div className=" flex flex-wrap gap-2 items-center">
+								{(formData.artists || []).map((artist, index) => (
+									<div
+										key={index}
+										className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg"
+									>
+										<div className="flex  gap-3">
+											<div className="p-2 bg-white rounded-full">
+												<User className="w-14 h-14 text-gray-600" />
+											</div>
+											<div className="flex flex-col items-center">
+												<span className="font-medium ">{artist.name}</span>
+												<div className="flex items-center gap-2 mt-1">
 													<CustomSwitch
 														checked={artist.kind === 'main'}
 														onChange={checked => {
@@ -807,115 +793,117 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 																),
 															}));
 														}}
-														className="mx-auto my-1"
+														className="mx-auto"
 													/>
 													<span className="ml-2 text-xs text-gray-600">
 														{artist.kind === 'main' ? 'Principal' : 'Invitado'}
 													</span>
 												</div>
+												<div className="flex items-center gap-2 mt-1">
+													<input
+														type="number"
+														min={-2147483648}
+														max={2147483647}
+														value={artist.order}
+														onChange={e => {
+															const value = parseInt(e.target.value, 10);
+															setFormData(prev => ({
+																...prev,
+																artists: (prev.artists || []).map((a, i) =>
+																	i === index
+																		? {
+																				...a,
+																				order: isNaN(value) ? 0 : value,
+																		  }
+																		: a
+																),
+															}));
+														}}
+														className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-center focus:outline-none focus:border-brand-light"
+													/>
+													<label className="text-xs text-gray-500">Orden</label>
+												</div>
 											</div>
-											<button
-												onClick={() => handleDeleteArtist(index)}
-												className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-											>
-												<Trash2 size={20} />
-											</button>
 										</div>
-									))}
-								</div>
+										<button
+											onClick={() => handleDeleteArtist(index)}
+											className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+										>
+											<Trash2 size={20} />
+										</button>
+									</div>
+								))}
 							</div>
 						</div>
 					</div>
+				</div>
 
-					<div className="grid grid-cols-2 gap-4">
-						<div className="flex items-center">
-							<input
-								type="checkbox"
-								name="auto_detect_language"
-								checked={formData.auto_detect_language}
-								onChange={handleChange}
-								className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-							/>
-							<label className="ml-2 block text-sm text-gray-700">
-								Detectar idioma automáticamente
-							</label>
-						</div>
-
-						<div className="flex items-center">
-							<input
-								type="checkbox"
-								name="backcatalog"
-								checked={formData.backcatalog}
-								onChange={handleChange}
-								className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-							/>
-							<label className="ml-2 block text-sm text-gray-700">
-								Backcatalog
-							</label>
-						</div>
-
-						<div className="flex items-center">
-							<input
-								type="checkbox"
-								name="dolby_atmos"
-								checked={formData.dolby_atmos}
-								onChange={handleChange}
-								className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-							/>
-							<label className="ml-2 block text-sm text-gray-700">
-								Dolby Atmos
-							</label>
-						</div>
-
-						<div className="flex items-center">
-							<input
-								type="checkbox"
-								name="generate_ean"
-								checked={formData.generate_ean}
-								onChange={handleChange}
-								className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-							/>
-							<label className="ml-2 block text-sm text-gray-700">
-								Generar EAN
-							</label>
-						</div>
-
-						<div className="flex items-center">
-							<input
-								type="checkbox"
-								name="youtube_declaration"
-								checked={formData.youtube_declaration}
-								onChange={handleChange}
-								className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-							/>
-							<label className="ml-2 block text-sm text-gray-700">
-								Declaración de YouTube
-							</label>
-						</div>
+				<div className="grid grid-cols-2 gap-4">
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="auto_detect_language"
+							checked={formData.auto_detect_language}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Detectar idioma automáticamente
+						</label>
 					</div>
 
-					<div className="flex justify-end space-x-3 mt-6">
-						<button
-							type="submit"
-							disabled={isLoading}
-							className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							{isLoading ? (
-								<>
-									<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-									<span>Actualizando...</span>
-								</>
-							) : (
-								<>
-									<Save className="h-4 w-4 group-hover:text-brand-dark" />
-									<span className="group-hover:text-brand-dark">
-										Actualizar
-									</span>
-								</>
-							)}
-						</button>
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="backcatalog"
+							checked={formData.backcatalog}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Backcatalog
+						</label>
 					</div>
-				</form>
+
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="dolby_atmos"
+							checked={formData.dolby_atmos}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Dolby Atmos
+						</label>
+					</div>
+
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="generate_ean"
+							checked={formData.generate_ean}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Generar EAN
+						</label>
+					</div>
+
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="youtube_declaration"
+							checked={formData.youtube_declaration}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Declaración de YouTube
+						</label>
+					</div>
+				</div>
 			</div>
 
 			<UploadTrackToRelease

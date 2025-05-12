@@ -96,13 +96,25 @@ export default function EditPage() {
 	}, [releaseData]);
 
 	const handleSave = async (updatedRelease: Release) => {
+		console.log('updatedRelease', updatedRelease);
 		try {
+			const formData = new FormData();
+			// Si la imagen es un archivo, agrégala como 'picture'
+			if (
+				updatedRelease.picture &&
+				typeof updatedRelease.picture !== 'string'
+			) {
+				formData.append('picture', updatedRelease.picture);
+				// Elimina la propiedad picture del objeto para no duplicar
+				const { picture, ...rest } = updatedRelease;
+				formData.append('data', JSON.stringify(rest));
+			} else {
+				formData.append('data', JSON.stringify(updatedRelease));
+			}
+
 			const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(updatedRelease),
+				body: formData,
 			});
 
 			const data = await response.json();
@@ -200,12 +212,35 @@ export default function EditPage() {
 			</div>
 
 			{activeTab === 'details' ? (
-				<UpdateReleasePage
-					release={formData}
-					onSave={handleSave}
-					formData={formData}
-					setFormData={setFormData}
-				/>
+				<>
+					<UpdateReleasePage
+						release={formData}
+						onSave={handleSave}
+						formData={formData}
+						setFormData={setFormData}
+					/>
+					<div className="flex justify-end space-x-3 mt-6">
+						<button
+							type="button"
+							disabled={isLoading}
+							onClick={() => handleSave(formData)}
+							className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{isLoading ? (
+								<>
+									<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+									<span>Actualizando...</span>
+								</>
+							) : (
+								<>
+									<span className="group-hover:text-brand-dark">
+										Actualizar
+									</span>
+								</>
+							)}
+						</button>
+					</div>
+				</>
 			) : (
 				<div className="space-y-4">
 					{tracksData?.data &&

@@ -359,10 +359,10 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 											<button
 												type="button"
 												onClick={() => handleFileButtonClick(asset.id)}
-												className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1DB954] rounded-md hover:bg-[#1ed760] transition-colors"
+												className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-light"
 											>
-												<ArrowBigUp className="w-4 h-4" />
-												Añadir archivo
+												<ArrowBigUp className="w-6 h-6" />
+												<p className="hover:underline">Añadir archivo</p>
 											</button>
 										) : (
 											<div className="flex items-center">

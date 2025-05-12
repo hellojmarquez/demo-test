@@ -7,6 +7,9 @@ import {
 	Trash2,
 	Plus,
 	ArrowBigUp,
+	Play,
+	Pause,
+	Music,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -65,6 +68,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		loaded: number;
 		percentage: number;
 	} | null>(null);
+	const [isProcessing, setIsProcessing] = useState(false);
 	const [uploadedTracks, setUploadedTracks] = useState<
 		{ title: string; mixName: string; file: File }[]
 	>([]);
@@ -72,6 +76,10 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
 	const [trackData, setTrackData] = useState<TrackData[]>([]);
 	const [trackDetails, setTrackDetails] = useState<{ [key: string]: any }>({});
+	const [playingTrack, setPlayingTrack] = useState<string | null>(null);
+	const [playList, setPlayList] = useState<any[]>([]);
+	const [progress, setProgress] = useState<number>(0);
+	const audioRef = useRef<HTMLAudioElement | null>(null);
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
@@ -145,6 +153,29 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 		fetchData();
 	}, [release._id, release.tracks]);
+
+	useEffect(() => {
+		if (release.tracks) {
+			const tracks = release.tracks.map((track, index) => {
+				// Asegurarnos que la URL sea absoluta
+				const trackUrl = track.resource.startsWith('http')
+					? track.resource
+					: `${window.location.origin}${track.resource}`;
+
+				console.log('Track URL:', trackUrl);
+
+				return {
+					name: track.title || 'Track sin nombre',
+					writer: track.mix_name || '',
+					img: '',
+					src: trackUrl,
+					id: index.toString(),
+				};
+			});
+			console.log('Playlist completa:', tracks);
+			setPlayList(tracks);
+		}
+	}, [release.tracks]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -358,20 +389,75 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 			// Limpiar el estado de subida
 			setUploadedTracks([]);
-			setUploadProgress(null);
-
 			// Cerrar el modal
 			setIsUploadModalOpen(false);
 
-			// Refrescar los datos del servidor
-			router.refresh();
+			// Iniciamos el procesamiento justo antes del fetch
+			setIsProcessing(true);
+
+			// Fetch para obtener los tracks actualizados
+			const response = await fetch(`/api/admin/getRelease/${release._id}`);
+			const data = await response.json();
+
+			if (data.success) {
+				setFormData(prev => ({
+					...prev,
+					tracks: data.data.tracks || [],
+				}));
+			}
 		} catch (error) {
 			console.error('Error al actualizar los tracks:', error);
+		} finally {
+			setIsProcessing(false);
+			setUploadProgress(null);
 		}
 	};
 
+	const handlePlayPause = (trackIndex: number, resource: string) => {
+		if (playingTrack === trackIndex.toString()) {
+			// Pausar
+			audioRef.current?.pause();
+			setPlayingTrack(null);
+			setProgress(0);
+		} else {
+			// Reproducir
+			if (audioRef.current) {
+				audioRef.current.src = resource;
+				audioRef.current.play();
+				setPlayingTrack(trackIndex.toString());
+				setProgress(0);
+			}
+		}
+	};
+
+	// Efecto para manejar el final de la reproducción y el progreso
+	useEffect(() => {
+		const audio = audioRef.current;
+		if (audio) {
+			const handleEnded = () => {
+				setPlayingTrack(null);
+				setProgress(0);
+			};
+
+			const handleTimeUpdate = () => {
+				if (audio.duration) {
+					const currentProgress = (audio.currentTime / audio.duration) * 100;
+					setProgress(currentProgress);
+				}
+			};
+
+			audio.addEventListener('ended', handleEnded);
+			audio.addEventListener('timeupdate', handleTimeUpdate);
+			return () => {
+				audio.removeEventListener('ended', handleEnded);
+				audio.removeEventListener('timeupdate', handleTimeUpdate);
+			};
+		}
+	}, []);
+
 	return (
 		<div className="container mx-auto px-4 py-8">
+			<audio ref={audioRef} />
 			<div className="bg-white rounded-lg p-6">
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div className="space-y-2 bg-slate-50">
@@ -429,16 +515,44 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							{release.tracks?.map((track, index) => {
 								console.log('Track del release:', track);
 								return (
-									<div key={index} className="flex items-center gap-2">
-										<div className="flex-1 p-2 border rounded bg-gray-50">
-											<div className="font-medium">
+									<div
+										key={index}
+										className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3"
+									>
+										<div className="flex flex-col items-center gap-2">
+											<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+												<Music size={40} className="text-gray-400" />
+											</div>
+											<button
+												onClick={() => handlePlayPause(index, track.resource)}
+												className="p-2 text-brand-light hover:text-brand-dark transition-opacity duration-200 bg-white rounded-full shadow-sm hover:shadow-md"
+											>
+												{playingTrack === index.toString() ? (
+													<Pause size={16} />
+												) : (
+													<Play size={16} />
+												)}
+											</button>
+										</div>
+										<div className="flex-1">
+											<div className="text-xl text-brand-dark font-medium">
 												{track.title || 'Track sin nombre'}
 											</div>
-											<div className="text-sm text-gray-600">
+											{playingTrack === index.toString() && (
+												<div className="mt-2 w-full bg-gray-200 rounded-full h-1">
+													<div
+														className="bg-brand-light h-1 rounded-full transition-all duration-300"
+														style={{ width: `${progress}%` }}
+													></div>
+												</div>
+											)}
+											<div className="text-sm text-gray-500 space-y-1">
 												{track.ISRC && <div>ISRC: {track.ISRC}</div>}
 												{track.mix_name && <div>Mix: {track.mix_name}</div>}
 												{track.resource && (
-													<div>Resource: {track.resource}</div>
+													<div className="text-[9px] truncate">
+														Resource: {track.resource}
+													</div>
 												)}
 												{track.dolby_atmos_resource && (
 													<div>Dolby: {track.dolby_atmos_resource}</div>
@@ -450,7 +564,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										</div>
 										<button
 											onClick={() => handleDeleteTrack(index)}
-											className="p-2 text-red-600 hover:text-red-800"
+											className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
 										>
 											<Trash2 size={20} />
 										</button>
@@ -486,52 +600,28 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									</div>
 								)}
 
-							{uploadProgress && (
+							{(uploadProgress || isProcessing) && (
 								<div className="mt-2">
-									<div className="w-full bg-gray-200 rounded-full h-2.5">
-										<div
-											className="bg-[#1DB954] h-2.5 rounded-full transition-all duration-300"
-											style={{ width: `${uploadProgress.percentage}%` }}
-										></div>
-									</div>
-									<p className="text-sm text-gray-600 mt-1">
-										Subiendo... {uploadProgress.percentage}%
+									{uploadProgress && !isProcessing && (
+										<div className="w-full bg-gray-200 rounded-full h-2.5">
+											<div
+												className="bg-brand-light h-2.5 rounded-full transition-all duration-300"
+												style={{ width: `${uploadProgress.percentage}%` }}
+											></div>
+										</div>
+									)}
+									<p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+										{isProcessing ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-light border-t-transparent" />
+												<span>Procesando track...</span>
+											</>
+										) : (
+											`Subiendo... ${uploadProgress?.percentage}%`
+										)}
 									</p>
 								</div>
 							)}
-
-							<div className="flex items-center gap-2">
-								<Select
-									value={null}
-									onChange={(
-										selectedOption: SingleValue<{
-											value: string;
-											label: string;
-										}>
-									) => {
-										if (selectedOption) {
-											const selectedTrack = trackData.find(
-												t => t._id === selectedOption.value
-											);
-											if (selectedTrack) {
-												handleTrackChange(
-													(release.tracks || []).length,
-													'track',
-													selectedTrack._id
-												);
-											}
-										}
-									}}
-									options={trackData.map(track => ({
-										value: track._id,
-										label: track.name,
-									}))}
-									placeholder="Seleccionar track"
-									className="react-select-container flex-1"
-									classNamePrefix="react-select"
-									styles={reactSelectStyles}
-								/>
-							</div>
 						</div>
 
 						<div className="flex justify-end">

@@ -1,16 +1,41 @@
 // app/api/admin/updateRelease/[id]/route.ts
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import Release from '@/models/ReleaseModel';
 import dbConnect from '@/lib/mongodb';
 import SingleTrack from '@/models/SingleTrack';
+import { jwtVerify } from 'jose';
 
 export async function PUT(
-	request: Request,
+	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
+	console.log('releasebyid');
 	try {
-		const formData = await request.formData();
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
+		const token = req.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
+		const formData = await req.formData();
 		const data = formData.get('data');
+		const picture = formData.get('picture');
 
 		if (!data) {
 			return NextResponse.json(
@@ -20,6 +45,51 @@ export async function PUT(
 		}
 
 		const releaseData = JSON.parse(data as string);
+
+		// Verificar si picture es una nueva imagen o un link existente
+		if (picture) {
+			if (picture instanceof File) {
+				// Es una nueva imagen
+				console.log('Nueva imagen recibida:', picture.name);
+				// Aquí puedes procesar la nueva imagen
+				// Por ejemplo, subirla a S3 y obtener la nueva URL
+				const uploadArtworkReq = await fetch(
+					`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=${picture.type}&upload_type=release.artwork`,
+					{
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `JWT ${moveMusicAccessToken}`,
+							'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+							Referer: process.env.MOVEMUSIC_REFERER || '',
+						},
+					}
+				);
+				const uploadArtworkRes = await uploadArtworkReq.json();
+				const { url: signedUrl, fields: resFields } =
+					uploadArtworkRes.signed_url;
+
+				const pictureFormData = new FormData();
+				Object.entries(resFields).forEach(([key, value]) => {
+					if (typeof value === 'string' || value instanceof Blob) {
+						pictureFormData.append(key, value);
+					}
+				});
+
+				pictureFormData.append('file', picture);
+				const uploadResponse = await fetch(signedUrl, {
+					method: 'POST',
+					body: pictureFormData,
+				});
+
+				const picture_url = uploadResponse?.headers?.get('location') || '';
+				releaseData.picture = picture_url;
+			} else {
+				// Es un link existente
+				console.log('Link de imagen existente:', picture);
+				releaseData.picture = picture;
+			}
+		}
 
 		// Convertir los valores a números
 		if (releaseData.label) releaseData.label = Number(releaseData.label);
@@ -37,7 +107,7 @@ export async function PUT(
 			{ $set: releaseData },
 			{ new: true, runValidators: true }
 		);
-		console.log(updatedRelease);
+
 		if (!updatedRelease) {
 			return NextResponse.json(
 				{ success: false, message: 'No se encontró el release' },

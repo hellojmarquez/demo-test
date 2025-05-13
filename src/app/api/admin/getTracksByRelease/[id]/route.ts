@@ -28,7 +28,7 @@ export async function GET(
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
-				{ status: 401 }
+				{ status: 403 }
 			);
 		}
 
@@ -38,7 +38,7 @@ export async function GET(
 		if (!releaseId) {
 			return NextResponse.json(
 				{ success: false, error: 'Release ID no especificado' },
-				{ status: 400 }
+				{ status: 403 }
 			);
 		}
 
@@ -48,18 +48,9 @@ export async function GET(
 		if (!release) {
 			return NextResponse.json(
 				{ success: false, error: 'No se encontró el release' },
-				{ status: 404 }
+				{ status: 200 }
 			);
 		}
-
-		if (!release.external_id) {
-			return NextResponse.json(
-				{ success: false, error: 'El release no tiene un external_id válido' },
-				{ status: 400 }
-			);
-		}
-
-		console.log('Buscando tracks con external_id:', release.external_id);
 
 		// Buscar todos los tracks que pertenecen al release usando el external_id
 		const tracks = await SingleTrack.find({
@@ -70,11 +61,9 @@ export async function GET(
 			})
 			.lean();
 
-	
-
 		return NextResponse.json({
 			success: true,
-			data: tracks,
+			data: tracks || [],
 		});
 	} catch (error: any) {
 		console.error('Error getting tracks by release:', error);

@@ -37,24 +37,8 @@ export async function GET(
 		await dbConnect();
 		const releaseId = params.id;
 
-		if (!releaseId) {
-			return NextResponse.json(
-				{ success: false, error: 'Release ID no especificado' },
-				{ status: 400 }
-			);
-		}
-
-		// Validar que el ID sea un ObjectId válido
-		if (!mongoose.Types.ObjectId.isValid(releaseId)) {
-			return NextResponse.json(
-				{ success: false, error: 'Formato de ID inválido' },
-				{ status: 400 }
-			);
-		}
-
 		// Buscar el release por ID
 		const release = await Release.findById(releaseId);
-
 		if (!release) {
 			return NextResponse.json(
 				{ success: false, error: 'Release no encontrado' },

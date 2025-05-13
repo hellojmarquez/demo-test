@@ -1396,7 +1396,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						classNamePrefix="react-select"
 						styles={reactSelectStyles}
 					/>
-					{formData.territory === 'select' && (
+					{formData.territory !== 'worldwide' && (
 						<div className="mt-2 flex gap-x-4">
 							<Select<CountryOption, true>
 								isMulti

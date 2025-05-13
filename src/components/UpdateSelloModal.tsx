@@ -146,7 +146,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				const response = await fetch('/api/admin/getAllUsers');
 				if (response.ok) {
 					const data = await response.json();
-					console.log('API Response - All Users:', data.users);
+			
 
 					// Filtrar solo las cuentas principales
 					const mainAccounts = data.users
@@ -160,13 +160,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 					// Filtrar subcuentas disponibles
 					const subaccounts = data.users
 						.filter((user: any) => {
-							console.log('Checking subaccount:', {
-								name: user.name,
-								tipo: user.tipo,
-								parentId: user.parentId,
-								id: user._id,
-								currentSelloId: sello._id,
-							});
+							
 							return (
 								user.tipo === 'subcuenta' &&
 								!user.parentId &&
@@ -177,7 +171,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 							_id: user._id,
 							name: user.name,
 						}));
-					console.log('Final subaccounts array:', subaccounts);
+			
 					setAvailableSubaccounts(subaccounts);
 				}
 			} catch (error) {
@@ -308,10 +302,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 						const response = await fetch('/api/admin/getAllUsers');
 						if (response.ok) {
 							const data = await response.json();
-							console.log(
-								'API Response - All Users (on type change):',
-								data.users
-							);
+						
 							const subaccounts = data.users
 								.filter(
 									(user: any) =>
@@ -323,10 +314,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 									_id: user._id,
 									name: user.name,
 								}));
-							console.log(
-								'Filtered Available Subaccounts (on type change):',
-								subaccounts
-							);
+							
 							setAvailableSubaccounts(subaccounts);
 						}
 					} catch (error) {

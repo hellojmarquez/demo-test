@@ -63,14 +63,19 @@ export default function CreateInitRelease({
 			const formData = new FormData();
 			formData.append('name', title);
 			formData.append('picture', image);
-			formData.append('label', '472');
+			formData.append('label', '505');
+			formData.append('label_name', 'S-Intrtrck');
+			formData.append('publisher', '190');
+			formData.append('publisher_name', 'Santiago Montes');
+			formData.append('genre', '4');
+			formData.append('genre_name', 'New Age');
+			formData.append('subgenre', '100');
+			formData.append('subgenre_name', 'Healing');
 			formData.append('artists', JSON.stringify([]));
-			formData.append('publisher', '179');
 			formData.append('publisher_year', '2025');
 			formData.append('copyright_holder', 'Sample value');
 			formData.append('copyright_holder_year', '2025');
-			formData.append('genre', '3');
-			formData.append('subgenre', '90');
+
 			formData.append('kind', 'single');
 			formData.append('catalogue_number', 'islasounds');
 			formData.append('is_new_release', '1');
@@ -78,7 +83,7 @@ export default function CreateInitRelease({
 			formData.append('original_date', '2025-10-10');
 			formData.append('release_version', '001');
 			formData.append('territory', 'worldwide');
-
+			console.log('release a crear: ', formData);
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',
 				body: formData,

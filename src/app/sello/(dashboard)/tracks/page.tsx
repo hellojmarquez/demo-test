@@ -79,7 +79,7 @@ const Page = () => {
 									className="bg-green-600 text-white px-4 py-2 rounded"
 									onClick={() => {
 										// Aquí podrías hacer el PUT para guardar
-										console.log('Guardado:', formData);
+
 										setEditingId(null);
 									}}
 								>

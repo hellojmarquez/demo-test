@@ -54,12 +54,8 @@ export async function PUT(
 			const file = formData.get('file') as File | null;
 			let data = formData.get('data') as string | null;
 
-			// Log all FormData entries
-			console.log(file);
-
 			if (data) {
 				trackData = JSON.parse(data);
-				console.log('Parsed trackData:', trackData);
 
 				// Asegurarse de que los artistas tengan el formato correcto
 				if (trackData.artists) {
@@ -122,8 +118,8 @@ export async function PUT(
 						method: 'POST',
 						body: trackFormData,
 					});
-					console.log(uploadResponse?.headers?.get('location'));
-					trackData.resource = signedUrl;
+				
+					trackData.resource = uploadResponse?.headers?.get('location');
 
 					if (!uploadResponse.ok) {
 						console.error(
@@ -142,7 +138,6 @@ export async function PUT(
 			}
 		} else if (contentType.includes('application/json')) {
 			trackData = await req.json();
-			console.log('JSON trackData:', trackData);
 
 			// Asegurarse de que los artistas tengan el formato correcto
 			if (trackData.artists) {
@@ -283,7 +278,6 @@ export async function PUT(
 					track_length: String(updatedTrack.track_length || '00:00:00'),
 				};
 
-				console.log('Track info a agregar:', trackInfo);
 
 				// Verificar si el track ya existe en el array usando el nombre
 				const trackExists = release.tracks.some(

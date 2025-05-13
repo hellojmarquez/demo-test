@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		const createLabelRes = await createLabelReq.json();
-		console.log('createLabelRes: ', createLabelRes);
+
 		external_id = createLabelRes.id;
 
 		// Encriptar contraseña solo si no es subcuenta

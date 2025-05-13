@@ -51,42 +51,128 @@ interface LabelOption {
 	label: string;
 }
 
+interface GenreData {
+	id: number;
+	name: string;
+	subgenres: Array<{
+		id: number;
+		name: string;
+	}>;
+}
+
+interface SubgenreOption {
+	value: number;
+	label: string;
+}
+
+interface PublisherOption {
+	value: number;
+	label: string;
+}
+
+interface CountryOption {
+	value: string;
+	label: string;
+}
+
 const RELEASE_TYPES: KindOption[] = [
 	{ value: 'single', label: 'Single' },
 	{ value: 'ep', label: 'EP' },
 	{ value: 'album', label: 'Album' },
 ];
 
+const RELEVANT_COUNTRIES: CountryOption[] = [
+	{ value: 'US', label: 'United States' },
+	{ value: 'GB', label: 'United Kingdom' },
+	{ value: 'ES', label: 'Spain' },
+	{ value: 'MX', label: 'Mexico' },
+	{ value: 'AR', label: 'Argentina' },
+	{ value: 'BR', label: 'Brazil' },
+	{ value: 'CO', label: 'Colombia' },
+	{ value: 'CL', label: 'Chile' },
+	{ value: 'PE', label: 'Peru' },
+	{ value: 'EC', label: 'Ecuador' },
+	{ value: 'VE', label: 'Venezuela' },
+	{ value: 'UY', label: 'Uruguay' },
+	{ value: 'PY', label: 'Paraguay' },
+	{ value: 'BO', label: 'Bolivia' },
+	{ value: 'DE', label: 'Germany' },
+	{ value: 'FR', label: 'France' },
+	{ value: 'IT', label: 'Italy' },
+	{ value: 'PT', label: 'Portugal' },
+	{ value: 'CA', label: 'Canada' },
+	{ value: 'AU', label: 'Australia' },
+	{ value: 'NZ', label: 'New Zealand' },
+	{ value: 'JP', label: 'Japan' },
+	{ value: 'KR', label: 'South Korea' },
+	{ value: 'CN', label: 'China' },
+	{ value: 'IN', label: 'India' },
+	{ value: 'RU', label: 'Russia' },
+	{ value: 'SE', label: 'Sweden' },
+	{ value: 'NO', label: 'Norway' },
+	{ value: 'DK', label: 'Denmark' },
+	{ value: 'FI', label: 'Finland' },
+	{ value: 'NL', label: 'Netherlands' },
+	{ value: 'BE', label: 'Belgium' },
+	{ value: 'CH', label: 'Switzerland' },
+	{ value: 'AT', label: 'Austria' },
+	{ value: 'IE', label: 'Ireland' },
+	{ value: 'PL', label: 'Poland' },
+	{ value: 'CZ', label: 'Czech Republic' },
+	{ value: 'HU', label: 'Hungary' },
+	{ value: 'RO', label: 'Romania' },
+	{ value: 'GR', label: 'Greece' },
+	{ value: 'TR', label: 'Turkey' },
+	{ value: 'IL', label: 'Israel' },
+	{ value: 'ZA', label: 'South Africa' },
+	{ value: 'EG', label: 'Egypt' },
+	{ value: 'MA', label: 'Morocco' },
+	{ value: 'AE', label: 'United Arab Emirates' },
+	{ value: 'SG', label: 'Singapore' },
+	{ value: 'MY', label: 'Malaysia' },
+	{ value: 'TH', label: 'Thailand' },
+	{ value: 'ID', label: 'Indonesia' },
+	{ value: 'PH', label: 'Philippines' },
+];
+
 const CustomSwitch: React.FC<{
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 	className?: string;
-}> = ({ checked, onChange, className = '' }) => (
-	<button
-		type="button"
-		role="switch"
-		aria-checked={checked}
-		tabIndex={0}
-		onClick={() => onChange(!checked)}
-		className={`relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex items-center ${
-			checked ? 'bg-brand-light' : 'bg-gray-700'
-		} ${className}`}
-	>
-		{/* Línea blanca solo cuando está encendido */}
-		{checked && (
-			<span className="absolute left-1.5 w-px h-1.5 bg-white rounded-sm z-10"></span>
-		)}
-		{/* Círculo de la derecha (ring) solo cuando está apagado */}
-		{!checked && (
-			<span className="absolute right-1 top-1.1 w-2.5 h-2.5 rounded-full border-2 border-gray-300 bg-transparent z-10"></span>
-		)}
-		{/* Círculo principal */}
+	onText?: string;
+	offText?: string;
+}> = ({ checked, onChange, className = '', onText, offText }) => (
+	<div className="flex items-center">
+		<button
+			type="button"
+			role="switch"
+			aria-checked={checked}
+			tabIndex={0}
+			onClick={() => onChange(!checked)}
+			className={`relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex items-center ${
+				checked ? 'bg-brand-light' : 'bg-gray-700'
+			} ${className}`}
+		>
+			{checked && (
+				<span className="absolute left-1.5 w-px h-1.5 bg-white rounded-sm z-10"></span>
+			)}
+			{!checked && (
+				<span className="absolute right-1 top-1.1 w-2.5 h-2.5 rounded-full border-2 border-gray-300 bg-transparent z-10"></span>
+			)}
+			<span
+				className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 z-20 ${
+					checked ? 'translate-x-4' : ''
+				} ${checked ? '' : 'border-2 border-gray-300'}`}
+			></span>
+		</button>
 		<span
-			className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 z-20 ${
-				checked ? 'translate-x-4' : ''
-			} ${checked ? '' : 'border-2 border-gray-300'}`}
-		></span>
-	</button>
+			className={`text-sm ml-2 ${
+				checked ? 'text-brand-light' : 'text-gray-700'
+			}`}
+		>
+			{checked ? onText : offText}
+		</span>
+	</div>
 );
 
 const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
@@ -95,8 +181,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	formData,
 	setFormData,
 }) => {
-	console.log('Release completo:', release);
-
+	console.log('Genre value:', formData.genre);
+	console.log('Genre name:', formData.genre_name);
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
@@ -115,10 +201,15 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [trackData, setTrackData] = useState<TrackData[]>([]);
 	const [trackDetails, setTrackDetails] = useState<{ [key: string]: any }>({});
 	const [playingTrack, setPlayingTrack] = useState<string | null>(null);
-	const [playList, setPlayList] = useState<any[]>([]);
+
 	const [progress, setProgress] = useState<number>(0);
 	const [labels, setLabels] = useState<LabelOption[]>([]);
+	const [labelsData, setLabelsData] = useState<any[]>([]);
+	const [genres, setGenres] = useState<GenreData[]>([]);
+	const [subgenres, setSubgenres] = useState<SubgenreOption[]>([]);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const [publishers, setPublishers] = useState<PublisherOption[]>([]);
+	const [publishersData, setPublishersData] = useState<any[]>([]);
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
@@ -184,10 +275,51 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				const labelsRes = await fetch('/api/admin/getAllSellos');
 				const labelsData = await labelsRes.json();
 				if (labelsData.success && Array.isArray(labelsData.data)) {
+					setLabelsData(labelsData.data);
 					setLabels(
 						labelsData.data.map((label: any) => ({
-							value: label._id,
+							value: label.external_id,
 							label: label.name,
+						}))
+					);
+				}
+
+				// Fetch genres
+				const genresRes = await fetch('/api/admin/getAllGenres');
+				const genresData = await genresRes.json();
+				if (genresData.success && Array.isArray(genresData.data)) {
+					console.log('Genres data:', genresData.data);
+					setGenres(genresData.data);
+
+					// Si hay un género seleccionado, cargar sus subgéneros
+					if (formData.genre) {
+						const selectedGenre = genresData.data.find(
+							(g: GenreData) => g.id === formData.genre
+						);
+						if (selectedGenre) {
+							setSubgenres(
+								selectedGenre.subgenres.map(
+									(sub: { id: number; name: string }) => ({
+										value: sub.id,
+										label: sub.name,
+									})
+								)
+							);
+						} else {
+							setSubgenres([]);
+						}
+					}
+				}
+
+				// Fetch publishers
+				const publishersRes = await fetch('/api/admin/getAllPublishers');
+				const publishersData = await publishersRes.json();
+				if (publishersData.success && Array.isArray(publishersData.data)) {
+					setPublishersData(publishersData.data);
+					setPublishers(
+						publishersData.data.map((publisher: any) => ({
+							value: publisher.external_id,
+							label: publisher.name,
 						}))
 					);
 				}
@@ -207,27 +339,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 		fetchData();
 	}, [release._id, release.tracks]);
-
-	useEffect(() => {
-		if (release.tracks) {
-			const tracks = release.tracks.map((track, index) => {
-				// Asegurarnos que la URL sea absoluta
-				const trackUrl = track.resource.startsWith('http')
-					? track.resource
-					: `${window.location.origin}${track.resource}`;
-
-				return {
-					name: track.title || 'Track sin nombre',
-					writer: track.mix_name || '',
-					img: '',
-					src: trackUrl,
-					id: index.toString(),
-				};
-			});
-
-			setPlayList(tracks);
-		}
-	}, [release.tracks]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -637,14 +748,24 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							Label
 						</label>
 						<Select
-							value={labels.find(label => label.value === formData.label)}
+							value={
+								labels.find(label => label.value === formData.label) || {
+									value: formData.label || 0,
+									label: formData.label_name || 'Seleccionar label',
+								}
+							}
 							onChange={(selectedOption: SingleValue<LabelOption>) => {
 								if (selectedOption) {
-									setFormData(prev => ({
-										...prev,
-										label: selectedOption.value,
-										label_name: selectedOption.label,
-									}));
+									const selectedLabel = labelsData.find(
+										(l: any) => l.external_id === selectedOption.value
+									);
+									if (selectedLabel) {
+										setFormData(prev => ({
+											...prev,
+											label: selectedLabel.external_id,
+											label_name: selectedLabel.name,
+										}));
+									}
 								}
 							}}
 							options={labels}
@@ -794,10 +915,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 															}));
 														}}
 														className="mx-auto"
+														onText="Principal"
+														offText="Invitado"
 													/>
-													<span className="ml-2 text-xs text-gray-600">
-														{artist.kind === 'main' ? 'Principal' : 'Invitado'}
-													</span>
 												</div>
 												<div className="flex items-center gap-2 mt-1">
 													<input
@@ -838,14 +958,22 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					</div>
 				</div>
 
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-2 gap-4  ">
 					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="auto_detect_language"
-							checked={formData.auto_detect_language}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						<CustomSwitch
+							checked={formData.auto_detect_language ?? false}
+							onChange={checked => {
+								const event = {
+									target: {
+										name: 'auto_detect_language',
+										checked: checked,
+										type: 'checkbox',
+									},
+								} as React.ChangeEvent<HTMLInputElement>;
+								handleChange(event);
+							}}
+							onText=""
+							offText=""
 						/>
 						<label className="ml-2 block text-sm text-gray-700">
 							Detectar idioma automáticamente
@@ -853,66 +981,498 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					</div>
 
 					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="backcatalog"
-							checked={formData.backcatalog}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						<CustomSwitch
+							checked={formData.backcatalog ?? false}
+							onChange={checked => {
+								const event = {
+									target: {
+										name: 'backcatalog',
+										checked: checked,
+										type: 'checkbox',
+									},
+								} as React.ChangeEvent<HTMLInputElement>;
+								handleChange(event);
+							}}
+							onText=""
+							offText=""
 						/>
 						<label className="ml-2 block text-sm text-gray-700">
 							Backcatalog
 						</label>
 					</div>
-
-					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="dolby_atmos"
-							checked={formData.dolby_atmos}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+				</div>
+				<div className="grid grid-cols-2 gap-4">
+					<div className="flex items-end min-h-9 ">
+						<CustomSwitch
+							checked={formData.generate_ean ?? false}
+							onChange={checked => {
+								const event = {
+									target: {
+										name: 'generate_ean',
+										checked: checked,
+										type: 'checkbox',
+									},
+								} as React.ChangeEvent<HTMLInputElement>;
+								handleChange(event);
+							}}
+							onText=""
+							offText=""
+						/>
+						<label className="ml-2 mr-4 block text-sm text-gray-700">
+							Generar UPC
+						</label>
+						{!formData.generate_ean && (
+							<div className="mt-2">
+								<input
+									type="text"
+									name="ean"
+									value={formData.ean || ''}
+									onChange={handleChange}
+									className="w-full px-3 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									placeholder="Ingrese el UPC"
+								/>
+							</div>
+						)}
+					</div>
+					<div className="flex items-end">
+						<CustomSwitch
+							checked={formData.dolby_atmos ?? false}
+							onChange={checked => {
+								const event = {
+									target: {
+										name: 'dolby_atmos',
+										checked: checked,
+										type: 'checkbox',
+									},
+								} as React.ChangeEvent<HTMLInputElement>;
+								handleChange(event);
+							}}
+							onText=""
+							offText=""
 						/>
 						<label className="ml-2 block text-sm text-gray-700">
 							Dolby Atmos
 						</label>
 					</div>
+				</div>
 
-					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="generate_ean"
-							checked={formData.generate_ean}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-						/>
-						<label className="ml-2 block text-sm text-gray-700">
-							Generar EAN
+				<div className="grid grid-cols-2 gap-4 mt-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Versión del Release
 						</label>
+						<input
+							type="text"
+							name="release_version"
+							value={formData.release_version}
+							onChange={handleChange}
+							className={inputStyles}
+						/>
 					</div>
 
-					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="youtube_declaration"
-							checked={formData.youtube_declaration}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-						/>
-						<label className="ml-2 block text-sm text-gray-700">
-							Declaración de YouTube
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Publisher
 						</label>
+						<Select<PublisherOption>
+							value={
+								publishers.find(
+									publisher => publisher.value === formData.publisher
+								) || {
+									value: formData.publisher || 0,
+									label: formData.publisher_name || 'Seleccionar publisher',
+								}
+							}
+							onChange={(selectedOption: SingleValue<PublisherOption>) => {
+								if (selectedOption) {
+									const selectedPublisher = publishersData.find(
+										(p: any) => p.external_id === selectedOption.value
+									);
+									if (selectedPublisher) {
+										setFormData(prev => ({
+											...prev,
+											publisher: selectedPublisher.external_id,
+											publisher_name: selectedPublisher.name,
+										}));
+									}
+								}
+							}}
+							options={publishers}
+							placeholder="Seleccionar publisher"
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Año del Editor
+						</label>
+						<Select
+							value={{
+								value: formData.publisher_year || '',
+								label: formData.publisher_year || 'Seleccionar año',
+							}}
+							onChange={(
+								selectedOption: SingleValue<{ value: string; label: string }>
+							) => {
+								if (selectedOption) {
+									handleChange({
+										target: {
+											name: 'publisher_year',
+											value: selectedOption.value,
+										},
+									} as React.ChangeEvent<HTMLInputElement>);
+								}
+							}}
+							options={Array.from({ length: 100 }, (_, i) => {
+								const year = new Date().getFullYear() - i;
+								return {
+									value: year.toString(),
+									label: year.toString(),
+								};
+							})}
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								className="text-gray-500 ml-1 inline-block"
+							>
+								<circle cx="12" cy="12" r="10" />
+								<path d="M14.5 9a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 1 0 7 0" />
+							</svg>
+							Titular de Copyright
+						</label>
+						<input
+							type="text"
+							name="copyright_holder"
+							value={formData.copyright_holder}
+							onChange={handleChange}
+							className={inputStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								className="text-gray-500 ml-1 inline-block"
+							>
+								<circle cx="12" cy="12" r="10" />
+								<path d="M14.5 9a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 1 0 7 0" />
+							</svg>
+							Año del Copyright
+						</label>
+						<Select
+							value={{
+								value: formData.copyright_holder_year || '',
+								label: formData.copyright_holder_year || 'Seleccionar año',
+							}}
+							onChange={(
+								selectedOption: SingleValue<{ value: string; label: string }>
+							) => {
+								if (selectedOption) {
+									handleChange({
+										target: {
+											name: 'copyright_holder_year',
+											value: selectedOption.value,
+										},
+									} as React.ChangeEvent<HTMLInputElement>);
+								}
+							}}
+							options={Array.from({ length: 100 }, (_, i) => {
+								const year = new Date().getFullYear() - i;
+								return {
+									value: year.toString(),
+									label: year.toString(),
+								};
+							})}
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Género
+						</label>
+						<Select<SubgenreOption>
+							value={
+								formData.genre_name
+									? {
+											value:
+												genres.find(
+													(g: GenreData) => g.name === formData.genre_name
+												)?.id || 0,
+											label: formData.genre_name,
+									  }
+									: null
+							}
+							onChange={(selectedOption: SingleValue<SubgenreOption>) => {
+								if (selectedOption) {
+									const selectedGenre = genres.find(
+										(g: GenreData) => g.id === selectedOption.value
+									);
+									if (selectedGenre) {
+										setFormData(prev => ({
+											...prev,
+											genre: selectedGenre.id,
+											genre_name: selectedGenre.name,
+											subgenre: 0, // Reset subgenre when genre changes
+											subgenre_name: '', // Reset subgenre name when genre changes
+										}));
+
+										// Actualizar subgéneros disponibles
+										setSubgenres(
+											selectedGenre.subgenres.map(
+												(sub: { id: number; name: string }) => ({
+													value: sub.id,
+													label: sub.name,
+												})
+											)
+										);
+									}
+								}
+							}}
+							options={genres.map((genre: GenreData) => ({
+								value: genre.id,
+								label: genre.name,
+							}))}
+							placeholder="Seleccionar género"
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Subgénero
+						</label>
+						<Select<SubgenreOption>
+							value={
+								subgenres.find(sub => sub.value === formData.subgenre) || {
+									value: formData.subgenre || 0,
+									label: formData.subgenre_name || 'Seleccionar subgénero',
+								}
+							}
+							onChange={(selectedOption: SingleValue<SubgenreOption>) => {
+								if (selectedOption) {
+									setFormData(prev => ({
+										...prev,
+										subgenre: selectedOption.value,
+										subgenre_name: selectedOption.label,
+									}));
+								}
+							}}
+							options={subgenres}
+							placeholder="Seleccionar subgénero"
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+							isDisabled={!formData.genre || subgenres.length === 0}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Número de Catálogo
+						</label>
+						<input
+							type="text"
+							name="catalogue_number"
+							value={formData.catalogue_number}
+							onChange={handleChange}
+							className={inputStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							¿Es Nuevo Lanzamiento?
+						</label>
+						<Select
+							value={{
+								value: formData.is_new_release || 0,
+								label: formData.is_new_release ? 'Sí' : 'No',
+							}}
+							onChange={(
+								selectedOption: SingleValue<{ value: number; label: string }>
+							) => {
+								if (selectedOption) {
+									setFormData(prev => ({
+										...prev,
+										is_new_release: selectedOption.value,
+									}));
+								}
+							}}
+							options={[
+								{ value: 1, label: 'Sí' },
+								{ value: 0, label: 'No' },
+							]}
+							className="react-select-container"
+							classNamePrefix="react-select"
+							styles={reactSelectStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Fecha Oficial
+						</label>
+						<input
+							type="date"
+							name="official_date"
+							value={formData.official_date}
+							onChange={handleChange}
+							className={inputStyles}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Fecha Original
+						</label>
+						<input
+							type="date"
+							name="original_date"
+							value={formData.original_date}
+							onChange={handleChange}
+							className={inputStyles}
+						/>
 					</div>
 				</div>
+				<div className="mt-2 p-4">
+					<label className="block text-sm font-medium text-gray-700">
+						Territorio
+					</label>
+					<Select
+						value={{
+							value: formData.territory || '',
+							label: formData.territory || 'Seleccionar territorio',
+						}}
+						onChange={(
+							selectedOption: SingleValue<{ value: string; label: string }>
+						) => {
+							if (selectedOption) {
+								handleChange({
+									target: {
+										name: 'territory',
+										value: selectedOption.value,
+									},
+								} as React.ChangeEvent<HTMLInputElement>);
+							}
+						}}
+						options={[
+							{ value: 'worldwide', label: 'Worldwide' },
+							{ value: 'select', label: 'select' },
+							{ value: 'deselect', label: 'deselect' },
+						]}
+						className="react-select-container"
+						classNamePrefix="react-select"
+						styles={reactSelectStyles}
+					/>
+					{formData.territory === 'select' && (
+						<div className="mt-2 flex gap-x-4">
+							<Select<CountryOption, true>
+								isMulti
+								value={[]}
+								onChange={selectedOptions => {
+									if (selectedOptions) {
+										const newCountries = selectedOptions.map(
+											option => option.value
+										);
+										setFormData(prev => ({
+											...prev,
+											countries: [
+												...(prev.countries || []),
+												...newCountries,
+											].slice(0, 200),
+										}));
+									}
+								}}
+								options={RELEVANT_COUNTRIES.filter(
+									country => !formData.countries?.includes(country.value)
+								)}
+								placeholder="Seleccionar países"
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={reactSelectStyles}
+								noOptionsMessage={() => 'No hay más países disponibles'}
+								isClearable
+								closeMenuOnSelect={false}
+							/>
+							{formData.countries && formData.countries.length > 0 && (
+								<div className="mt-2 bg-gray-50">
+									<div className="text-sm text-gray-500">
+										Países seleccionados: {formData.countries.length}/200
+									</div>
+									<div className="flex flex-wrap gap-2 mt-2">
+										{formData.countries.map((countryCode, index) => (
+											<div
+												key={index}
+												className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-sm"
+											>
+												<span>
+													{RELEVANT_COUNTRIES.find(c => c.value === countryCode)
+														?.label || countryCode}
+												</span>
+												<button
+													type="button"
+													onClick={() => {
+														setFormData(prev => ({
+															...prev,
+															countries:
+																prev.countries?.filter((_, i) => i !== index) ||
+																[],
+														}));
+													}}
+													className="text-gray-500 hover:text-red-500"
+												>
+													<XCircle size={14} />
+												</button>
+											</div>
+										))}
+									</div>
+								</div>
+							)}
+						</div>
+					)}
+				</div>
 			</div>
-
-			<UploadTrackToRelease
-				isOpen={isUploadModalOpen}
-				onClose={() => setIsUploadModalOpen(false)}
-				releaseId={release._id}
-				onUploadProgress={handleUploadProgress}
-				onUploadComplete={handleUploadComplete}
-			/>
+			{isUploadModalOpen && (
+				<UploadTrackToRelease
+					isOpen={isUploadModalOpen}
+					releaseId={release._id}
+					onClose={() => setIsUploadModalOpen(false)}
+					onUploadComplete={handleUploadComplete}
+					onUploadProgress={handleUploadProgress}
+				/>
+			)}
 		</div>
 	);
 };

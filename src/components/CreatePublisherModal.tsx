@@ -17,6 +17,8 @@ export function CreatePublisherModal({
 	onCreate,
 }: CreatePublisherModalProps) {
 	const [name, setName] = useState('');
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 
 	const inputStyles =
@@ -32,7 +34,7 @@ export function CreatePublisherModal({
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ name }),
+				body: JSON.stringify({ name, email, password }),
 			});
 
 			const data = await response.json();
@@ -115,8 +117,8 @@ export function CreatePublisherModal({
 										type="email"
 										id="email"
 										name="email"
-										value={name}
-										onChange={e => setName(e.target.value)}
+										value={email}
+										onChange={e => setEmail(e.target.value)}
 										className={inputStyles}
 										required
 									/>
@@ -133,8 +135,8 @@ export function CreatePublisherModal({
 										type="password"
 										id="password"
 										name="password"
-										value={name}
-										onChange={e => setName(e.target.value)}
+										value={password}
+										onChange={e => setPassword(e.target.value)}
 										className={inputStyles}
 										required
 									/>

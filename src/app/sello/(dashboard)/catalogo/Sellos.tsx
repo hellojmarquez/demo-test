@@ -33,7 +33,6 @@ export default function SellosPage() {
 			try {
 				const res = await fetch('/api/admin/getAllSellos');
 				const response = await res.json();
-				console.log('sellos completa de la API:', response);
 
 				// Asegurarnos de que response.data sea un array
 				const sellosData = Array.isArray(response.data) ? response.data : [];
@@ -49,9 +48,6 @@ export default function SellosPage() {
 						typeof sello.catalog_num === 'string'
 							? parseInt(sello.catalog_num, 10)
 							: sello.catalog_num;
-
-					console.log('Sello individual:', sello);
-					console.log('Subcuentas del sello:', sello.subaccounts);
 
 					return {
 						...sello,

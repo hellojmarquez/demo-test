@@ -23,7 +23,6 @@ export async function GET(req: NextRequest) {
 		);
 
 		const tokenData = await tokenRes.json();
-		console.log(tokenData);
 
 		if (!tokenData.access) {
 			return NextResponse.json(

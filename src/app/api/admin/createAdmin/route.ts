@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 		await dbConnect();
 
 		const { name, email, password, picture } = await request.json();
-		console.log(name, email, password);
+	
 		// Validar campos requeridos
 		if (!name || !email || !password) {
 			return NextResponse.json(
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 			permissions: ['admin'],
 		});
 		console.log('newAdmin: ', newAdmin);
-		console.log(newAdmin);
+
 		return NextResponse.json(
 			{
 				message: 'Administrador creado exitosamente',

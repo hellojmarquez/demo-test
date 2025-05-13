@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 					.sign(new TextEncoder().encode(process.env.JWT_SECRET));
 				const plainUser = userDB.toObject();
 				delete plainUser.password;
-				console.log(plainUser);
+			
 
 				// Set the JWT as a cookie
 				const response = NextResponse.json({

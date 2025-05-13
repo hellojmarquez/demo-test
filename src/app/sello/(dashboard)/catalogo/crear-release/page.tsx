@@ -185,7 +185,7 @@ const CreateReleasePage = () => {
 				}
 				if (genresData.success && Array.isArray(genresData.data)) {
 					setGenres(genresData.data);
-					console.log(genresData.data);
+				
 				} else {
 					setError(
 						'Error al cargar los géneros. Formato de respuesta inesperado.'
@@ -315,7 +315,7 @@ const CreateReleasePage = () => {
 				}
 			});
 
-			console.log('data to send: ', formDataToSend);
+		
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',
 				body: formDataToSend,

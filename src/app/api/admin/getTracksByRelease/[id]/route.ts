@@ -44,7 +44,6 @@ export async function GET(
 
 		// Obtener el release para obtener su external_id
 		const release = await Release.findById(releaseId);
-		console.log('Release encontrado:', release);
 
 		if (!release) {
 			return NextResponse.json(
@@ -71,7 +70,7 @@ export async function GET(
 			})
 			.lean();
 
-		console.log('Tracks encontrados:', JSON.stringify(tracks, null, 2));
+	
 
 		return NextResponse.json({
 			success: true,

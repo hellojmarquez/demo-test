@@ -132,7 +132,7 @@ const Assets = () => {
 					method: 'PUT',
 					body: submitFormData,
 				});
-				console.log(submitFormData);
+			
 			} else {
 				response = await fetch(`/api/admin/updateSingle/${updatedTrack._id}`, {
 					method: 'PUT',
@@ -184,7 +184,7 @@ const Assets = () => {
 					method: 'POST',
 					body: submitFormData,
 				});
-				console.log(submitFormData);
+			
 			} else {
 				response = await fetch(`/api/admin/createSingle`, {
 					method: 'POST',

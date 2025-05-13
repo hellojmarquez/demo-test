@@ -409,7 +409,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		console.log('crear: ', formData);
+
 		setIsLoading(true);
 		setError(null);
 
@@ -428,7 +428,7 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 		if (file) {
 			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
 				setSelectedFile(file);
-				console.log(file);
+
 				setFormData(prev => ({
 					...prev,
 					resource: file,

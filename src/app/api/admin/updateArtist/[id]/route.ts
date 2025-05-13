@@ -72,7 +72,7 @@ export async function PUT(
 			body.role = 'artista';
 		}
 
-		console.log('update: ', body);
+	
 
 		// Actualizar artista en la API externa
 		const artistToApi = {
@@ -99,7 +99,7 @@ export async function PUT(
 		);
 
 		const artistRes = await artistReq.json();
-		console.log(artistRes);
+
 
 		// Conectar a la base de datos local
 		await dbConnect();

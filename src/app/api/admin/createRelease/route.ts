@@ -59,13 +59,14 @@ export async function POST(req: NextRequest) {
 		const language = formData.get('language') as string;
 		const release_version = formData.get('release_version') as string;
 		const publisher = formData.get('publisher') as string;
+		const publisher_name = formData.get('publisher_name') as string;
+		console.log('Publisher data:', { publisher, publisher_name });
 		const publisher_year = formData.get('publisher_year') as string;
 		const copyright_holder = formData.get('copyright_holder') as string;
 		const copyright_holder_year = formData.get(
 			'copyright_holder_year'
 		) as string;
-		const catalogue_number = formData.get('catalogue_number') as string;
-		const is_new_release = parseInt(formData.get('is_new_release') as string);
+
 		const official_date = formData.get('official_date') as string;
 		const original_date = formData.get('original_date') as string;
 		const territory = formData.get('territory') as string;
@@ -80,25 +81,12 @@ export async function POST(req: NextRequest) {
 		let picture_url = '';
 		let picture_path = '';
 		// Parsear género y subgénero
-		const genreRaw = formData.get('genre');
-		let genre = { id: 0, name: '' };
-		if (genreRaw) {
-			try {
-				genre = JSON.parse(genreRaw.toString());
-			} catch (e) {
-				console.error('Error parsing genre:', e);
-			}
-		}
+		const genre = formData.get('genre') as string;
+		const genre_name = formData.get('genre_name') as string;
 
-		const subgenreRaw = formData.get('subgenre');
-		let subgenre = { id: 0, name: '' };
-		if (subgenreRaw) {
-			try {
-				subgenre = JSON.parse(subgenreRaw.toString());
-			} catch (e) {
-				console.error('Error parsing subgenre:', e);
-			}
-		}
+		const subgenre = formData.get('subgenre') as string;
+		const subgenre_name = formData.get('subgenre_name') as string;
+
 		const temp_id = uuidv4();
 		let newRelease = {
 			name,
@@ -112,10 +100,12 @@ export async function POST(req: NextRequest) {
 			auto_detect_language,
 			generate_ean,
 			genre: Number(genre),
+
 			subgenre: Number(subgenre),
 			youtube_declaration,
 			release_version,
 			publisher,
+
 			publisher_year,
 			catalogue_number: 'ISLASOUNDS' + external_id,
 			copyright_holder,
@@ -125,7 +115,7 @@ export async function POST(req: NextRequest) {
 			original_date,
 			territory,
 		};
-		console.log(newRelease);
+
 		if (picture) {
 			console.log('ACTUALIZANDO TRAck');
 			const uploadArtworkReq = await fetch(
@@ -141,7 +131,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const uploadArtworkRes = await uploadArtworkReq.json();
-			console.log(uploadArtworkRes);
+
 			// Extraer la URL y los campos del objeto firmado
 			const { url: signedUrl, fields: resFields } = uploadArtworkRes.signed_url;
 			// Crear un objeto FormData y agregar los campos y el archivo
@@ -167,7 +157,7 @@ export async function POST(req: NextRequest) {
 			// console.log(uploadResponse?.headers?.get('location'));
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
-			console.log('path img: ', picture_path);
+
 			if (!uploadResponse.ok) {
 				console.error(
 					'Error al subir el archivo de audio a S3:',
@@ -204,26 +194,23 @@ export async function POST(req: NextRequest) {
 			body: JSON.stringify(releaseToApiData),
 		});
 		const apiRes = await releaseToApi.json();
-		console.log('api res: ', apiRes);
+
 		await dbConnect();
 
-		//Guardar en la API
-		console.log(picture_url);
 		// Guardar en la base de datos
 		const releaseToSave = {
 			...newRelease,
 			external_id: apiRes.id,
 			picture: String(picture_url || '/cd_cover.png'),
-			genre_name: genre.name,
-			subgenre_name: subgenre.name,
-			label_name: String(label_name),
+			genre_name,
+			subgenre_name,
+			label_name,
 			artists,
+			publisher_name,
 		};
-
+		console.log('releaseToSave: ', releaseToSave);
 		const savedRelease = await Release.create(releaseToSave);
-
-		console.log('release en mongo: ', savedRelease);
-
+		console.log('savedRelease: ', savedRelease);
 		return NextResponse.json({
 			success: true,
 		});

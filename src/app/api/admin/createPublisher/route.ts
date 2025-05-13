@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		const body = await req.json();
-		let { name } = body;
+		let { name, email, password } = body;
 
 		// Capitalizar la primera letra de cada palabra
 		name = name
@@ -42,8 +42,6 @@ export async function POST(req: NextRequest) {
 					word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 			)
 			.join(' ');
-
-		console.log(name);
 
 		// Crear publisher
 		const publisherReq = await fetch(
@@ -61,7 +59,6 @@ export async function POST(req: NextRequest) {
 		);
 
 		const publisherRes = await publisherReq.json();
-		console.log(publisherRes);
 
 		// Conectar a la base de datos local
 		await dbConnect();
@@ -69,8 +66,9 @@ export async function POST(req: NextRequest) {
 		// Crear y guardar el publisher en la base de datos local
 		const publisher = new User({
 			external_id: publisherRes.id,
-			name: publisherRes.name,
-			email: publisherRes.id,
+			name,
+			email,
+			password,
 			role: 'publisher',
 		});
 

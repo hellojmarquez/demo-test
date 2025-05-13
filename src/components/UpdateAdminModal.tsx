@@ -32,11 +32,6 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	useEffect(() => {
-		console.log('Admin data:', admin);
-		console.log('Image preview:', imagePreview);
-	}, [admin, imagePreview]);
-
 	const handleChange = (
 		e: React.ChangeEvent<
 			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -64,7 +59,6 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 					...formData,
 					picture: { base64: base64Data },
 				});
-				console.log('Imagen procesada:', base64Data.substring(0, 50) + '...');
 			};
 			reader.readAsDataURL(file);
 		}
@@ -109,13 +103,6 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 				});
 				formDataToSend.append('picture', file);
 			}
-
-			console.log('Enviando datos:', {
-				...formData,
-				picture: formData.picture
-					? formData.picture.base64.substring(0, 50) + '...'
-					: 'No hay imagen',
-			});
 
 			await onSave(formData);
 		} catch (error) {

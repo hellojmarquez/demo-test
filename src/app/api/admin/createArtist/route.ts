@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
 		}
 
 		const formData = await req.formData();
-		console.log('Received form data fields:', Array.from(formData.keys()));
 
 		// Extraer los campos del FormData
 		let name = formData.get('name') as string;
@@ -60,22 +59,6 @@ export async function POST(req: NextRequest) {
 		const parentUserId = formData.get('parentUserId') as string;
 		const parentName = formData.get('parentName') as string;
 		const tipo = formData.get('tipo') as string;
-
-		console.log('Extracted fields:', {
-			name,
-			role: 'artista',
-			email,
-			hasPassword: !!password,
-			hasPicture: !!picture,
-			amazon_music_identifier,
-			apple_identifier,
-			deezer_identifier,
-			spotify_identifier,
-			isSubaccount,
-			parentUserId,
-			parentName,
-			tipo,
-		});
 
 		// Validar campos requeridos
 		if (!name || !email || !password) {
@@ -127,7 +110,6 @@ export async function POST(req: NextRequest) {
 			spotify_identifier,
 		};
 
-		console.log('artistToApi: ', artistToApi);
 		const artistaReq = await fetch(`${process.env.MOVEMUSIC_API}/artists/`, {
 			method: 'POST',
 			headers: {
@@ -140,7 +122,6 @@ export async function POST(req: NextRequest) {
 		});
 
 		const artistaRes = await artistaReq.json();
-		console.log('api res', artistaRes);
 
 		// Crear el nuevo artista
 		const newArtist = await User.create({
@@ -169,7 +150,6 @@ export async function POST(req: NextRequest) {
 			});
 		}
 
-		console.log(newArtist);
 		return NextResponse.json({
 			success: true,
 			artist: newArtist,

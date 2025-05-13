@@ -77,7 +77,6 @@ export async function POST(req: NextRequest) {
 		);
 
 		const contributorRes = await contributorReq.json();
-		console.log(contributorRes);
 
 		// Verificar si la respuesta contiene un error
 		if (Array.isArray(contributorRes.name)) {

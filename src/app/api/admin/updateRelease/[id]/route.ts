@@ -1,7 +1,7 @@
 // app/api/admin/updateRelease/[id]/route.ts
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/db';
 import Release from '@/models/ReleaseModel';
+import dbConnect from '@/lib/mongodb';
 import SingleTrack from '@/models/SingleTrack';
 
 export async function PUT(
@@ -20,15 +20,24 @@ export async function PUT(
 		}
 
 		const releaseData = JSON.parse(data as string);
-		const mongoose = await connectToDatabase();
+
+		// Convertir los valores a números
+		if (releaseData.label) releaseData.label = Number(releaseData.label);
+		if (releaseData.publisher)
+			releaseData.publisher = Number(releaseData.publisher);
+		if (releaseData.genre) releaseData.genre = Number(releaseData.genre);
+		if (releaseData.subgenre)
+			releaseData.subgenre = Number(releaseData.subgenre);
+
+		await dbConnect();
 
 		// Actualizar el release con los nuevos datos
 		const updatedRelease = await Release.findByIdAndUpdate(
 			params.id,
-			releaseData,
-			{ new: true }
+			{ $set: releaseData },
+			{ new: true, runValidators: true }
 		);
-
+		console.log(updatedRelease);
 		if (!updatedRelease) {
 			return NextResponse.json(
 				{ success: false, message: 'No se encontró el release' },
@@ -39,7 +48,7 @@ export async function PUT(
 		return NextResponse.json({
 			success: true,
 			message: 'Release actualizado exitosamente',
-			release: updatedRelease,
+			data: updatedRelease,
 		});
 	} catch (error: any) {
 		console.error('Error al actualizar el release:', error);

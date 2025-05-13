@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
 			const formData = await req.formData();
 			const file = formData.get('file') as File | null;
 			let data = formData.get('data') as string | null;
-			console.log(file);
+		
 			if (data) {
 				trackData = JSON.parse(data);
-				console.log('trackData: ', trackData);
+			
 				// Asegurarse de que los artistas tengan el formato correcto
 				if (trackData.artists) {
 					trackData.artists = trackData.artists.map((artist: any) => ({
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 				}
 
 				if (file) {
-					console.log(file);
+				
 
 					console.log('ACTUALIZANDO TRAck');
 					const uploadTrackReq = await fetch(
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
 					picture_path = decodeURIComponent(
 						new URL(picture_url).pathname.slice(1)
 					);
-					console.log(uploadResponse);
+			
 
 					if (!uploadResponse.ok) {
 						console.error(
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 			}
 		} else if (contentType.includes('application/json')) {
 			trackData = await req.json();
-			console.log('JSON trackData:', trackData);
+		
 		} else {
 			return NextResponse.json(
 				{ success: false, error: 'Invalid content type' },
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 		dataToapi.genre = trackData.genre.id;
 		dataToapi.subgenre = trackData.subgenre.id;
-		console.log('data a api: ', dataToapi);
+	
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {
@@ -145,16 +145,14 @@ export async function POST(req: NextRequest) {
 		});
 
 		const trackRes = await trackReq.json();
-		console.log('trackRes: ', trackRes);
+
 
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;
-		console.log('trackData: ', trackData);
 
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
-		console.log('bbdd res: ', createTrack);
 
 		return NextResponse.json({
 			success: true,

@@ -107,7 +107,7 @@ function CreateSelloModal({
 				const genresResponse = await fetch('/api/admin/getAllGenres');
 				if (genresResponse.ok) {
 					const genresData = await genresResponse.json();
-					console.log('Genres data:', genresData);
+				
 					setGenres(genresData.data || []);
 				}
 			} catch (error) {

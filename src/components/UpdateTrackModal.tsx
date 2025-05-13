@@ -459,11 +459,7 @@ const UpdateTrackModal: React.FC<UpdateTrackPageProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		console.log(`handleContributorChange (${field}) - Valor recibido:`, value);
-		console.log(
-			`handleContributorChange (${field}) - Tipo del valor:`,
-			typeof value
-		);
+	
 
 		setFormData(prev => {
 			const newContributors = [...prev.contributors];
@@ -513,7 +509,6 @@ const UpdateTrackModal: React.FC<UpdateTrackPageProps> = ({
 				}
 			}
 
-			console.log('Updated contributors:', newContributors);
 			return { ...prev, contributors: newContributors };
 		});
 	};
@@ -569,7 +564,7 @@ const UpdateTrackModal: React.FC<UpdateTrackPageProps> = ({
 		if (file) {
 			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
 				setSelectedFile(file);
-				console.log(file);
+		
 				setFormData(prev => ({
 					...prev,
 					resource: file,

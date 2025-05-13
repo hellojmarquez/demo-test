@@ -120,7 +120,6 @@ export async function POST(request: Request) {
 			}
 
 			const trackResult = await trackResponse.json();
-			console.log('Resultado de creación del track:', trackResult);
 
 			if (!trackResult.success) {
 				return NextResponse.json(

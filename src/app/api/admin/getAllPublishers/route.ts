@@ -8,13 +8,13 @@ export async function GET(req: NextRequest) {
 
 	try {
 		await dbConnect();
-		const personas = await User.find({ role: 'publisher' })
+		const publishers = await User.find({ role: 'publisher' })
 			.select('-password')
 			.sort({ createdAt: -1 });
 
 		return NextResponse.json({
 			success: true,
-			data: personas,
+			data: publishers,
 		});
 	} catch (error) {
 		console.error('Error fetching contributor roles:', error);

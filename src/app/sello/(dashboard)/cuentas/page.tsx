@@ -73,7 +73,7 @@ export default function UsuariosPage() {
 				const res = await fetch('/api/admin/getAllUsers');
 				const data = await res.json();
 				if (data.success) {
-					console.log(data.users);
+				
 					setUsers(data.users);
 				}
 			} catch (error) {

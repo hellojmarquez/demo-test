@@ -224,7 +224,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 
 			// Actualizar el release con todos los nuevos tracks
 			const updateFormData = new FormData();
-			console.log('response.data: ', trackResponses);
+	
 			updateFormData.append(
 				'data',
 				JSON.stringify({

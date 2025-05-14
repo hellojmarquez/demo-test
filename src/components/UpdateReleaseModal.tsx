@@ -16,6 +16,7 @@ import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
 import UploadTrackToRelease from './UploadTrackToRelease';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface ArtistData {
 	external_id: number;
@@ -27,6 +28,18 @@ interface TrackData {
 	_id: string;
 	name: string;
 	ISRC: string;
+}
+
+interface NewArtist {
+	order: number;
+	artist: number;
+	kind: string;
+	name: string;
+	email: string;
+	amazon_music_identifier: string;
+	apple_identifier: string;
+	deezer_identifier: string;
+	spotify_identifier: string;
 }
 
 interface UpdateReleasePageProps {
@@ -181,8 +194,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	formData,
 	setFormData,
 }) => {
-	console.log('Genre value:', formData.genre);
-	console.log('Genre name:', formData.genre_name);
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
@@ -210,6 +221,15 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const [publishers, setPublishers] = useState<PublisherOption[]>([]);
 	const [publishersData, setPublishersData] = useState<any[]>([]);
+	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
+	const [newArtistData, setNewArtistData] = useState({
+		name: '',
+		email: '',
+		amazon_music_id: '',
+		apple_music_id: '',
+		deezer_id: '',
+		spotify_id: '',
+	});
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
@@ -288,7 +308,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				const genresRes = await fetch('/api/admin/getAllGenres');
 				const genresData = await genresRes.json();
 				if (genresData.success && Array.isArray(genresData.data)) {
-					console.log('Genres data:', genresData.data);
 					setGenres(genresData.data);
 
 					// Si hay un género seleccionado, cargar sus subgéneros
@@ -529,6 +548,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 	// Efecto para manejar el final de la reproducción y el progreso
 	useEffect(() => {
+		console.log('formData: ', formData);
 		const audio = audioRef.current;
 		if (audio) {
 			const handleEnded = () => {
@@ -880,37 +900,55 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									<span>Seleccionar artista</span>
 								</div>
 							}
+							noOptionsMessage={({ inputValue }) => (
+								<div className="p-2 text-center">
+									<p className="text-sm text-gray-500 mb-2">
+										No se encontraron artistas para "{inputValue}"
+									</p>
+									<button
+										onClick={() => {
+											setNewArtistData(prev => ({ ...prev, name: inputValue }));
+											setIsCreateArtistModalOpen(true);
+										}}
+										className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
+									>
+										<Plus className="w-4 h-4 mr-1" />
+										Crear nuevo artista
+									</button>
+								</div>
+							)}
 							className="react-select-container w-72 self-end"
 							classNamePrefix="react-select"
 							styles={reactSelectStyles}
 						/>
 
-						<div className=" space-y-2   min-h-52 p-2">
-							<div className=" flex flex-wrap gap-2 items-center">
+						<div className="space-y-2 min-h-52 p-2">
+							<div className="flex flex-wrap gap-2 items-center">
 								{(formData.artists || []).map((artist, index) => (
 									<div
-										key={index}
+										key={`existing-${index}`}
 										className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg"
 									>
-										<div className="flex  gap-3">
+										<div className="flex gap-3">
 											<div className="p-2 bg-white rounded-full">
 												<User className="w-14 h-14 text-gray-600" />
 											</div>
 											<div className="flex flex-col items-center">
-												<span className="font-medium ">{artist.name}</span>
+												<span className="font-medium">{artist.name}</span>
 												<div className="flex items-center gap-2 mt-1">
 													<CustomSwitch
 														checked={artist.kind === 'main'}
 														onChange={checked => {
 															setFormData(prev => ({
 																...prev,
-																artists: (prev.artists || []).map((a, i) =>
-																	i === index
-																		? {
-																				...a,
-																				kind: checked ? 'main' : 'featuring',
-																		  }
-																		: a
+																artists: (prev.artists || []).map(
+																	(a: Artist, i: number) =>
+																		i === index
+																			? {
+																					...a,
+																					kind: checked ? 'main' : 'featuring',
+																			  }
+																			: a
 																),
 															}));
 														}}
@@ -929,13 +967,14 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 															const value = parseInt(e.target.value, 10);
 															setFormData(prev => ({
 																...prev,
-																artists: (prev.artists || []).map((a, i) =>
-																	i === index
-																		? {
-																				...a,
-																				order: isNaN(value) ? 0 : value,
-																		  }
-																		: a
+																artists: (prev.artists || []).map(
+																	(a: Artist, i: number) =>
+																		i === index
+																			? {
+																					...a,
+																					order: isNaN(value) ? 0 : value,
+																			  }
+																			: a
 																),
 															}));
 														}}
@@ -953,6 +992,89 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										</button>
 									</div>
 								))}
+
+								{(formData.newArtists || []).map(
+									(artist: NewArtist, index: number) => (
+										<div
+											key={`new-${index}`}
+											className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg border-2 border-brand-light"
+										>
+											<div className="flex gap-3">
+												<div className="p-2 bg-white rounded-full">
+													<User className="w-14 h-14 text-gray-600" />
+												</div>
+												<div className="flex flex-col items-center">
+													<span className="font-medium">{artist.name}</span>
+													<div className="flex items-center gap-2 mt-1">
+														<CustomSwitch
+															checked={artist.kind === 'main'}
+															onChange={checked => {
+																setFormData(prev => ({
+																	...prev,
+																	newArtists: (prev.newArtists || []).map(
+																		(a: NewArtist, i: number) =>
+																			i === index
+																				? {
+																						...a,
+																						kind: checked
+																							? 'main'
+																							: 'featuring',
+																				  }
+																				: a
+																	),
+																}));
+															}}
+															className="mx-auto"
+															onText="Principal"
+															offText="Invitado"
+														/>
+													</div>
+													<div className="flex items-center gap-2 mt-1">
+														<input
+															type="number"
+															min={-2147483648}
+															max={2147483647}
+															value={artist.order}
+															onChange={e => {
+																const value = parseInt(e.target.value, 10);
+																setFormData(prev => ({
+																	...prev,
+																	newArtists: (prev.newArtists || []).map(
+																		(a: NewArtist, i: number) =>
+																			i === index
+																				? {
+																						...a,
+																						order: isNaN(value) ? 0 : value,
+																				  }
+																				: a
+																	),
+																}));
+															}}
+															className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-center focus:outline-none focus:border-brand-light"
+														/>
+														<label className="text-xs text-gray-500">
+															Orden
+														</label>
+													</div>
+												</div>
+											</div>
+											<button
+												onClick={() => {
+													setFormData(prev => ({
+														...prev,
+														newArtists:
+															prev.newArtists?.filter(
+																(_: NewArtist, i: number) => i !== index
+															) || [],
+													}));
+												}}
+												className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+											>
+												<Trash2 size={20} />
+											</button>
+										</div>
+									)
+								)}
 							</div>
 						</div>
 					</div>
@@ -1472,6 +1594,210 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					onUploadComplete={handleUploadComplete}
 					onUploadProgress={handleUploadProgress}
 				/>
+			)}
+			{isCreateArtistModalOpen && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white rounded-lg p-6 w-full max-w-md">
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="text-lg font-medium text-gray-900">
+								Crear Nuevo Artista
+							</h3>
+							<button
+								onClick={() => setIsCreateArtistModalOpen(false)}
+								className="text-gray-400 hover:text-gray-500"
+							>
+								<XCircle className="h-6 w-6" />
+							</button>
+						</div>
+
+						<div className="space-y-4">
+							<div>
+								<label className="block text-sm font-medium text-gray-700">
+									Nombre
+								</label>
+								<input
+									type="text"
+									value={newArtistData.name}
+									onChange={e =>
+										setNewArtistData(prev => ({
+											...prev,
+											name: e.target.value,
+										}))
+									}
+									className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+								/>
+							</div>
+
+							<div>
+								<label className="block text-sm font-medium text-gray-700">
+									Email
+								</label>
+								<input
+									type="email"
+									value={newArtistData.email}
+									onChange={e =>
+										setNewArtistData(prev => ({
+											...prev,
+											email: e.target.value,
+										}))
+									}
+									className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+								/>
+							</div>
+
+							<div className="grid grid-cols-2 gap-4">
+								<div>
+									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+										<div className="h-6 w-6 flex items-center">
+											<Image
+												src="/icons/Amazon_Music_logo.svg"
+												alt="Amazon Music"
+												width={24}
+												height={24}
+												className="object-contain"
+											/>
+										</div>
+										ID Amazon Music
+									</label>
+									<input
+										type="text"
+										value={newArtistData.amazon_music_id}
+										onChange={e =>
+											setNewArtistData(prev => ({
+												...prev,
+												amazon_music_id: e.target.value,
+											}))
+										}
+										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+										<div className="h-6 w-6 flex items-center">
+											<Image
+												src="/icons/ITunes_logo.svg"
+												alt="Apple Music"
+												width={24}
+												height={24}
+												className="object-contain"
+											/>
+										</div>
+										ID Apple Music
+									</label>
+									<input
+										type="text"
+										value={newArtistData.apple_music_id}
+										onChange={e =>
+											setNewArtistData(prev => ({
+												...prev,
+												apple_music_id: e.target.value,
+											}))
+										}
+										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+										<div className="h-6 w-6 flex items-center justify-center">
+											<Image
+												src="/icons/dezzer_logo.svg"
+												alt="Deezer"
+												width={20}
+												height={20}
+												className="object-contain"
+											/>
+										</div>
+										ID Deezer
+									</label>
+									<input
+										type="text"
+										value={newArtistData.deezer_id}
+										onChange={e =>
+											setNewArtistData(prev => ({
+												...prev,
+												deezer_id: e.target.value,
+											}))
+										}
+										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+										<div className="h-6 w-6 flex items-center justify-center">
+											<Image
+												src="/icons/spotify_logo.svg"
+												alt="Spotify"
+												width={20}
+												height={20}
+												className="object-contain"
+											/>
+										</div>
+										ID Spotify
+									</label>
+									<input
+										type="text"
+										value={newArtistData.spotify_id}
+										onChange={e =>
+											setNewArtistData(prev => ({
+												...prev,
+												spotify_id: e.target.value,
+											}))
+										}
+										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div className="mt-6 flex justify-end gap-3">
+							<button
+								onClick={() => setIsCreateArtistModalOpen(false)}
+								className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+							>
+								Cancelar
+							</button>
+							<button
+								onClick={() => {
+									// Crear el nuevo artista con la estructura requerida
+									const newArtist: NewArtist = {
+										order: (formData.newArtists || []).length,
+										artist: 0,
+										kind: 'main',
+										name: newArtistData.name,
+										email: newArtistData.email,
+										amazon_music_identifier: newArtistData.amazon_music_id,
+										apple_identifier: newArtistData.apple_music_id,
+										deezer_identifier: newArtistData.deezer_id,
+										spotify_identifier: newArtistData.spotify_id,
+									};
+
+									// Actualizar el formData con el nuevo artista en el array newArtists
+									setFormData(prev => ({
+										...prev,
+										newArtists: [...(prev.newArtists || []), newArtist],
+									}));
+
+									// Limpiar el formulario y cerrar el modal
+									setNewArtistData({
+										name: '',
+										email: '',
+										amazon_music_id: '',
+										apple_music_id: '',
+										deezer_id: '',
+										spotify_id: '',
+									});
+									setIsCreateArtistModalOpen(false);
+								}}
+								className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md"
+							>
+								Crear Artista
+							</button>
+						</div>
+					</div>
+				</div>
 			)}
 		</div>
 	);

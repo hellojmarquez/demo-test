@@ -5,6 +5,18 @@ export interface Artist {
 	name: string;
 }
 
+export interface NewArtist {
+	order: number;
+	artist: number;
+	kind: string;
+	name: string;
+	email: string;
+	amazon_music_identifier: string;
+	apple_identifier: string;
+	deezer_identifier: string;
+	spotify_identifier: string;
+}
+
 export interface Release {
 	_id: string;
 	name: string;
@@ -16,6 +28,7 @@ export interface Release {
 	youtube_declaration?: boolean;
 	dolby_atmos?: boolean;
 	artists?: Artist[];
+	newArtists?: NewArtist[];
 	tracks?: Array<{
 		order: number;
 		title: string;

@@ -151,7 +151,8 @@ export default function EditPage() {
 				const error = await response.json();
 				throw new Error(error.message || 'Error al actualizar el track');
 			}
-
+			const apires = await response.json();
+			console.log(apires);
 			await mutateTracks();
 		} catch (error) {
 			console.error('Error saving track:', error);

@@ -46,6 +46,44 @@ export async function PUT(
 
 		const releaseData = JSON.parse(data as string);
 
+		console.log('Datos del release recibidos:', {
+			newArtists: releaseData.newArtists,
+			totalNewArtists: releaseData.newArtists?.length || 0,
+		});
+
+		// Procesar los nuevos artistas
+		if (releaseData.newArtists && releaseData.newArtists.length > 0) {
+			console.log('Procesando nuevos artistas...');
+			for (const artist of releaseData.newArtists) {
+				try {
+					const artistResponse = await fetch(
+						`${req.nextUrl.origin}/api/admin/createArtistInRelease`,
+						{
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+							},
+							body: JSON.stringify({
+								name: artist.name,
+								email: artist.email,
+								amazon_music_identifier: artist.amazon_music_identifier,
+								apple_identifier: artist.apple_identifier,
+								deezer_identifier: artist.deezer_identifier,
+								spotify_identifier: artist.spotify_identifier,
+							}),
+						}
+					);
+
+					const artistResult = await artistResponse.json();
+					console.log('Resultado de creación de artista:', artistResult);
+					releaseData.artists.push(artistResult.artist);
+				} catch (error) {
+					console.error('Error al procesar artista:', error);
+				}
+			}
+		}
+
 		// Verificar si picture es una nueva imagen o un link existente
 		if (picture) {
 			if (picture instanceof File) {

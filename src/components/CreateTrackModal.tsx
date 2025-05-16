@@ -12,6 +12,7 @@ import { LANGUAGES, LanguageOption } from '@/constants/languages';
 import CustomSwitch from './CustomSwitch';
 import TrackArtistSelector, { TrackArtist } from './TrackArtistSelector';
 import Image from 'next/image';
+import ContributorSelector from './ContributorSelector';
 
 export interface GenreData {
 	id: number;
@@ -590,428 +591,476 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				</div>
 			)}
 
-			<form onSubmit={handleSubmit} className="space-y-4">
-				{/* seleccionar lanzamiento */}
-				<div className="flex gap-x-4">
-					{/* File Upload Section */}
-					<div className="w-1/3 space-y-4">
-						<div className="flex items-center gap-4">
-							<label className="block text-sm font-medium text-gray-700">
-								Archivo WAV
-							</label>
-							<div>
-								<input
-									type="file"
-									ref={fileInputRef}
-									onChange={handleFileChange}
-									accept=".wav"
-									className="hidden"
-								/>
-								<button
-									type="button"
-									onClick={() => fileInputRef.current?.click()}
-									className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-								>
-									<Upload className="h-4 w-4 mr-2" />
-									Subir archivo
-								</button>
+			<form onSubmit={handleSubmit} className="space-y-8">
+				{/* Sección de Archivo y Recursos */}
+				<div className="space-y-4">
+					<h3 className="text-lg font-medium text-gray-900">
+						Archivo y Recursos
+					</h3>
+					<div className="flex gap-x-4">
+						<div className="w-1/3">
+							<div className="relative group">
+								<div className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+									<div className="flex flex-col items-center justify-center pt-5 pb-6">
+										<Upload className="w-12 h-12 mb-3 text-gray-400 group-hover:text-brand-light transition-colors duration-200" />
+										<p className="mb-2 text-sm text-gray-500">
+											<span className="font-semibold">Click para subir</span> o
+											arrastra y suelta
+										</p>
+										<p className="text-xs text-gray-500">WAV (MAX. 800MB)</p>
+									</div>
+									<input
+										type="file"
+										ref={fileInputRef}
+										onChange={handleFileChange}
+										accept=".wav"
+										className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+									/>
+								</div>
 							</div>
+
+							{uploadProgress > 0 && uploadProgress < 100 && (
+								<div className="mt-4">
+									<div className="flex justify-between text-sm text-gray-600 mb-1">
+										<span>Subiendo archivo...</span>
+										<span>{uploadProgress}%</span>
+									</div>
+									<div className="w-full bg-gray-200 rounded-full h-2">
+										<div
+											className="bg-brand-light h-2 rounded-full transition-all duration-300 ease-in-out"
+											style={{ width: `${uploadProgress}%` }}
+										></div>
+									</div>
+								</div>
+							)}
+
+							{formData.resource && (
+								<div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+									<div className="flex items-center gap-3">
+										<div className="p-2 bg-gray-100 rounded-lg">
+											<Upload className="w-5 h-5 text-gray-600" />
+										</div>
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-medium text-gray-900 truncate">
+												{typeof formData.resource === 'string'
+													? formData.resource
+													: formData.resource.name}
+											</p>
+											<p className="text-xs text-gray-500">
+												{typeof formData.resource === 'string'
+													? 'Archivo cargado'
+													: 'Listo para subir'}
+											</p>
+										</div>
+										<button
+											type="button"
+											onClick={() => {
+												setSelectedFile(null);
+												setFormData(prev => ({ ...prev, resource: '' }));
+											}}
+											className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+										>
+											<X className="w-4 h-4" />
+										</button>
+									</div>
+								</div>
+							)}
 						</div>
-						{uploadProgress > 0 && uploadProgress < 100 && (
-							<div className="w-full bg-gray-200 rounded-full h-1.5">
-								<div
-									className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
-									style={{ width: `${uploadProgress}%` }}
-								></div>
-							</div>
-						)}
-						{formData.resource && (
-							<div className="text-sm text-gray-500 mt-1">
-								Archivo actual:{' '}
-								{typeof formData.resource === 'string'
-									? formData.resource
-									: formData.resource.name}
-							</div>
-						)}
 					</div>
 				</div>
 
-				<div className="grid grid-cols-2 gap-6">
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Nombre
-						</label>
-						<input
-							type="text"
-							name="name"
-							value={formData.name}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-							required
-						/>
-					</div>
+				{/* Sección de Información Básica */}
+				<div className="space-y-4">
+					<h3 className="text-lg font-medium text-gray-900">
+						Información Básica
+					</h3>
+					<div className="grid grid-cols-2 gap-6">
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Nombre
+							</label>
+							<input
+								type="text"
+								name="name"
+								value={formData.name}
+								onChange={handleChange}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+								required
+							/>
+						</div>
 
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Nombre de mix
-						</label>
-						<input
-							type="text"
-							name="mix_name"
-							value={formData.mix_name}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						/>
-					</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Nombre de mix
+							</label>
+							<input
+								type="text"
+								name="mix_name"
+								value={formData.mix_name}
+								onChange={handleChange}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							/>
+						</div>
 
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							ISRC
-						</label>
-						<input
-							type="text"
-							name="ISRC"
-							value={formData.ISRC}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						/>
-					</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								ISRC
+							</label>
+							<input
+								type="text"
+								name="ISRC"
+								value={formData.ISRC}
+								onChange={handleChange}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							/>
+						</div>
 
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							DA ISRC
-						</label>
-						<input
-							type="text"
-							name="DA_ISRC"
-							value={formData.DA_ISRC}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						/>
-					</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								DA ISRC
+							</label>
+							<input
+								type="text"
+								name="DA_ISRC"
+								value={formData.DA_ISRC}
+								onChange={handleChange}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							/>
+						</div>
 
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Género
-						</label>
-						<Select
-							name="genre"
-							value={
-								genres.find(g => g.id === formData.genre)
-									? {
-											value: formData.genre,
-											label:
-												genres.find(g => g.id === formData.genre)?.name || '',
-									  }
-									: null
-							}
-							onChange={(selectedOption: any) => {
-								if (selectedOption) {
-									handleChange({
-										target: {
-											name: 'genre',
-											value: selectedOption.value,
-										},
-									} as any);
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Copyright Holder
+							</label>
+							<input
+								type="text"
+								name="copyright_holder"
+								value={formData.copyright_holder}
+								onChange={handleChange}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Copyright Year
+							</label>
+							<input
+								type="text"
+								name="copyright_holder_year"
+								value={formData.copyright_holder_year}
+								onChange={handleChange}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Dolby Atmos Resource
+							</label>
+							<input
+								type="text"
+								name="dolby_atmos_resource"
+								value={formData.dolby_atmos_resource}
+								onChange={handleChange}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Orden
+							</label>
+							<input
+								type="number"
+								name="order"
+								value={formData.order || ''}
+								onChange={e =>
+									setFormData(prev => ({
+										...prev,
+										order: parseInt(e.target.value),
+									}))
 								}
-							}}
-							options={genres.map(genre => ({
-								value: genre.id,
-								label: genre.name,
-							}))}
-							placeholder="Seleccionar género"
-							styles={customSelectStyles}
-							className="mt-1"
-							isClearable
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Subgénero
-						</label>
-						<Select
-							name="subgenre"
-							value={
-								subgenres.find(s => s.id === formData.subgenre)
-									? {
-											value: formData.subgenre,
-											label:
-												subgenres.find(s => s.id === formData.subgenre)?.name ||
-												'',
-									  }
-									: null
-							}
-							onChange={(selectedOption: any) => {
-								if (selectedOption) {
-									handleChange({
-										target: {
-											name: 'subgenre',
-											value: selectedOption.value,
-										},
-									} as any);
-								}
-							}}
-							options={subgenres.map(subgenre => ({
-								value: subgenre.id,
-								label: subgenre.name,
-							}))}
-							placeholder="Seleccionar subgénero"
-							styles={customSelectStyles}
-							className="mt-1"
-							isClearable
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Idioma
-						</label>
-						<Select
-							value={
-								LANGUAGES.find(lang => lang.value === formData.language) || null
-							}
-							onChange={(selectedOption: SingleValue<LanguageOption>) => {
-								if (selectedOption) {
-									handleChange({
-										target: {
-											name: 'language',
-											value: selectedOption.value,
-										},
-									} as any);
-								}
-							}}
-							options={LANGUAGES}
-							placeholder="Seleccionar idioma"
-							styles={customSelectStyles}
-							className="mt-1"
-							isClearable
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Label Share
-						</label>
-						<Cleave
-							options={{
-								numericOnly: true,
-								prefix: '',
-								blocks: [3],
-								delimiter: '',
-							}}
-							name="label_share"
-							value={formData.label_share || ''}
-							onChange={e =>
-								setFormData(prev => ({
-									...prev,
-									label_share: e.target.value
-										? parseFloat(e.target.value)
-										: undefined,
-								}))
-							}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Vocals
-						</label>
-						<Select
-							value={
-								LANGUAGES.find(lang => lang.value === formData.vocals) || null
-							}
-							onChange={(selectedOption: SingleValue<LanguageOption>) => {
-								if (selectedOption) {
-									handleChange({
-										target: {
-											name: 'vocals',
-											value: selectedOption.value,
-										},
-									} as any);
-								}
-							}}
-							options={LANGUAGES}
-							placeholder="Seleccionar idioma"
-							styles={customSelectStyles}
-							className="mt-1"
-							isClearable
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Copyright Holder
-						</label>
-						<input
-							type="text"
-							name="copyright_holder"
-							value={formData.copyright_holder}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Copyright Year
-						</label>
-						<input
-							type="text"
-							name="copyright_holder_year"
-							value={formData.copyright_holder_year}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Dolby Atmos Resource
-						</label>
-						<input
-							type="text"
-							name="dolby_atmos_resource"
-							value={formData.dolby_atmos_resource}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Duración
-						</label>
-						<Cleave
-							options={{
-								time: true,
-								timePattern: ['h', 'm', 's'],
-								timeFormat: 'HH:mm:ss',
-								blocks: [2, 2, 2],
-								delimiter: ':',
-							}}
-							name="track_lenght"
-							value={formData.track_lenght || ''}
-							onChange={e => handleTimeChange('track_lenght', e.target.value)}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-							placeholder="00:00:00"
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Sample Start
-						</label>
-						<Cleave
-							options={{
-								time: true,
-								timePattern: ['h', 'm', 's'],
-								timeFormat: 'HH:mm:ss',
-								blocks: [2, 2, 2],
-								delimiter: ':',
-							}}
-							name="sample_start"
-							value={formData.sample_start}
-							onChange={e => handleTimeChange('sample_start', e.target.value)}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-							placeholder="00:00:00"
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700">
-							Orden
-						</label>
-						<input
-							type="number"
-							name="order"
-							value={formData.order || ''}
-							onChange={e =>
-								setFormData(prev => ({
-									...prev,
-									order: parseInt(e.target.value),
-								}))
-							}
-							onKeyPress={e => {
-								if (!/[0-9]/.test(e.key)) {
-									e.preventDefault();
-								}
-							}}
-							className="w-20 p-2 border rounded"
-							placeholder="200"
-							min="0"
-						/>
+								onKeyPress={e => {
+									if (!/[0-9]/.test(e.key)) {
+										e.preventDefault();
+									}
+								}}
+								className="w-20 p-2 border rounded"
+								placeholder="200"
+								min="0"
+							/>
+						</div>
 					</div>
 				</div>
 
-				{/* Checkboxes Section */}
-				<div className="grid grid-cols-3 gap-4">
-					<div className="flex items-center">
-						<CustomSwitch
-							checked={formData.album_only}
-							onChange={checked => {
-								const event = {
-									target: {
-										name: 'album_only',
-										checked: checked,
-										type: 'checkbox',
-									},
-								} as React.ChangeEvent<HTMLInputElement>;
-								handleChange(event);
-							}}
-							onText=""
-							offText=""
-						/>
-						<label className="ml-2 block text-sm text-gray-700">
-							Solo Album
-						</label>
-					</div>
+				{/* Sección de Metadatos */}
+				<div className="space-y-4">
+					<h3 className="text-lg font-medium text-gray-900">Metadatos</h3>
+					<div className="grid grid-cols-2 gap-6">
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Género
+							</label>
+							<Select
+								name="genre"
+								value={
+									genres.find(g => g.id === formData.genre)
+										? {
+												value: formData.genre,
+												label:
+													genres.find(g => g.id === formData.genre)?.name || '',
+										  }
+										: null
+								}
+								onChange={(selectedOption: any) => {
+									if (selectedOption) {
+										handleChange({
+											target: {
+												name: 'genre',
+												value: selectedOption.value,
+											},
+										} as any);
+									}
+								}}
+								options={genres.map(genre => ({
+									value: genre.id,
+									label: genre.name,
+								}))}
+								placeholder="Seleccionar género"
+								styles={customSelectStyles}
+								className="mt-1"
+								isClearable
+							/>
+						</div>
 
-					<div className="flex items-center">
-						<CustomSwitch
-							checked={formData.explicit_content}
-							onChange={checked => {
-								const event = {
-									target: {
-										name: 'explicit_content',
-										checked: checked,
-										type: 'checkbox',
-									},
-								} as React.ChangeEvent<HTMLInputElement>;
-								handleChange(event);
-							}}
-							onText=""
-							offText=""
-						/>
-						<label className="ml-2 block text-sm text-gray-700">
-							Contenido Explícito
-						</label>
-					</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Subgénero
+							</label>
+							<Select
+								name="subgenre"
+								value={
+									subgenres.find(s => s.id === formData.subgenre)
+										? {
+												value: formData.subgenre,
+												label:
+													subgenres.find(s => s.id === formData.subgenre)
+														?.name || '',
+										  }
+										: null
+								}
+								onChange={(selectedOption: any) => {
+									if (selectedOption) {
+										handleChange({
+											target: {
+												name: 'subgenre',
+												value: selectedOption.value,
+											},
+										} as any);
+									}
+								}}
+								options={subgenres.map(subgenre => ({
+									value: subgenre.id,
+									label: subgenre.name,
+								}))}
+								placeholder="Seleccionar subgénero"
+								styles={customSelectStyles}
+								className="mt-1"
+								isClearable
+							/>
+						</div>
 
-					<div className="flex items-center">
-						<CustomSwitch
-							checked={formData.generate_isrc}
-							onChange={checked => {
-								const event = {
-									target: {
-										name: 'generate_isrc',
-										checked: checked,
-										type: 'checkbox',
-									},
-								} as React.ChangeEvent<HTMLInputElement>;
-								handleChange(event);
-							}}
-							onText=""
-							offText=""
-						/>
-						<label className="ml-2 block text-sm text-gray-700">
-							Generar ISRC
-						</label>
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Idioma
+							</label>
+							<Select
+								value={
+									LANGUAGES.find(lang => lang.value === formData.language) ||
+									null
+								}
+								onChange={(selectedOption: SingleValue<LanguageOption>) => {
+									if (selectedOption) {
+										handleChange({
+											target: {
+												name: 'language',
+												value: selectedOption.value,
+											},
+										} as any);
+									}
+								}}
+								options={LANGUAGES}
+								placeholder="Seleccionar idioma"
+								styles={customSelectStyles}
+								className="mt-1"
+								isClearable
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Vocals
+							</label>
+							<Select
+								value={
+									LANGUAGES.find(lang => lang.value === formData.vocals) || null
+								}
+								onChange={(selectedOption: SingleValue<LanguageOption>) => {
+									if (selectedOption) {
+										handleChange({
+											target: {
+												name: 'vocals',
+												value: selectedOption.value,
+											},
+										} as any);
+									}
+								}}
+								options={LANGUAGES}
+								placeholder="Seleccionar idioma"
+								styles={customSelectStyles}
+								className="mt-1"
+								isClearable
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Label Share
+							</label>
+							<Cleave
+								options={{
+									numericOnly: true,
+									prefix: '',
+									blocks: [3],
+									delimiter: '',
+								}}
+								name="label_share"
+								value={formData.label_share || ''}
+								onChange={e =>
+									setFormData(prev => ({
+										...prev,
+										label_share: e.target.value
+											? parseFloat(e.target.value)
+											: undefined,
+									}))
+								}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Duración
+							</label>
+							<Cleave
+								options={{
+									time: true,
+									timePattern: ['h', 'm', 's'],
+									timeFormat: 'HH:mm:ss',
+									blocks: [2, 2, 2],
+									delimiter: ':',
+								}}
+								name="track_lenght"
+								value={formData.track_lenght || ''}
+								onChange={e => handleTimeChange('track_lenght', e.target.value)}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+								placeholder="00:00:00"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">
+								Sample Start
+							</label>
+							<Cleave
+								options={{
+									time: true,
+									timePattern: ['h', 'm', 's'],
+									timeFormat: 'HH:mm:ss',
+									blocks: [2, 2, 2],
+									delimiter: ':',
+								}}
+								name="sample_start"
+								value={formData.sample_start}
+								onChange={e => handleTimeChange('sample_start', e.target.value)}
+								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+								placeholder="00:00:00"
+							/>
+						</div>
 					</div>
 				</div>
 
-				{/* Artists Section */}
+				{/* Sección de Configuración */}
+				<div className="space-y-4">
+					<h3 className="text-lg font-medium text-gray-900">Configuración</h3>
+					<div className="grid grid-cols-3 gap-4">
+						<div className="flex items-center">
+							<CustomSwitch
+								checked={formData.album_only}
+								onChange={checked => {
+									const event = {
+										target: {
+											name: 'album_only',
+											checked: checked,
+											type: 'checkbox',
+										},
+									} as React.ChangeEvent<HTMLInputElement>;
+									handleChange(event);
+								}}
+								onText=""
+								offText=""
+							/>
+							<label className="ml-2 block text-sm text-gray-700">
+								Solo Album
+							</label>
+						</div>
+
+						<div className="flex items-center">
+							<CustomSwitch
+								checked={formData.explicit_content}
+								onChange={checked => {
+									const event = {
+										target: {
+											name: 'explicit_content',
+											checked: checked,
+											type: 'checkbox',
+										},
+									} as React.ChangeEvent<HTMLInputElement>;
+									handleChange(event);
+								}}
+								onText=""
+								offText=""
+							/>
+							<label className="ml-2 block text-sm text-gray-700">
+								Contenido Explícito
+							</label>
+						</div>
+
+						<div className="flex items-center">
+							<CustomSwitch
+								checked={formData.generate_isrc}
+								onChange={checked => {
+									const event = {
+										target: {
+											name: 'generate_isrc',
+											checked: checked,
+											type: 'checkbox',
+										},
+									} as React.ChangeEvent<HTMLInputElement>;
+									handleChange(event);
+								}}
+								onText=""
+								offText=""
+							/>
+							<label className="ml-2 block text-sm text-gray-700">
+								Generar ISRC
+							</label>
+						</div>
+					</div>
+				</div>
+
+				{/* Sección de Artistas */}
 				<div className="space-y-4">
 					<div className="flex justify-between items-center">
 						<h3 className="text-lg font-medium text-gray-900">Artistas</h3>
@@ -1056,155 +1105,34 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</div>
 				</div>
 
-				{/* Contributors Section */}
+				{/* Sección de Contributors */}
 				<div className="space-y-4">
 					<div className="flex justify-between items-center">
 						<h3 className="text-lg font-medium text-gray-900">Contributors</h3>
-						<button
-							type="button"
-							onClick={handleAddContributor}
-							className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-						>
-							<Plus size={20} />
-						</button>
 					</div>
 					<div className="space-y-4">
-						{formData.contributors?.length === 0 ? (
-							<div className="flex items-center gap-2">
-								<select
-									value={formData.contributors?.[0]?.name || ''}
-									onChange={e => {
-										const selectValue = e.target.value;
-										if (selectValue && selectValue !== '') {
-											handleContributorChange(0, 'name', selectValue);
-										}
-									}}
-									className="flex-1 p-2 border rounded"
-								>
-									<option value="">Select Contributor</option>
-									{contributors?.map((c, idx) => (
-										<option
-											key={`contributor-0-${idx}-${c?.name || 'empty'}`}
-											value={c?.name || ''}
-										>
-											{c?.name || ''}
-										</option>
-									))}
-								</select>
-
-								<select
-									value={formData.contributors?.[0]?.role || ''}
-									onChange={e => {
-										const value = e.target.value;
-										if (value && value !== '') {
-											handleContributorChange(0, 'role', value);
-										}
-									}}
-									className="flex-1 p-2 border rounded"
-								>
-									<option value="">Select Role</option>
-									{roles?.map((r, idx) => (
-										<option
-											key={`role-0-${idx}-${r?.id || 'empty'}`}
-											value={r?.id ? String(r.id) : ''}
-										>
-											{r?.name || ''}
-										</option>
-									))}
-								</select>
-
-								<input
-									type="number"
-									value={formData.contributors?.[0]?.order ?? 0}
-									onChange={e => {
-										const val = parseInt(e.target.value);
-										if (!isNaN(val)) {
-											handleContributorChange(0, 'order', val);
-										}
-									}}
-									className="w-20 p-2 border rounded"
-									placeholder="Order"
-								/>
-							</div>
-						) : (
-							formData.contributors?.map((contributor, index) => (
-								<div
-									key={`contributor-row-${index}`}
-									className="flex items-center gap-2"
-								>
-									<select
-										value={contributor.name || ''}
-										onChange={e => {
-											const selectValue = e.target.value;
-											if (selectValue && selectValue !== '') {
-												handleContributorChange(index, 'name', selectValue);
-											}
-										}}
-										className="flex-1 p-2 border rounded"
-									>
-										<option value="">Select Contributor</option>
-										{contributors?.map((c, idx) => (
-											<option
-												key={`contributor-${index}-${idx}-${
-													c?.name || 'empty'
-												}`}
-												value={c?.name || ''}
-											>
-												{c?.name || ''}
-											</option>
-										))}
-									</select>
-
-									<select
-										value={contributor.role || ''}
-										onChange={e => {
-											const value = e.target.value;
-											if (value && value !== '') {
-												handleContributorChange(index, 'role', value);
-											}
-										}}
-										className="flex-1 p-2 border rounded"
-									>
-										<option value="">Select Role</option>
-										{roles?.map((r, idx) => (
-											<option
-												key={`role-${index}-${idx}-${r?.id || 'empty'}`}
-												value={r?.id ? String(r.id) : ''}
-											>
-												{r?.name || ''}
-											</option>
-										))}
-									</select>
-
-									<input
-										type="number"
-										value={contributor.order ?? 0}
-										onChange={e => {
-											const val = parseInt(e.target.value);
-											if (!isNaN(val)) {
-												handleContributorChange(index, 'order', val);
-											}
-										}}
-										className="w-20 p-2 border rounded"
-										placeholder="Order"
-									/>
-
-									{formData.contributors &&
-										formData.contributors.length > 1 && (
-											<button
-												onClick={() => handleRemoveContributor(index)}
-												className="p-2 text-red-600 hover:text-red-800"
-											>
-												<Trash2 size={20} />
-											</button>
-										)}
-								</div>
-							))
-						)}
+						<ContributorSelector
+							contributors={formData.contributors || []}
+							contributorData={
+								contributors?.map(c => ({
+									contributor: c.contributor,
+									name: c.name,
+								})) || []
+							}
+							roles={roles || []}
+							onContributorsChange={newContributors => {
+								setFormData(prev => ({
+									...prev,
+									contributors: newContributors,
+								}));
+							}}
+							onDeleteContributor={index => handleRemoveContributor(index)}
+							reactSelectStyles={customSelectStyles}
+						/>
 					</div>
 				</div>
 
-				{/* Publishers Section */}
+				{/* Sección de Publishers */}
 				<div className="space-y-4">
 					<div className="flex justify-between items-center">
 						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
@@ -1219,27 +1147,39 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					<div className="space-y-4">
 						{formData.publishers?.length === 0 ? (
 							<div className="flex items-center gap-2">
-								<select
-									value={String(formData.publishers?.[0]?.publisher || '')}
-									onChange={e =>
-										handlePublisherChange(
-											0,
-											'publisher',
-											e.target.value ? parseInt(e.target.value) : 0
-										)
-									}
-									className="flex-1 p-2 border rounded"
-								>
-									<option value="">Seleccionar Publisher</option>
-									{publishers?.map((p, idx) => (
-										<option
-											key={`publisher-${p?.external_id || idx}`}
-											value={String(p?.external_id || '')}
-										>
-											{p?.name || ''}
-										</option>
-									))}
-								</select>
+								<div className="flex-1">
+									<Select
+										value={
+											formData.publishers?.[0]?.publisher
+												? {
+														value: formData.publishers[0].publisher,
+														label:
+															publishers?.find(
+																p =>
+																	p.external_id ===
+																	formData.publishers?.[0]?.publisher
+															)?.name || '',
+												  }
+												: null
+										}
+										onChange={(selectedOption: any) => {
+											handlePublisherChange(
+												0,
+												'publisher',
+												selectedOption ? selectedOption.value : 0
+											);
+										}}
+										options={
+											publishers?.map(p => ({
+												value: p.external_id,
+												label: p.name,
+											})) || []
+										}
+										placeholder="Seleccionar Publisher"
+										styles={customSelectStyles}
+										isClearable
+									/>
+								</div>
 
 								<input
 									type="text"
@@ -1248,7 +1188,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										handlePublisherChange(0, 'author', e.target.value);
 									}}
-									className="flex-1 p-2 border rounded"
+									className="flex-1 border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 									placeholder="Autor"
 								/>
 
@@ -1269,28 +1209,37 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									key={`publisher-row-${index}`}
 									className="flex items-center gap-2"
 								>
-									<select
-										value={String(publisher?.publisher || '')}
-										onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-											const value = e.target.value;
-											handlePublisherChange(
-												index,
-												'publisher',
-												value ? parseInt(value) : 0
-											);
-										}}
-										className="flex-1 p-2 border rounded"
-									>
-										<option value="">Seleccionar Publisher</option>
-										{publishers?.map((p, idx) => (
-											<option
-												key={`publisher-${p?.external_id || idx}`}
-												value={String(p?.external_id || '')}
-											>
-												{p?.name || ''}
-											</option>
-										))}
-									</select>
+									<div className="flex-1">
+										<Select
+											value={
+												publisher?.publisher
+													? {
+															value: publisher.publisher,
+															label:
+																publishers?.find(
+																	p => p.external_id === publisher.publisher
+																)?.name || '',
+													  }
+													: null
+											}
+											onChange={(selectedOption: any) => {
+												handlePublisherChange(
+													index,
+													'publisher',
+													selectedOption ? selectedOption.value : 0
+												);
+											}}
+											options={
+												publishers?.map(p => ({
+													value: p.external_id,
+													label: p.name,
+												})) || []
+											}
+											placeholder="Seleccionar Publisher"
+											styles={customSelectStyles}
+											isClearable
+										/>
+									</div>
 
 									<input
 										type="text"
@@ -1299,7 +1248,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 											handlePublisherChange(index, 'author', e.target.value);
 										}}
-										className="flex-1 p-2 border rounded"
+										className="flex-1 border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 										placeholder="Autor"
 									/>
 

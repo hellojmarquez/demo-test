@@ -503,43 +503,38 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}
 	}, []);
 
-	const handleEditTrack = (track: ReleaseTrack) => {
-		console.log('handleEditTrack called with track:', track);
-		// Convertir ReleaseTrack a Track para el formulario
-		const trackData: Track = {
-			_id: '', // _id siempre vacío para tracks nuevos
-			external_id: track.external_id || '',
-			name: track.title || '', // Aseguramos que name nunca sea undefined
-			mix_name: track.mix_name || '',
-			DA_ISRC: track.DA_ISRC || '',
-			ISRC: track.ISRC || '',
-			__v: 0,
-			album_only: track.album_only || false,
-			artists: track.artists || [],
-			contributors: [],
-			copyright_holder: '',
-			copyright_holder_year: '',
-			createdAt: '',
-			dolby_atmos_resource: track.dolby_atmos_resource || '',
-			explicit_content: track.explicit_content || false,
-			generate_isrc: track.generate_isrc || false,
-			genre: track.genre,
-			genre_name: track.genre_name,
-			subgenre: track.subgenre,
-			subgenre_name: track.subgenre_name,
-			label_share: 0,
-			language: '',
-			order: track.order || 0,
-			publishers: [],
-			release: '',
-			resource: track.resource || '',
-			sample_start: '',
-			track_lenght: track.track_length || '',
-			updatedAt: '',
-			vocals: '',
-		};
-		setSelectedTrack(track);
-		onEditTrack(trackData);
+	const handleEditTrack = async (track: ReleaseTrack) => {
+		console.log('Editando track:', track);
+		try {
+			// Si es un track nuevo (no tiene external_id o es undefined), lo manejamos directamente
+			if (!track.external_id || track.external_id === 'undefined') {
+				console.log('Editando track nuevo');
+				setSelectedTrack(track);
+				onEditTrack(track);
+				return;
+			}
+
+			// Solo hacemos la llamada a la API si tenemos un external_id válido
+			if (track.external_id && track.external_id !== 'undefined') {
+				console.log('Editando track existente con ID:', track.external_id);
+				const response = await fetch(
+					`/api/admin/getTrackById/${track.external_id}`
+				);
+				if (!response.ok) {
+					throw new Error('Error al obtener el track');
+				}
+				const data = await response.json();
+				if (data.success) {
+					setSelectedTrack(data.data);
+					onEditTrack(data.data);
+				} else {
+					throw new Error(data.error || 'Error al obtener el track');
+				}
+			}
+		} catch (error) {
+			console.error('Error:', error);
+			toast.error('Error al cargar los datos del track');
+		}
 	};
 
 	const handleTrackSave = async (updatedTrack: Partial<Track>) => {
@@ -760,10 +755,22 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											onClick={() =>
 												handleEditTrack({
 													...track,
+													title: track.title,
+													mix_name: track.mix_name,
+													resource: track.resource,
+													dolby_atmos_resource: track.dolby_atmos_resource,
+													ISRC: track.ISRC,
+													DA_ISRC: track.DA_ISRC,
 													genre: track.genre,
-													genre_name: genre?.name || '',
+													genre_name: track.genre_name || '',
 													subgenre: track.subgenre,
-													subgenre_name: subgenre?.name || '',
+													subgenre_name: track.subgenre_name || '',
+													album_only: track.album_only,
+													explicit_content: track.explicit_content,
+													track_length: track.track_length,
+													generate_isrc: track.generate_isrc,
+													artists: track.artists,
+													order: track.order,
 												})
 											}
 											className="p-3 text-gray-400 hover:text-brand-light opacity-0 group-hover:opacity-100 transition-opacity duration-200"
@@ -793,41 +800,72 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								<h4 className="text-sm font-medium text-gray-700 mb-2">
 									Tracks pendientes de subir
 								</h4>
-								{formData.newTracks.map((track, index) => (
-									<div
-										key={`pending-${index}`}
-										className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3 border-2 border-brand-light"
-									>
-										<div className="flex flex-col items-center gap-2">
-											<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-												<Music size={40} className="text-gray-400" />
-											</div>
-										</div>
-										<div className="flex-1">
-											<div className="text-xl text-brand-dark font-medium">
-												{track.title || 'Track sin nombre'}
-											</div>
-											<div className="text-sm text-gray-500 space-y-1">
-												{track.mixName && <div>Mix: {track.mixName}</div>}
-												<div className="text-xs text-brand-light">
-													Pendiente de subir
+								{formData.newTracks.map((track, index) => {
+									// Convertir el track nuevo al formato ReleaseTrack
+									const releaseTrack: ReleaseTrack = {
+										title: track.title,
+										mix_name: track.mixName,
+										resource: track.resource,
+										dolby_atmos_resource: track.dolby_atmos_resource,
+										ISRC: track.ISRC,
+										DA_ISRC: track.DA_ISRC,
+										genre: track.genre,
+										genre_name: track.genre_name,
+										subgenre: track.subgenre,
+										subgenre_name: track.subgenre_name,
+										album_only: track.album_only,
+										explicit_content: track.explicit_content,
+										track_length: track.track_length,
+										generate_isrc: track.generate_isrc,
+										artists: track.artists,
+										order: track.order,
+									};
+
+									return (
+										<div
+											key={`pending-${index}`}
+											className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3 border-2 border-brand-light"
+										>
+											<div className="flex flex-col items-center gap-2">
+												<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+													<Music size={40} className="text-gray-400" />
 												</div>
 											</div>
+											<div className="flex-1">
+												<div className="text-xl text-brand-dark font-medium">
+													{track.title || 'Track sin nombre'}
+												</div>
+												<div className="text-sm text-gray-500 space-y-1">
+													{track.mixName && <div>Mix: {track.mixName}</div>}
+													<div className="text-xs text-brand-light">
+														Pendiente de subir
+													</div>
+												</div>
+											</div>
+											<div className="flex items-center gap-2">
+												<button
+													onClick={() => handleEditTrack(releaseTrack)}
+													className="p-3 text-gray-400 hover:text-brand-light opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+												>
+													<Pencil size={20} />
+												</button>
+												<button
+													onClick={() => {
+														setFormData(prev => ({
+															...prev,
+															newTracks:
+																prev.newTracks?.filter((_, i) => i !== index) ||
+																[],
+														}));
+													}}
+													className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+												>
+													<Trash2 size={20} />
+												</button>
+											</div>
 										</div>
-										<button
-											onClick={() => {
-												setFormData(prev => ({
-													...prev,
-													newTracks:
-														prev.newTracks?.filter((_, i) => i !== index) || [],
-												}));
-											}}
-											className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-										>
-											<Trash2 size={20} />
-										</button>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						)}
 
@@ -1703,7 +1741,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							subgenre_name: track.subgenre_name || '',
 							album_only: track.album_only || false,
 							explicit_content: track.explicit_content || false,
-							track_length: track.track_lenght || '',
+							track_length: track.track_length || '',
 							generate_isrc: track.generate_isrc || false,
 							artists: track.artists || [],
 						};

@@ -38,7 +38,9 @@ export interface Release {
 		generate_isrc: boolean;
 		DA_ISRC: string;
 		genre: number;
+		genre_name: string;
 		subgenre: number;
+		subgenre_name: string;
 		mix_name: string;
 		resource: string;
 		dolby_atmos_resource: string;
@@ -55,7 +57,9 @@ export interface Release {
 		ISRC: string;
 		DA_ISRC: string;
 		genre: number;
+		genre_name: string;
 		subgenre: number;
+		subgenre_name: string;
 		album_only: boolean;
 		explicit_content: boolean;
 		track_length: string;
@@ -104,7 +108,9 @@ export interface NewTrack {
 	ISRC: string;
 	DA_ISRC: string;
 	genre: number;
+	genre_name: string;
 	subgenre: number;
+	subgenre_name: string;
 	album_only: boolean;
 	explicit_content: boolean;
 	track_length: string;

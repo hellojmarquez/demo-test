@@ -2,6 +2,7 @@ export interface Track {
 	_id?: string;
 	external_id?: string | number;
 	name: string;
+	title?: string;
 	mix_name?: string;
 	DA_ISRC?: string;
 	ISRC?: string;

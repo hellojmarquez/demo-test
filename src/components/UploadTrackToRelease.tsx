@@ -103,12 +103,15 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					artists: [],
 					ISRC: '',
 					DA_ISRC: '',
-					genre: { id: 0, name: '' },
-					subgenre: { id: 0, name: '' },
+					genre: 0,
+					genre_name: '',
+					subgenre: 0,
+					subgenre_name: '',
 					album_only: false,
 					explicit_content: false,
 					track_lenght: '',
 					generate_isrc: false,
+					status: 'Borrador',
 				};
 
 				// Llamar a onTrackUploaded con el track creado

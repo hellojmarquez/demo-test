@@ -157,6 +157,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	}, [formData.genre, genres, formData.subgenre, formData.subgenre_name]);
 
 	useEffect(() => {
+		console.log('formData trck: ', formData);
 		const fetchData = async () => {
 			try {
 				setIsLoading(true);
@@ -210,10 +211,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	// Efecto para actualizar formData cuando cambia el track
 	useEffect(() => {
 		if (track) {
-			setFormData({
+			console.log('Incoming track:', track);
+			const updatedFormData = {
 				_id: track._id || '',
 				external_id: track.external_id || '',
-				name: track.name || '',
+				name: track.title || track.name || '', // Use title if available, fallback to name
 				mix_name: track.mix_name || '',
 				DA_ISRC: track.DA_ISRC || '',
 				ISRC: track.ISRC || '',
@@ -227,9 +229,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				dolby_atmos_resource: track.dolby_atmos_resource || '',
 				explicit_content: track.explicit_content || false,
 				generate_isrc: track.generate_isrc || false,
-				genre: track.genre || 0,
+				genre: typeof track.genre === 'number' ? track.genre : 0,
 				genre_name: track.genre_name || '',
-				subgenre: track.subgenre || 0,
+				subgenre: typeof track.subgenre === 'number' ? track.subgenre : 0,
 				subgenre_name: track.subgenre_name || '',
 				label_share: track.label_share || 0,
 				language: track.language || '',
@@ -242,7 +244,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				updatedAt: track.updatedAt || '',
 				vocals: track.vocals || '',
 				status: track.status || 'Borrador',
-			});
+			};
+
+			console.log('Updated form data:', updatedFormData);
+			setFormData(updatedFormData);
 		}
 	}, [track]);
 
@@ -426,10 +431,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	};
 
 	const handleTimeChange = (name: string, value: string) => {
-		setFormData(prev => ({
-			...prev,
-			[name]: value,
-		}));
+		setFormData(prev => {
+			const updatedData = { ...prev, [name]: value };
+			if (onTrackChange) {
+				onTrackChange(updatedData);
+			}
+			return updatedData;
+		});
 	};
 
 	const handleChange = (
@@ -438,34 +446,40 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		>
 	) => {
 		const { name, value, type } = e.target;
+		let newValue: any = value;
 
 		if (name === 'genre') {
 			const selectedGenre = genres.find(g => g.id === Number(value));
-			setFormData(prev => ({
-				...prev,
+			newValue = {
 				genre: Number(value),
 				genre_name: selectedGenre?.name || '',
 				subgenre: 0,
 				subgenre_name: '',
-			}));
+			};
 		} else if (name === 'subgenre') {
 			const selectedSubgenre = subgenres.find(s => s.id === Number(value));
-			setFormData(prev => ({
-				...prev,
+			newValue = {
 				subgenre: Number(value),
 				subgenre_name: selectedSubgenre?.name || '',
-			}));
+			};
 		} else if (type === 'checkbox') {
-			setFormData(prev => ({
-				...prev,
-				[name]: (e.target as HTMLInputElement).checked,
-			}));
-		} else {
-			setFormData(prev => ({
-				...prev,
-				[name]: value,
-			}));
+			newValue = (e.target as HTMLInputElement).checked;
 		}
+
+		// Actualizar el estado local
+		setFormData(prev => {
+			const updatedData =
+				typeof newValue === 'object'
+					? { ...prev, ...newValue }
+					: { ...prev, [name]: newValue };
+
+			// Notificar al componente padre del cambio
+			if (onTrackChange) {
+				onTrackChange(updatedData);
+			}
+
+			return updatedData;
+		});
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -488,11 +502,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		if (file) {
 			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
 				setSelectedFile(file);
-
-				setFormData(prev => ({
-					...prev,
-					resource: file,
-				}));
+				setFormData(prev => {
+					const updatedData = { ...prev, resource: file };
+					if (onTrackChange) {
+						onTrackChange(updatedData);
+					}
+					return updatedData;
+				});
 				setUploadProgress(0);
 			} else {
 				alert('Por favor, selecciona un archivo WAV válido');

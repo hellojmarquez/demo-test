@@ -91,12 +91,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [formData, setFormData] = useState({
 		title: track?.name || '',
 		mixName: track?.mix_name || '',
-		genre:
-			typeof track?.genre === 'number' ? track.genre : track?.genre?.id || 0,
+		genre: typeof track?.genre === 'number' ? track.genre : track?.genre || 0,
 		subgenre:
 			typeof track?.subgenre === 'number'
 				? track.subgenre
-				: track?.subgenre?.id || 0,
+				: track?.subgenre || 0,
 		ISRC: track?.ISRC || '',
 		generate_isrc: track?.generate_isrc ?? true,
 		DA_ISRC: track?.DA_ISRC || '',

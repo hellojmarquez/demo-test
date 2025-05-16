@@ -118,7 +118,7 @@ export async function PUT(
 						method: 'POST',
 						body: trackFormData,
 					});
-				
+
 					trackData.resource = uploadResponse?.headers?.get('location');
 
 					if (!uploadResponse.ok) {
@@ -269,7 +269,9 @@ export async function PUT(
 					generate_isrc: Boolean(updatedTrack.generate_isrc || false),
 					DA_ISRC: String(updatedTrack.DA_ISRC || ''),
 					genre: updatedTrack.genre?.id || 0,
+					genre_name: updatedTrack.genre?.name || '',
 					subgenre: updatedTrack.subgenre?.id || 0,
+					subgenre_name: updatedTrack.subgenre?.name || '',
 					mix_name: String(updatedTrack.mix_name || ''),
 					resource: String(updatedTrack.resource || ''),
 					dolby_atmos_resource: String(updatedTrack.dolby_atmos_resource || ''),
@@ -277,7 +279,6 @@ export async function PUT(
 					explicit_content: Boolean(updatedTrack.explicit_content || false),
 					track_length: String(updatedTrack.track_length || '00:00:00'),
 				};
-
 
 				// Verificar si el track ya existe en el array usando el nombre
 				const trackExists = release.tracks.some(

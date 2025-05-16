@@ -38,12 +38,14 @@ interface EditedTrack {
 	language?: string;
 	order?: number;
 	publishers?: any[];
-	release?: string;
+	release?: string | null;
 	resource?: string | File | null;
 	sample_start?: string;
 	track_lenght?: string;
+	track_length?: string;
 	vocals?: string;
 	external_id: number;
+	status?: string;
 }
 
 interface ApiError extends Error {
@@ -175,6 +177,9 @@ export default function EditPage() {
 				subgenre: trackData.subgenre || 0,
 				genre_name: trackData.genre_name || '',
 				subgenre_name: trackData.subgenre_name || '',
+				label_share: trackData.label_share
+					? Number(trackData.label_share)
+					: undefined,
 			};
 
 			// Actualizar el track en editedTracks con toda la información modificada
@@ -262,7 +267,18 @@ export default function EditPage() {
 
 	const handleEditTrack = async (track: any) => {
 		try {
-			// Hacer fetch de los datos completos del track
+			// Verificar si el track tiene external_id válido
+			if (!track.external_id || track.external_id === 'undefined') {
+				// Si no tiene external_id, es un track nuevo
+				console.log('Editando track nuevo');
+				setSelectedTrack(track);
+				setEditedTrackData(track);
+				setActiveTab('tracks');
+				return;
+			}
+
+			// Solo hacer fetch si tiene external_id válido
+			console.log('Editando track existente con ID:', track.external_id);
 			const response = await fetch(
 				`/api/admin/getTrackById/${track.external_id}`
 			);
@@ -411,6 +427,9 @@ export default function EditPage() {
 									...selectedTrack,
 									...trackData,
 									external_id: trackExternalId,
+									label_share: trackData.label_share
+										? Number(trackData.label_share)
+										: undefined,
 								};
 
 								// Agregar solo la última versión del track

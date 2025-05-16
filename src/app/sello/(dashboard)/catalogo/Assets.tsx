@@ -78,7 +78,8 @@ const Assets = () => {
 			.catch(error => console.error('Error fetching releases:', error));
 	}, []);
 
-	const toggleExpand = (trackId: string) => {
+	const toggleExpand = (trackId: string | undefined) => {
+		if (!trackId) return;
 		setExpandedTrack(expandedTrack === trackId ? null : trackId);
 	};
 
@@ -90,6 +91,11 @@ const Assets = () => {
 
 	const handleDelete = async (e: React.MouseEvent, track: Track) => {
 		e.stopPropagation();
+
+		if (!track._id) {
+			alert('Error: Track ID no encontrado');
+			return;
+		}
 
 		if (!confirm(`¿Estás seguro de que deseas eliminar "${track.name}"?`)) {
 			return;
@@ -120,6 +126,11 @@ const Assets = () => {
 	};
 
 	const handleSaveEdit = async (updatedTrack: Track) => {
+		if (!updatedTrack._id) {
+			alert('Error: Track ID no encontrado');
+			return;
+		}
+
 		try {
 			let response;
 			if (updatedTrack.resource instanceof File) {
@@ -132,7 +143,6 @@ const Assets = () => {
 					method: 'PUT',
 					body: submitFormData,
 				});
-			
 			} else {
 				response = await fetch(`/api/admin/updateSingle/${updatedTrack._id}`, {
 					method: 'PUT',
@@ -184,7 +194,6 @@ const Assets = () => {
 					method: 'POST',
 					body: submitFormData,
 				});
-			
 			} else {
 				response = await fetch(`/api/admin/createSingle`, {
 					method: 'POST',
@@ -215,13 +224,13 @@ const Assets = () => {
 		<div className="p-6">
 			<div className="flex justify-between items-center mb-6">
 				<h1 className="text-2xl font-semibold text-gray-800">Tracks</h1>
-				<button
+				{/* <button
 					onClick={() => setIsCreateModalOpen(true)}
 					className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
 				>
 					<Plus size={18} className="text-brand-light group-hover:text-white" />
 					<span className="font-medium">Crear Track</span>
-				</button>
+				</button> */}
 			</div>
 
 			{showSuccessMessage && (
@@ -275,7 +284,10 @@ const Assets = () => {
 									<div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
 										<Calendar className="h-3 w-3" />
 										<span>
-											Creado: {new Date(track.createdAt).toLocaleDateString()}
+											Creado:{' '}
+											{track.createdAt
+												? new Date(track.createdAt).toLocaleDateString()
+												: 'No especificado'}
 										</span>
 									</div>
 								</div>
@@ -338,14 +350,17 @@ const Assets = () => {
 													<FileMusic className="h-4 w-4 text-brand-light" />{' '}
 													Mix:
 												</span>
-												<span className="text-gray-600">{track.mix_name}</span>
+												<span className="text-gray-600">
+													{track.mix_name || 'No especificado'}
+												</span>
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Tag className="h-4 w-4 text-brand-light" /> Género:
 												</span>
 												<span className="text-gray-600">
-													{track.genre?.name || 'Sin género'} / {track.subgenre?.name || 'Sin subgénero'}
+													{track.genre_name || 'Sin género'} /{' '}
+													{track.subgenre_name || 'Sin subgénero'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -354,7 +369,9 @@ const Assets = () => {
 													Duración:
 												</span>
 												<span className="text-gray-600">
-													{track.track_lenght}
+													{track.track_lenght || track.track_length
+														? track.track_lenght || track.track_length
+														: 'No especificada'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -362,14 +379,18 @@ const Assets = () => {
 													<Languages className="h-4 w-4 text-brand-light" />{' '}
 													Idioma:
 												</span>
-												<span className="text-gray-600">{track.language}</span>
+												<span className="text-gray-600">
+													{track.language || 'No especificado'}
+												</span>
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Mic className="h-4 w-4 text-brand-light" />{' '}
 													Vocalista:
 												</span>
-												<span className="text-gray-600">{track.vocals}</span>
+												<span className="text-gray-600">
+													{track.vocals || 'No especificado'}
+												</span>
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
@@ -394,8 +415,11 @@ const Assets = () => {
 													Copyright:
 												</span>
 												<span className="text-gray-600">
-													{track.copyright_holder} ©{' '}
-													{track.copyright_holder_year}
+													{track.copyright_holder
+														? `${track.copyright_holder} © ${
+																track.copyright_holder_year || ''
+														  }`
+														: 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -404,7 +428,10 @@ const Assets = () => {
 													Share:
 												</span>
 												<span className="text-gray-600">
-													{track.label_share}
+													{track.label_share !== undefined &&
+													track.label_share !== null
+														? track.label_share
+														: 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -413,7 +440,10 @@ const Assets = () => {
 													Dolby Atmos:
 												</span>
 												<span className="text-gray-600">
-													{track.dolby_atmos_resource}
+													{track.dolby_atmos_resource !== undefined &&
+													track.dolby_atmos_resource !== null
+														? track.dolby_atmos_resource
+														: 'No especificado'}
 												</span>
 											</p>
 										</div>
@@ -422,14 +452,22 @@ const Assets = () => {
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Barcode className="h-4 w-4 text-brand-light" /> ISRC:
 												</span>
-												<span className="text-gray-600">{track.ISRC}</span>
+												<span className="text-gray-600">
+													{track.ISRC !== undefined && track.ISRC !== null
+														? track.ISRC
+														: 'No especificado'}
+												</span>
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
 													<Barcode className="h-4 w-4 text-brand-light" /> DA
 													ISRC:
 												</span>
-												<span className="text-gray-600">{track.DA_ISRC}</span>
+												<span className="text-gray-600">
+													{track.DA_ISRC !== undefined && track.DA_ISRC !== null
+														? track.DA_ISRC
+														: 'No especificado'}
+												</span>
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
@@ -471,9 +509,13 @@ const Assets = () => {
 													Resource:
 												</span>
 												<span className="text-gray-600">
-													{typeof track.resource === 'string'
-														? track.resource
-														: track.resource?.name}
+													{track.resource
+														? typeof track.resource === 'string'
+															? track.resource
+															: track.resource instanceof File
+															? track.resource.name
+															: 'No especificado'
+														: 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -482,7 +524,10 @@ const Assets = () => {
 													Start:
 												</span>
 												<span className="text-gray-600">
-													{track.sample_start}
+													{track.sample_start !== undefined &&
+													track.sample_start !== null
+														? track.sample_start
+														: 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -490,7 +535,9 @@ const Assets = () => {
 													<Tag className="h-4 w-4 text-brand-light" /> Order:
 												</span>
 												<span className="text-gray-600">
-													{track.order || 'No especificado'}
+													{track.order !== undefined && track.order !== null
+														? track.order
+														: 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -507,9 +554,14 @@ const Assets = () => {
 													Artists:
 												</span>
 												<span className="text-gray-600">
-													{track.artists
-														.map(a => `Artist ID: ${a.artist}, Kind: ${a.kind}`)
-														.join(', ')}
+													{Array.isArray(track.artists) &&
+													track.artists.length > 0
+														? track.artists
+																.map(
+																	a => `Artist ID: ${a.artist}, Kind: ${a.kind}`
+																)
+																.join(', ')
+														: 'No especificados'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -518,12 +570,15 @@ const Assets = () => {
 													Contributors:
 												</span>
 												<span className="text-gray-600">
-													{track.contributors
-														.map(
-															c =>
-																`Contributor ID: ${c.contributor}, Name: ${c.name}, Role: ${c.role}`
-														)
-														.join(', ')}
+													{Array.isArray(track.contributors) &&
+													track.contributors.length > 0
+														? track.contributors
+																.map(
+																	c =>
+																		`Contributor ID: ${c.contributor}, Name: ${c.name}, Role: ${c.role}`
+																)
+																.join(', ')
+														: 'No especificados'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -532,7 +587,8 @@ const Assets = () => {
 													Publishers:
 												</span>
 												<span className="text-gray-600">
-													{track.publishers.length > 0
+													{Array.isArray(track.publishers) &&
+													track.publishers.length > 0
 														? track.publishers
 																.map(
 																	p =>
@@ -548,7 +604,10 @@ const Assets = () => {
 													Creado:
 												</span>
 												<span className="text-gray-600">
-													{new Date(track.createdAt).toLocaleString()}
+													{track.createdAt &&
+													!isNaN(new Date(track.createdAt).getTime())
+														? new Date(track.createdAt).toLocaleString()
+														: 'No especificado'}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -557,7 +616,10 @@ const Assets = () => {
 													Actualizado:
 												</span>
 												<span className="text-gray-600">
-													{new Date(track.updatedAt).toLocaleString()}
+													{track.updatedAt &&
+													!isNaN(new Date(track.updatedAt).getTime())
+														? new Date(track.updatedAt).toLocaleString()
+														: 'No especificado'}
 												</span>
 											</p>
 										</div>
@@ -569,13 +631,13 @@ const Assets = () => {
 				))
 			)}
 
-			<CreateTrackModal
+			{/* <CreateTrackModal
 				isOpen={isCreateModalOpen}
 				onClose={() => setIsCreateModalOpen(false)}
 				onSave={handleCreateTrack}
-			/>
+			/> */}
 
-			{isEditModalOpen && selectedTrack && (
+			{/* {isEditModalOpen && selectedTrack && (
 				<UpdateTrackModal
 					track={selectedTrack}
 					isOpen={isEditModalOpen}
@@ -585,7 +647,7 @@ const Assets = () => {
 					}}
 					onSave={handleSaveEdit}
 				/>
-			)}
+			)} */}
 		</div>
 	);
 };

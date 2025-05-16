@@ -8,7 +8,7 @@ export async function GET(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
-	console.log('get trackbyid received');
+	console.log('get trackbyid received, id:', params.id);
 
 	try {
 		const token = req.cookies.get('loginToken')?.value;
@@ -34,10 +34,18 @@ export async function GET(
 		}
 
 		await dbConnect();
-		const releaseId = params.id;
+		const externalId = params.id;
+
+		console.log('Buscando track con external_id:', externalId);
 
 		// Buscar el track por external_id
-		const track = await SingleTrack.findOne({ external_id: releaseId });
+		const track = await SingleTrack.findOne({ external_id: externalId });
+
+		console.log(
+			'Resultado de la búsqueda:',
+			track ? 'Track encontrado' : 'Track no encontrado'
+		);
+
 		if (!track) {
 			return NextResponse.json(
 				{ success: false, error: 'Track no encontrado' },
@@ -54,12 +62,14 @@ export async function GET(
 			subgenre_name: track.subgenre?.name || '',
 		};
 
+		console.log('Track transformado:', transformedTrack);
+
 		return NextResponse.json({
 			success: true,
 			data: transformedTrack,
 		});
 	} catch (error: any) {
-		console.error('Error getting release:', error);
+		console.error('Error getting track:', error);
 		return NextResponse.json(
 			{
 				success: false,

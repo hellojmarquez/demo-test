@@ -12,6 +12,8 @@ import {
 	Music,
 	User,
 	Pencil,
+	ChevronDown,
+	Link,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -303,6 +305,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [isEditingTrack, setIsEditingTrack] = useState(false);
 	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
 	const [trackFormData, setTrackFormData] = useState<Track | null>(null);
+	const [isTracksExpanded, setIsTracksExpanded] = useState(false);
+	const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
@@ -646,8 +650,32 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			<audio ref={audioRef} />
 			<div className="bg-white rounded-lg p-6">
 				<div className="space-y-2 bg-slate-50 p-2">
-					<div className="flex items-center gap-4">
-						<div className="w-52 h-52 border-2 border-gray-200 flex items-center justify-center overflow-hidden relative group">
+					<div className="flex items-center gap-4 relative overflow-hidden bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border border-gray-100 shadow-sm">
+						{/* Elementos decorativos musicales */}
+						<div className="absolute inset-0">
+							{/* Ondas de sonido decorativas */}
+							<div className="absolute top-0 left-0 w-full h-full">
+								<div className="absolute top-1/4 left-0 w-full h-1 bg-brand-light/30 animate-pulse"></div>
+								<div className="absolute top-1/3 left-0 w-full h-1 bg-brand-light/20 animate-pulse delay-75"></div>
+								<div className="absolute top-1/2 left-0 w-full h-1 bg-brand-light/10 animate-pulse delay-150"></div>
+							</div>
+
+							{/* Notas musicales decorativas */}
+							<div className="absolute top-4 right-4 text-brand-light/30 text-4xl">
+								♪
+							</div>
+							<div className="absolute bottom-4 left-4 text-brand-light/30 text-4xl">
+								♫
+							</div>
+							<div className="absolute top-1/2 right-1/4 text-brand-light/30 text-4xl">
+								♩
+							</div>
+
+							{/* Gradiente suave */}
+							<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_70%)]"></div>
+						</div>
+
+						<div className="w-52 h-52 rounded-xl border-2 border-gray-100 flex items-center justify-center overflow-hidden relative group shadow-lg bg-white">
 							{imagePreview ? (
 								<img
 									src={imagePreview}
@@ -655,14 +683,16 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									className="w-full h-full object-cover"
 								/>
 							) : (
-								<div className="text-center">
-									<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
-									<span className="mt-1 block text-xs text-gray-500">
+								<div className="text-center p-4">
+									<div className="p-3 bg-gray-50 rounded-lg inline-block">
+										<ImageIcon className="h-10 w-10 text-gray-400" />
+									</div>
+									<span className="mt-2 block text-sm text-gray-500">
 										Sin imagen
 									</span>
 								</div>
 							)}
-							<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-end justify-center p-2">
+							<div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end justify-center p-4">
 								<input
 									type="file"
 									ref={fileInputRef}
@@ -673,11 +703,47 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								<button
 									type="button"
 									onClick={() => fileInputRef.current?.click()}
-									className="inline-flex items-center px-3 py-2 border border-white shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-gray-700 transition-all duration-200"
+									className="inline-flex items-center px-4 py-2.5 border border-white/20 shadow-lg text-sm font-medium rounded-lg text-white bg-black/30 backdrop-blur-sm hover:bg-black/40 hover:border-white/30 transition-all duration-200"
 								>
 									<Upload className="h-4 w-4 mr-2" />
 									Cambiar imagen
 								</button>
+							</div>
+						</div>
+
+						<div className="flex-1 flex flex-col gap-4 relative z-10">
+							<div>
+								<h1 className="text-4xl font-bold text-gray-900 mb-2">
+									{formData.name || 'Sin nombre'}
+								</h1>
+								<div className="flex items-center gap-3">
+									<span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600 capitalize">
+										{formData.kind || 'Sin tipo'}
+									</span>
+									{formData.genre_name && (
+										<span className="px-3 py-1 bg-brand-light/10 rounded-full text-sm text-brand-dark">
+											{formData.genre_name}
+										</span>
+									)}
+								</div>
+							</div>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+									<div className="text-xs font-medium text-gray-500 mb-1">
+										Número de Catálogo
+									</div>
+									<div className="text-sm font-semibold text-gray-900">
+										{formData.catalogue_number || 'Sin número'}
+									</div>
+								</div>
+								<div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+									<div className="text-xs font-medium text-gray-500 mb-1">
+										Género
+									</div>
+									<div className="text-sm font-semibold text-gray-900">
+										{formData.genre_name || 'Sin género'}
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -693,12 +759,38 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					</div>
 				</div>
 				<div className="space-y-2">
-					<label className="block text-sm font-medium text-gray-700">
-						Tracks
-					</label>
-					<div className="space-y-2">
+					<button
+						onClick={() => setIsTracksExpanded(!isTracksExpanded)}
+						className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:bg-gray-50/50 transition-all duration-200 shadow-sm"
+					>
+						<div className="flex items-center gap-3">
+							<div className="p-2 bg-brand-dark/10 rounded-lg">
+								<Music size={20} className="text-brand-dark" />
+							</div>
+							<div className="flex flex-col items-start">
+								<span className="text-lg font-semibold text-gray-900">
+									Tracks
+								</span>
+								<span className="text-sm text-gray-500">
+									{release.tracks?.length || 0} canciones
+								</span>
+							</div>
+						</div>
+						<div
+							className={`transform transition-transform duration-200 ${
+								isTracksExpanded ? 'rotate-180' : ''
+							}`}
+						>
+							<ChevronDown className="h-5 w-5 text-gray-400" />
+						</div>
+					</button>
+
+					<div
+						className={`space-y-3 transition-all duration-200 ${
+							isTracksExpanded ? 'block' : 'hidden'
+						}`}
+					>
 						{release.tracks?.map((track, index) => {
-							// Encontrar el género y subgénero correspondientes
 							const genre = genres.find(g => g.id === track.genre);
 							const subgenre = genre?.subgenres.find(
 								s => s.id === track.subgenre
@@ -707,48 +799,107 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							return (
 								<div
 									key={index}
-									className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3"
+									className="flex items-center gap-4 group hover:bg-gray-50/50 transition-all duration-200 rounded-xl p-4 border border-gray-100 shadow-sm"
 								>
 									<div className="flex flex-col items-center gap-2">
-										<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-											<Music size={40} className="text-gray-400" />
-										</div>
 										<button
 											onClick={() => handlePlayPause(index, track.resource)}
-											className="p-2 text-brand-light hover:text-brand-dark transition-opacity duration-200 bg-white rounded-full shadow-sm hover:shadow-md"
+											className="p-2.5 text-brand-dark hover:text-brand-light transition-all duration-200 bg-white rounded-full shadow-sm hover:shadow-md hover:scale-105"
 										>
 											{playingTrack === index.toString() ? (
-												<Pause size={16} />
+												<Pause size={18} />
 											) : (
-												<Play size={16} />
+												<Play size={18} />
 											)}
 										</button>
 									</div>
 									<div className="flex-1">
-										<div className="text-xl text-brand-dark font-medium">
-											{track.title || 'Track sin nombre'}
+										<div className="flex items-center gap-3">
+											<div className="text-base font-medium text-gray-900">
+												{track.title || 'Track sin nombre'}
+											</div>
+											{track.mix_name && (
+												<span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+													{track.mix_name}
+												</span>
+											)}
 										</div>
 										{playingTrack === index.toString() && (
-											<div className="mt-2 w-full bg-gray-200 rounded-full h-1">
+											<div className="mt-2 w-full bg-gray-100 rounded-full h-1">
 												<div
-													className="bg-brand-light h-1 rounded-full transition-all duration-300"
+													className="bg-brand-dark h-1 rounded-full transition-all duration-300"
 													style={{ width: `${progress}%` }}
 												></div>
 											</div>
 										)}
-										<div className="text-sm text-gray-500 space-y-1">
-											{track.ISRC && <div>ISRC: {track.ISRC}</div>}
-											{track.mix_name && <div>Mix: {track.mix_name}</div>}
+										<div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-500">
+											{track.ISRC && (
+												<div className="flex items-center gap-1">
+													<span className="text-xs font-medium text-gray-400">
+														ISRC:
+													</span>
+													{track.ISRC}
+												</div>
+											)}
 											{track.resource && (
-												<div className="text-[9px] truncate">
-													Resource: {track.resource}
+												<div className="flex items-center gap-2">
+													<button
+														onClick={() => {
+															navigator.clipboard.writeText(track.resource);
+															setCopiedTrackId(
+																track.external_id || `new-${index}`
+															);
+															toast.success('Enlace copiado al portapapeles');
+															setTimeout(() => setCopiedTrackId(null), 2000);
+														}}
+														className={`inline-flex items-center gap-1 px-2 py-1 text-xs ${
+															copiedTrackId ===
+															(track.external_id || `new-${index}`)
+																? 'bg-green-500 hover:bg-green-600 text-white'
+																: 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+														} rounded-full transition-all duration-200`}
+													>
+														{copiedTrackId ===
+														(track.external_id || `new-${index}`) ? (
+															<>
+																<svg
+																	xmlns="http://www.w3.org/2000/svg"
+																	className="h-3.5 w-3.5"
+																	viewBox="0 0 20 20"
+																	fill="currentColor"
+																>
+																	<path
+																		fillRule="evenodd"
+																		d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+																		clipRule="evenodd"
+																	/>
+																</svg>
+																Copiado
+															</>
+														) : (
+															<>
+																<Link size={14} />
+																Copiar enlace
+															</>
+														)}
+													</button>
 												</div>
 											)}
 											{track.dolby_atmos_resource && (
-												<div>Dolby: {track.dolby_atmos_resource}</div>
+												<div className="flex items-center gap-1">
+													<span className="text-xs font-medium text-gray-400">
+														Dolby:
+													</span>
+													{track.dolby_atmos_resource}
+												</div>
 											)}
 											{track.track_length && (
-												<div>Duración: {track.track_length}</div>
+												<div className="flex items-center gap-1">
+													<span className="text-xs font-medium text-gray-400">
+														Duración:
+													</span>
+													{track.track_length}
+												</div>
 											)}
 										</div>
 									</div>
@@ -775,15 +926,15 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 													order: track.order,
 												})
 											}
-											className="p-3 text-gray-400 hover:text-brand-light opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+											className="p-2 text-gray-400 hover:text-brand-dark opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
 										>
-											<Pencil size={20} />
+											<Pencil size={18} />
 										</button>
 										<button
 											onClick={() => handleDeleteTrack(index)}
-											className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+											className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
 										>
-											<Trash2 size={20} />
+											<Trash2 size={18} />
 										</button>
 									</div>
 								</div>
@@ -791,19 +942,18 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						})}
 
 						{(!release.tracks || release.tracks.length === 0) && (
-							<div className="text-sm text-gray-500">
+							<div className="text-sm text-gray-500 p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
 								No hay tracks agregados
 							</div>
 						)}
 
 						{/* Mostrar tracks pendientes de subir */}
 						{formData.newTracks && formData.newTracks.length > 0 && (
-							<div className="mt-4">
-								<h4 className="text-sm font-medium text-gray-700 mb-2">
+							<div className="mt-6">
+								<h4 className="text-sm font-medium text-gray-700 mb-3 px-1">
 									Tracks pendientes de subir
 								</h4>
 								{formData.newTracks.map((track, index) => {
-									// Convertir el track nuevo al formato ReleaseTrack
 									const releaseTrack: ReleaseTrack = {
 										title: track.title,
 										mix_name: track.mixName,
@@ -826,31 +976,34 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									return (
 										<div
 											key={`pending-${index}`}
-											className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3 border-2 border-brand-light"
+											className="flex items-center gap-4 group hover:bg-gray-50/50 transition-all duration-200 rounded-xl p-4 border-2 border-brand-light/20 bg-brand-light/5"
 										>
 											<div className="flex flex-col items-center gap-2">
-												<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-													<Music size={40} className="text-gray-400" />
-												</div>
+												<button
+													onClick={() => handleEditTrack(releaseTrack)}
+													className="p-2 text-gray-400 hover:text-brand-dark opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
+												>
+													<Pencil size={18} />
+												</button>
 											</div>
 											<div className="flex-1">
-												<div className="text-xl text-brand-dark font-medium">
-													{track.title || 'Track sin nombre'}
-												</div>
-												<div className="text-sm text-gray-500 space-y-1">
-													{track.mixName && <div>Mix: {track.mixName}</div>}
-													<div className="text-xs text-brand-light">
-														Pendiente de subir
+												<div className="flex items-center gap-3">
+													<div className="text-base font-medium text-gray-900">
+														{track.title || 'Track sin nombre'}
 													</div>
+													{track.mixName && (
+														<span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+															{track.mixName}
+														</span>
+													)}
+												</div>
+												<div className="mt-2 flex items-center gap-2">
+													<span className="text-xs px-2 py-0.5 bg-brand-light/20 text-brand-dark rounded-full">
+														Pendiente de subir
+													</span>
 												</div>
 											</div>
 											<div className="flex items-center gap-2">
-												<button
-													onClick={() => handleEditTrack(releaseTrack)}
-													className="p-3 text-gray-400 hover:text-brand-light opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-												>
-													<Pencil size={20} />
-												</button>
 												<button
 													onClick={() => {
 														setFormData(prev => ({
@@ -860,9 +1013,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 																[],
 														}));
 													}}
-													className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+													className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
 												>
-													<Trash2 size={20} />
+													<Trash2 size={18} />
 												</button>
 											</div>
 										</div>
@@ -872,19 +1025,19 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						)}
 
 						{(uploadProgress || isProcessing) && (
-							<div className="mt-2">
+							<div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
 								{uploadProgress && !isProcessing && (
-									<div className="w-full bg-gray-200 rounded-full h-2.5">
+									<div className="w-full bg-gray-200 rounded-full h-2">
 										<div
-											className="bg-brand-light h-2.5 rounded-full transition-all duration-300"
+											className="bg-brand-dark h-2 rounded-full transition-all duration-300"
 											style={{ width: `${uploadProgress.percentage}%` }}
 										></div>
 									</div>
 								)}
-								<p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+								<p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
 									{isProcessing ? (
 										<>
-											<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-light border-t-transparent" />
+											<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-dark border-t-transparent" />
 											<span>Procesando track...</span>
 										</>
 									) : (

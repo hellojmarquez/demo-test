@@ -1,16 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import {
-	X,
-	Save,
 	XCircle,
 	Trash2,
-	Plus,
 	ArrowBigUp,
 	Play,
 	Pause,
 	Music,
-	User,
 	Pencil,
 	ChevronDown,
 	Link,
@@ -22,11 +18,40 @@ import { Release, Artist } from '@/types/release';
 import UploadTrackToRelease from './UploadTrackToRelease';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import TrackForm from './CreateTrackModal';
 import { Track } from '@/types/track';
 import { toast } from 'react-hot-toast';
 import { RELEVANT_COUNTRIES, CountryOption } from '@/constants/countries';
 import CustomSwitch from './CustomSwitch';
+import ArtistSelector, { NewArtist } from './ArtistSelector';
+
+interface ReleaseTrack {
+	external_id?: string;
+	order: number;
+	title: string;
+	artists: Artist[];
+	ISRC: string;
+	generate_isrc: boolean;
+	DA_ISRC: string;
+	genre: number;
+	genre_name: string;
+	subgenre: number;
+	subgenre_name: string;
+	mix_name: string;
+	resource: string;
+	dolby_atmos_resource: string;
+	album_only: boolean;
+	explicit_content: boolean;
+	track_length: string;
+}
+
+interface UpdateReleasePageProps {
+	release: Release;
+	onSave: (updatedRelease: Release) => void;
+	formData: Release;
+	setFormData: React.Dispatch<React.SetStateAction<Release>>;
+	onEditTrack: (track: ReleaseTrack) => void;
+	genres: GenreData[];
+}
 
 interface ArtistData {
 	artist: number;
@@ -84,47 +109,6 @@ interface TrackData {
 	track_lenght?: string;
 	updatedAt: string;
 	vocals?: string;
-}
-
-interface NewArtist {
-	order: number;
-	artist: number;
-	kind: string;
-	name: string;
-	email: string;
-	amazon_music_identifier: string;
-	apple_identifier: string;
-	deezer_identifier: string;
-	spotify_identifier: string;
-}
-
-interface ReleaseTrack {
-	external_id?: string;
-	order: number;
-	title: string;
-	artists: Artist[];
-	ISRC: string;
-	generate_isrc: boolean;
-	DA_ISRC: string;
-	genre: number;
-	genre_name: string;
-	subgenre: number;
-	subgenre_name: string;
-	mix_name: string;
-	resource: string;
-	dolby_atmos_resource: string;
-	album_only: boolean;
-	explicit_content: boolean;
-	track_length: string;
-}
-
-interface UpdateReleasePageProps {
-	release: Release;
-	onSave: (updatedRelease: Release) => void;
-	formData: Release;
-	setFormData: React.Dispatch<React.SetStateAction<Release>>;
-	onEditTrack: (track: any) => void;
-	genres: GenreData[];
 }
 
 interface ArtistOption {
@@ -332,7 +316,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		>
 	) => {
 		const { name, value, type } = e.target;
-		setFormData(prev => ({
+		setFormData((prev: Release) => ({
 			...prev,
 			[name]:
 				type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
@@ -345,11 +329,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				const base64String = reader.result as string;
-				// Mostramos el preview de la imagen subida
 				setImagePreview(base64String);
-				// Guardamos solo la parte base64 sin el prefijo
 				const base64Data = base64String.split(',')[1];
-				setFormData(prev => ({
+				setFormData((prev: Release) => ({
 					...prev,
 					picture: base64Data,
 				}));
@@ -359,18 +341,19 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	};
 
 	const handleDeleteArtist = (index: number) => {
-		setFormData(prev => ({
+		setFormData((prev: Release) => ({
 			...prev,
-			artists: prev.artists?.filter((_, i) => i !== index) || [],
+			artists: prev.artists?.filter((_, i: number) => i !== index) || [],
 		}));
 	};
 
 	const handleDeleteTrack = (index: number) => {
-		setFormData(prev => ({
+		setFormData((prev: Release) => ({
 			...prev,
-			tracks: prev.tracks?.filter((_, i) => i !== index) || [],
+			tracks: prev.tracks?.filter((_, i: number) => i !== index) || [],
 		}));
 	};
+
 	const handlePlayPause = (trackIndex: number, resource: string) => {
 		if (playingTrack === trackIndex.toString()) {
 			// Pausar
@@ -486,7 +469,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			console.log('Converted to releaseTrack:', releaseTrack);
 
 			// Actualizar el estado local primero
-			setFormData(prev => {
+			setFormData((prev: Release) => {
 				console.log('Previous formData:', prev);
 				// Si el track tiene external_id, actualizarlo en el array tracks
 				if (selectedTrack.external_id) {
@@ -915,11 +898,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											<div className="flex items-center gap-2">
 												<button
 													onClick={() => {
-														setFormData(prev => ({
+														setFormData((prev: Release) => ({
 															...prev,
 															newTracks:
-																prev.newTracks?.filter((_, i) => i !== index) ||
-																[],
+																prev.newTracks?.filter(
+																	(_, i: number) => i !== index
+																) || [],
 														}));
 													}}
 													className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
@@ -993,7 +977,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											(l: any) => l.external_id === selectedOption.value
 										);
 										if (selectedLabel) {
-											setFormData(prev => ({
+											setFormData((prev: Release) => ({
 												...prev,
 												label: selectedLabel.external_id,
 												label_name: selectedLabel.name,
@@ -1049,7 +1033,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								)}
 								onChange={(selectedOption: SingleValue<KindOption>) => {
 									if (selectedOption) {
-										setFormData(prev => ({
+										setFormData((prev: Release) => ({
 											...prev,
 											kind: selectedOption.value,
 										}));
@@ -1117,7 +1101,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											(g: GenreData) => g.id === selectedOption.value
 										);
 										if (selectedGenre) {
-											setFormData(prev => ({
+											setFormData((prev: Release) => ({
 												...prev,
 												genre: selectedGenre.id,
 												genre_name: selectedGenre.name,
@@ -1158,7 +1142,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								}
 								onChange={(selectedOption: SingleValue<SubgenreOption>) => {
 									if (selectedOption) {
-										setFormData(prev => ({
+										setFormData((prev: Release) => ({
 											...prev,
 											subgenre: selectedOption.value,
 											subgenre_name: selectedOption.label,
@@ -1186,7 +1170,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									selectedOption: SingleValue<{ value: number; label: string }>
 								) => {
 									if (selectedOption) {
-										setFormData(prev => ({
+										setFormData((prev: Release) => ({
 											...prev,
 											is_new_release: selectedOption.value,
 										}));
@@ -1253,7 +1237,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											(p: any) => p.external_id === selectedOption.value
 										);
 										if (selectedPublisher) {
-											setFormData(prev => ({
+											setFormData((prev: Release) => ({
 												...prev,
 												publisher: selectedPublisher.external_id,
 												publisher_name: selectedPublisher.name,
@@ -1478,7 +1462,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											const newCountries = selectedOptions.map(
 												option => option.value
 											);
-											setFormData(prev => ({
+											setFormData((prev: Release) => ({
 												...prev,
 												countries: [
 													...(prev.countries || []),
@@ -1517,7 +1501,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 													<button
 														type="button"
 														onClick={() => {
-															setFormData(prev => ({
+															setFormData((prev: Release) => ({
 																...prev,
 																countries:
 																	prev.countries?.filter(
@@ -1549,218 +1533,34 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							Artistas
 						</label>
 						<div className="space-y-4 flex flex-col p-2 bg-slate-100">
-							<Select<ArtistOption>
-								value={null}
-								onChange={(selectedOption: SingleValue<ArtistOption>) => {
-									if (selectedOption) {
-										setFormData(prev => ({
-											...prev,
-											artists: [
-												...(prev.artists || []),
-												{
-													order: (prev.artists || []).length,
-													artist: selectedOption.value,
-													kind: 'main',
-													name: selectedOption.label,
-												},
-											],
-										}));
-									}
-								}}
-								options={artistData.map(artist => ({
-									value: artist.artist,
-									label: artist.name,
-								}))}
-								placeholder={
-									<div className="flex items-center gap-2">
-										<Plus className="w-4 h-4" />
-										<span>Seleccionar artista</span>
-									</div>
+							<ArtistSelector
+								artists={formData.artists || []}
+								newArtists={formData.newArtists}
+								artistData={artistData}
+								onArtistsChange={newArtists =>
+									setFormData((prev: Release) => ({
+										...prev,
+										artists: newArtists,
+									}))
 								}
-								noOptionsMessage={({ inputValue }) => (
-									<div className="p-2 text-center">
-										<p className="text-sm text-gray-500 mb-2">
-											No se encontraron artistas para "{inputValue}"
-										</p>
-										<button
-											onClick={() => {
-												setNewArtistData(prev => ({
-													...prev,
-													name: inputValue,
-												}));
-												setIsCreateArtistModalOpen(true);
-											}}
-											className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
-										>
-											<Plus className="w-4 h-4 mr-1" />
-											Crear nuevo artista
-										</button>
-									</div>
-								)}
-								className="react-select-container w-72 self-end"
-								classNamePrefix="react-select"
-								styles={reactSelectStyles}
+								onNewArtistsChange={newArtists =>
+									setFormData((prev: Release) => ({ ...prev, newArtists }))
+								}
+								onDeleteArtist={handleDeleteArtist}
+								onDeleteNewArtist={index => {
+									setFormData((prev: Release) => ({
+										...prev,
+										newArtists:
+											prev.newArtists?.filter((_, i: number) => i !== index) ||
+											[],
+									}));
+								}}
+								onCreateNewArtist={name => {
+									setNewArtistData(prev => ({ ...prev, name }));
+									setIsCreateArtistModalOpen(true);
+								}}
+								reactSelectStyles={reactSelectStyles}
 							/>
-
-							<div className="space-y-2 min-h-52 p-2">
-								<div className="flex flex-wrap gap-2 items-center">
-									{(formData.artists || []).map((artist, index) => (
-										<div
-											key={`existing-${index}`}
-											className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg"
-										>
-											<div className="flex gap-3">
-												<div className="p-2 bg-white rounded-full">
-													<User className="w-14 h-14 text-gray-600" />
-												</div>
-												<div className="flex flex-col items-center">
-													<span className="font-medium">{artist.name}</span>
-													<div className="flex items-center gap-2 mt-1">
-														<CustomSwitch
-															checked={artist.kind === 'main'}
-															onChange={checked => {
-																setFormData(prev => ({
-																	...prev,
-																	artists: (prev.artists || []).map(
-																		(a: Artist, i: number) =>
-																			i === index
-																				? {
-																						...a,
-																						kind: checked
-																							? 'main'
-																							: 'featuring',
-																				  }
-																				: a
-																	),
-																}));
-															}}
-															className="mx-auto"
-															onText="Principal"
-															offText="Invitado"
-														/>
-													</div>
-													<div className="flex items-center gap-2 mt-1">
-														<input
-															type="number"
-															min={-2147483648}
-															max={2147483647}
-															value={artist.order}
-															onChange={e => {
-																const value = parseInt(e.target.value, 10);
-																setFormData(prev => ({
-																	...prev,
-																	artists: (prev.artists || []).map(
-																		(a: Artist, i: number) =>
-																			i === index
-																				? {
-																						...a,
-																						order: isNaN(value) ? 0 : value,
-																				  }
-																				: a
-																	),
-																}));
-															}}
-															className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-center focus:outline-none focus:border-brand-light"
-														/>
-														<label className="text-xs text-gray-500">
-															Orden
-														</label>
-													</div>
-												</div>
-											</div>
-											<button
-												onClick={() => handleDeleteArtist(index)}
-												className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-											>
-												<Trash2 size={20} />
-											</button>
-										</div>
-									))}
-
-									{(formData.newArtists || []).map(
-										(artist: NewArtist, index: number) => (
-											<div
-												key={`new-${index}`}
-												className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg border-2 border-brand-light"
-											>
-												<div className="flex gap-3">
-													<div className="p-2 bg-white rounded-full">
-														<User className="w-14 h-14 text-gray-600" />
-													</div>
-													<div className="flex flex-col items-center">
-														<span className="font-medium">{artist.name}</span>
-														<div className="flex items-center gap-2 mt-1">
-															<CustomSwitch
-																checked={artist.kind === 'main'}
-																onChange={checked => {
-																	setFormData(prev => ({
-																		...prev,
-																		newArtists: (prev.newArtists || []).map(
-																			(a: NewArtist, i: number) =>
-																				i === index
-																					? {
-																							...a,
-																							kind: checked
-																								? 'main'
-																								: 'featuring',
-																					  }
-																					: a
-																		),
-																	}));
-																}}
-																className="mx-auto"
-																onText="Principal"
-																offText="Invitado"
-															/>
-														</div>
-														<div className="flex items-center gap-2 mt-1">
-															<input
-																type="number"
-																min={-2147483648}
-																max={2147483647}
-																value={artist.order}
-																onChange={e => {
-																	const value = parseInt(e.target.value, 10);
-																	setFormData(prev => ({
-																		...prev,
-																		newArtists: (prev.newArtists || []).map(
-																			(a: NewArtist, i: number) =>
-																				i === index
-																					? {
-																							...a,
-																							order: isNaN(value) ? 0 : value,
-																					  }
-																					: a
-																		),
-																	}));
-																}}
-																className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-center focus:outline-none focus:border-brand-light"
-															/>
-															<label className="text-xs text-gray-500">
-																Orden
-															</label>
-														</div>
-													</div>
-												</div>
-												<button
-													onClick={() => {
-														setFormData(prev => ({
-															...prev,
-															newArtists:
-																prev.newArtists?.filter(
-																	(_: NewArtist, i: number) => i !== index
-																) || [],
-														}));
-													}}
-													className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-												>
-													<Trash2 size={20} />
-												</button>
-											</div>
-										)
-									)}
-								</div>
-							</div>
 						</div>
 					</div>
 					<div className="flex items-center">
@@ -1817,7 +1617,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							artists: track.artists || [],
 						};
 
-						setFormData(prev => ({
+						setFormData((prev: Release) => ({
 							...prev,
 							newTracks: [...(prev.newTracks || []), newTrack],
 						}));
@@ -1996,9 +1796,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									// Crear el nuevo artista con la estructura requerida
 									const newArtist: NewArtist = {
 										order: (formData.newArtists || []).length,
-										artist: 0,
-										kind: 'main',
+										artist: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
 										name: newArtistData.name,
+										kind: 'main',
 										email: newArtistData.email,
 										amazon_music_identifier: newArtistData.amazon_music_id,
 										apple_identifier: newArtistData.apple_music_id,
@@ -2007,7 +1807,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									};
 
 									// Actualizar el formData con el nuevo artista en el array newArtists
-									setFormData(prev => ({
+									setFormData((prev: Release) => ({
 										...prev,
 										newArtists: [...(prev.newArtists || []), newArtist],
 									}));

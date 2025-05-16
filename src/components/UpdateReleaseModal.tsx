@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-	Upload,
-	Image as ImageIcon,
+	X,
 	Save,
 	XCircle,
 	Trash2,
@@ -14,6 +14,8 @@ import {
 	Pencil,
 	ChevronDown,
 	Link,
+	Upload,
+	Image as ImageIcon,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -23,11 +25,13 @@ import Image from 'next/image';
 import TrackForm from './CreateTrackModal';
 import { Track } from '@/types/track';
 import { toast } from 'react-hot-toast';
+import { RELEVANT_COUNTRIES, CountryOption } from '@/constants/countries';
 
 interface ArtistData {
-	external_id: number;
+	artist: number;
 	name: string;
-	role: string;
+	kind: string;
+	order: number;
 }
 
 interface TrackData {
@@ -156,69 +160,10 @@ interface PublisherOption {
 	label: string;
 }
 
-interface CountryOption {
-	value: string;
-	label: string;
-}
-
 const RELEASE_TYPES: KindOption[] = [
 	{ value: 'single', label: 'Single' },
 	{ value: 'ep', label: 'EP' },
 	{ value: 'album', label: 'Album' },
-];
-
-const RELEVANT_COUNTRIES: CountryOption[] = [
-	{ value: 'US', label: 'United States' },
-	{ value: 'GB', label: 'United Kingdom' },
-	{ value: 'ES', label: 'Spain' },
-	{ value: 'MX', label: 'Mexico' },
-	{ value: 'AR', label: 'Argentina' },
-	{ value: 'BR', label: 'Brazil' },
-	{ value: 'CO', label: 'Colombia' },
-	{ value: 'CL', label: 'Chile' },
-	{ value: 'PE', label: 'Peru' },
-	{ value: 'EC', label: 'Ecuador' },
-	{ value: 'VE', label: 'Venezuela' },
-	{ value: 'UY', label: 'Uruguay' },
-	{ value: 'PY', label: 'Paraguay' },
-	{ value: 'BO', label: 'Bolivia' },
-	{ value: 'DE', label: 'Germany' },
-	{ value: 'FR', label: 'France' },
-	{ value: 'IT', label: 'Italy' },
-	{ value: 'PT', label: 'Portugal' },
-	{ value: 'CA', label: 'Canada' },
-	{ value: 'AU', label: 'Australia' },
-	{ value: 'NZ', label: 'New Zealand' },
-	{ value: 'JP', label: 'Japan' },
-	{ value: 'KR', label: 'South Korea' },
-	{ value: 'CN', label: 'China' },
-	{ value: 'IN', label: 'India' },
-	{ value: 'RU', label: 'Russia' },
-	{ value: 'SE', label: 'Sweden' },
-	{ value: 'NO', label: 'Norway' },
-	{ value: 'DK', label: 'Denmark' },
-	{ value: 'FI', label: 'Finland' },
-	{ value: 'NL', label: 'Netherlands' },
-	{ value: 'BE', label: 'Belgium' },
-	{ value: 'CH', label: 'Switzerland' },
-	{ value: 'AT', label: 'Austria' },
-	{ value: 'IE', label: 'Ireland' },
-	{ value: 'PL', label: 'Poland' },
-	{ value: 'CZ', label: 'Czech Republic' },
-	{ value: 'HU', label: 'Hungary' },
-	{ value: 'RO', label: 'Romania' },
-	{ value: 'GR', label: 'Greece' },
-	{ value: 'TR', label: 'Turkey' },
-	{ value: 'IL', label: 'Israel' },
-	{ value: 'ZA', label: 'South Africa' },
-	{ value: 'EG', label: 'Egypt' },
-	{ value: 'MA', label: 'Morocco' },
-	{ value: 'AE', label: 'United Arab Emirates' },
-	{ value: 'SG', label: 'Singapore' },
-	{ value: 'MY', label: 'Malaysia' },
-	{ value: 'TH', label: 'Thailand' },
-	{ value: 'ID', label: 'Indonesia' },
-	{ value: 'PH', label: 'Philippines' },
 ];
 
 const CustomSwitch: React.FC<{
@@ -310,7 +255,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
-		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+		'w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 	const selectStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
 	const selectWrapperStyles = 'relative';
@@ -686,7 +631,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							) : (
 								<div className="text-center p-4">
 									<div className="p-3 bg-gray-50 rounded-lg inline-block">
-										<ImageIcon className="h-10 w-10 text-gray-400" />
+										<Upload className="h-10 w-10 text-gray-400" />
 									</div>
 									<span className="mt-2 block text-sm text-gray-500">
 										Sin imagen
@@ -1498,7 +1443,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										name="ean"
 										value={formData.ean || ''}
 										onChange={handleChange}
-										className="w-full px-3 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-3 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 										placeholder="Ingrese el UPC"
 									/>
 								</div>
@@ -1662,7 +1607,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									}
 								}}
 								options={artistData.map(artist => ({
-									value: artist.external_id,
+									value: artist.artist,
 									label: artist.name,
 								}))}
 								placeholder={
@@ -1949,7 +1894,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											name: e.target.value,
 										}))
 									}
-									className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									className="w-full px-3 py-2 border-b- border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 								/>
 							</div>
 
@@ -1966,7 +1911,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											email: e.target.value,
 										}))
 									}
-									className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 								/>
 							</div>
 
@@ -1993,7 +1938,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 												amazon_music_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 
@@ -2019,7 +1964,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 												apple_music_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 
@@ -2045,7 +1990,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 												deezer_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-3 py-2 border-b
+										 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 
@@ -2071,7 +2017,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 												spotify_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 							</div>

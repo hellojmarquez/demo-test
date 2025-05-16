@@ -5,7 +5,10 @@ import 'react-datepicker/dist/react-datepicker.css';
 import 'react-clock/dist/Clock.css';
 import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
+import Select from 'react-select';
 import { Track } from '@/types/track';
+import { SingleValue } from 'react-select';
+import { LANGUAGES, LanguageOption } from '@/constants/languages';
 
 export interface GenreData {
 	id: number;
@@ -66,6 +69,39 @@ export interface TrackFormProps {
 	genres: GenreData[];
 	onClose: () => void;
 }
+
+const customSelectStyles = {
+	control: (provided: any) => ({
+		...provided,
+		border: 'none',
+		borderBottom: '1px solid #D1D5DB',
+		borderRadius: '0',
+		boxShadow: 'none',
+		'&:hover': {
+			borderBottom: '1px solid #4B5563',
+		},
+	}),
+	option: (provided: any, state: any) => ({
+		...provided,
+		backgroundColor: state.isSelected
+			? '#4B5563'
+			: state.isFocused
+			? '#F3F4F6'
+			: 'white',
+		color: state.isSelected ? 'white' : '#1F2937',
+		'&:hover': {
+			backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+		},
+	}),
+	menu: (provided: any) => ({
+		...provided,
+		zIndex: 9999,
+	}),
+	singleValue: (provided: any) => ({
+		...provided,
+		color: '#1F2937',
+	}),
+};
 
 const TrackForm: React.FC<TrackFormProps> = ({
 	track,
@@ -637,73 +673,99 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<label className="block text-sm font-medium text-gray-700">
 							Género
 						</label>
-						<select
+						<Select
 							name="genre"
-							value={formData.genre || ''}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						>
-							<option key="genre-empty" value="">
-								Seleccionar género
-							</option>
-							{genres.map(genre => (
-								<option key={`genre-${genre.id}`} value={genre.id}>
-									{genre.name}
-								</option>
-							))}
-						</select>
-						{formData.genre && (
-							<p className="text-xs text-gray-500 mt-1">
-								Género actual:{' '}
-								{genres.find(g => g.id === formData.genre)?.name || ''}
-							</p>
-						)}
+							value={
+								genres.find(g => g.id === formData.genre)
+									? {
+											value: formData.genre,
+											label:
+												genres.find(g => g.id === formData.genre)?.name || '',
+									  }
+									: null
+							}
+							onChange={(selectedOption: any) => {
+								if (selectedOption) {
+									handleChange({
+										target: {
+											name: 'genre',
+											value: selectedOption.value,
+										},
+									} as any);
+								}
+							}}
+							options={genres.map(genre => ({
+								value: genre.id,
+								label: genre.name,
+							}))}
+							placeholder="Seleccionar género"
+							styles={customSelectStyles}
+							className="mt-1"
+							isClearable
+						/>
 					</div>
 
 					<div>
 						<label className="block text-sm font-medium text-gray-700">
 							Subgénero
 						</label>
-						<select
+						<Select
 							name="subgenre"
-							value={formData.subgenre || ''}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						>
-							<option key="subgenre-empty" value="">
-								Seleccionar subgénero
-							</option>
-							{subgenres.map(subgenre => (
-								<option key={`subgenre-${subgenre.id}`} value={subgenre.id}>
-									{subgenre.name}
-								</option>
-							))}
-						</select>
-						{formData.subgenre && (
-							<p className="text-xs text-gray-500 mt-1">
-								Subgénero actual:{' '}
-								{subgenres.find(s => s.id === formData.subgenre)?.name || ''}
-							</p>
-						)}
+							value={
+								subgenres.find(s => s.id === formData.subgenre)
+									? {
+											value: formData.subgenre,
+											label:
+												subgenres.find(s => s.id === formData.subgenre)?.name ||
+												'',
+									  }
+									: null
+							}
+							onChange={(selectedOption: any) => {
+								if (selectedOption) {
+									handleChange({
+										target: {
+											name: 'subgenre',
+											value: selectedOption.value,
+										},
+									} as any);
+								}
+							}}
+							options={subgenres.map(subgenre => ({
+								value: subgenre.id,
+								label: subgenre.name,
+							}))}
+							placeholder="Seleccionar subgénero"
+							styles={customSelectStyles}
+							className="mt-1"
+							isClearable
+						/>
 					</div>
 
 					<div>
 						<label className="block text-sm font-medium text-gray-700">
 							Idioma
 						</label>
-						<select
-							name="language"
-							value={formData.language}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						>
-							<option key="language-ES" value="ES">
-								Español
-							</option>
-							<option key="language-EN" value="EN">
-								English
-							</option>
-						</select>
+						<Select
+							value={
+								LANGUAGES.find(lang => lang.value === formData.language) || null
+							}
+							onChange={(selectedOption: SingleValue<LanguageOption>) => {
+								if (selectedOption) {
+									handleChange({
+										target: {
+											name: 'language',
+											value: selectedOption.value,
+										},
+									} as any);
+								}
+							}}
+							options={LANGUAGES}
+							placeholder="Seleccionar idioma"
+							styles={customSelectStyles}
+							className="mt-1"
+							isClearable
+						/>
 					</div>
 
 					<div>

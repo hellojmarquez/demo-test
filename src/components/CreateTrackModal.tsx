@@ -9,6 +9,7 @@ import Select from 'react-select';
 import { Track } from '@/types/track';
 import { SingleValue } from 'react-select';
 import { LANGUAGES, LanguageOption } from '@/constants/languages';
+import CustomSwitch from './CustomSwitch';
 
 export interface GenreData {
 	id: number;
@@ -797,16 +798,26 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<label className="block text-sm font-medium text-gray-700">
 							Vocals
 						</label>
-						<select
-							name="vocals"
-							value={formData.vocals}
-							onChange={handleChange}
-							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-						>
-							<option value="">Seleccionar idioma</option>
-							<option value="EN">English</option>
-							<option value="ES">Español</option>
-						</select>
+						<Select
+							value={
+								LANGUAGES.find(lang => lang.value === formData.vocals) || null
+							}
+							onChange={(selectedOption: SingleValue<LanguageOption>) => {
+								if (selectedOption) {
+									handleChange({
+										target: {
+											name: 'vocals',
+											value: selectedOption.value,
+										},
+									} as any);
+								}
+							}}
+							options={LANGUAGES}
+							placeholder="Seleccionar idioma"
+							styles={customSelectStyles}
+							className="mt-1"
+							isClearable
+						/>
 					</div>
 
 					<div>
@@ -917,12 +928,20 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				{/* Checkboxes Section */}
 				<div className="grid grid-cols-3 gap-4">
 					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="album_only"
+						<CustomSwitch
 							checked={formData.album_only}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+							onChange={checked => {
+								const event = {
+									target: {
+										name: 'album_only',
+										checked: checked,
+										type: 'checkbox',
+									},
+								} as React.ChangeEvent<HTMLInputElement>;
+								handleChange(event);
+							}}
+							onText=""
+							offText=""
 						/>
 						<label className="ml-2 block text-sm text-gray-700">
 							Solo Album
@@ -930,12 +949,20 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</div>
 
 					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="explicit_content"
+						<CustomSwitch
 							checked={formData.explicit_content}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+							onChange={checked => {
+								const event = {
+									target: {
+										name: 'explicit_content',
+										checked: checked,
+										type: 'checkbox',
+									},
+								} as React.ChangeEvent<HTMLInputElement>;
+								handleChange(event);
+							}}
+							onText=""
+							offText=""
 						/>
 						<label className="ml-2 block text-sm text-gray-700">
 							Contenido Explícito
@@ -943,12 +970,20 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</div>
 
 					<div className="flex items-center">
-						<input
-							type="checkbox"
-							name="generate_isrc"
+						<CustomSwitch
 							checked={formData.generate_isrc}
-							onChange={handleChange}
-							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+							onChange={checked => {
+								const event = {
+									target: {
+										name: 'generate_isrc',
+										checked: checked,
+										type: 'checkbox',
+									},
+								} as React.ChangeEvent<HTMLInputElement>;
+								handleChange(event);
+							}}
+							onText=""
+							offText=""
 						/>
 						<label className="ml-2 block text-sm text-gray-700">
 							Generar ISRC

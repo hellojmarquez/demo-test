@@ -11,12 +11,16 @@ import {
 	Pause,
 	Music,
 	User,
+	Pencil,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
 import UploadTrackToRelease from './UploadTrackToRelease';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import TrackForm from './CreateTrackModal';
+import { Track } from '@/types/track';
+import { toast } from 'react-hot-toast';
 
 interface ArtistData {
 	external_id: number;
@@ -27,7 +31,52 @@ interface ArtistData {
 interface TrackData {
 	_id: string;
 	name: string;
-	ISRC: string;
+	mix_name?: string;
+	DA_ISRC?: string;
+	ISRC?: string;
+	__v: number;
+	album_only: boolean;
+	artists: Array<{
+		artist: number;
+		kind: string;
+		order: number;
+		name: string;
+	}>;
+	contributors: Array<{
+		contributor: number;
+		name: string;
+		role: number;
+		order: number;
+		role_name: string;
+	}>;
+	copyright_holder?: string;
+	copyright_holder_year?: string;
+	createdAt: string;
+	dolby_atmos_resource?: string;
+	explicit_content: boolean;
+	generate_isrc: boolean;
+	genre?: {
+		id: number;
+		name: string;
+	};
+	subgenre?: {
+		id: number;
+		name: string;
+	};
+	label_share?: number;
+	language?: string;
+	order?: number;
+	publishers: Array<{
+		publisher: number;
+		author: string;
+		order: number;
+	}>;
+	release?: string;
+	resource?: File | string | null;
+	sample_start?: string;
+	track_lenght?: string;
+	updatedAt: string;
+	vocals?: string;
 }
 
 interface NewArtist {
@@ -42,11 +91,33 @@ interface NewArtist {
 	spotify_identifier: string;
 }
 
+interface ReleaseTrack {
+	external_id?: string;
+	order: number;
+	title: string;
+	artists: Artist[];
+	ISRC: string;
+	generate_isrc: boolean;
+	DA_ISRC: string;
+	genre: number;
+	genre_name: string;
+	subgenre: number;
+	subgenre_name: string;
+	mix_name: string;
+	resource: string;
+	dolby_atmos_resource: string;
+	album_only: boolean;
+	explicit_content: boolean;
+	track_length: string;
+}
+
 interface UpdateReleasePageProps {
 	release: Release;
-	onSave: (updatedRelease: Release) => Promise<void>;
+	onSave: (updatedRelease: Release) => void;
 	formData: Release;
 	setFormData: React.Dispatch<React.SetStateAction<Release>>;
+	onEditTrack: (track: any) => void;
+	genres: GenreData[];
 }
 
 interface ArtistOption {
@@ -193,6 +264,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	onSave,
 	formData,
 	setFormData,
+	onEditTrack,
+	genres,
 }) => {
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -204,9 +277,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		percentage: number;
 	} | null>(null);
 	const [isProcessing, setIsProcessing] = useState(false);
-	const [uploadedTracks, setUploadedTracks] = useState<
-		{ title: string; mixName: string; file: File }[]
-	>([]);
+
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
 	const [trackData, setTrackData] = useState<TrackData[]>([]);
@@ -216,7 +287,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [progress, setProgress] = useState<number>(0);
 	const [labels, setLabels] = useState<LabelOption[]>([]);
 	const [labelsData, setLabelsData] = useState<any[]>([]);
-	const [genres, setGenres] = useState<GenreData[]>([]);
 	const [subgenres, setSubgenres] = useState<SubgenreOption[]>([]);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const [publishers, setPublishers] = useState<PublisherOption[]>([]);
@@ -230,6 +300,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		deezer_id: '',
 		spotify_id: '',
 	});
+	const [isEditingTrack, setIsEditingTrack] = useState(false);
+	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
+	const [trackFormData, setTrackFormData] = useState<Track | null>(null);
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
@@ -304,29 +377,22 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					);
 				}
 
-				// Fetch genres
-				const genresRes = await fetch('/api/admin/getAllGenres');
-				const genresData = await genresRes.json();
-				if (genresData.success && Array.isArray(genresData.data)) {
-					setGenres(genresData.data);
-
-					// Si hay un género seleccionado, cargar sus subgéneros
-					if (formData.genre) {
-						const selectedGenre = genresData.data.find(
-							(g: GenreData) => g.id === formData.genre
+				// Si hay un género seleccionado, cargar sus subgéneros
+				if (formData?.genre) {
+					const selectedGenre = genres.find(
+						(g: GenreData) => g.id === formData.genre
+					);
+					if (selectedGenre) {
+						setSubgenres(
+							selectedGenre.subgenres.map(
+								(sub: { id: number; name: string }) => ({
+									value: sub.id,
+									label: sub.name,
+								})
+							)
 						);
-						if (selectedGenre) {
-							setSubgenres(
-								selectedGenre.subgenres.map(
-									(sub: { id: number; name: string }) => ({
-										value: sub.id,
-										label: sub.name,
-									})
-								)
-							);
-						} else {
-							setSubgenres([]);
-						}
+					} else {
+						setSubgenres([]);
 					}
 				}
 
@@ -342,22 +408,13 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						}))
 					);
 				}
-
-				// Actualizar los tracks del release
-				setFormData(prev => {
-					if (!prev) return prev;
-					return {
-						...prev,
-						tracks: release.tracks || [],
-					};
-				});
 			} catch (error) {
 				console.error('Error fetching data:', error);
 			}
 		};
 
 		fetchData();
-	}, [release._id, release.tracks]);
+	}, [formData?.genre, genres]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -398,137 +455,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}));
 	};
 
-	const handleAddArtist = () => {
-		setFormData(prev => ({
-			...prev,
-			artists: [
-				...(prev.artists || []),
-				{
-					order: prev.artists?.length || 0,
-					artist: 0,
-					kind: '',
-					name: '',
-				},
-			],
-		}));
-	};
-
-	const handleArtistChange = (selectedOptions: any) => {
-		setFormData(prev => ({
-			...prev,
-			artists: selectedOptions.map((option: any) => ({
-				order: 0,
-				artist: option.value,
-				kind: 'main',
-				name: option.label,
-			})),
-		}));
-	};
-
 	const handleDeleteTrack = (index: number) => {
 		setFormData(prev => ({
 			...prev,
 			tracks: prev.tracks?.filter((_, i) => i !== index) || [],
 		}));
 	};
-
-	const handleTrackChange = (trackId: number, field: string, value: any) => {
-		setFormData(prev => ({
-			...prev,
-			tracks:
-				prev.tracks?.map(track =>
-					track.order === trackId ? { ...track, [field]: value } : track
-				) || [],
-		}));
-	};
-
-	const handleAddTrack = () => {
-		setFormData(prev => ({
-			...prev,
-			tracks: [
-				...(prev.tracks || []),
-				{
-					order: (prev.tracks || []).length,
-					title: '',
-					artists: [],
-					ISRC: '',
-					generate_isrc: false,
-					DA_ISRC: '',
-					genre: 0,
-					subgenre: 0,
-					mix_name: '',
-					resource: '',
-					dolby_atmos_resource: '',
-					album_only: false,
-					explicit_content: false,
-					track_length: '',
-				},
-			],
-		}));
-	};
-
-	const handleUploadProgress = (progress: {
-		total: number;
-		loaded: number;
-		percentage: number;
-	}) => {
-		setUploadProgress(progress);
-	};
-
-	const handleUploadComplete = async (
-		tracks: { title: string; mixName: string; file: File }[]
-	) => {
-		try {
-			// Actualizar el estado local con los tracks subidos
-			setFormData(prev => ({
-				...prev,
-				tracks: [
-					...(prev.tracks || []),
-					...tracks.map(track => ({
-						order: (prev.tracks || []).length + 1,
-						title: track.title,
-						mix_name: track.mixName,
-						artists: [],
-						ISRC: '',
-						generate_isrc: false,
-						DA_ISRC: '',
-						genre: 0,
-						subgenre: 0,
-						resource: '',
-						dolby_atmos_resource: '',
-						album_only: false,
-						explicit_content: false,
-						track_length: '',
-					})),
-				],
-			}));
-
-			// Limpiar el estado de subida
-			setUploadedTracks([]);
-			// Cerrar el modal
-			setIsUploadModalOpen(false);
-
-			// Iniciamos el procesamiento justo antes del fetch
-			setIsProcessing(true);
-
-			// Fetch para obtener los tracks actualizados
-			const response = await fetch(`/api/admin/getRelease/${release._id}`);
-			const data = await response.json();
-
-			if (data.success) {
-				setFormData(prev => ({
-					...prev,
-					tracks: data.data.tracks || [],
-				}));
-			}
-		} catch (error) {
-			console.error('Error al actualizar los tracks:', error);
-		} finally {
-			setIsProcessing(false);
-			setUploadProgress(null);
-		}
-	};
-
 	const handlePlayPause = (trackIndex: number, resource: string) => {
 		if (playingTrack === trackIndex.toString()) {
 			// Pausar
@@ -548,7 +480,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 	// Efecto para manejar el final de la reproducción y el progreso
 	useEffect(() => {
-		console.log('formData: ', formData);
 		const audio = audioRef.current;
 		if (audio) {
 			const handleEnded = () => {
@@ -571,6 +502,147 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			};
 		}
 	}, []);
+
+	const handleEditTrack = (track: ReleaseTrack) => {
+		console.log('handleEditTrack called with track:', track);
+		// Convertir ReleaseTrack a Track para el formulario
+		const trackData: Track = {
+			_id: '', // _id siempre vacío para tracks nuevos
+			external_id: track.external_id || '',
+			name: track.title || '', // Aseguramos que name nunca sea undefined
+			mix_name: track.mix_name || '',
+			DA_ISRC: track.DA_ISRC || '',
+			ISRC: track.ISRC || '',
+			__v: 0,
+			album_only: track.album_only || false,
+			artists: track.artists || [],
+			contributors: [],
+			copyright_holder: '',
+			copyright_holder_year: '',
+			createdAt: '',
+			dolby_atmos_resource: track.dolby_atmos_resource || '',
+			explicit_content: track.explicit_content || false,
+			generate_isrc: track.generate_isrc || false,
+			genre: track.genre,
+			genre_name: track.genre_name,
+			subgenre: track.subgenre,
+			subgenre_name: track.subgenre_name,
+			label_share: 0,
+			language: '',
+			order: track.order || 0,
+			publishers: [],
+			release: '',
+			resource: track.resource || '',
+			sample_start: '',
+			track_lenght: track.track_length || '',
+			updatedAt: '',
+			vocals: '',
+		};
+		setSelectedTrack(track);
+		onEditTrack(trackData);
+	};
+
+	const handleTrackSave = async (updatedTrack: Partial<Track>) => {
+		console.log('handleTrackSave called with updatedTrack:', updatedTrack);
+		try {
+			if (!selectedTrack) {
+				console.log('No selectedTrack found, returning');
+				return;
+			}
+
+			// Convertir el Track actualizado a ReleaseTrack
+			const releaseTrack: ReleaseTrack = {
+				external_id: selectedTrack.external_id,
+				order: updatedTrack.order || selectedTrack.order,
+				title: updatedTrack.name || selectedTrack.title,
+				artists: updatedTrack.artists || selectedTrack.artists,
+				ISRC: updatedTrack.ISRC || selectedTrack.ISRC,
+				generate_isrc:
+					updatedTrack.generate_isrc ?? selectedTrack.generate_isrc,
+				DA_ISRC: updatedTrack.DA_ISRC || selectedTrack.DA_ISRC,
+				genre: updatedTrack.genre || selectedTrack.genre,
+				genre_name: updatedTrack.genre_name || selectedTrack.genre_name,
+				subgenre: updatedTrack.subgenre || selectedTrack.subgenre,
+				subgenre_name:
+					updatedTrack.subgenre_name || selectedTrack.subgenre_name,
+				mix_name: updatedTrack.mix_name || selectedTrack.mix_name,
+				resource:
+					typeof updatedTrack.resource === 'string'
+						? updatedTrack.resource
+						: selectedTrack.resource,
+				dolby_atmos_resource:
+					updatedTrack.dolby_atmos_resource ||
+					selectedTrack.dolby_atmos_resource,
+				album_only: updatedTrack.album_only ?? selectedTrack.album_only,
+				explicit_content:
+					updatedTrack.explicit_content ?? selectedTrack.explicit_content,
+				track_length: updatedTrack.track_lenght || selectedTrack.track_length,
+			};
+			console.log('Converted to releaseTrack:', releaseTrack);
+
+			// Actualizar el estado local primero
+			setFormData(prev => {
+				console.log('Previous formData:', prev);
+				// Si el track tiene external_id, actualizarlo en el array tracks
+				if (selectedTrack.external_id) {
+					const updatedTracks =
+						prev.tracks?.map(track =>
+							track.external_id === selectedTrack.external_id
+								? releaseTrack
+								: track
+						) || [];
+					console.log('Updated tracks array:', updatedTracks);
+					return {
+						...prev,
+						tracks: updatedTracks,
+					};
+				}
+				// Si es un track nuevo, actualizarlo en newTracks
+				else {
+					const updatedNewTracks =
+						prev.newTracks?.map(track => {
+							if (track.order === selectedTrack.order) {
+								return {
+									title: releaseTrack.title,
+									mixName: releaseTrack.mix_name,
+									order: releaseTrack.order,
+									resource: releaseTrack.resource,
+									dolby_atmos_resource: releaseTrack.dolby_atmos_resource,
+									ISRC: releaseTrack.ISRC,
+									DA_ISRC: releaseTrack.DA_ISRC,
+									genre: releaseTrack.genre,
+									subgenre: releaseTrack.subgenre,
+									album_only: releaseTrack.album_only,
+									explicit_content: releaseTrack.explicit_content,
+									track_length: releaseTrack.track_length,
+									generate_isrc: releaseTrack.generate_isrc,
+									artists: releaseTrack.artists,
+								};
+							}
+							return track;
+						}) || [];
+					console.log('Updated newTracks array:', updatedNewTracks);
+					return {
+						...prev,
+						newTracks: updatedNewTracks,
+					};
+				}
+			});
+
+			// Luego actualizar en el servidor
+			await onSave({
+				...release,
+				tracks: formData.tracks || [],
+				newTracks: formData.newTracks || [],
+			});
+
+			setIsEditingTrack(false);
+			setSelectedTrack(null);
+			setTrackFormData(null);
+		} catch (error) {
+			console.error('Error updating track:', error);
+		}
+	};
 
 	return (
 		<div className="container mx-auto px-4 py-8">
@@ -629,6 +701,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					</label>
 					<div className="space-y-2">
 						{release.tracks?.map((track, index) => {
+							// Encontrar el género y subgénero correspondientes
+							const genre = genres.find(g => g.id === track.genre);
+							const subgenre = genre?.subgenres.find(
+								s => s.id === track.subgenre
+							);
+
 							return (
 								<div
 									key={index}
@@ -677,43 +755,81 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											)}
 										</div>
 									</div>
-									<button
-										onClick={() => handleDeleteTrack(index)}
-										className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-									>
-										<Trash2 size={20} />
-									</button>
+									<div className="flex items-center gap-2">
+										<button
+											onClick={() =>
+												handleEditTrack({
+													...track,
+													genre: track.genre,
+													genre_name: genre?.name || '',
+													subgenre: track.subgenre,
+													subgenre_name: subgenre?.name || '',
+												})
+											}
+											className="p-3 text-gray-400 hover:text-brand-light opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+										>
+											<Pencil size={20} />
+										</button>
+										<button
+											onClick={() => handleDeleteTrack(index)}
+											className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+										>
+											<Trash2 size={20} />
+										</button>
+									</div>
 								</div>
 							);
 						})}
 
-						{uploadedTracks.map((track, index) => (
-							<div
-								key={`uploaded-${index}`}
-								className="flex items-center gap-2"
-							>
-								<div className="flex-1 p-2 border rounded bg-gray-50">
-									{track.title} {track.mixName ? `(${track.mixName})` : ''}
-								</div>
-								<button
-									onClick={() => {
-										setUploadedTracks(prev =>
-											prev.filter((_, i) => i !== index)
-										);
-									}}
-									className="p-2 text-red-600 hover:text-red-800"
-								>
-									<Trash2 size={20} />
-								</button>
+						{(!release.tracks || release.tracks.length === 0) && (
+							<div className="text-sm text-gray-500">
+								No hay tracks agregados
 							</div>
-						))}
+						)}
 
-						{(!release.tracks || release.tracks.length === 0) &&
-							uploadedTracks.length === 0 && (
-								<div className="text-sm text-gray-500">
-									No hay tracks agregados
-								</div>
-							)}
+						{/* Mostrar tracks pendientes de subir */}
+						{formData.newTracks && formData.newTracks.length > 0 && (
+							<div className="mt-4">
+								<h4 className="text-sm font-medium text-gray-700 mb-2">
+									Tracks pendientes de subir
+								</h4>
+								{formData.newTracks.map((track, index) => (
+									<div
+										key={`pending-${index}`}
+										className="flex items-center gap-4 group hover:bg-gray-50 transition-colors duration-200 rounded-lg p-3 border-2 border-brand-light"
+									>
+										<div className="flex flex-col items-center gap-2">
+											<div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+												<Music size={40} className="text-gray-400" />
+											</div>
+										</div>
+										<div className="flex-1">
+											<div className="text-xl text-brand-dark font-medium">
+												{track.title || 'Track sin nombre'}
+											</div>
+											<div className="text-sm text-gray-500 space-y-1">
+												{track.mixName && <div>Mix: {track.mixName}</div>}
+												<div className="text-xs text-brand-light">
+													Pendiente de subir
+												</div>
+											</div>
+										</div>
+										<button
+											onClick={() => {
+												setFormData(prev => ({
+													...prev,
+													newTracks:
+														prev.newTracks?.filter((_, i) => i !== index) || [],
+												}));
+											}}
+											className="p-3 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+										>
+											<Trash2 size={20} />
+										</button>
+									</div>
+								))}
+							</div>
+						)}
 
 						{(uploadProgress || isProcessing) && (
 							<div className="mt-2">
@@ -738,16 +854,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</div>
 						)}
 					</div>
-
-					<div className="flex justify-end">
-						<button
-							type="button"
-							onClick={() => setIsUploadModalOpen(true)}
-							className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-						>
-							<Plus size={20} />
-						</button>
-					</div>
 				</div>
 				<div className="grid grid-cols-2 gap-4">
 					<div>
@@ -757,7 +863,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						<input
 							type="text"
 							name="name"
-							value={formData.name}
+							value={formData?.name}
 							onChange={handleChange}
 							className={inputStyles}
 						/>
@@ -769,9 +875,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						</label>
 						<Select
 							value={
-								labels.find(label => label.value === formData.label) || {
-									value: formData.label || 0,
-									label: formData.label_name || 'Seleccionar label',
+								labels.find(label => label.value === formData?.label) || {
+									value: formData?.label || 0,
+									label: formData?.label_name || 'Seleccionar label',
 								}
 							}
 							onChange={(selectedOption: SingleValue<LabelOption>) => {
@@ -803,8 +909,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						<Select
 							name="language"
 							value={{
-								value: formData.language || '',
-								label: formData.language === 'ES' ? 'Español' : 'English',
+								value: formData?.language || '',
+								label: formData?.language === 'ES' ? 'Español' : 'English',
 							}}
 							onChange={(
 								selectedOption: SingleValue<{ value: string; label: string }>
@@ -833,7 +939,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							Tipo
 						</label>
 						<Select
-							value={RELEASE_TYPES.find(type => type.value === formData.kind)}
+							value={RELEASE_TYPES.find(type => type.value === formData?.kind)}
 							onChange={(selectedOption: SingleValue<KindOption>) => {
 								if (selectedOption) {
 									setFormData(prev => ({
@@ -849,22 +955,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							styles={reactSelectStyles}
 						/>
 					</div>
-				</div>
-
-				<div className="space-y-2">
-					<label className="block text-sm font-medium text-gray-700">
-						Países
-					</label>
-					<textarea
-						name="countries"
-						value={(formData.countries || []).join(', ')}
-						onChange={e => {
-							const countries = e.target.value.split(',').map(c => c.trim());
-							setFormData(prev => ({ ...prev, countries }));
-						}}
-						className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-dark focus:ring-brand-dark"
-						rows={2}
-					/>
 				</div>
 
 				<div className="space-y-2">
@@ -1083,7 +1173,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				<div className="grid grid-cols-2 gap-4  ">
 					<div className="flex items-center">
 						<CustomSwitch
-							checked={formData.auto_detect_language ?? false}
+							checked={formData?.auto_detect_language ?? false}
 							onChange={checked => {
 								const event = {
 									target: {
@@ -1104,7 +1194,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 					<div className="flex items-center">
 						<CustomSwitch
-							checked={formData.backcatalog ?? false}
+							checked={formData?.backcatalog ?? false}
 							onChange={checked => {
 								const event = {
 									target: {
@@ -1126,7 +1216,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				<div className="grid grid-cols-2 gap-4">
 					<div className="flex items-end min-h-9 ">
 						<CustomSwitch
-							checked={formData.generate_ean ?? false}
+							checked={formData?.generate_ean ?? false}
 							onChange={checked => {
 								const event = {
 									target: {
@@ -1591,8 +1681,40 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					isOpen={isUploadModalOpen}
 					releaseId={release._id}
 					onClose={() => setIsUploadModalOpen(false)}
-					onUploadComplete={handleUploadComplete}
-					onUploadProgress={handleUploadProgress}
+					onTrackUploaded={track => {
+						// Agregar el nuevo track al array newTracks
+						const newTrack = {
+							title: track.name || '',
+							mixName: track.mix_name || '',
+							order:
+								(formData.newTracks?.length || 0) +
+								(formData.tracks?.length || 0),
+							resource:
+								track.resource instanceof File
+									? URL.createObjectURL(track.resource)
+									: '',
+							file: track.resource instanceof File ? track.resource : null,
+							dolby_atmos_resource: track.dolby_atmos_resource || '',
+							ISRC: track.ISRC || '',
+							DA_ISRC: track.DA_ISRC || '',
+							genre: track.genre || 0,
+							genre_name: track.genre_name || '',
+							subgenre: track.subgenre || 0,
+							subgenre_name: track.subgenre_name || '',
+							album_only: track.album_only || false,
+							explicit_content: track.explicit_content || false,
+							track_length: track.track_lenght || '',
+							generate_isrc: track.generate_isrc || false,
+							artists: track.artists || [],
+						};
+
+						setFormData(prev => ({
+							...prev,
+							newTracks: [...(prev.newTracks || []), newTrack],
+						}));
+
+						setIsUploadModalOpen(false);
+					}}
 				/>
 			)}
 			{isCreateArtistModalOpen && (
@@ -1647,7 +1769,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+									<label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
 										<div className="h-6 w-6 flex items-center">
 											<Image
 												src="/icons/Amazon_Music_logo.svg"
@@ -1673,7 +1795,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+									<label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
 										<div className="h-6 w-6 flex items-center">
 											<Image
 												src="/icons/ITunes_logo.svg"
@@ -1699,7 +1821,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+									<label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
 										<div className="h-6 w-6 flex items-center justify-center">
 											<Image
 												src="/icons/dezzer_logo.svg"
@@ -1725,7 +1847,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								</div>
 
 								<div>
-									<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+									<label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
 										<div className="h-6 w-6 flex items-center justify-center">
 											<Image
 												src="/icons/spotify_logo.svg"

@@ -2,13 +2,49 @@
 
 import { useState, useEffect } from 'react';
 import UpdateReleasePage from '@/components/UpdateReleaseModal';
-import UpdateTrackModal from '@/components/UpdateTrackModal';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { Release, ReleaseResponse } from '@/types/release';
 import { Track, TrackResponse } from '@/types/track';
 import { toast } from 'react-hot-toast';
+import TrackForm, { GenreData } from '@/components/CreateTrackModal';
+
+interface ReleaseTrack {
+	title: string;
+	resource: string;
+	external_id: number;
+}
+
+interface EditedTrack {
+	_id?: string;
+	name?: string;
+	mix_name?: string;
+	DA_ISRC?: string;
+	ISRC?: string;
+	album_only?: boolean;
+	artists?: { artist: number; kind: string; order: number; name: string }[];
+	contributors?: any[];
+	copyright_holder?: string;
+	copyright_holder_year?: string;
+	dolby_atmos_resource?: string;
+	explicit_content?: boolean;
+	generate_isrc?: boolean;
+	genre: number;
+	genre_name: string;
+	subgenre: number;
+	subgenre_name: string;
+	label_share?: number;
+	language?: string;
+	order?: number;
+	publishers?: any[];
+	release?: string;
+	resource?: string | File | null;
+	sample_start?: string;
+	track_lenght?: string;
+	vocals?: string;
+	external_id: number;
+}
 
 interface ApiError extends Error {
 	info?: any;
@@ -32,9 +68,13 @@ export default function EditPage() {
 	const [activeTab, setActiveTab] = useState('details');
 	const releaseId = searchParams.get('releaseId');
 	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
-	const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+	const [editedTrackData, setEditedTrackData] = useState<Partial<Track> | null>(
+		null
+	);
+	const [genres, setGenres] = useState<GenreData[]>([]);
 	const [formData, setFormData] = useState<Release>({
 		_id: '',
+
 		name: '',
 		picture: '',
 		external_id: 0,
@@ -71,6 +111,7 @@ export default function EditPage() {
 		createdAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 	});
+	const [editedTracks, setEditedTracks] = useState<EditedTrack[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
 	const {
@@ -98,91 +139,147 @@ export default function EditPage() {
 		}
 	}, [releaseData]);
 
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				// Fetch genres
+				const genresRes = await fetch('/api/admin/getAllGenres');
+				const genresData = await genresRes.json();
+				if (genresData.success && Array.isArray(genresData.data)) {
+					setGenres(genresData.data);
+				}
+			} catch (error) {
+				console.error('Error fetching genres:', error);
+			}
+		};
+
+		fetchData();
+	}, []);
+
+	const handleTrackSave = async (trackData: Partial<Track>) => {
+		try {
+			if (!trackData.external_id) {
+				throw new Error('Track no encontrado');
+			}
+
+			const trackId = Number(trackData.external_id);
+			if (isNaN(trackId)) {
+				throw new Error('ID de track inválido');
+			}
+
+			// Convertir trackData a EditedTrack
+			const editedTrack: EditedTrack = {
+				...trackData,
+				external_id: trackId,
+				genre: trackData.genre || 0,
+				subgenre: trackData.subgenre || 0,
+				genre_name: trackData.genre_name || '',
+				subgenre_name: trackData.subgenre_name || '',
+			};
+
+			// Actualizar el track en editedTracks con toda la información modificada
+			setEditedTracks(prev => {
+				const existingTrackIndex = prev.findIndex(
+					t => t.external_id === trackId
+				);
+				if (existingTrackIndex >= 0) {
+					// Actualizar track existente
+					const updatedTracks = [...prev];
+					updatedTracks[existingTrackIndex] = editedTrack;
+					return updatedTracks;
+				} else {
+					// Agregar nuevo track editado
+					return [...prev, editedTrack];
+				}
+			});
+
+			// No modificamos tracks[] aquí, esperamos la respuesta del backend
+			await mutateTracks();
+			toast.success('Track actualizado correctamente');
+		} catch (error) {
+			console.error('Error saving track:', error);
+			toast.error('Error al actualizar el track');
+			throw error;
+		}
+	};
+
 	const handleSave = async (updatedRelease: Release) => {
-		console.log('updatedRelease', updatedRelease);
 		try {
 			const formData = new FormData();
+
+			// Preparar los datos del release manteniendo la estructura original de tracks[]
+			const releaseData = {
+				...updatedRelease,
+				tracks: updatedRelease.tracks?.map(track => ({
+					title: track.title,
+					resource: track.resource,
+					external_id: track.external_id ? Number(track.external_id) : 0,
+				})),
+			};
+
 			// Si la imagen es un archivo, agrégala como 'picture'
 			if (
 				updatedRelease.picture &&
 				typeof updatedRelease.picture !== 'string'
 			) {
 				formData.append('picture', updatedRelease.picture);
-				// Elimina la propiedad picture del objeto para no duplicar
-				const { picture, ...rest } = updatedRelease;
-				formData.append('data', JSON.stringify(rest));
-			} else {
-				formData.append('data', JSON.stringify(updatedRelease));
 			}
 
-			const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
-				method: 'PUT',
-				body: formData,
+			// Agregar los tracks editados
+			if (editedTracks.length > 0) {
+				formData.append('editedTracks', JSON.stringify(editedTracks));
+			}
+
+			// Agregar los datos del release
+			formData.append('data', JSON.stringify(releaseData));
+
+			console.log('editedTracks antes de enviar:', editedTracks);
+			console.log('formData completo:', {
+				releaseData,
+				editedTracks,
 			});
 
-			const data = await response.json();
-			if (data.success) {
-				setFormData(data.data);
-				toast.success('Release actualizado correctamente');
-				await mutateRelease();
-			} else {
-				toast.error(data.message || 'Error al actualizar el release');
-			}
+			// const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
+			// 	method: 'PUT',
+			// 	body: formData,
+			// });
+
+			// const data = await response.json();
+			// if (data.success) {
+			// 	setFormData(data.data);
+			// 	// Limpiar los tracks editados después de guardar exitosamente
+			// 	setEditedTracks([]);
+			// 	toast.success('Release actualizado correctamente');
+			// 	await mutateRelease();
+			// } else {
+			// 	toast.error(data.message || 'Error al actualizar el release');
+			// }
 		} catch (error) {
 			console.error('Error updating release:', error);
 			toast.error('Error al actualizar el release');
 		}
 	};
 
-	const handleTrackSave = async (updatedTrack: Track) => {
+	const handleEditTrack = async (track: any) => {
 		try {
+			// Hacer fetch de los datos completos del track
 			const response = await fetch(
-				`/api/admin/updateTrack/${updatedTrack._id}`,
-				{
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify(updatedTrack),
-				}
+				`/api/admin/getTrackById/${track.external_id}`
 			);
+			const data = await response.json();
 
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.message || 'Error al actualizar el track');
-			}
-			const apires = await response.json();
-			console.log(apires);
-			await mutateTracks();
-		} catch (error) {
-			console.error('Error saving track:', error);
-			throw error;
-		}
-	};
-
-	const handleAddTrack = async () => {
-		try {
-			const response = await fetch(`/api/admin/createTrack`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					release: releaseId,
-					name: 'Nuevo Track',
-					order: tracksData?.data ? (tracksData.data as Track[]).length : 0,
-				}),
-			});
-
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.message || 'Error al crear el track');
+			if (!data.success) {
+				throw new Error('Error al obtener los datos del track');
 			}
 
-			await mutateTracks();
+			// Usar los datos completos del track
+			const trackToEdit = data.data;
+			setSelectedTrack(trackToEdit);
+			setEditedTrackData(trackToEdit);
+			setActiveTab('tracks');
 		} catch (error) {
-			console.error('Error creating track:', error);
-			throw error;
+			console.error('Error al cargar los datos del track:', error);
+			toast.error('Error al cargar los datos del track');
 		}
 	};
 
@@ -220,8 +317,54 @@ export default function EditPage() {
 					<UpdateReleasePage
 						release={formData}
 						onSave={handleSave}
-						formData={formData}
+						formData={
+							selectedTrack
+								? {
+										...formData,
+										name: selectedTrack.name || '',
+										genre: selectedTrack.genre || 0,
+										genre_name: selectedTrack.genre_name || '',
+										subgenre: selectedTrack.subgenre || 0,
+										subgenre_name: selectedTrack.subgenre_name || '',
+										copyright_holder: selectedTrack.copyright_holder || '',
+										copyright_holder_year:
+											selectedTrack.copyright_holder_year || '',
+										language: selectedTrack.language || '',
+										artists: selectedTrack.artists || [],
+										tracks: formData.tracks,
+										// Mantener el resto de las propiedades del release
+										_id: formData._id,
+										picture: formData.picture,
+										external_id: formData.external_id,
+										auto_detect_language: formData.auto_detect_language,
+										generate_ean: formData.generate_ean,
+										backcatalog: formData.backcatalog,
+										youtube_declaration: formData.youtube_declaration,
+										dolby_atmos: formData.dolby_atmos,
+										countries: formData.countries,
+										catalogue_number: formData.catalogue_number,
+										kind: formData.kind,
+										label: formData.label,
+										label_name: formData.label_name,
+										release_version: formData.release_version,
+										publisher: formData.publisher,
+										publisher_name: formData.publisher_name,
+										publisher_year: formData.publisher_year,
+										artwork: formData.artwork,
+										is_new_release: formData.is_new_release,
+										official_date: formData.official_date,
+										original_date: formData.original_date,
+										exclusive_shop: formData.exclusive_shop,
+										territory: formData.territory,
+										ean: formData.ean,
+										createdAt: formData.createdAt,
+										updatedAt: formData.updatedAt,
+								  }
+								: formData
+						}
 						setFormData={setFormData}
+						onEditTrack={handleEditTrack}
+						genres={genres}
 					/>
 					<div className="flex justify-end space-x-3 mt-6">
 						<button
@@ -246,47 +389,76 @@ export default function EditPage() {
 					</div>
 				</>
 			) : (
-				<div className="space-y-4">
-					{tracksData?.data &&
-						Array.isArray(tracksData.data) &&
-						tracksData.data.map(track => (
-							<div
-								key={track._id}
-								className="flex items-center justify-between p-4 border-b"
-							>
-								<div>
-									<h3 className="text-lg font-medium">{track.name}</h3>
-									<p className="text-sm text-gray-500">{track.mix_name}</p>
-								</div>
-								<button
-									onClick={() => {
-										setSelectedTrack(track);
-										setIsTrackModalOpen(true);
-									}}
-									className="px-4 py-2 text-sm font-medium text-white bg-brand-light rounded-md hover:bg-brand-dark"
-								>
-									Editar
-								</button>
-								<UpdateTrackModal
-									key={track._id}
-									track={track}
-									onSave={handleTrackSave}
-									isOpen={selectedTrack?._id === track._id && isTrackModalOpen}
-									onClose={() => {
-										setIsTrackModalOpen(false);
-										setSelectedTrack(null);
-									}}
-								/>
-							</div>
-						))}
-					<button
-						type="button"
-						onClick={handleAddTrack}
-						className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-light hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-					>
-						Agregar Nuevo Track
-					</button>
-				</div>
+				<TrackForm
+					track={selectedTrack || undefined}
+					onTrackChange={(updatedTrack: Partial<Track>) => {
+						setSelectedTrack(updatedTrack as Track);
+						setEditedTrackData(updatedTrack);
+					}}
+					onSave={async trackData => {
+						if (selectedTrack) {
+							// Si estamos editando un track existente
+							const trackExternalId = Number(selectedTrack.external_id);
+
+							// Actualizar editedTracks con la última versión del track
+							setEditedTracks(prev => {
+								// Filtrar tracks anteriores con el mismo external_id
+								const filteredTracks = prev.filter(
+									t => t.external_id !== trackExternalId
+								);
+
+								const completeTrack: EditedTrack = {
+									...selectedTrack,
+									...trackData,
+									external_id: trackExternalId,
+								};
+
+								// Agregar solo la última versión del track
+								return [...filteredTracks, completeTrack];
+							});
+
+							await handleTrackSave(trackData);
+							setEditedTrackData(trackData);
+						} else {
+							// Si estamos creando un nuevo track
+							const formDataToSend = new FormData();
+							formDataToSend.append('release', formData._id || '');
+							formDataToSend.append('order', String(trackData.order || 0));
+							formDataToSend.append('name', trackData.name || '');
+							formDataToSend.append('mix_name', trackData.mix_name || '');
+							formDataToSend.append('genre', String(trackData.genre || 0));
+							formDataToSend.append(
+								'copyright_holder',
+								trackData.copyright_holder || ''
+							);
+
+							if (trackData.resource instanceof File) {
+								formDataToSend.append('file', trackData.resource);
+							}
+
+							const response = await fetch('/api/admin/createTrackInRelease', {
+								method: 'POST',
+								body: formDataToSend,
+							});
+
+							if (!response.ok) {
+								throw new Error('Error al crear el track');
+							}
+
+							const data = await response.json();
+							if (data.success) {
+								setFormData(prev => ({
+									...prev,
+									tracks: [...(prev.tracks || []), data.data],
+								}));
+							}
+						}
+						// Limpiar el track seleccionado después de guardar
+						setSelectedTrack(null);
+						setEditedTrackData(null);
+					}}
+					genres={genres}
+				/>
 			)}
 		</div>
 	);

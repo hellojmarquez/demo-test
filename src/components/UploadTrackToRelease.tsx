@@ -1,19 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { X, Plus, ArrowBigUp, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Track } from '@/types/track';
 
 interface UploadTrackToReleaseProps {
 	isOpen: boolean;
 	onClose: () => void;
 	releaseId: string;
-	onUploadComplete?: (
-		uploadedTracks: { title: string; mixName: string; file: File }[]
-	) => void;
-	onUploadProgress?: (progress: {
-		total: number;
-		loaded: number;
-		percentage: number;
-	}) => void;
+	onTrackUploaded: (track: Track) => void;
 }
 
 interface AssetRow {
@@ -27,8 +21,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	isOpen,
 	onClose,
 	releaseId,
-	onUploadComplete,
-	onUploadProgress,
+	onTrackUploaded,
 }) => {
 	const router = useRouter();
 	const [assets, setAssets] = useState<AssetRow[]>([]);
@@ -101,179 +94,36 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				return;
 			}
 
-			// Crear FormData con todos los tracks
-			const formData = new FormData();
-			const trackPromises = validAssets.map(async (asset, index) => {
-				// Crear el objeto de datos para el track
-				const trackData = {
-					order: index + 1,
-					name: asset.title.trim(),
-					mix_name: asset.mixName.trim() || '',
-					language: 'AB',
-					vocals: 'ZXX',
-					artists: [
-						{
-							id: 22310,
-							order: 2147483647,
-							artist: 1541,
-							kind: 'main',
-							name: 'Jhon Doe',
-						},
-					],
-					publishers: [
-						{
-							order: 3,
-							publisher: 70,
-							author: 'Juan Cisneros',
-						},
-					],
-					contributors: [
-						{
-							id: 555,
-							order: 3,
-							contributor: 1046,
-							role: 2,
-							name: 'Jhon Doe',
-						},
-					],
-					label_share: '',
-					genre: { id: 3, name: 'Alternative' },
-					subgenre: {
-						id: 90,
-						name: 'Alternative',
-					},
-					dolby_atmos_resource: '',
-					copyright_holder: 'ISLA sOUNDS',
-					copyright_holder_year: '2025',
-					album_only: true,
-					sample_start: '',
-					explicit_content: true,
+			// Procesar cada asset y crear un objeto track
+			for (const asset of validAssets) {
+				const track = {
+					name: asset.title,
+					mix_name: asset.mixName,
+					resource: asset.file,
+					artists: [],
 					ISRC: '',
-					generate_isrc: true,
 					DA_ISRC: '',
+					genre: { id: 0, name: '' },
+					subgenre: { id: 0, name: '' },
+					album_only: false,
+					explicit_content: false,
 					track_lenght: '',
+					generate_isrc: false,
 				};
 
-				const trackFormData = new FormData();
-				trackFormData.append('data', JSON.stringify(trackData));
-				if (asset.file) {
-					trackFormData.append('file', asset.file);
-				}
-
-				// Crear una promesa para manejar la respuesta
-				return new Promise<{
-					success: boolean;
-					message?: string;
-					data: { external_id: string; resource: string; name: string };
-				}>((resolve, reject) => {
-					const xhr = new XMLHttpRequest();
-
-					xhr.upload.onprogress = event => {
-						if (event.lengthComputable) {
-							onUploadProgress?.({
-								total: event.total,
-								loaded: event.loaded,
-								percentage: Math.round((event.loaded / event.total) * 100),
-							});
-						}
-					};
-
-					xhr.onload = () => {
-						if (xhr.status >= 200 && xhr.status < 300) {
-							try {
-								const response = JSON.parse(xhr.responseText);
-								resolve(response);
-							} catch (e) {
-								reject(
-									new Error('Error al procesar la respuesta del servidor')
-								);
-							}
-						} else {
-							reject(new Error(xhr.responseText || 'Error en la petición'));
-						}
-					};
-
-					xhr.onerror = () => {
-						reject(new Error('Error de red'));
-					};
-
-					xhr.open('POST', `/api/admin/createSingle`);
-					xhr.send(trackFormData);
-				});
-			});
-
-			// Cerrar el modal inmediatamente
-			onClose();
-
-			// Esperar a que todos los tracks se creen
-			const trackResponses = await Promise.all(trackPromises);
-
-			// Verificar si hubo algún error
-			const failedTracks = trackResponses.filter(response => !response.success);
-			if (failedTracks.length > 0) {
-				throw new Error('Error al crear algunos tracks');
+				// Llamar a onTrackUploaded con el track creado
+				onTrackUploaded(track);
 			}
-
-			// Obtener el release actual
-			const releaseRes = await fetch(`/api/admin/getReleaseById/${releaseId}`);
-			if (!releaseRes.ok) {
-				throw new Error('Error al obtener el release actual');
-			}
-			const releaseData = await releaseRes.json();
-			const currentRelease = releaseData.data;
-
-			// Actualizar el release con todos los nuevos tracks
-			const updateFormData = new FormData();
-	
-			updateFormData.append(
-				'data',
-				JSON.stringify({
-					tracks: [
-						...(currentRelease.tracks || []),
-						...trackResponses.map(response => ({
-							external_id: Number(response.data.external_id),
-							resource: response.data.resource,
-							title: response.data.name,
-						})),
-					],
-				})
-			);
-
-			const updateReleaseRes = await fetch(
-				`/api/admin/updateRelease/${releaseId}`,
-				{
-					method: 'PUT',
-					body: updateFormData,
-				}
-			);
-
-			if (!updateReleaseRes.ok) {
-				throw new Error('Error al actualizar el release con los nuevos tracks');
-			}
-
-			// Notificar al componente padre sobre los tracks subidos
-			onUploadComplete?.(
-				validAssets.map(asset => ({
-					title: asset.title.trim(),
-					mixName: asset.mixName.trim(),
-					file: asset.file!,
-				}))
-			);
 
 			// Limpiar el formulario
 			setAssets([]);
 			setError('');
 
-			// Forzar una actualización completa de los datos
-			router.refresh();
-
-			// Cerrar el modal después de un breve retraso para asegurar que los datos se actualicen
-			setTimeout(() => {
-				onClose();
-			}, 500);
+			// Cerrar el modal
+			onClose();
 		} catch (err: any) {
-			console.error('Error al crear tracks:', err);
-			setError(err.message || 'Error al crear los tracks');
+			console.error('Error al procesar tracks:', err);
+			setError(err.message || 'Error al procesar los tracks');
 		} finally {
 			setIsLoading(false);
 		}

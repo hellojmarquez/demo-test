@@ -49,6 +49,8 @@ export async function PUT(
 		console.log('Datos del release recibidos:', {
 			newArtists: releaseData.newArtists,
 			totalNewArtists: releaseData.newArtists?.length || 0,
+			newTracks: releaseData.newTracks,
+			totalNewTracks: releaseData.newTracks?.length || 0,
 		});
 
 		// Procesar los nuevos artistas
@@ -80,6 +82,71 @@ export async function PUT(
 					releaseData.artists.push(artistResult.artist);
 				} catch (error) {
 					console.error('Error al procesar artista:', error);
+				}
+			}
+		}
+
+		// Procesar los nuevos tracks
+		if (releaseData.newTracks && releaseData.newTracks.length > 0) {
+			console.log('Procesando nuevos tracks...', releaseData.newTracks);
+			for (const track of releaseData.newTracks) {
+				try {
+					console.log('Procesando track:', track);
+					const trackFormData = new FormData();
+					const trackData = {
+						order: (releaseData.tracks?.length || 0) + 1,
+						name: track.title,
+						mix_name: track.mixName || '',
+						language: 'AB',
+						vocals: 'ZXX',
+						artists: [],
+						publishers: [],
+						contributors: [],
+						label_share: '',
+						genre: { id: 3, name: 'Alternative' },
+						subgenre: { id: 90, name: 'Alternative' },
+						dolby_atmos_resource: '',
+						copyright_holder: 'ISLA sOUNDS',
+						copyright_holder_year: '2025',
+						album_only: true,
+						sample_start: '',
+						explicit_content: true,
+						ISRC: '',
+						generate_isrc: true,
+						DA_ISRC: '',
+						track_lenght: '',
+					};
+
+					console.log('Datos del track a crear:', trackData);
+					trackFormData.append('data', JSON.stringify(trackData));
+					trackFormData.append('file', track.file);
+
+					const trackResponse = await fetch(
+						`${req.nextUrl.origin}/api/admin/createSingle`,
+						{
+							method: 'POST',
+							body: trackFormData,
+						}
+					);
+
+					const trackResult = await trackResponse.json();
+					console.log('Resultado de creación de track:', trackResult);
+
+					if (trackResult.success) {
+						console.log('Track creado exitosamente, agregando al release...');
+						releaseData.tracks.push({
+							external_id: Number(trackResult.data.external_id),
+							resource: trackResult.data.resource,
+							title: trackResult.data.name,
+							mixName: track.mixName || '',
+						});
+						console.log(
+							'Estado actual de tracks en releaseData:',
+							releaseData.tracks
+						);
+					}
+				} catch (error) {
+					console.error('Error al procesar track:', error);
 				}
 			}
 		}

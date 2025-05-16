@@ -7,6 +7,15 @@ import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
 import { Track } from '@/types/track';
 
+export interface GenreData {
+	id: number;
+	name: string;
+	subgenres: Array<{
+		id: number;
+		name: string;
+	}>;
+}
+
 interface Artist {
 	external_id: number;
 	name: string;
@@ -50,16 +59,18 @@ interface Subgenre {
 	name: string;
 }
 
-interface CreateTrackModalProps {
-	isOpen: boolean;
-	onClose: () => void;
+export interface TrackFormProps {
+	track?: Track;
+	onTrackChange?: (track: Partial<Track>) => void;
 	onSave: (track: Partial<Track>) => Promise<void>;
+	genres: GenreData[];
 }
 
-const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
-	isOpen,
-	onClose,
+const TrackForm: React.FC<TrackFormProps> = ({
+	track,
+	onTrackChange,
 	onSave,
+	genres,
 }) => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [artists, setArtists] = useState<Artist[]>([]);
@@ -73,34 +84,77 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 	const trackLengthRef = React.useRef<HTMLInputElement>(null);
 	const sampleStartRef = React.useRef<HTMLInputElement>(null);
 	const [releases, setReleases] = useState<Release[]>([]);
-	const [genres, setGenres] = useState<Genre[]>([]);
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 
-	const [formData, setFormData] = useState<Partial<Track>>({
-		name: '',
-		mix_name: '',
-		DA_ISRC: '',
-		ISRC: '',
-		album_only: false,
-		artists: [],
+	const [formData, setFormData] = useState<Track>({
+		_id: '',
+		external_id: track?.external_id || '',
+		name: track?.name || '',
+		mix_name: track?.mix_name || '',
+		DA_ISRC: track?.DA_ISRC || '',
+		ISRC: track?.ISRC || '',
+		__v: 0,
+		album_only: track?.album_only || false,
+		artists: track?.artists || [],
 		contributors: [],
-		copyright_holder: '',
-		copyright_holder_year: '',
-		dolby_atmos_resource: '',
-		explicit_content: false,
-		generate_isrc: false,
-		genre: { id: 0, name: '' },
-		subgenre: { id: 0, name: '' },
-		label_share: undefined,
-		language: '',
-		order: undefined,
+		copyright_holder: track?.copyright_holder || '',
+		copyright_holder_year: track?.copyright_holder_year || '',
+		createdAt: '',
+		dolby_atmos_resource: track?.dolby_atmos_resource || '',
+		explicit_content: track?.explicit_content || false,
+		generate_isrc: track?.generate_isrc || false,
+		genre: track?.genre || 0,
+		genre_name: track?.genre_name || '',
+		subgenre: track?.subgenre || 0,
+		subgenre_name: track?.subgenre_name || '',
+		label_share: 0,
+		language: track?.language || '',
+		order: track?.order || 0,
 		publishers: [],
 		release: '',
-		resource: null,
+		resource: track?.resource || '',
 		sample_start: '',
-		track_lenght: undefined,
+		track_lenght: track?.track_lenght || '',
+		updatedAt: '',
 		vocals: '',
+		status: track?.status || 'Borrador',
 	});
+
+	// Efecto para inicializar los subgéneros cuando se carga el componente
+	useEffect(() => {
+		if (track?.genre) {
+			const selectedGenre = genres.find(g => g.id === track.genre);
+			if (selectedGenre) {
+				setSubgenres(selectedGenre.subgenres || []);
+			}
+		}
+	}, [track, genres]);
+
+	// Efecto para actualizar subgéneros cuando cambia el género
+	useEffect(() => {
+		if (formData.genre) {
+			const selectedGenre = genres.find(g => g.id === formData.genre);
+			if (selectedGenre) {
+				setSubgenres(selectedGenre.subgenres || []);
+
+				// Si hay un subgénero seleccionado pero no está en la lista actual, lo agregamos
+				if (
+					formData.subgenre &&
+					!selectedGenre.subgenres.some(s => s.id === formData.subgenre)
+				) {
+					const currentSubgenre = {
+						id: formData.subgenre,
+						name: formData.subgenre_name || '',
+					};
+					setSubgenres(prev => [...prev, currentSubgenre]);
+				}
+			} else {
+				setSubgenres([]);
+			}
+		} else {
+			setSubgenres([]);
+		}
+	}, [formData.genre, genres, formData.subgenre, formData.subgenre_name]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -123,13 +177,6 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 				const publisherData = await publisherRes.json();
 				if (publisherData.success) {
 					setPublishers(publisherData.data);
-				}
-
-				// Fetch genres
-				const genresRes = await fetch('/api/admin/getAllGenres');
-				const genresData = await genresRes.json();
-				if (genresData.success && Array.isArray(genresData.data)) {
-					setGenres(genresData.data);
 				}
 
 				// Fetch artists
@@ -157,10 +204,47 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 			}
 		};
 
-		if (isOpen) {
-			fetchData();
+		fetchData();
+	}, []);
+
+	// Efecto para actualizar formData cuando cambia el track
+	useEffect(() => {
+		if (track) {
+			setFormData({
+				_id: track._id || '',
+				external_id: track.external_id || '',
+				name: track.name || '',
+				mix_name: track.mix_name || '',
+				DA_ISRC: track.DA_ISRC || '',
+				ISRC: track.ISRC || '',
+				__v: track.__v || 0,
+				album_only: track.album_only || false,
+				artists: track.artists || [],
+				contributors: track.contributors || [],
+				copyright_holder: track.copyright_holder || '',
+				copyright_holder_year: track.copyright_holder_year || '',
+				createdAt: track.createdAt || '',
+				dolby_atmos_resource: track.dolby_atmos_resource || '',
+				explicit_content: track.explicit_content || false,
+				generate_isrc: track.generate_isrc || false,
+				genre: track.genre || 0,
+				genre_name: track.genre_name || '',
+				subgenre: track.subgenre || 0,
+				subgenre_name: track.subgenre_name || '',
+				label_share: track.label_share || 0,
+				language: track.language || '',
+				order: track.order || 0,
+				publishers: track.publishers || [],
+				release: track.release || '',
+				resource: track.resource || '',
+				sample_start: track.sample_start || '',
+				track_lenght: track.track_length || '',
+				updatedAt: track.updatedAt || '',
+				vocals: track.vocals || '',
+				status: track.status || 'Borrador',
+			});
 		}
-	}, [isOpen]);
+	}, [track]);
 
 	const handleAddArtist = () => {
 		setFormData(prev => ({
@@ -354,51 +438,28 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 		>
 	) => {
 		const { name, value, type } = e.target;
-		if (type === 'checkbox') {
-			const checkbox = e.target as HTMLInputElement;
+
+		if (name === 'genre') {
+			const selectedGenre = genres.find(g => g.id === Number(value));
 			setFormData(prev => ({
 				...prev,
-				[name]: checkbox.checked,
-			}));
-		} else if (name === 'genre') {
-			// Manejo especial para el cambio de género
-			const genreId = parseInt(value);
-			const selectedGenre = genres.find(g => g.id === genreId);
-			setFormData(prev => ({
-				...prev,
-				genre: {
-					id: genreId,
-					name: selectedGenre ? selectedGenre.name : '',
-				},
-				// Reset subgenre when genre changes
-				subgenre: {
-					id: 0,
-					name: '',
-				},
+				genre: Number(value),
+				genre_name: selectedGenre?.name || '',
+				subgenre: 0,
+				subgenre_name: '',
 			}));
 		} else if (name === 'subgenre') {
-			// Manejo especial para el cambio de subgénero
-			const subgenreId = parseInt(value);
-			const currentGenre = genres.find(g => g.id === formData.genre?.id);
-			const selectedSubgenre = currentGenre?.subgenres?.find(
-				s => s.id === subgenreId
-			);
+			const selectedSubgenre = subgenres.find(s => s.id === Number(value));
 			setFormData(prev => ({
 				...prev,
-				subgenre: {
-					id: subgenreId,
-					name: selectedSubgenre ? selectedSubgenre.name : '',
-				},
+				subgenre: Number(value),
+				subgenre_name: selectedSubgenre?.name || '',
 			}));
-		} else if (name === 'label_share') {
-			const numericValue = value === '' ? undefined : parseFloat(value);
+		} else if (type === 'checkbox') {
 			setFormData(prev => ({
 				...prev,
-				label_share: numericValue,
+				[name]: (e.target as HTMLInputElement).checked,
 			}));
-		} else if (name === 'track_lenght' || name === 'sample_start') {
-			// Handle time input change
-			handleTimeChange(name, value);
 		} else {
 			setFormData(prev => ({
 				...prev,
@@ -415,7 +476,6 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 
 		try {
 			await onSave(formData as Track);
-			onClose();
 		} catch (err: any) {
 			setError(err.message || 'Error al crear el track');
 		} finally {
@@ -442,946 +502,804 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
 	};
 
 	return (
-		<AnimatePresence>
-			{isOpen && (
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-				>
-					<motion.div
-						initial={{ scale: 0.9, opacity: 0 }}
-						animate={{ scale: 1, opacity: 1 }}
-						exit={{ scale: 0.9, opacity: 0 }}
-						className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-					>
-						<div className="flex justify-between items-center mb-4">
-							<h2 className="text-xl font-bold">Crear Track</h2>
-							<button
-								onClick={onClose}
-								className="p-2 hover:bg-gray-100 rounded-full"
-							>
-								<X size={20} />
-							</button>
-						</div>
+		<div className="bg-white rounded-lg p-6">
+			<div className="flex justify-between items-center mb-4">
+				<h3 className="text-lg font-medium text-gray-900">
+					{track ? 'Editar Track' : 'Nuevo Track'}
+				</h3>
+			</div>
 
-						{isLoading ? (
-							<div className="p-8 text-center">
-								<div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-								<p className="mt-2 text-gray-600">Cargando datos...</p>
+			{error && (
+				<div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
+					{error}
+				</div>
+			)}
+
+			<form onSubmit={handleSubmit} className="space-y-4">
+				{/* seleccionar lanzamiento */}
+				<div className="flex gap-x-4">
+					{/* File Upload Section */}
+					<div className="w-1/3 space-y-4">
+						<div className="flex items-center gap-4">
+							<label className="block text-sm font-medium text-gray-700">
+								Archivo WAV
+							</label>
+							<div>
+								<input
+									type="file"
+									ref={fileInputRef}
+									onChange={handleFileChange}
+									accept=".wav"
+									className="hidden"
+								/>
+								<button
+									type="button"
+									onClick={() => fileInputRef.current?.click()}
+									className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+								>
+									<Upload className="h-4 w-4 mr-2" />
+									Subir archivo
+								</button>
 							</div>
-						) : error ? (
-							<div className="p-8 text-center text-red-500">
-								<XCircle size={48} className="mx-auto mb-2" />
-								<p>{error}</p>
+						</div>
+						{uploadProgress > 0 && uploadProgress < 100 && (
+							<div className="w-full bg-gray-200 rounded-full h-1.5">
+								<div
+									className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
+									style={{ width: `${uploadProgress}%` }}
+								></div>
+							</div>
+						)}
+						{formData.resource && (
+							<div className="text-sm text-gray-500 mt-1">
+								Archivo actual:{' '}
+								{typeof formData.resource === 'string'
+									? formData.resource
+									: formData.resource.name}
+							</div>
+						)}
+					</div>
+				</div>
+
+				<div className="grid grid-cols-2 gap-6">
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Nombre
+						</label>
+						<input
+							type="text"
+							name="name"
+							value={formData.name}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							required
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Nombre de mix
+						</label>
+						<input
+							type="text"
+							name="mix_name"
+							value={formData.mix_name}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							ISRC
+						</label>
+						<input
+							type="text"
+							name="ISRC"
+							value={formData.ISRC}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							DA ISRC
+						</label>
+						<input
+							type="text"
+							name="DA_ISRC"
+							value={formData.DA_ISRC}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Género
+						</label>
+						<select
+							name="genre"
+							value={formData.genre || ''}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						>
+							<option key="genre-empty" value="">
+								Seleccionar género
+							</option>
+							{genres.map(genre => (
+								<option key={`genre-${genre.id}`} value={genre.id}>
+									{genre.name}
+								</option>
+							))}
+						</select>
+						{formData.genre && (
+							<p className="text-xs text-gray-500 mt-1">
+								Género actual:{' '}
+								{genres.find(g => g.id === formData.genre)?.name || ''}
+							</p>
+						)}
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Subgénero
+						</label>
+						<select
+							name="subgenre"
+							value={formData.subgenre || ''}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						>
+							<option key="subgenre-empty" value="">
+								Seleccionar subgénero
+							</option>
+							{subgenres.map(subgenre => (
+								<option key={`subgenre-${subgenre.id}`} value={subgenre.id}>
+									{subgenre.name}
+								</option>
+							))}
+						</select>
+						{formData.subgenre && (
+							<p className="text-xs text-gray-500 mt-1">
+								Subgénero actual:{' '}
+								{subgenres.find(s => s.id === formData.subgenre)?.name || ''}
+							</p>
+						)}
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Idioma
+						</label>
+						<select
+							name="language"
+							value={formData.language}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						>
+							<option key="language-ES" value="ES">
+								Español
+							</option>
+							<option key="language-EN" value="EN">
+								English
+							</option>
+						</select>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Label Share
+						</label>
+						<Cleave
+							options={{
+								numericOnly: true,
+								prefix: '',
+								blocks: [3],
+								delimiter: '',
+							}}
+							name="label_share"
+							value={formData.label_share || ''}
+							onChange={e =>
+								setFormData(prev => ({
+									...prev,
+									label_share: e.target.value
+										? parseFloat(e.target.value)
+										: undefined,
+								}))
+							}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Vocals
+						</label>
+						<select
+							name="vocals"
+							value={formData.vocals}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						>
+							<option value="">Seleccionar idioma</option>
+							<option value="EN">English</option>
+							<option value="ES">Español</option>
+						</select>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Copyright Holder
+						</label>
+						<input
+							type="text"
+							name="copyright_holder"
+							value={formData.copyright_holder}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Copyright Year
+						</label>
+						<input
+							type="text"
+							name="copyright_holder_year"
+							value={formData.copyright_holder_year}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Dolby Atmos Resource
+						</label>
+						<input
+							type="text"
+							name="dolby_atmos_resource"
+							value={formData.dolby_atmos_resource}
+							onChange={handleChange}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Duración
+						</label>
+						<Cleave
+							options={{
+								time: true,
+								timePattern: ['h', 'm', 's'],
+								timeFormat: 'HH:mm:ss',
+								blocks: [2, 2, 2],
+								delimiter: ':',
+							}}
+							name="track_lenght"
+							value={formData.track_lenght || ''}
+							onChange={e => handleTimeChange('track_lenght', e.target.value)}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							placeholder="00:00:00"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Sample Start
+						</label>
+						<Cleave
+							options={{
+								time: true,
+								timePattern: ['h', 'm', 's'],
+								timeFormat: 'HH:mm:ss',
+								blocks: [2, 2, 2],
+								delimiter: ':',
+							}}
+							name="sample_start"
+							value={formData.sample_start}
+							onChange={e => handleTimeChange('sample_start', e.target.value)}
+							className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+							placeholder="00:00:00"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700">
+							Orden
+						</label>
+						<input
+							type="number"
+							name="order"
+							value={formData.order || ''}
+							onChange={e =>
+								setFormData(prev => ({
+									...prev,
+									order: parseInt(e.target.value),
+								}))
+							}
+							onKeyPress={e => {
+								if (!/[0-9]/.test(e.key)) {
+									e.preventDefault();
+								}
+							}}
+							className="w-20 p-2 border rounded"
+							placeholder="200"
+							min="0"
+						/>
+					</div>
+				</div>
+
+				{/* Checkboxes Section */}
+				<div className="grid grid-cols-3 gap-4">
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="album_only"
+							checked={formData.album_only}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Solo Album
+						</label>
+					</div>
+
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="explicit_content"
+							checked={formData.explicit_content}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Contenido Explícito
+						</label>
+					</div>
+
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							name="generate_isrc"
+							checked={formData.generate_isrc}
+							onChange={handleChange}
+							className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
+						/>
+						<label className="ml-2 block text-sm text-gray-700">
+							Generar ISRC
+						</label>
+					</div>
+				</div>
+
+				{/* Artists Section */}
+				<div className="space-y-4">
+					<div className="flex justify-between items-center">
+						<h3 className="text-lg font-medium text-gray-900">Artistas</h3>
+						<button
+							type="button"
+							onClick={handleAddArtist}
+							className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+						>
+							<Plus size={20} />
+						</button>
+					</div>
+					<div className="space-y-4">
+						{formData.artists?.length === 0 ? (
+							<div className="flex items-center gap-2">
+								<select
+									value={formData.artists?.[0]?.artist ?? ''}
+									onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+										const value = e.target.value;
+										if (value) {
+											handleArtistChange(0, 'artist', value);
+										}
+									}}
+									className="flex-1 p-2 border rounded"
+								>
+									<option value="">Select Artist</option>
+									{artists?.map(a => (
+										<option
+											key={`artist-${a?.external_id || ''}`}
+											value={a?.external_id || ''}
+										>
+											{a?.name || ''}
+										</option>
+									))}
+								</select>
+
+								<select
+									value={formData.artists?.[0]?.kind ?? ''}
+									onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+										handleArtistChange(0, 'kind', e.target.value);
+									}}
+									className="flex-1 p-2 border rounded"
+								>
+									<option value="">Select Kind</option>
+									<option value="main">Main</option>
+									<option value="featuring">Featuring</option>
+									<option value="remixer">Remixer</option>
+								</select>
+
+								<input
+									type="number"
+									value={
+										typeof formData.artists?.[0]?.order === 'number'
+											? formData.artists[0].order
+											: 0
+									}
+									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+										const val = parseInt(e.target.value);
+										handleArtistChange(0, 'order', isNaN(val) ? 0 : val);
+									}}
+									className="w-20 p-2 border rounded"
+									placeholder="Order"
+								/>
 							</div>
 						) : (
-							<form onSubmit={handleSubmit} className="space-y-6">
-								{/* seleccionar lanzamienot */}
-								<div className="flex  gap-x-4">
-									<div className="flex w-2/3 flex-col gap-2 ">
-										<h1>Seleccionar lanzamiento</h1>
-										<select
-											value={formData.release || ''}
-											onChange={e =>
-												setFormData(prev => ({
-													...prev,
-													release: e.target.value || '',
-												}))
+							formData.artists?.map((artist, index) => (
+								<div key={index} className="flex items-center gap-2">
+									<select
+										value={artist.artist ?? ''}
+										onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+											const value = e.target.value;
+											if (value) {
+												handleArtistChange(index, 'artist', value);
 											}
-											className="w-full mb-2 border rounded px-3 py-2 text-sm"
-										>
-											<option key="release-empty" value="">
-												Seleccionar lanzamiento
-											</option>
-											{releases.map(release => (
-												<option
-													key={`release-${release._id}`}
-													value={release._id || ''}
-												>
-													{release.name || ''}
-												</option>
-											))}
-										</select>
-										{formData.release && (
-											<div className="flex items-center gap-2 mb-2">
-												{releases.find(r => r._id === formData.release)?.picture
-													?.base64 && (
-													<img
-														src={`data:image/jpeg;base64,${
-															releases.find(r => r._id === formData.release)
-																?.picture?.base64
-														}`}
-														alt="Release cover"
-														className="w-12 h-12 object-cover rounded"
-													/>
-												)}
-												<span className="text-sm">
-													{releases.find(r => r._id === formData.release)
-														?.name || ''}
-												</span>
-											</div>
-										)}
-									</div>
-
-									{/* File Upload Section */}
-									<div className="w-1/3 space-y-4">
-										<div className="flex items-center gap-4">
-											<label className="block text-sm font-medium text-gray-700">
-												Archivo WAV
-											</label>
-											<div>
-												<input
-													type="file"
-													ref={fileInputRef}
-													onChange={handleFileChange}
-													accept=".wav"
-													className="hidden"
-												/>
-												<button
-													type="button"
-													onClick={() => fileInputRef.current?.click()}
-													className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-												>
-													<Upload className="h-4 w-4 mr-2" />
-													Subir archivo
-												</button>
-											</div>
-										</div>
-										{uploadProgress > 0 && uploadProgress < 100 && (
-											<div className="w-full bg-gray-200 rounded-full h-1.5">
-												<div
-													className="bg-brand-light h-1.5 rounded-full transition-all duration-300"
-													style={{ width: `${uploadProgress}%` }}
-												></div>
-											</div>
-										)}
-										{formData.resource && (
-											<div className="text-sm text-gray-500 mt-1">
-												Archivo actual:{' '}
-												{typeof formData.resource === 'string'
-													? formData.resource
-													: formData.resource.name}
-											</div>
-										)}
-									</div>
-								</div>
-
-								<div className="grid grid-cols-2 gap-6">
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Nombre
-										</label>
-										<input
-											type="text"
-											name="name"
-											value={formData.name}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Nombre de mix
-										</label>
-										<input
-											type="text"
-											name="mix_name"
-											value={formData.mix_name}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											ISRC
-										</label>
-										<input
-											type="text"
-											name="ISRC"
-											value={formData.ISRC}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											DA ISRC
-										</label>
-										<input
-											type="text"
-											name="DA_ISRC"
-											value={formData.DA_ISRC}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Género
-										</label>
-										<select
-											name="genre"
-											value={formData.genre?.id || ''}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										>
-											<option key="genre-empty" value="">
-												Seleccionar género
-											</option>
-											{genres.map(genre => (
-												<option key={`genre-${genre.id}`} value={genre.id}>
-													{genre.name}
-												</option>
-											))}
-										</select>
-										{formData.genre?.name && (
-											<p className="text-xs text-gray-500 mt-1">
-												Género actual: {formData.genre.name}
-											</p>
-										)}
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Subgénero
-										</label>
-										<select
-											name="subgenre"
-											value={formData.subgenre?.id || ''}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										>
-											<option key="subgenre-empty" value="">
-												Seleccionar subgénero
-											</option>
-											{genres
-												.find(g => g.id === formData.genre?.id)
-												?.subgenres?.map(subgenre => (
-													<option
-														key={`subgenre-${subgenre.id}`}
-														value={subgenre.id}
-													>
-														{subgenre.name}
-													</option>
-												))}
-										</select>
-										{formData.subgenre?.name && (
-											<p className="text-xs text-gray-500 mt-1">
-												Subgénero actual: {formData.subgenre.name}
-											</p>
-										)}
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Idioma
-										</label>
-										<select
-											name="language"
-											value={formData.language}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										>
-											<option key="language-ES" value="ES">
-												Español
-											</option>
-											<option key="language-EN" value="EN">
-												English
-											</option>
-										</select>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Label Share
-										</label>
-										<Cleave
-											options={{
-												numericOnly: true,
-												prefix: '',
-
-												blocks: [3],
-												delimiter: '',
-											}}
-											name="label_share"
-											value={formData.label_share || ''}
-											onChange={e =>
-												setFormData(prev => ({
-													...prev,
-													label_share: e.target.value
-														? parseFloat(e.target.value)
-														: undefined,
-												}))
-											}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Vocals
-										</label>
-										<select
-											name="vocals"
-											value={formData.vocals}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										>
-											<option value="">Seleccionar idioma</option>
-											<option value="EN">English</option>
-											<option value="ES">Español</option>
-										</select>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Copyright Holder
-										</label>
-										<input
-											type="text"
-											name="copyright_holder"
-											value={formData.copyright_holder}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Copyright Year
-										</label>
-										<input
-											type="text"
-											name="copyright_holder_year"
-											value={formData.copyright_holder_year}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Dolby Atmos Resource
-										</label>
-										<input
-											type="text"
-											name="dolby_atmos_resource"
-											value={formData.dolby_atmos_resource}
-											onChange={handleChange}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Duración
-										</label>
-										<Cleave
-											options={{
-												time: true,
-												timePattern: ['h', 'm', 's'],
-												timeFormat: 'HH:mm:ss',
-												blocks: [2, 2, 2],
-												delimiter: ':',
-											}}
-											name="track_lenght"
-											value={formData.track_lenght || ''}
-											onChange={e =>
-												handleTimeChange('track_lenght', e.target.value)
-											}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-											placeholder="00:00:00"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Sample Start
-										</label>
-										<Cleave
-											options={{
-												time: true,
-												timePattern: ['h', 'm', 's'],
-												timeFormat: 'HH:mm:ss',
-												blocks: [2, 2, 2],
-												delimiter: ':',
-											}}
-											name="sample_start"
-											value={formData.sample_start}
-											onChange={e =>
-												handleTimeChange('sample_start', e.target.value)
-											}
-											className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-											placeholder="00:00:00"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-gray-700">
-											Orden
-										</label>
-										<input
-											type="number"
-											name="order"
-											value={formData.order || ''}
-											onChange={e =>
-												setFormData(prev => ({
-													...prev,
-													order: parseInt(e.target.value),
-												}))
-											}
-											onKeyPress={e => {
-												if (!/[0-9]/.test(e.key)) {
-													e.preventDefault();
-												}
-											}}
-											className="w-20 p-2 border rounded"
-											placeholder="200"
-											min="0"
-										/>
-									</div>
-								</div>
-
-								{/* Checkboxes Section */}
-								<div className="grid grid-cols-3 gap-4">
-									<div className="flex items-center">
-										<input
-											type="checkbox"
-											name="album_only"
-											checked={formData.album_only}
-											onChange={handleChange}
-											className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-										/>
-										<label className="ml-2 block text-sm text-gray-700">
-											Solo Album
-										</label>
-									</div>
-
-									<div className="flex items-center">
-										<input
-											type="checkbox"
-											name="explicit_content"
-											checked={formData.explicit_content}
-											onChange={handleChange}
-											className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-										/>
-										<label className="ml-2 block text-sm text-gray-700">
-											Contenido Explícito
-										</label>
-									</div>
-
-									<div className="flex items-center">
-										<input
-											type="checkbox"
-											name="generate_isrc"
-											checked={formData.generate_isrc}
-											onChange={handleChange}
-											className="h-4 w-4 text-brand-dark focus:ring-brand-dark border-gray-300 rounded"
-										/>
-										<label className="ml-2 block text-sm text-gray-700">
-											Generar ISRC
-										</label>
-									</div>
-								</div>
-
-								{/* Artists Section */}
-								<div className="space-y-4">
-									<div className="flex justify-between items-center">
-										<h3 className="text-lg font-medium text-gray-900">
-											Artistas
-										</h3>
-										<button
-											type="button"
-											onClick={handleAddArtist}
-											className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-										>
-											<Plus size={20} />
-										</button>
-									</div>
-									<div className="space-y-4">
-										{formData.artists?.length === 0 ? (
-											<div className="flex items-center gap-2">
-												<select
-													value={formData.artists?.[0]?.artist ?? ''}
-													onChange={(
-														e: React.ChangeEvent<HTMLSelectElement>
-													) => {
-														const value = e.target.value;
-														if (value) {
-															handleArtistChange(0, 'artist', value);
-														}
-													}}
-													className="flex-1 p-2 border rounded"
-												>
-													<option value="">Select Artist</option>
-													{artists?.map(a => (
-														<option
-															key={`artist-${a?.external_id || ''}`}
-															value={a?.external_id || ''}
-														>
-															{a?.name || ''}
-														</option>
-													))}
-												</select>
-
-												<select
-													value={formData.artists?.[0]?.kind ?? ''}
-													onChange={(
-														e: React.ChangeEvent<HTMLSelectElement>
-													) => {
-														handleArtistChange(0, 'kind', e.target.value);
-													}}
-													className="flex-1 p-2 border rounded"
-												>
-													<option value="">Select Kind</option>
-													<option value="main">Main</option>
-													<option value="featuring">Featuring</option>
-													<option value="remixer">Remixer</option>
-												</select>
-
-												<input
-													type="number"
-													value={
-														typeof formData.artists?.[0]?.order === 'number'
-															? formData.artists[0].order
-															: 0
-													}
-													onChange={(
-														e: React.ChangeEvent<HTMLInputElement>
-													) => {
-														const val = parseInt(e.target.value);
-														handleArtistChange(
-															0,
-															'order',
-															isNaN(val) ? 0 : val
-														);
-													}}
-													className="w-20 p-2 border rounded"
-													placeholder="Order"
-												/>
-											</div>
-										) : (
-											formData.artists?.map((artist, index) => (
-												<div key={index} className="flex items-center gap-2">
-													<select
-														value={artist.artist ?? ''}
-														onChange={(
-															e: React.ChangeEvent<HTMLSelectElement>
-														) => {
-															const value = e.target.value;
-															if (value) {
-																handleArtistChange(index, 'artist', value);
-															}
-														}}
-														className="flex-1 p-2 border rounded"
-													>
-														<option value="">Select Artist</option>
-														{artists?.map(a => (
-															<option
-																key={`artist-${a?.external_id || ''}`}
-																value={a?.external_id || ''}
-															>
-																{a?.name || ''}
-															</option>
-														))}
-													</select>
-
-													<select
-														value={artist.kind ?? ''}
-														onChange={(
-															e: React.ChangeEvent<HTMLSelectElement>
-														) => {
-															handleArtistChange(index, 'kind', e.target.value);
-														}}
-														className="flex-1 p-2 border rounded"
-													>
-														<option value="">Select Kind</option>
-														<option value="main">Main</option>
-														<option value="featuring">Featuring</option>
-														<option value="remixer">Remixer</option>
-													</select>
-
-													<input
-														type="number"
-														value={
-															typeof artist.order === 'number'
-																? artist.order
-																: 0
-														}
-														onChange={(
-															e: React.ChangeEvent<HTMLInputElement>
-														) => {
-															const val = parseInt(e.target.value);
-															handleArtistChange(
-																index,
-																'order',
-																isNaN(val) ? 0 : val
-															);
-														}}
-														className="w-20 p-2 border rounded"
-														placeholder="Order"
-													/>
-
-													{formData.artists && formData.artists.length > 1 && (
-														<button
-															onClick={() => handleRemoveArtist(index)}
-															className="p-2 text-red-600 hover:text-red-800"
-														>
-															Remove
-														</button>
-													)}
-												</div>
-											))
-										)}
-									</div>
-								</div>
-
-								{/* Contributors Section */}
-								<div className="space-y-4">
-									<div className="flex justify-between items-center">
-										<h3 className="text-lg font-medium text-gray-900">
-											Contributors
-										</h3>
-										<button
-											type="button"
-											onClick={handleAddContributor}
-											className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-										>
-											<Plus size={20} />
-										</button>
-									</div>
-									<div className="space-y-4">
-										{formData.contributors?.length === 0 ? (
-											<div className="flex items-center gap-2">
-												<select
-													value={formData.contributors?.[0]?.name || ''}
-													onChange={e => {
-														const selectValue = e.target.value;
-														if (selectValue && selectValue !== '') {
-															handleContributorChange(0, 'name', selectValue);
-														}
-													}}
-													className="flex-1 p-2 border rounded"
-												>
-													<option value="">Select Contributor</option>
-													{contributors?.map((c, idx) => (
-														<option
-															key={`contributor-0-${idx}-${c?.name || 'empty'}`}
-															value={c?.name || ''}
-														>
-															{c?.name || ''}
-														</option>
-													))}
-												</select>
-
-												<select
-													value={formData.contributors?.[0]?.role || ''}
-													onChange={e => {
-														const value = e.target.value;
-														if (value && value !== '') {
-															handleContributorChange(0, 'role', value);
-														}
-													}}
-													className="flex-1 p-2 border rounded"
-												>
-													<option value="">Select Role</option>
-													{roles?.map((r, idx) => (
-														<option
-															key={`role-0-${idx}-${r?.id || 'empty'}`}
-															value={r?.id ? String(r.id) : ''}
-														>
-															{r?.name || ''}
-														</option>
-													))}
-												</select>
-
-												<input
-													type="number"
-													value={formData.contributors?.[0]?.order ?? 0}
-													onChange={e => {
-														const val = parseInt(e.target.value);
-														if (!isNaN(val)) {
-															handleContributorChange(0, 'order', val);
-														}
-													}}
-													className="w-20 p-2 border rounded"
-													placeholder="Order"
-												/>
-											</div>
-										) : (
-											formData.contributors?.map((contributor, index) => (
-												<div
-													key={`contributor-row-${index}`}
-													className="flex items-center gap-2"
-												>
-													<select
-														value={contributor.name || ''}
-														onChange={e => {
-															const selectValue = e.target.value;
-															if (selectValue && selectValue !== '') {
-																handleContributorChange(
-																	index,
-																	'name',
-																	selectValue
-																);
-															}
-														}}
-														className="flex-1 p-2 border rounded"
-													>
-														<option value="">Select Contributor</option>
-														{contributors?.map((c, idx) => (
-															<option
-																key={`contributor-${index}-${idx}-${
-																	c?.name || 'empty'
-																}`}
-																value={c?.name || ''}
-															>
-																{c?.name || ''}
-															</option>
-														))}
-													</select>
-
-													<select
-														value={contributor.role || ''}
-														onChange={e => {
-															const value = e.target.value;
-															if (value && value !== '') {
-																handleContributorChange(index, 'role', value);
-															}
-														}}
-														className="flex-1 p-2 border rounded"
-													>
-														<option value="">Select Role</option>
-														{roles?.map((r, idx) => (
-															<option
-																key={`role-${index}-${idx}-${r?.id || 'empty'}`}
-																value={r?.id ? String(r.id) : ''}
-															>
-																{r?.name || ''}
-															</option>
-														))}
-													</select>
-
-													<input
-														type="number"
-														value={contributor.order ?? 0}
-														onChange={e => {
-															const val = parseInt(e.target.value);
-															if (!isNaN(val)) {
-																handleContributorChange(index, 'order', val);
-															}
-														}}
-														className="w-20 p-2 border rounded"
-														placeholder="Order"
-													/>
-
-													{formData.contributors &&
-														formData.contributors.length > 1 && (
-															<button
-																onClick={() => handleRemoveContributor(index)}
-																className="p-2 text-red-600 hover:text-red-800"
-															>
-																<Trash2 size={20} />
-															</button>
-														)}
-												</div>
-											))
-										)}
-									</div>
-								</div>
-
-								{/* Publishers Section */}
-								<div className="space-y-4">
-									<div className="flex justify-between items-center">
-										<h3 className="text-lg font-medium text-gray-900">
-											Publishers
-										</h3>
-										<button
-											type="button"
-											onClick={handleAddPublisher}
-											className="p-2 text-brand-light hover:text-brand-dark rounded-full"
-										>
-											<Plus size={20} />
-										</button>
-									</div>
-									<div className="space-y-4">
-										{formData.publishers?.length === 0 ? (
-											<div className="flex items-center gap-2">
-												<select
-													value={String(
-														formData.publishers?.[0]?.publisher || ''
-													)}
-													onChange={e =>
-														handlePublisherChange(
-															0,
-															'publisher',
-															e.target.value ? parseInt(e.target.value) : 0
-														)
-													}
-													className="flex-1 p-2 border rounded"
-												>
-													<option value="">Seleccionar Publisher</option>
-													{publishers?.map((p, idx) => (
-														<option
-															key={`publisher-${p?.external_id || idx}`}
-															value={String(p?.external_id || '')}
-														>
-															{p?.name || ''}
-														</option>
-													))}
-												</select>
-
-												<input
-													type="text"
-													name="author"
-													value={formData.publishers?.[0]?.author || ''}
-													onChange={(
-														e: React.ChangeEvent<HTMLInputElement>
-													) => {
-														handlePublisherChange(0, 'author', e.target.value);
-													}}
-													className="flex-1 p-2 border rounded"
-													placeholder="Autor"
-												/>
-
-												<input
-													type="number"
-													value={formData.publishers?.[0]?.order ?? 0}
-													onChange={(
-														e: React.ChangeEvent<HTMLInputElement>
-													) => {
-														const val = parseInt(e.target.value);
-														handlePublisherChange(
-															0,
-															'order',
-															isNaN(val) ? 0 : val
-														);
-													}}
-													className="w-20 p-2 border rounded"
-													placeholder="Orden"
-												/>
-											</div>
-										) : (
-											formData.publishers?.map((publisher, index) => (
-												<div
-													key={`publisher-row-${index}`}
-													className="flex items-center gap-2"
-												>
-													<select
-														value={String(publisher?.publisher || '')}
-														onChange={(
-															e: React.ChangeEvent<HTMLSelectElement>
-														) => {
-															const value = e.target.value;
-															handlePublisherChange(
-																index,
-																'publisher',
-																value ? parseInt(value) : 0
-															);
-														}}
-														className="flex-1 p-2 border rounded"
-													>
-														<option value="">Seleccionar Publisher</option>
-														{publishers?.map((p, idx) => (
-															<option
-																key={`publisher-${p?.external_id || idx}`}
-																value={String(p?.external_id || '')}
-															>
-																{p?.name || ''}
-															</option>
-														))}
-													</select>
-
-													<input
-														type="text"
-														name="author"
-														value={publisher?.author || ''}
-														onChange={(
-															e: React.ChangeEvent<HTMLInputElement>
-														) => {
-															handlePublisherChange(
-																index,
-																'author',
-																e.target.value
-															);
-														}}
-														className="flex-1 p-2 border rounded"
-														placeholder="Autor"
-													/>
-
-													<input
-														type="number"
-														value={publisher?.order ?? 0}
-														onChange={(
-															e: React.ChangeEvent<HTMLInputElement>
-														) => {
-															const val = parseInt(e.target.value);
-															handlePublisherChange(
-																index,
-																'order',
-																isNaN(val) ? 0 : val
-															);
-														}}
-														className="w-20 p-2 border rounded"
-														placeholder="Orden"
-													/>
-
-													{formData.publishers &&
-														formData.publishers.length > 1 && (
-															<button
-																onClick={() => handleRemovePublisher(index)}
-																className="p-2 text-red-600 hover:text-red-800"
-															>
-																<Trash2 size={20} />
-															</button>
-														)}
-												</div>
-											))
-										)}
-									</div>
-								</div>
-
-								<div className="flex justify-end space-x-3 mt-6">
-									<button
-										type="button"
-										onClick={onClose}
-										disabled={isLoading}
-										className="px-4 py-2 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+										}}
+										className="flex-1 p-2 border rounded"
 									>
-										<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
-										<span className="group-hover:text-brand-dark">
-											Cancelar
-										</span>
-									</button>
-									<button
-										type="submit"
-										disabled={isLoading}
-										className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+										<option value="">Select Artist</option>
+										{artists?.map(a => (
+											<option
+												key={`artist-${a?.external_id || ''}`}
+												value={a?.external_id || ''}
+											>
+												{a?.name || ''}
+											</option>
+										))}
+									</select>
+
+									<select
+										value={artist.kind ?? ''}
+										onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+											handleArtistChange(index, 'kind', e.target.value);
+										}}
+										className="flex-1 p-2 border rounded"
 									>
-										{isLoading ? (
-											<>
-												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-												<span>Creando...</span>
-											</>
-										) : (
-											<>
-												<Save className="h-4 w-4 group-hover:text-brand-dark" />
-												<span className="group-hover:text-brand-dark">
-													Crear
-												</span>
-											</>
-										)}
-									</button>
+										<option value="">Select Kind</option>
+										<option value="main">Main</option>
+										<option value="featuring">Featuring</option>
+										<option value="remixer">Remixer</option>
+									</select>
+
+									<input
+										type="number"
+										value={typeof artist.order === 'number' ? artist.order : 0}
+										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+											const val = parseInt(e.target.value);
+											handleArtistChange(index, 'order', isNaN(val) ? 0 : val);
+										}}
+										className="w-20 p-2 border rounded"
+										placeholder="Order"
+									/>
+
+									{formData.artists && formData.artists.length > 1 && (
+										<button
+											onClick={() => handleRemoveArtist(index)}
+											className="p-2 text-red-600 hover:text-red-800"
+										>
+											Remove
+										</button>
+									)}
 								</div>
-							</form>
+							))
 						)}
-					</motion.div>
-				</motion.div>
-			)}
-		</AnimatePresence>
+					</div>
+				</div>
+
+				{/* Contributors Section */}
+				<div className="space-y-4">
+					<div className="flex justify-between items-center">
+						<h3 className="text-lg font-medium text-gray-900">Contributors</h3>
+						<button
+							type="button"
+							onClick={handleAddContributor}
+							className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+						>
+							<Plus size={20} />
+						</button>
+					</div>
+					<div className="space-y-4">
+						{formData.contributors?.length === 0 ? (
+							<div className="flex items-center gap-2">
+								<select
+									value={formData.contributors?.[0]?.name || ''}
+									onChange={e => {
+										const selectValue = e.target.value;
+										if (selectValue && selectValue !== '') {
+											handleContributorChange(0, 'name', selectValue);
+										}
+									}}
+									className="flex-1 p-2 border rounded"
+								>
+									<option value="">Select Contributor</option>
+									{contributors?.map((c, idx) => (
+										<option
+											key={`contributor-0-${idx}-${c?.name || 'empty'}`}
+											value={c?.name || ''}
+										>
+											{c?.name || ''}
+										</option>
+									))}
+								</select>
+
+								<select
+									value={formData.contributors?.[0]?.role || ''}
+									onChange={e => {
+										const value = e.target.value;
+										if (value && value !== '') {
+											handleContributorChange(0, 'role', value);
+										}
+									}}
+									className="flex-1 p-2 border rounded"
+								>
+									<option value="">Select Role</option>
+									{roles?.map((r, idx) => (
+										<option
+											key={`role-0-${idx}-${r?.id || 'empty'}`}
+											value={r?.id ? String(r.id) : ''}
+										>
+											{r?.name || ''}
+										</option>
+									))}
+								</select>
+
+								<input
+									type="number"
+									value={formData.contributors?.[0]?.order ?? 0}
+									onChange={e => {
+										const val = parseInt(e.target.value);
+										if (!isNaN(val)) {
+											handleContributorChange(0, 'order', val);
+										}
+									}}
+									className="w-20 p-2 border rounded"
+									placeholder="Order"
+								/>
+							</div>
+						) : (
+							formData.contributors?.map((contributor, index) => (
+								<div
+									key={`contributor-row-${index}`}
+									className="flex items-center gap-2"
+								>
+									<select
+										value={contributor.name || ''}
+										onChange={e => {
+											const selectValue = e.target.value;
+											if (selectValue && selectValue !== '') {
+												handleContributorChange(index, 'name', selectValue);
+											}
+										}}
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Select Contributor</option>
+										{contributors?.map((c, idx) => (
+											<option
+												key={`contributor-${index}-${idx}-${
+													c?.name || 'empty'
+												}`}
+												value={c?.name || ''}
+											>
+												{c?.name || ''}
+											</option>
+										))}
+									</select>
+
+									<select
+										value={contributor.role || ''}
+										onChange={e => {
+											const value = e.target.value;
+											if (value && value !== '') {
+												handleContributorChange(index, 'role', value);
+											}
+										}}
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Select Role</option>
+										{roles?.map((r, idx) => (
+											<option
+												key={`role-${index}-${idx}-${r?.id || 'empty'}`}
+												value={r?.id ? String(r.id) : ''}
+											>
+												{r?.name || ''}
+											</option>
+										))}
+									</select>
+
+									<input
+										type="number"
+										value={contributor.order ?? 0}
+										onChange={e => {
+											const val = parseInt(e.target.value);
+											if (!isNaN(val)) {
+												handleContributorChange(index, 'order', val);
+											}
+										}}
+										className="w-20 p-2 border rounded"
+										placeholder="Order"
+									/>
+
+									{formData.contributors &&
+										formData.contributors.length > 1 && (
+											<button
+												onClick={() => handleRemoveContributor(index)}
+												className="p-2 text-red-600 hover:text-red-800"
+											>
+												<Trash2 size={20} />
+											</button>
+										)}
+								</div>
+							))
+						)}
+					</div>
+				</div>
+
+				{/* Publishers Section */}
+				<div className="space-y-4">
+					<div className="flex justify-between items-center">
+						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
+						<button
+							type="button"
+							onClick={handleAddPublisher}
+							className="p-2 text-brand-light hover:text-brand-dark rounded-full"
+						>
+							<Plus size={20} />
+						</button>
+					</div>
+					<div className="space-y-4">
+						{formData.publishers?.length === 0 ? (
+							<div className="flex items-center gap-2">
+								<select
+									value={String(formData.publishers?.[0]?.publisher || '')}
+									onChange={e =>
+										handlePublisherChange(
+											0,
+											'publisher',
+											e.target.value ? parseInt(e.target.value) : 0
+										)
+									}
+									className="flex-1 p-2 border rounded"
+								>
+									<option value="">Seleccionar Publisher</option>
+									{publishers?.map((p, idx) => (
+										<option
+											key={`publisher-${p?.external_id || idx}`}
+											value={String(p?.external_id || '')}
+										>
+											{p?.name || ''}
+										</option>
+									))}
+								</select>
+
+								<input
+									type="text"
+									name="author"
+									value={formData.publishers?.[0]?.author || ''}
+									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+										handlePublisherChange(0, 'author', e.target.value);
+									}}
+									className="flex-1 p-2 border rounded"
+									placeholder="Autor"
+								/>
+
+								<input
+									type="number"
+									value={formData.publishers?.[0]?.order ?? 0}
+									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+										const val = parseInt(e.target.value);
+										handlePublisherChange(0, 'order', isNaN(val) ? 0 : val);
+									}}
+									className="w-20 p-2 border rounded"
+									placeholder="Orden"
+								/>
+							</div>
+						) : (
+							formData.publishers?.map((publisher, index) => (
+								<div
+									key={`publisher-row-${index}`}
+									className="flex items-center gap-2"
+								>
+									<select
+										value={String(publisher?.publisher || '')}
+										onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+											const value = e.target.value;
+											handlePublisherChange(
+												index,
+												'publisher',
+												value ? parseInt(value) : 0
+											);
+										}}
+										className="flex-1 p-2 border rounded"
+									>
+										<option value="">Seleccionar Publisher</option>
+										{publishers?.map((p, idx) => (
+											<option
+												key={`publisher-${p?.external_id || idx}`}
+												value={String(p?.external_id || '')}
+											>
+												{p?.name || ''}
+											</option>
+										))}
+									</select>
+
+									<input
+										type="text"
+										name="author"
+										value={publisher?.author || ''}
+										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+											handlePublisherChange(index, 'author', e.target.value);
+										}}
+										className="flex-1 p-2 border rounded"
+										placeholder="Autor"
+									/>
+
+									<input
+										type="number"
+										value={publisher?.order ?? 0}
+										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+											const val = parseInt(e.target.value);
+											handlePublisherChange(
+												index,
+												'order',
+												isNaN(val) ? 0 : val
+											);
+										}}
+										className="w-20 p-2 border rounded"
+										placeholder="Orden"
+									/>
+
+									{formData.publishers && formData.publishers.length > 1 && (
+										<button
+											onClick={() => handleRemovePublisher(index)}
+											className="p-2 text-red-600 hover:text-red-800"
+										>
+											<Trash2 size={20} />
+										</button>
+									)}
+								</div>
+							))
+						)}
+					</div>
+				</div>
+
+				<div className="flex justify-end gap-3 mt-6">
+					<button
+						type="submit"
+						disabled={isLoading}
+						className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
+					>
+						{isLoading ? (
+							<div className="flex items-center gap-2">
+								<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+								<span>Guardando...</span>
+							</div>
+						) : (
+							<div className="flex items-center gap-2">
+								<Save className="h-4 w-4" />
+								<span>{track ? 'Guardar cambios' : 'Crear track'}</span>
+							</div>
+						)}
+					</button>
+				</div>
+			</form>
+		</div>
 	);
 };
 
-export default CreateTrackModal;
+export default TrackForm;

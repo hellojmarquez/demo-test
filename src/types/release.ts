@@ -30,6 +30,7 @@ export interface Release {
 	artists?: Artist[];
 	newArtists?: NewArtist[];
 	tracks?: Array<{
+		external_id?: string;
 		order: number;
 		title: string;
 		artists: Artist[];
@@ -44,6 +45,22 @@ export interface Release {
 		album_only: boolean;
 		explicit_content: boolean;
 		track_length: string;
+	}>;
+	newTracks?: Array<{
+		title: string;
+		mixName: string;
+		order: number;
+		resource: string;
+		dolby_atmos_resource: string;
+		ISRC: string;
+		DA_ISRC: string;
+		genre: number;
+		subgenre: number;
+		album_only: boolean;
+		explicit_content: boolean;
+		track_length: string;
+		generate_isrc: boolean;
+		artists: Artist[];
 	}>;
 	countries?: string[];
 	catalogue_number: string;
@@ -76,4 +93,21 @@ export interface ReleaseResponse {
 	success: boolean;
 	data: Release;
 	message?: string;
+}
+
+export interface NewTrack {
+	title: string;
+	mixName: string;
+	order: number;
+	resource: string;
+	dolby_atmos_resource: string;
+	ISRC: string;
+	DA_ISRC: string;
+	genre: number;
+	subgenre: number;
+	album_only: boolean;
+	explicit_content: boolean;
+	track_length: string;
+	generate_isrc: boolean;
+	artists: Artist[];
 }

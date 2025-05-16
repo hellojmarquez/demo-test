@@ -477,6 +477,10 @@ export default function EditPage() {
 						setEditedTrackData(null);
 					}}
 					genres={genres}
+					onClose={() => {
+						setSelectedTrack(null);
+						setEditedTrackData(null);
+					}}
 				/>
 			)}
 		</div>

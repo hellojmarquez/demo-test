@@ -190,7 +190,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				if (contributorData.success) {
 					setContributors(contributorData.data);
 				}
-				const publisherRes = await fetch('/api/admin/getAllContributor');
+				const publisherRes = await fetch('/api/admin/getAllPublishers');
 				const publisherData = await publisherRes.json();
 				if (publisherData.success) {
 					setPublishers(publisherData.data);
@@ -1120,23 +1120,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						</button>
 					</div>
 					<div className="space-y-4">
-						{track?.publishers?.length === 0 ? (
+						{!track?.publishers?.length ? (
 							<div className="flex items-center gap-2">
 								<div className="flex-1">
 									<Select
-										value={
-											track?.publishers?.[0]?.publisher
-												? {
-														value: track.publishers[0].publisher,
-														label:
-															publishers?.find(
-																p =>
-																	p.external_id ===
-																	track.publishers?.[0]?.publisher
-															)?.name || '',
-												  }
-												: null
-										}
+										value={null}
 										onChange={(selectedOption: any) => {
 											handlePublisherChange(
 												0,
@@ -1159,7 +1147,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								<input
 									type="text"
 									name="author"
-									value={track?.publishers?.[0]?.author || ''}
+									value=""
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										handlePublisherChange(0, 'author', e.target.value);
 									}}
@@ -1169,7 +1157,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 								<input
 									type="number"
-									value={track?.publishers?.[0]?.order ?? 0}
+									value={0}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										const val = parseInt(e.target.value);
 										handlePublisherChange(0, 'order', isNaN(val) ? 0 : val);

@@ -34,22 +34,20 @@ const ContributorSchema = new mongoose.Schema(
 );
 
 // Esquema para el género
-const GenreSchema = new mongoose.Schema(
-	{
-		id: { type: Number, required: true },
-		name: { type: String, required: true },
-	},
-	{ _id: false }
-);
+const GenreSchema = new mongoose.Schema({
+	genre: { type: Number, required: true },
+});
+const GenreNameSchema = new mongoose.Schema({
+	genre_name: { type: String, required: true },
+});
 
 // Esquema para el subgénero
-const SubgenreSchema = new mongoose.Schema(
-	{
-		id: { type: Number, required: true },
-		name: { type: String, required: true },
-	},
-	{ _id: false }
-);
+const SubgenreSchema = new mongoose.Schema({
+	subgenre: { type: Number, required: true },
+});
+const SubgenreNameSchema = new mongoose.Schema({
+	subgenre_name: { type: String, required: true },
+});
 
 // Esquema principal
 const SingleTrackSchema = new mongoose.Schema(
@@ -109,8 +107,16 @@ const SingleTrackSchema = new mongoose.Schema(
 			type: GenreSchema,
 			default: null,
 		},
+		genre_name: {
+			type: GenreNameSchema,
+			default: null,
+		},
 		subgenre: {
 			type: SubgenreSchema,
+			default: null,
+		},
+		subgenre_name: {
+			type: SubgenreNameSchema,
 			default: null,
 		},
 		resource: {

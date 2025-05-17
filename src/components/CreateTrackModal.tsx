@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, XCircle, Plus, Trash2, Upload } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 import 'react-clock/dist/Clock.css';
@@ -132,9 +131,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
-	const trackLengthRef = React.useRef<HTMLInputElement>(null);
-	const sampleStartRef = React.useRef<HTMLInputElement>(null);
-	const [releases, setReleases] = useState<Release[]>([]);
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
 	const [newArtistData, setNewArtistData] = useState<NewArtistData>({
@@ -146,40 +142,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		spotify_id: '',
 	});
 
-	const [formData, setFormData] = useState<Track>({
-		_id: '',
-		external_id: track?.external_id || '',
-		name: track?.name || '',
-		mix_name: track?.mix_name || '',
-		DA_ISRC: track?.DA_ISRC || '',
-		ISRC: track?.ISRC || '',
-		__v: 0,
-		album_only: track?.album_only || false,
-		artists: track?.artists || [],
-		contributors: [],
-		copyright_holder: track?.copyright_holder || '',
-		copyright_holder_year: track?.copyright_holder_year || '',
-		createdAt: '',
-		dolby_atmos_resource: track?.dolby_atmos_resource || '',
-		explicit_content: track?.explicit_content || false,
-		generate_isrc: track?.generate_isrc || false,
-		genre: track?.genre || 0,
-		genre_name: track?.genre_name || '',
-		subgenre: track?.subgenre || 0,
-		subgenre_name: track?.subgenre_name || '',
-		label_share: 0,
-		language: track?.language || '',
-		order: track?.order || 0,
-		publishers: [],
-		release: '',
-		resource: track?.resource || '',
-		sample_start: '',
-		track_lenght: track?.track_lenght || '',
-		updatedAt: '',
-		vocals: '',
-		status: track?.status || 'Borrador',
-	});
-
 	// Efecto para inicializar los subgéneros cuando se carga el componente
 	useEffect(() => {
 		if (track?.genre) {
@@ -188,23 +150,24 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				setSubgenres(selectedGenre.subgenres || []);
 			}
 		}
+		console.log('el track: ', track);
 	}, [track, genres]);
 
 	// Efecto para actualizar subgéneros cuando cambia el género
 	useEffect(() => {
-		if (formData.genre) {
-			const selectedGenre = genres.find(g => g.id === formData.genre);
+		if (track?.genre) {
+			const selectedGenre = genres.find(g => g.id === track.genre);
 			if (selectedGenre) {
 				setSubgenres(selectedGenre.subgenres || []);
 
 				// Si hay un subgénero seleccionado pero no está en la lista actual, lo agregamos
 				if (
-					formData.subgenre &&
-					!selectedGenre.subgenres.some(s => s.id === formData.subgenre)
+					track.subgenre &&
+					!selectedGenre.subgenres.some(s => s.id === track.subgenre)
 				) {
 					const currentSubgenre = {
-						id: formData.subgenre,
-						name: formData.subgenre_name || '',
+						id: track.subgenre,
+						name: track.subgenre_name || '',
 					};
 					setSubgenres(prev => [...prev, currentSubgenre]);
 				}
@@ -214,21 +177,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		} else {
 			setSubgenres([]);
 		}
-	}, [formData.genre, genres, formData.subgenre, formData.subgenre_name]);
+	}, [track?.genre, genres, track?.subgenre, track?.subgenre_name]);
 
 	useEffect(() => {
-		console.log('formData trck: ', formData);
 		const fetchData = async () => {
 			try {
 				setIsLoading(true);
 				setError(null);
 
-				// Fetch releases
-				const releasesRes = await fetch('/api/admin/getAllReleases');
-				const releasesData = await releasesRes.json();
-				if (releasesData.success) {
-					setReleases(releasesData.data);
-				}
 				const contributorRes = await fetch('/api/admin/getAllContributor');
 				const contributorData = await contributorRes.json();
 				if (contributorData.success) {
@@ -270,12 +226,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	// Efecto para actualizar formData cuando cambia el track
 	useEffect(() => {
-		if (track) {
-			console.log('Incoming track:', track);
+		if (track && onTrackChange) {
 			const updatedFormData = {
 				_id: track._id || '',
 				external_id: track.external_id || '',
-				name: track.title || track.name || '', // Use title if available, fallback to name
+				name: track.title || track.name || '',
 				mix_name: track.mix_name || '',
 				DA_ISRC: track.DA_ISRC || '',
 				ISRC: track.ISRC || '',
@@ -300,72 +255,96 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				release: track.release || '',
 				resource: track.resource || '',
 				sample_start: track.sample_start || '',
-				track_lenght: track.track_length || '',
+				track_length: track.track_length || '',
 				updatedAt: track.updatedAt || '',
 				vocals: track.vocals || '',
 				status: track.status || 'Borrador',
 			};
 
-			console.log('Updated form data:', updatedFormData);
-			setFormData(updatedFormData);
+			// Solo actualizamos si hay cambios reales
+			const hasChanges = Object.keys(updatedFormData).some(
+				key =>
+					updatedFormData[key as keyof typeof updatedFormData] !==
+					track[key as keyof Track]
+			);
+
+			if (hasChanges) {
+				onTrackChange(updatedFormData);
+			}
 		}
 	}, [track]);
 
 	const handleAddArtist = () => {
-		setFormData(prev => ({
-			...prev,
-			artists: [
-				...(prev.artists || []),
-				{ artist: 0, kind: '', order: (prev.artists || []).length, name: '' },
-			],
-		}));
+		if (onTrackChange) {
+			onTrackChange({
+				...track,
+				artists: [
+					...(track?.artists || []),
+					{
+						artist: 0,
+						kind: 'main',
+						order: (track?.artists || []).length,
+						name: '',
+					},
+				],
+			});
+		}
 	};
 
 	const handleAddContributor = () => {
-		setFormData(prev => ({
-			...prev,
-			contributors: [
-				...(prev.contributors || []),
-				{
-					contributor: 0,
-					name: '',
-					role: 0,
-					order: (prev.contributors || []).length,
-					role_name: '',
-				},
-			],
-		}));
+		if (onTrackChange) {
+			onTrackChange({
+				...track,
+				contributors: [
+					...(track?.contributors || []),
+					{
+						contributor: 0,
+						name: '',
+						role: 0,
+						order: (track?.contributors || []).length,
+						role_name: '',
+					},
+				],
+			});
+		}
 	};
 
 	const handleAddPublisher = () => {
-		setFormData(prev => ({
-			...prev,
-			publishers: [
-				...(prev.publishers || []),
-				{ publisher: 0, author: '', order: (prev.publishers || []).length },
-			],
-		}));
+		if (onTrackChange) {
+			onTrackChange({
+				...track,
+				publishers: [
+					...(track?.publishers || []),
+					{ publisher: 0, author: '', order: (track?.publishers || []).length },
+				],
+			});
+		}
 	};
 
 	const handleRemoveArtist = (index: number) => {
-		setFormData(prev => ({
-			...prev,
-			artists: (prev.artists || []).filter((_, i) => i !== index),
-		}));
+		if (onTrackChange) {
+			const updatedArtists = [...(track?.artists || [])];
+			updatedArtists.splice(index, 1);
+			onTrackChange({ ...track, artists: updatedArtists });
+		}
 	};
 
 	const handleRemoveContributor = (index: number) => {
-		setFormData(prev => ({
-			...prev,
-			contributors: (prev.contributors || []).filter((_, i) => i !== index),
-		}));
+		if (onTrackChange) {
+			onTrackChange({
+				...track,
+				contributors: (track?.contributors || []).filter((_, i) => i !== index),
+			});
+		}
 	};
 
 	const handleRemovePublisher = (index: number) => {
-		setFormData(prev => ({
-			...prev,
-			publishers: (prev.publishers || []).filter((_, i) => i !== index),
-		}));
+		if (onTrackChange) {
+			onTrackChange({
+				...track,
+				publishers: (track?.publishers || []).filter((_, i) => i !== index),
+			});
+		}
 	};
 
 	const handleArtistChange = (
@@ -373,8 +352,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		setFormData(prev => {
-			const newArtists = [...(prev.artists || [])];
+		if (onTrackChange) {
+			const newArtists = [...(track?.artists || [])];
 			if (!newArtists[index]) {
 				newArtists[index] = { artist: 0, kind: '', order: 0, name: '' };
 			}
@@ -394,8 +373,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				newArtists[index] = { ...newArtists[index], [field]: value };
 			}
 
-			return { ...prev, artists: newArtists };
-		});
+			onTrackChange({ ...track, artists: newArtists });
+		}
 	};
 
 	const handleContributorChange = (
@@ -403,8 +382,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		setFormData(prev => {
-			const newContributors = [...(prev.contributors || [])];
+		if (onTrackChange) {
+			const newContributors = [...(track?.contributors || [])];
 			if (!newContributors[index]) {
 				newContributors[index] = {
 					contributor: 0,
@@ -440,8 +419,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				};
 			}
 
-			return { ...prev, contributors: newContributors };
-		});
+			onTrackChange({ ...track, contributors: newContributors });
+		}
 	};
 
 	const handlePublisherChange = (
@@ -449,8 +428,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		setFormData(prev => {
-			const newPublishers = [...(prev.publishers || [])];
+		if (onTrackChange) {
+			const newPublishers = [...(track?.publishers || [])];
 			if (!newPublishers[index]) {
 				newPublishers[index] = { publisher: 0, author: '', order: 0 };
 			}
@@ -486,18 +465,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				}
 			}
 
-			return { ...prev, publishers: newPublishers };
-		});
+			onTrackChange({ ...track, publishers: newPublishers });
+		}
 	};
 
 	const handleTimeChange = (name: string, value: string) => {
-		setFormData(prev => {
-			const updatedData = { ...prev, [name]: value };
-			if (onTrackChange) {
-				onTrackChange(updatedData);
-			}
-			return updatedData;
-		});
+		if (onTrackChange) {
+			onTrackChange({ ...track, [name]: value });
+		}
 	};
 
 	const handleChange = (
@@ -526,30 +501,22 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			newValue = (e.target as HTMLInputElement).checked;
 		}
 
-		// Actualizar el estado local
-		setFormData(prev => {
-			const updatedData =
+		if (onTrackChange) {
+			onTrackChange(
 				typeof newValue === 'object'
-					? { ...prev, ...newValue }
-					: { ...prev, [name]: newValue };
-
-			// Notificar al componente padre del cambio
-			if (onTrackChange) {
-				onTrackChange(updatedData);
-			}
-
-			return updatedData;
-		});
+					? { ...track, ...newValue }
+					: { ...track, [name]: newValue }
+			);
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-
 		setIsLoading(true);
 		setError(null);
 
 		try {
-			await onSave(formData as Track);
+			await onSave(track as Track);
 		} catch (err: any) {
 			setError(err.message || 'Error al crear el track');
 		} finally {
@@ -562,13 +529,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		if (file) {
 			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
 				setSelectedFile(file);
-				setFormData(prev => {
-					const updatedData = { ...prev, resource: file };
-					if (onTrackChange) {
-						onTrackChange(updatedData);
-					}
-					return updatedData;
-				});
+				if (onTrackChange) {
+					onTrackChange({ ...track, resource: file });
+				}
 				setUploadProgress(0);
 			} else {
 				alert('Por favor, selecciona un archivo WAV válido');
@@ -634,7 +597,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								</div>
 							)}
 
-							{formData.resource && (
+							{track?.resource && (
 								<div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
 									<div className="flex items-center gap-3">
 										<div className="p-2 bg-gray-100 rounded-lg">
@@ -642,12 +605,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										</div>
 										<div className="flex-1 min-w-0">
 											<p className="text-sm font-medium text-gray-900 truncate">
-												{typeof formData.resource === 'string'
-													? formData.resource
-													: formData.resource.name}
+												{typeof track.resource === 'string'
+													? track.resource
+													: track.resource.name}
 											</p>
 											<p className="text-xs text-gray-500">
-												{typeof formData.resource === 'string'
+												{typeof track.resource === 'string'
 													? 'Archivo cargado'
 													: 'Listo para subir'}
 											</p>
@@ -656,7 +619,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											type="button"
 											onClick={() => {
 												setSelectedFile(null);
-												setFormData(prev => ({ ...prev, resource: '' }));
+												if (onTrackChange) {
+													onTrackChange({
+														...track,
+														resource: '',
+													});
+												}
 											}}
 											className="p-1 text-gray-400 hover:text-red-500 transition-colors"
 										>
@@ -682,7 +650,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="name"
-								value={formData.name}
+								value={track?.name || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								required
@@ -696,7 +664,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="mix_name"
-								value={formData.mix_name}
+								value={track?.mix_name || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -709,7 +677,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="ISRC"
-								value={formData.ISRC}
+								value={track?.ISRC || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -722,7 +690,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="DA_ISRC"
-								value={formData.DA_ISRC}
+								value={track?.DA_ISRC || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -735,7 +703,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="copyright_holder"
-								value={formData.copyright_holder}
+								value={track?.copyright_holder || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -748,7 +716,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="copyright_holder_year"
-								value={formData.copyright_holder_year}
+								value={track?.copyright_holder_year || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -761,7 +729,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="dolby_atmos_resource"
-								value={formData.dolby_atmos_resource}
+								value={track?.dolby_atmos_resource || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -774,13 +742,15 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="number"
 								name="order"
-								value={formData.order || ''}
-								onChange={e =>
-									setFormData(prev => ({
-										...prev,
-										order: parseInt(e.target.value),
-									}))
-								}
+								value={track?.order || ''}
+								onChange={e => {
+									if (onTrackChange) {
+										onTrackChange({
+											...track,
+											order: parseInt(e.target.value) || 0,
+										});
+									}
+								}}
 								onKeyPress={e => {
 									if (!/[0-9]/.test(e.key)) {
 										e.preventDefault();
@@ -805,11 +775,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Select
 								name="genre"
 								value={
-									genres.find(g => g.id === formData.genre)
+									genres.find(g => g.id === track?.genre)
 										? {
-												value: formData.genre,
+												value: track?.genre,
 												label:
-													genres.find(g => g.id === formData.genre)?.name || '',
+													genres.find(g => g.id === track?.genre)?.name || '',
 										  }
 										: null
 								}
@@ -841,12 +811,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Select
 								name="subgenre"
 								value={
-									subgenres.find(s => s.id === formData.subgenre)
+									subgenres.find(s => s.id === track?.subgenre)
 										? {
-												value: formData.subgenre,
+												value: track?.subgenre,
 												label:
-													subgenres.find(s => s.id === formData.subgenre)
-														?.name || '',
+													subgenres.find(s => s.id === track?.subgenre)?.name ||
+													'',
 										  }
 										: null
 								}
@@ -877,8 +847,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							</label>
 							<Select
 								value={
-									LANGUAGES.find(lang => lang.value === formData.language) ||
-									null
+									LANGUAGES.find(lang => lang.value === track?.language) || null
 								}
 								onChange={(selectedOption: SingleValue<LanguageOption>) => {
 									if (selectedOption) {
@@ -904,7 +873,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							</label>
 							<Select
 								value={
-									LANGUAGES.find(lang => lang.value === formData.vocals) || null
+									LANGUAGES.find(lang => lang.value === track?.vocals) || null
 								}
 								onChange={(selectedOption: SingleValue<LanguageOption>) => {
 									if (selectedOption) {
@@ -936,15 +905,17 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									delimiter: '',
 								}}
 								name="label_share"
-								value={formData.label_share || ''}
-								onChange={e =>
-									setFormData(prev => ({
-										...prev,
-										label_share: e.target.value
-											? parseFloat(e.target.value)
-											: undefined,
-									}))
-								}
+								value={track?.label_share || ''}
+								onChange={e => {
+									if (onTrackChange) {
+										onTrackChange({
+											...track,
+											label_share: e.target.value
+												? parseFloat(e.target.value)
+												: undefined,
+										});
+									}
+								}}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
 						</div>
@@ -962,7 +933,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									delimiter: ':',
 								}}
 								name="track_lenght"
-								value={formData.track_lenght || ''}
+								value={track?.track_length || ''}
 								onChange={e => handleTimeChange('track_lenght', e.target.value)}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								placeholder="00:00:00"
@@ -982,7 +953,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									delimiter: ':',
 								}}
 								name="sample_start"
-								value={formData.sample_start}
+								value={track?.sample_start || ''}
 								onChange={e => handleTimeChange('sample_start', e.target.value)}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								placeholder="00:00:00"
@@ -997,7 +968,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					<div className="grid grid-cols-3 gap-4">
 						<div className="flex items-center">
 							<CustomSwitch
-								checked={formData.album_only}
+								checked={track?.album_only || false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1018,7 +989,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 						<div className="flex items-center">
 							<CustomSwitch
-								checked={formData.explicit_content}
+								checked={track?.explicit_content || false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1039,7 +1010,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 						<div className="flex items-center">
 							<CustomSwitch
-								checked={formData.generate_isrc}
+								checked={track?.generate_isrc || false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1074,7 +1045,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</div>
 					<div className="space-y-4">
 						<TrackArtistSelector
-							artists={(formData.artists || []).map(artist => ({
+							artists={(track?.artists || []).map(artist => ({
 								...artist,
 								kind: artist.kind as 'main' | 'featuring' | 'remixer',
 							}))}
@@ -1085,15 +1056,17 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								})) || []
 							}
 							onArtistsChange={newArtists => {
-								setFormData(prev => ({
-									...prev,
-									artists: newArtists.map(artist => ({
-										...artist,
-										artist: artist.artist,
-										kind: artist.kind,
-										order: artist.order,
-									})),
-								}));
+								if (onTrackChange) {
+									onTrackChange({
+										...track,
+										artists: newArtists.map(artist => ({
+											...artist,
+											artist: artist.artist,
+											kind: artist.kind,
+											order: artist.order,
+										})),
+									});
+								}
 							}}
 							onDeleteArtist={index => handleRemoveArtist(index)}
 							onCreateNewArtist={name => {
@@ -1112,7 +1085,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</div>
 					<div className="space-y-4">
 						<ContributorSelector
-							contributors={formData.contributors || []}
+							contributors={track?.contributors || []}
 							contributorData={
 								contributors?.map(c => ({
 									contributor: c.contributor,
@@ -1121,10 +1094,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							}
 							roles={roles || []}
 							onContributorsChange={newContributors => {
-								setFormData(prev => ({
-									...prev,
-									contributors: newContributors,
-								}));
+								if (onTrackChange) {
+									onTrackChange({
+										...track,
+										contributors: newContributors,
+									});
+								}
 							}}
 							onDeleteContributor={index => handleRemoveContributor(index)}
 							reactSelectStyles={customSelectStyles}
@@ -1145,19 +1120,19 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						</button>
 					</div>
 					<div className="space-y-4">
-						{formData.publishers?.length === 0 ? (
+						{track?.publishers?.length === 0 ? (
 							<div className="flex items-center gap-2">
 								<div className="flex-1">
 									<Select
 										value={
-											formData.publishers?.[0]?.publisher
+											track?.publishers?.[0]?.publisher
 												? {
-														value: formData.publishers[0].publisher,
+														value: track.publishers[0].publisher,
 														label:
 															publishers?.find(
 																p =>
 																	p.external_id ===
-																	formData.publishers?.[0]?.publisher
+																	track.publishers?.[0]?.publisher
 															)?.name || '',
 												  }
 												: null
@@ -1184,7 +1159,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								<input
 									type="text"
 									name="author"
-									value={formData.publishers?.[0]?.author || ''}
+									value={track?.publishers?.[0]?.author || ''}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										handlePublisherChange(0, 'author', e.target.value);
 									}}
@@ -1194,7 +1169,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 								<input
 									type="number"
-									value={formData.publishers?.[0]?.order ?? 0}
+									value={track?.publishers?.[0]?.order ?? 0}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										const val = parseInt(e.target.value);
 										handlePublisherChange(0, 'order', isNaN(val) ? 0 : val);
@@ -1204,7 +1179,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								/>
 							</div>
 						) : (
-							formData.publishers?.map((publisher, index) => (
+							track?.publishers?.map((publisher, index) => (
 								<div
 									key={`publisher-row-${index}`}
 									className="flex items-center gap-2"
@@ -1267,7 +1242,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										placeholder="Orden"
 									/>
 
-									{formData.publishers && formData.publishers.length > 1 && (
+									{track?.publishers && track.publishers.length > 1 && (
 										<button
 											onClick={() => handleRemovePublisher(index)}
 											className="p-2 text-red-600 hover:text-red-800"
@@ -1477,7 +1452,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								onClick={() => {
 									// Crear el nuevo artista con la estructura requerida
 									const newArtist = {
-										order: (formData.artists || []).length,
+										order: (track?.artists || []).length,
 										artist: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
 										name: newArtistData.name,
 										kind: 'main',
@@ -1489,10 +1464,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									};
 
 									// Actualizar el formData con el nuevo artista
-									setFormData(prev => ({
-										...prev,
-										artists: [...(prev.artists || []), newArtist],
-									}));
+									if (onTrackChange) {
+										onTrackChange({
+											...track,
+											artists: [...(track?.artists || []), newArtist],
+										});
+									}
 
 									// Limpiar el formulario y cerrar el modal
 									setNewArtistData({

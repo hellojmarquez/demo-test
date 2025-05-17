@@ -397,7 +397,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	}, []);
 
 	const handleEditTrack = async (track: ReleaseTrack) => {
-		console.log('Editando track:', track);
+		
 		try {
 			// Si es un track nuevo (no tiene external_id o es undefined), lo manejamos directamente
 			if (!track.external_id || track.external_id === 'undefined') {
@@ -430,109 +430,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}
 	};
 
-	const handleTrackSave = async (updatedTrack: Partial<Track>) => {
-		console.log('handleTrackSave called with updatedTrack:', updatedTrack);
-		try {
-			if (!selectedTrack) {
-				console.log('No selectedTrack found, returning');
-				return;
-			}
 
-			// Convertir el Track actualizado a ReleaseTrack
-			const releaseTrack: ReleaseTrack = {
-				external_id: selectedTrack.external_id,
-				order: updatedTrack.order || selectedTrack.order,
-				title: updatedTrack.name || selectedTrack.title,
-				artists: updatedTrack.artists || selectedTrack.artists,
-				ISRC: updatedTrack.ISRC || selectedTrack.ISRC,
-				generate_isrc:
-					updatedTrack.generate_isrc ?? selectedTrack.generate_isrc,
-				DA_ISRC: updatedTrack.DA_ISRC || selectedTrack.DA_ISRC,
-				genre: updatedTrack.genre || selectedTrack.genre,
-				genre_name: updatedTrack.genre_name || selectedTrack.genre_name,
-				subgenre: updatedTrack.subgenre || selectedTrack.subgenre,
-				subgenre_name:
-					updatedTrack.subgenre_name || selectedTrack.subgenre_name,
-				mix_name: updatedTrack.mix_name || selectedTrack.mix_name,
-				resource:
-					typeof updatedTrack.resource === 'string'
-						? updatedTrack.resource
-						: selectedTrack.resource,
-				dolby_atmos_resource:
-					updatedTrack.dolby_atmos_resource ||
-					selectedTrack.dolby_atmos_resource,
-				album_only: updatedTrack.album_only ?? selectedTrack.album_only,
-				explicit_content:
-					updatedTrack.explicit_content ?? selectedTrack.explicit_content,
-				track_length: updatedTrack.track_lenght || selectedTrack.track_length,
-			};
-			console.log('Converted to releaseTrack:', releaseTrack);
-
-			// Actualizar el estado local primero
-			setFormData((prev: Release) => {
-				console.log('Previous formData:', prev);
-				// Si el track tiene external_id, actualizarlo en el array tracks
-				if (selectedTrack.external_id) {
-					const updatedTracks =
-						prev.tracks?.map(track =>
-							track.external_id === selectedTrack.external_id
-								? releaseTrack
-								: track
-						) || [];
-					console.log('Updated tracks array:', updatedTracks);
-					return {
-						...prev,
-						tracks: updatedTracks,
-					};
-				}
-				// Si es un track nuevo, actualizarlo en newTracks
-				else {
-					const updatedNewTracks =
-						prev.newTracks?.map(track => {
-							if (track.order === selectedTrack.order) {
-								return {
-									title: releaseTrack.title,
-									mixName: releaseTrack.mix_name,
-									order: releaseTrack.order,
-									resource: releaseTrack.resource,
-									dolby_atmos_resource: releaseTrack.dolby_atmos_resource,
-									ISRC: releaseTrack.ISRC,
-									DA_ISRC: releaseTrack.DA_ISRC,
-									genre: releaseTrack.genre,
-									genre_name: releaseTrack.genre_name || '',
-									subgenre: releaseTrack.subgenre,
-									subgenre_name: releaseTrack.subgenre_name || '',
-									album_only: releaseTrack.album_only,
-									explicit_content: releaseTrack.explicit_content,
-									track_length: releaseTrack.track_length,
-									generate_isrc: releaseTrack.generate_isrc,
-									artists: releaseTrack.artists,
-								};
-							}
-							return track;
-						}) || [];
-					console.log('Updated newTracks array:', updatedNewTracks);
-					return {
-						...prev,
-						newTracks: updatedNewTracks,
-					};
-				}
-			});
-
-			// Luego actualizar en el servidor
-			await onSave({
-				...release,
-				tracks: formData.tracks || [],
-				newTracks: formData.newTracks || [],
-			});
-
-			setIsEditingTrack(false);
-			setSelectedTrack(null);
-			setTrackFormData(null);
-		} catch (error) {
-			console.error('Error updating track:', error);
-		}
-	};
 
 	return (
 		<div className="container mx-auto px-4 py-8">

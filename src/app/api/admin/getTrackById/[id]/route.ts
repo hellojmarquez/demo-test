@@ -39,12 +39,11 @@ export async function GET(
 		console.log('Buscando track con external_id:', externalId);
 
 		// Buscar el track por external_id
-		const track = await SingleTrack.findOne({ external_id: externalId });
+		const track = await SingleTrack.findOne({ external_id: externalId })
+			.select('+genre +subgenre') // Forzar la inclusión de estos campos
+			.lean();
 
-		console.log(
-			'Resultado de la búsqueda:',
-			track ? 'Track encontrado' : 'Track no encontrado'
-		);
+		console.log('Resultado de la búsqueda:', track);
 
 		if (!track) {
 			return NextResponse.json(
@@ -53,20 +52,11 @@ export async function GET(
 			);
 		}
 
-		// Transformar el track para que coincida con la interfaz EditedTrack
-		const transformedTrack = {
-			...track.toObject(),
-			genre: track.genre?.id || 0,
-			genre_name: track.genre?.name || '',
-			subgenre: track.subgenre?.id || 0,
-			subgenre_name: track.subgenre?.name || '',
-		};
-
-		console.log('Track transformado:', transformedTrack);
+		// Transformar los datos antes de enviarlos
 
 		return NextResponse.json({
 			success: true,
-			data: transformedTrack,
+			data: track,
 		});
 	} catch (error: any) {
 		console.error('Error getting track:', error);

@@ -41,8 +41,8 @@ interface EditedTrack {
 	release?: string | null;
 	resource?: string | File | null;
 	sample_start?: string;
-	track_lenght?: string;
 	track_length?: string;
+
 	vocals?: string;
 	external_id: number;
 	status?: string;
@@ -283,7 +283,7 @@ export default function EditPage() {
 				`/api/admin/getTrackById/${track.external_id}`
 			);
 			const data = await response.json();
-
+			console.log('data: ', data);
 			if (!data.success) {
 				throw new Error('Error al obtener los datos del track');
 			}

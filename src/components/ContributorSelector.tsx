@@ -132,7 +132,9 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 												roles.find(r => r.id === contributor.role)
 													? {
 															value: contributor.role,
-															label: contributor.role_name,
+															label:
+																roles.find(r => r.id === contributor.role)
+																	?.name || '',
 													  }
 													: null
 											}

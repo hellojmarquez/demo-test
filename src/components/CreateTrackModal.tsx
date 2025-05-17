@@ -7,7 +7,7 @@ import 'cleave.js/dist/addons/cleave-phone.us';
 import Select from 'react-select';
 import { Track } from '@/types/track';
 import { SingleValue } from 'react-select';
-import { LANGUAGES, LanguageOption } from '@/constants/languages';
+import { LANGUAGES, VOCALS, LanguageOption } from '@/constants/languages';
 import CustomSwitch from './CustomSwitch';
 import TrackArtistSelector, { TrackArtist } from './TrackArtistSelector';
 import Image from 'next/image';
@@ -873,7 +873,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							</label>
 							<Select
 								value={
-									LANGUAGES.find(lang => lang.value === track?.vocals) || null
+									VOCALS.find(option => option.value === track?.vocals) || null
 								}
 								onChange={(selectedOption: SingleValue<LanguageOption>) => {
 									if (selectedOption) {
@@ -885,8 +885,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										} as any);
 									}
 								}}
-								options={LANGUAGES}
-								placeholder="Seleccionar idioma"
+								options={VOCALS}
+								placeholder="Seleccionar vocals"
 								styles={customSelectStyles}
 								className="mt-1"
 								isClearable

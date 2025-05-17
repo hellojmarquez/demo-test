@@ -54,5 +54,9 @@ export const LANGUAGES: LanguageOption[] = [
 	{ value: 'SQ', label: 'Shqip' },
 	{ value: 'BS', label: 'Bosanski' },
 	{ value: 'MK', label: 'Македонски' },
+];
+
+export const VOCALS: LanguageOption[] = [
+	...LANGUAGES,
 	{ value: 'ZXX', label: 'Instrumental' },
 ];

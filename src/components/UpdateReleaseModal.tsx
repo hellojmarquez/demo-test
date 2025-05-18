@@ -397,7 +397,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	}, []);
 
 	const handleEditTrack = async (track: ReleaseTrack) => {
-		
 		try {
 			// Si es un track nuevo (no tiene external_id o es undefined), lo manejamos directamente
 			if (!track.external_id || track.external_id === 'undefined') {
@@ -429,8 +428,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			toast.error('Error al cargar los datos del track');
 		}
 	};
-
-
 
 	return (
 		<div className="container mx-auto px-4 py-8">

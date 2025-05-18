@@ -12,6 +12,7 @@ import CustomSwitch from './CustomSwitch';
 import TrackArtistSelector, { TrackArtist } from './TrackArtistSelector';
 import Image from 'next/image';
 import ContributorSelector from './ContributorSelector';
+import { toast } from 'react-hot-toast';
 
 export interface GenreData {
 	id: number;
@@ -1253,7 +1254,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						Cancelar
 					</button>
 					<button
-						type="submit"
+						type="button"
+						onClick={async () => {
+							await onSave({
+								...track,
+								status: 'Borrador',
+							});
+						}}
 						disabled={isLoading}
 						className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
 					>
@@ -1265,7 +1272,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						) : (
 							<div className="flex items-center gap-2">
 								<Save className="h-4 w-4" />
-								<span>{track ? 'Guardar cambios' : 'Crear track'}</span>
+								<span>{track ? 'Guardar borrador' : 'Crear borrador'}</span>
 							</div>
 						)}
 					</button>

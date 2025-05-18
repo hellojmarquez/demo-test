@@ -47,6 +47,8 @@ export interface Track {
 	updatedAt?: string;
 	vocals?: string;
 	status?: string;
+
+	newTracks?: Track[];
 }
 
 export interface TrackResponse {

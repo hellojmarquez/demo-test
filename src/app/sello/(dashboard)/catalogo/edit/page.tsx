@@ -160,8 +160,38 @@ export default function EditPage() {
 
 	const handleTrackSave = async (trackData: Partial<Track>) => {
 		try {
+			// Si es un track nuevo (sin external_id), lo manejamos diferente
 			if (!trackData.external_id) {
-				throw new Error('Track no encontrado');
+				// Actualizar el track en newTracks
+				setFormData(prev => ({
+					...prev,
+					newTracks:
+						prev.newTracks?.map(t =>
+							t.title === trackData.name
+								? {
+										...t,
+										title: trackData.name || '',
+										mixName: trackData.mix_name || '',
+										order: trackData.order || 0,
+										resource: (trackData.resource as string) || '',
+										dolby_atmos_resource: trackData.dolby_atmos_resource || '',
+										ISRC: trackData.ISRC || '',
+										DA_ISRC: trackData.DA_ISRC || '',
+										genre: trackData.genre || 0,
+										genre_name: trackData.genre_name || '',
+										subgenre: trackData.subgenre || 0,
+										subgenre_name: trackData.subgenre_name || '',
+										album_only: trackData.album_only || false,
+										explicit_content: trackData.explicit_content || false,
+										track_length: trackData.track_length || '',
+										generate_isrc: trackData.generate_isrc || false,
+										artists: trackData.artists || [],
+								  }
+								: t
+						) || [],
+				}));
+				toast.success('Track guardado correctamente');
+				return;
 			}
 
 			const trackId = Number(trackData.external_id);
@@ -220,6 +250,8 @@ export default function EditPage() {
 					resource: track.resource,
 					external_id: track.external_id ? Number(track.external_id) : 0,
 				})),
+				editedTracks: editedTracks,
+				newTracks: updatedRelease.newTracks || [],
 			};
 
 			// Si la imagen es un archivo, agrégala como 'picture'
@@ -230,18 +262,11 @@ export default function EditPage() {
 				formData.append('picture', updatedRelease.picture);
 			}
 
-			// Agregar los tracks editados
-			if (editedTracks.length > 0) {
-				formData.append('editedTracks', JSON.stringify(editedTracks));
-			}
-
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
 
-			console.log('editedTracks antes de enviar:', editedTracks);
 			console.log('formData completo:', {
 				releaseData,
-				editedTracks,
 			});
 
 			// const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
@@ -277,7 +302,22 @@ export default function EditPage() {
 				return;
 			}
 
-			// Solo hacer fetch si tiene external_id válido
+			// Primero buscar si el track está en editedTracks
+			const trackExternalId = Number(track.external_id);
+			const editedTrack = editedTracks.find(
+				t => t.external_id === trackExternalId
+			);
+
+			if (editedTrack) {
+				// Si encontramos el track en editedTracks, usar esa versión
+				console.log('Usando versión editada del track:', editedTrack);
+				setSelectedTrack(editedTrack as Track);
+				setEditedTrackData(editedTrack);
+				setActiveTab('tracks');
+				return;
+			}
+
+			// Si no está en editedTracks, hacer fetch al backend
 			console.log('Editando track existente con ID:', track.external_id);
 			const response = await fetch(
 				`/api/admin/getTrackById/${track.external_id}`
@@ -333,51 +373,7 @@ export default function EditPage() {
 					<UpdateReleasePage
 						release={formData}
 						onSave={handleSave}
-						formData={
-							selectedTrack
-								? {
-										...formData,
-										name: selectedTrack.name || '',
-										genre: selectedTrack.genre || 0,
-										genre_name: selectedTrack.genre_name || '',
-										subgenre: selectedTrack.subgenre || 0,
-										subgenre_name: selectedTrack.subgenre_name || '',
-										copyright_holder: selectedTrack.copyright_holder || '',
-										copyright_holder_year:
-											selectedTrack.copyright_holder_year || '',
-										language: selectedTrack.language || '',
-										artists: selectedTrack.artists || [],
-										tracks: formData.tracks,
-										// Mantener el resto de las propiedades del release
-										_id: formData._id,
-										picture: formData.picture,
-										external_id: formData.external_id,
-										auto_detect_language: formData.auto_detect_language,
-										generate_ean: formData.generate_ean,
-										backcatalog: formData.backcatalog,
-										youtube_declaration: formData.youtube_declaration,
-										dolby_atmos: formData.dolby_atmos,
-										countries: formData.countries,
-										catalogue_number: formData.catalogue_number,
-										kind: formData.kind,
-										label: formData.label,
-										label_name: formData.label_name,
-										release_version: formData.release_version,
-										publisher: formData.publisher,
-										publisher_name: formData.publisher_name,
-										publisher_year: formData.publisher_year,
-										artwork: formData.artwork,
-										is_new_release: formData.is_new_release,
-										official_date: formData.official_date,
-										original_date: formData.original_date,
-										exclusive_shop: formData.exclusive_shop,
-										territory: formData.territory,
-										ean: formData.ean,
-										createdAt: formData.createdAt,
-										updatedAt: formData.updatedAt,
-								  }
-								: formData
-						}
+						formData={formData}
 						setFormData={setFormData}
 						onEditTrack={handleEditTrack}
 						genres={genres}
@@ -408,73 +404,167 @@ export default function EditPage() {
 				<TrackForm
 					track={selectedTrack || undefined}
 					onTrackChange={(updatedTrack: Partial<Track>) => {
+						// Actualizar el track seleccionado
 						setSelectedTrack(updatedTrack as Track);
 						setEditedTrackData(updatedTrack);
+
+						// Si es un track nuevo (sin external_id), actualizarlo en newTracks
+						if (!updatedTrack.external_id) {
+							setFormData(prev => ({
+								...prev,
+								newTracks: [
+									{
+										title: updatedTrack.name || '',
+										mixName: updatedTrack.mix_name || '',
+										order: updatedTrack.order || 0,
+										resource: (updatedTrack.resource as string) || '',
+										dolby_atmos_resource:
+											updatedTrack.dolby_atmos_resource || '',
+										ISRC: updatedTrack.ISRC || '',
+										DA_ISRC: updatedTrack.DA_ISRC || '',
+										genre: updatedTrack.genre || 0,
+										genre_name: updatedTrack.genre_name || '',
+										subgenre: updatedTrack.subgenre || 0,
+										subgenre_name: updatedTrack.subgenre_name || '',
+										album_only: updatedTrack.album_only || false,
+										explicit_content: updatedTrack.explicit_content || false,
+										track_length: updatedTrack.track_length || '',
+										generate_isrc: updatedTrack.generate_isrc || false,
+										artists: updatedTrack.artists || [],
+									},
+								],
+							}));
+						}
 					}}
 					onSave={async trackData => {
-						if (selectedTrack) {
-							// Si estamos editando un track existente
-							const trackExternalId = Number(selectedTrack.external_id);
+						setIsLoading(true);
+						try {
+							if (selectedTrack) {
+								// Si estamos editando un track existente
+								const trackExternalId = Number(selectedTrack.external_id);
 
-							// Actualizar editedTracks con la última versión del track
-							setEditedTracks(prev => {
-								// Filtrar tracks anteriores con el mismo external_id
-								const filteredTracks = prev.filter(
-									t => t.external_id !== trackExternalId
-								);
+								// Actualizar editedTracks con la última versión del track
+								setEditedTracks(prev => {
+									// Filtrar tracks anteriores con el mismo external_id
+									const filteredTracks = prev.filter(
+										t => t.external_id !== trackExternalId
+									);
 
-								const completeTrack: EditedTrack = {
-									...selectedTrack,
-									...trackData,
-									external_id: trackExternalId,
-									label_share: trackData.label_share
-										? Number(trackData.label_share)
-										: undefined,
-								};
+									const completeTrack: EditedTrack = {
+										...selectedTrack,
+										...trackData,
+										external_id: trackExternalId,
+										label_share: trackData.label_share
+											? Number(trackData.label_share)
+											: undefined,
+									};
 
-								// Agregar solo la última versión del track
-								return [...filteredTracks, completeTrack];
-							});
+									// Agregar solo la última versión del track
+									return [...filteredTracks, completeTrack];
+								});
 
-							await handleTrackSave(trackData);
-							setEditedTrackData(trackData);
-						} else {
-							// Si estamos creando un nuevo track
-							const formDataToSend = new FormData();
-							formDataToSend.append('release', formData._id || '');
-							formDataToSend.append('order', String(trackData.order || 0));
-							formDataToSend.append('name', trackData.name || '');
-							formDataToSend.append('mix_name', trackData.mix_name || '');
-							formDataToSend.append('genre', String(trackData.genre || 0));
-							formDataToSend.append(
-								'copyright_holder',
-								trackData.copyright_holder || ''
-							);
+								await handleTrackSave(trackData);
+								setEditedTrackData(trackData);
+							} else {
+								// Si estamos creando un nuevo track
+								setFormData(prev => {
+									// Si no existe newTracks, lo inicializamos
+									if (!prev.newTracks) {
+										return {
+											...prev,
+											newTracks: [
+												{
+													title: trackData.name || '',
+													mixName: trackData.mix_name || '',
+													order: trackData.order || 0,
+													resource: (trackData.resource as string) || '',
+													dolby_atmos_resource:
+														trackData.dolby_atmos_resource || '',
+													ISRC: trackData.ISRC || '',
+													DA_ISRC: trackData.DA_ISRC || '',
+													genre: trackData.genre || 0,
+													genre_name: trackData.genre_name || '',
+													subgenre: trackData.subgenre || 0,
+													subgenre_name: trackData.subgenre_name || '',
+													album_only: trackData.album_only || false,
+													explicit_content: trackData.explicit_content || false,
+													track_length: trackData.track_length || '',
+													generate_isrc: trackData.generate_isrc || false,
+													artists: trackData.artists || [],
+												},
+											],
+										};
+									}
 
-							if (trackData.resource instanceof File) {
-								formDataToSend.append('file', trackData.resource);
+									// Si el track ya existe en newTracks, lo actualizamos
+									const existingTrackIndex = prev.newTracks.findIndex(
+										t => t.title === trackData.name
+									);
+
+									if (existingTrackIndex >= 0) {
+										const updatedTracks = [...prev.newTracks];
+										updatedTracks[existingTrackIndex] = {
+											...updatedTracks[existingTrackIndex],
+											title: trackData.name || '',
+											mixName: trackData.mix_name || '',
+											order: trackData.order || 0,
+											resource: (trackData.resource as string) || '',
+											dolby_atmos_resource:
+												trackData.dolby_atmos_resource || '',
+											ISRC: trackData.ISRC || '',
+											DA_ISRC: trackData.DA_ISRC || '',
+											genre: trackData.genre || 0,
+											genre_name: trackData.genre_name || '',
+											subgenre: trackData.subgenre || 0,
+											subgenre_name: trackData.subgenre_name || '',
+											album_only: trackData.album_only || false,
+											explicit_content: trackData.explicit_content || false,
+											track_length: trackData.track_length || '',
+											generate_isrc: trackData.generate_isrc || false,
+											artists: trackData.artists || [],
+										};
+										return {
+											...prev,
+											newTracks: updatedTracks,
+										};
+									}
+
+									// Si es un track completamente nuevo, lo agregamos
+									return {
+										...prev,
+										newTracks: [
+											...prev.newTracks,
+											{
+												title: trackData.name || '',
+												mixName: trackData.mix_name || '',
+												order: trackData.order || 0,
+												resource: (trackData.resource as string) || '',
+												dolby_atmos_resource:
+													trackData.dolby_atmos_resource || '',
+												ISRC: trackData.ISRC || '',
+												DA_ISRC: trackData.DA_ISRC || '',
+												genre: trackData.genre || 0,
+												genre_name: trackData.genre_name || '',
+												subgenre: trackData.subgenre || 0,
+												subgenre_name: trackData.subgenre_name || '',
+												album_only: trackData.album_only || false,
+												explicit_content: trackData.explicit_content || false,
+												track_length: trackData.track_length || '',
+												generate_isrc: trackData.generate_isrc || false,
+												artists: trackData.artists || [],
+											},
+										],
+									};
+								});
+
+								toast.success('Track guardado correctamente');
 							}
-
-							const response = await fetch('/api/admin/createTrackInRelease', {
-								method: 'POST',
-								body: formDataToSend,
-							});
-
-							if (!response.ok) {
-								throw new Error('Error al crear el track');
-							}
-
-							const data = await response.json();
-							if (data.success) {
-								setFormData(prev => ({
-									...prev,
-									tracks: [...(prev.tracks || []), data.data],
-								}));
-							}
+						} catch (error) {
+							console.error('Error al guardar el track:', error);
+							toast.error('Error al guardar el track');
+						} finally {
+							setIsLoading(false);
 						}
-						// Limpiar el track seleccionado después de guardar
-						setSelectedTrack(null);
-						setEditedTrackData(null);
 					}}
 					genres={genres}
 					onClose={() => {

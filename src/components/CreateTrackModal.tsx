@@ -12,7 +12,7 @@ import CustomSwitch from './CustomSwitch';
 import TrackArtistSelector, { TrackArtist } from './TrackArtistSelector';
 import Image from 'next/image';
 import ContributorSelector from './ContributorSelector';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 
 export interface GenreData {
 	id: number;
@@ -543,6 +543,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	return (
 		<div className="bg-white rounded-lg p-6">
+			<Toaster
+				position="top-right"
+				toastOptions={{
+					duration: 3000,
+				}}
+			/>
 			<div className="flex justify-between items-center mb-4">
 				<h3 className="text-lg font-medium text-gray-900">
 					{track ? 'Editar Track' : 'Nuevo Track'}
@@ -1256,10 +1262,26 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					<button
 						type="button"
 						onClick={async () => {
-							await onSave({
-								...track,
-								status: 'Borrador',
-							});
+							setIsLoading(true);
+							try {
+								await onSave({
+									...track,
+									status: 'Borrador',
+								});
+								if (!track?.external_id) {
+									await new Promise(res => setTimeout(res, 700));
+								}
+								toast.success(
+									track
+										? 'Track actualizado correctamente'
+										: 'Track guardado correctamente'
+								);
+							} catch (error) {
+								console.error('Error al guardar el track:', error);
+								toast.error('Error al guardar el track');
+							} finally {
+								setIsLoading(false);
+							}
 						}}
 						disabled={isLoading}
 						className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"

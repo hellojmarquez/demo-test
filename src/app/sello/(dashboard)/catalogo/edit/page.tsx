@@ -9,6 +9,7 @@ import { Release, ReleaseResponse } from '@/types/release';
 import { Track, TrackResponse } from '@/types/track';
 import { toast } from 'react-hot-toast';
 import TrackForm, { GenreData } from '@/components/CreateTrackModal';
+import { Save } from 'lucide-react';
 
 interface ReleaseTrack {
 	title: string;
@@ -114,7 +115,6 @@ export default function EditPage() {
 		updatedAt: new Date().toISOString(),
 	});
 	const [editedTracks, setEditedTracks] = useState<EditedTrack[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
 
 	const {
 		data: releaseData,
@@ -137,7 +137,6 @@ export default function EditPage() {
 	useEffect(() => {
 		if (releaseData?.data) {
 			setFormData(releaseData.data);
-			setIsLoading(false);
 		}
 	}, [releaseData]);
 
@@ -190,7 +189,6 @@ export default function EditPage() {
 								: t
 						) || [],
 				}));
-				toast.success('Track guardado correctamente');
 				return;
 			}
 
@@ -230,10 +228,8 @@ export default function EditPage() {
 
 			// No modificamos tracks[] aquí, esperamos la respuesta del backend
 			await mutateTracks();
-			toast.success('Track actualizado correctamente');
 		} catch (error) {
 			console.error('Error saving track:', error);
-			toast.error('Error al actualizar el track');
 			throw error;
 		}
 	};
@@ -286,7 +282,7 @@ export default function EditPage() {
 			// }
 		} catch (error) {
 			console.error('Error updating release:', error);
-			toast.error('Error al actualizar el release');
+			throw error;
 		}
 	};
 
@@ -335,144 +331,189 @@ export default function EditPage() {
 			setActiveTab('tracks');
 		} catch (error) {
 			console.error('Error al cargar los datos del track:', error);
-			toast.error('Error al cargar los datos del track');
 		}
 	};
 
-	if (isLoading || !formData) {
-		return <div>Cargando...</div>;
-	}
+	if (releaseData?.data) {
+		return (
+			<div className="container mx-auto px-4 py-8">
+				<div className="flex space-x-4 mb-6">
+					<button
+						onClick={() => setActiveTab('details')}
+						className={`px-4 py-2 rounded-md ${
+							activeTab === 'details'
+								? 'bg-brand-light text-white'
+								: 'bg-gray-200 text-gray-700'
+						}`}
+					>
+						Detalles
+					</button>
+					<button
+						onClick={() => setActiveTab('tracks')}
+						className={`px-4 py-2 rounded-md ${
+							activeTab === 'tracks'
+								? 'bg-brand-light text-white'
+								: 'bg-gray-200 text-gray-700'
+						}`}
+					>
+						Tracks
+					</button>
+				</div>
 
-	return (
-		<div className="container mx-auto px-4 py-8">
-			<div className="flex space-x-4 mb-6">
-				<button
-					onClick={() => setActiveTab('details')}
-					className={`px-4 py-2 rounded-md ${
-						activeTab === 'details'
-							? 'bg-brand-light text-white'
-							: 'bg-gray-200 text-gray-700'
-					}`}
-				>
-					Detalles
-				</button>
-				<button
-					onClick={() => setActiveTab('tracks')}
-					className={`px-4 py-2 rounded-md ${
-						activeTab === 'tracks'
-							? 'bg-brand-light text-white'
-							: 'bg-gray-200 text-gray-700'
-					}`}
-				>
-					Tracks
-				</button>
-			</div>
+				{activeTab === 'details' ? (
+					<>
+						<UpdateReleasePage
+							release={formData}
+							onSave={handleSave}
+							formData={formData}
+							setFormData={setFormData}
+							onEditTrack={handleEditTrack}
+							genres={genres}
+						/>
+						<div className="flex justify-end space-x-3 mt-6">
+							<button
+								type="button"
+								onClick={() => handleSave(formData)}
+								className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<span className="group-hover:text-brand-dark">Actualizar</span>
+							</button>
+						</div>
+					</>
+				) : (
+					<TrackForm
+						track={selectedTrack || undefined}
+						onTrackChange={(updatedTrack: Partial<Track>) => {
+							// Actualizar el track seleccionado
+							setSelectedTrack(updatedTrack as Track);
+							setEditedTrackData(updatedTrack);
 
-			{activeTab === 'details' ? (
-				<>
-					<UpdateReleasePage
-						release={formData}
-						onSave={handleSave}
-						formData={formData}
-						setFormData={setFormData}
-						onEditTrack={handleEditTrack}
-						genres={genres}
-					/>
-					<div className="flex justify-end space-x-3 mt-6">
-						<button
-							type="button"
-							disabled={isLoading}
-							onClick={() => handleSave(formData)}
-							className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							{isLoading ? (
-								<>
-									<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-									<span>Actualizando...</span>
-								</>
-							) : (
-								<>
-									<span className="group-hover:text-brand-dark">
-										Actualizar
-									</span>
-								</>
-							)}
-						</button>
-					</div>
-				</>
-			) : (
-				<TrackForm
-					track={selectedTrack || undefined}
-					onTrackChange={(updatedTrack: Partial<Track>) => {
-						// Actualizar el track seleccionado
-						setSelectedTrack(updatedTrack as Track);
-						setEditedTrackData(updatedTrack);
+							// Si es un track nuevo (sin external_id), actualizarlo en newTracks
+							if (!updatedTrack.external_id) {
+								setFormData(prev => ({
+									...prev,
+									newTracks: [
+										{
+											title: updatedTrack.name || '',
+											mixName: updatedTrack.mix_name || '',
+											order: updatedTrack.order || 0,
+											resource: (updatedTrack.resource as string) || '',
+											dolby_atmos_resource:
+												updatedTrack.dolby_atmos_resource || '',
+											ISRC: updatedTrack.ISRC || '',
+											DA_ISRC: updatedTrack.DA_ISRC || '',
+											genre: updatedTrack.genre || 0,
+											genre_name: updatedTrack.genre_name || '',
+											subgenre: updatedTrack.subgenre || 0,
+											subgenre_name: updatedTrack.subgenre_name || '',
+											album_only: updatedTrack.album_only || false,
+											explicit_content: updatedTrack.explicit_content || false,
+											track_length: updatedTrack.track_length || '',
+											generate_isrc: updatedTrack.generate_isrc || false,
+											artists: updatedTrack.artists || [],
+										},
+									],
+								}));
+							}
+						}}
+						onSave={async trackData => {
+							try {
+								if (selectedTrack) {
+									// Si estamos editando un track existente
+									const trackExternalId = Number(selectedTrack.external_id);
 
-						// Si es un track nuevo (sin external_id), actualizarlo en newTracks
-						if (!updatedTrack.external_id) {
-							setFormData(prev => ({
-								...prev,
-								newTracks: [
-									{
-										title: updatedTrack.name || '',
-										mixName: updatedTrack.mix_name || '',
-										order: updatedTrack.order || 0,
-										resource: (updatedTrack.resource as string) || '',
-										dolby_atmos_resource:
-											updatedTrack.dolby_atmos_resource || '',
-										ISRC: updatedTrack.ISRC || '',
-										DA_ISRC: updatedTrack.DA_ISRC || '',
-										genre: updatedTrack.genre || 0,
-										genre_name: updatedTrack.genre_name || '',
-										subgenre: updatedTrack.subgenre || 0,
-										subgenre_name: updatedTrack.subgenre_name || '',
-										album_only: updatedTrack.album_only || false,
-										explicit_content: updatedTrack.explicit_content || false,
-										track_length: updatedTrack.track_length || '',
-										generate_isrc: updatedTrack.generate_isrc || false,
-										artists: updatedTrack.artists || [],
-									},
-								],
-							}));
-						}
-					}}
-					onSave={async trackData => {
-						setIsLoading(true);
-						try {
-							if (selectedTrack) {
-								// Si estamos editando un track existente
-								const trackExternalId = Number(selectedTrack.external_id);
+									// Actualizar editedTracks con la última versión del track
+									setEditedTracks(prev => {
+										// Filtrar tracks anteriores con el mismo external_id
+										const filteredTracks = prev.filter(
+											t => t.external_id !== trackExternalId
+										);
 
-								// Actualizar editedTracks con la última versión del track
-								setEditedTracks(prev => {
-									// Filtrar tracks anteriores con el mismo external_id
-									const filteredTracks = prev.filter(
-										t => t.external_id !== trackExternalId
-									);
+										const completeTrack: EditedTrack = {
+											...selectedTrack,
+											...trackData,
+											external_id: trackExternalId,
+											label_share: trackData.label_share
+												? Number(trackData.label_share)
+												: undefined,
+										};
 
-									const completeTrack: EditedTrack = {
-										...selectedTrack,
-										...trackData,
-										external_id: trackExternalId,
-										label_share: trackData.label_share
-											? Number(trackData.label_share)
-											: undefined,
-									};
+										// Agregar solo la última versión del track
+										return [...filteredTracks, completeTrack];
+									});
 
-									// Agregar solo la última versión del track
-									return [...filteredTracks, completeTrack];
-								});
+									await handleTrackSave(trackData);
+									setEditedTrackData(trackData);
+								} else {
+									// Si estamos creando un nuevo track
+									setFormData(prev => {
+										// Si no existe newTracks, lo inicializamos
+										if (!prev.newTracks) {
+											return {
+												...prev,
+												newTracks: [
+													{
+														title: trackData.name || '',
+														mixName: trackData.mix_name || '',
+														order: trackData.order || 0,
+														resource: (trackData.resource as string) || '',
+														dolby_atmos_resource:
+															trackData.dolby_atmos_resource || '',
+														ISRC: trackData.ISRC || '',
+														DA_ISRC: trackData.DA_ISRC || '',
+														genre: trackData.genre || 0,
+														genre_name: trackData.genre_name || '',
+														subgenre: trackData.subgenre || 0,
+														subgenre_name: trackData.subgenre_name || '',
+														album_only: trackData.album_only || false,
+														explicit_content:
+															trackData.explicit_content || false,
+														track_length: trackData.track_length || '',
+														generate_isrc: trackData.generate_isrc || false,
+														artists: trackData.artists || [],
+													},
+												],
+											};
+										}
 
-								await handleTrackSave(trackData);
-								setEditedTrackData(trackData);
-							} else {
-								// Si estamos creando un nuevo track
-								setFormData(prev => {
-									// Si no existe newTracks, lo inicializamos
-									if (!prev.newTracks) {
+										// Si el track ya existe en newTracks, lo actualizamos
+										const existingTrackIndex = prev.newTracks.findIndex(
+											t => t.title === trackData.name
+										);
+
+										if (existingTrackIndex >= 0) {
+											const updatedTracks = [...prev.newTracks];
+											updatedTracks[existingTrackIndex] = {
+												...updatedTracks[existingTrackIndex],
+												title: trackData.name || '',
+												mixName: trackData.mix_name || '',
+												order: trackData.order || 0,
+												resource: (trackData.resource as string) || '',
+												dolby_atmos_resource:
+													trackData.dolby_atmos_resource || '',
+												ISRC: trackData.ISRC || '',
+												DA_ISRC: trackData.DA_ISRC || '',
+												genre: trackData.genre || 0,
+												genre_name: trackData.genre_name || '',
+												subgenre: trackData.subgenre || 0,
+												subgenre_name: trackData.subgenre_name || '',
+												album_only: trackData.album_only || false,
+												explicit_content: trackData.explicit_content || false,
+												track_length: trackData.track_length || '',
+												generate_isrc: trackData.generate_isrc || false,
+												artists: trackData.artists || [],
+											};
+											return {
+												...prev,
+												newTracks: updatedTracks,
+											};
+										}
+
+										// Si es un track completamente nuevo, lo agregamos
 										return {
 											...prev,
 											newTracks: [
+												...prev.newTracks,
 												{
 													title: trackData.name || '',
 													mixName: trackData.mix_name || '',
@@ -494,85 +535,25 @@ export default function EditPage() {
 												},
 											],
 										};
-									}
+									});
 
-									// Si el track ya existe en newTracks, lo actualizamos
-									const existingTrackIndex = prev.newTracks.findIndex(
-										t => t.title === trackData.name
-									);
-
-									if (existingTrackIndex >= 0) {
-										const updatedTracks = [...prev.newTracks];
-										updatedTracks[existingTrackIndex] = {
-											...updatedTracks[existingTrackIndex],
-											title: trackData.name || '',
-											mixName: trackData.mix_name || '',
-											order: trackData.order || 0,
-											resource: (trackData.resource as string) || '',
-											dolby_atmos_resource:
-												trackData.dolby_atmos_resource || '',
-											ISRC: trackData.ISRC || '',
-											DA_ISRC: trackData.DA_ISRC || '',
-											genre: trackData.genre || 0,
-											genre_name: trackData.genre_name || '',
-											subgenre: trackData.subgenre || 0,
-											subgenre_name: trackData.subgenre_name || '',
-											album_only: trackData.album_only || false,
-											explicit_content: trackData.explicit_content || false,
-											track_length: trackData.track_length || '',
-											generate_isrc: trackData.generate_isrc || false,
-											artists: trackData.artists || [],
-										};
-										return {
-											...prev,
-											newTracks: updatedTracks,
-										};
-									}
-
-									// Si es un track completamente nuevo, lo agregamos
-									return {
-										...prev,
-										newTracks: [
-											...prev.newTracks,
-											{
-												title: trackData.name || '',
-												mixName: trackData.mix_name || '',
-												order: trackData.order || 0,
-												resource: (trackData.resource as string) || '',
-												dolby_atmos_resource:
-													trackData.dolby_atmos_resource || '',
-												ISRC: trackData.ISRC || '',
-												DA_ISRC: trackData.DA_ISRC || '',
-												genre: trackData.genre || 0,
-												genre_name: trackData.genre_name || '',
-												subgenre: trackData.subgenre || 0,
-												subgenre_name: trackData.subgenre_name || '',
-												album_only: trackData.album_only || false,
-												explicit_content: trackData.explicit_content || false,
-												track_length: trackData.track_length || '',
-												generate_isrc: trackData.generate_isrc || false,
-												artists: trackData.artists || [],
-											},
-										],
-									};
-								});
-
-								toast.success('Track guardado correctamente');
+									toast.success('Track guardado correctamente');
+								}
+							} catch (error) {
+								console.error('Error al guardar el track:', error);
+								throw error;
 							}
-						} catch (error) {
-							console.error('Error al guardar el track:', error);
-							toast.error('Error al guardar el track');
-						} finally {
-							setIsLoading(false);
-						}
-					}}
-					genres={genres}
-					onClose={() => {
-						setSelectedTrack(null);
-						setEditedTrackData(null);
-					}}
-				/>
-			)}
-		</div>
-	);
+						}}
+						genres={genres}
+						onClose={() => {
+							setSelectedTrack(null);
+							setEditedTrackData(null);
+						}}
+					/>
+				)}
+			</div>
+		);
+	}
+
+	return <div>Cargando...</div>;
 }

@@ -422,25 +422,25 @@ export default function EditPage() {
 									// Si estamos editando un track existente
 									const trackExternalId = Number(selectedTrack.external_id);
 
-									// Actualizar editedTracks con la última versión del track
-									setEditedTracks(prev => {
-										// Filtrar tracks anteriores con el mismo external_id
-										const filteredTracks = prev.filter(
-											t => t.external_id !== trackExternalId
-										);
+									// Solo agregar a editedTracks si el track tiene un external_id válido
+									if (trackExternalId && !isNaN(trackExternalId)) {
+										setEditedTracks(prev => {
+											const filteredTracks = prev.filter(
+												t => t.external_id !== trackExternalId
+											);
 
-										const completeTrack: EditedTrack = {
-											...selectedTrack,
-											...trackData,
-											external_id: trackExternalId,
-											label_share: trackData.label_share
-												? Number(trackData.label_share)
-												: undefined,
-										};
+											const completeTrack: EditedTrack = {
+												...selectedTrack,
+												...trackData,
+												external_id: trackExternalId,
+												label_share: trackData.label_share
+													? Number(trackData.label_share)
+													: undefined,
+											};
 
-										// Agregar solo la última versión del track
-										return [...filteredTracks, completeTrack];
-									});
+											return [...filteredTracks, completeTrack];
+										});
+									}
 
 									await handleTrackSave(trackData);
 									setEditedTrackData(trackData);

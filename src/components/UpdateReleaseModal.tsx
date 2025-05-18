@@ -235,9 +235,89 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}),
 	};
 
+	// Add default values for formData
+	const safeFormData = formData || {
+		_id: '',
+		name: '',
+		picture: '',
+		external_id: 0,
+		auto_detect_language: false,
+		generate_ean: false,
+		backcatalog: false,
+		youtube_declaration: false,
+		dolby_atmos: false,
+		artists: [],
+		tracks: [],
+		countries: [],
+		catalogue_number: '',
+		kind: '',
+		label: 0,
+		label_name: '',
+		language: '',
+		release_version: '',
+		publisher: 0,
+		publisher_name: '',
+		publisher_year: '',
+		copyright_holder: '',
+		copyright_holder_year: '',
+		genre: 0,
+		genre_name: '',
+		subgenre: 0,
+		subgenre_name: '',
+		artwork: '',
+		is_new_release: 0,
+		official_date: '',
+		original_date: '',
+		exclusive_shop: 0,
+		territory: '',
+		ean: '',
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+	};
+
+	// Add default values for release
+	const safeRelease = release || {
+		_id: '',
+		name: '',
+		picture: '',
+		external_id: 0,
+		auto_detect_language: false,
+		generate_ean: false,
+		backcatalog: false,
+		youtube_declaration: false,
+		dolby_atmos: false,
+		artists: [],
+		tracks: [],
+		countries: [],
+		catalogue_number: '',
+		kind: '',
+		label: 0,
+		label_name: '',
+		language: '',
+		release_version: '',
+		publisher: 0,
+		publisher_name: '',
+		publisher_year: '',
+		copyright_holder: '',
+		copyright_holder_year: '',
+		genre: 0,
+		genre_name: '',
+		subgenre: 0,
+		subgenre_name: '',
+		artwork: '',
+		is_new_release: 0,
+		official_date: '',
+		original_date: '',
+		exclusive_shop: 0,
+		territory: '',
+		ean: '',
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+	};
+
 	// Efecto para cargar la imagen inicial
 	useEffect(() => {
-		if (release.picture) {
+		if (release?.picture) {
 			// Si la imagen es una URL, la usamos directamente
 			if (release.picture.startsWith('http')) {
 				setImagePreview(release.picture);
@@ -246,7 +326,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				setImagePreview(`data:image/jpeg;base64,${release.picture}`);
 			}
 		}
-	}, [release.picture]);
+	}, [release?.picture]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -272,9 +352,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}
 
 				// Si hay un género seleccionado, cargar sus subgéneros
-				if (formData?.genre) {
+				if (safeFormData.genre) {
 					const selectedGenre = genres.find(
-						(g: GenreData) => g.id === formData.genre
+						(g: GenreData) => g.id === safeFormData.genre
 					);
 					if (selectedGenre) {
 						setSubgenres(
@@ -308,7 +388,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		};
 
 		fetchData();
-	}, [formData?.genre, genres]);
+	}, [safeFormData.genre, genres]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -499,15 +579,15 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						<div className="flex-1 flex flex-col gap-4 relative z-10">
 							<div>
 								<h1 className="text-4xl font-bold text-gray-900 mb-2">
-									{formData.name || 'Sin nombre'}
+									{safeFormData.name || 'Sin nombre'}
 								</h1>
 								<div className="flex items-center gap-3">
 									<span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600 capitalize">
-										{formData.kind || 'Sin tipo'}
+										{safeFormData.kind || 'Sin tipo'}
 									</span>
-									{formData.genre_name && (
+									{safeFormData.genre_name && (
 										<span className="px-3 py-1 bg-brand-light/10 rounded-full text-sm text-brand-dark">
-											{formData.genre_name}
+											{safeFormData.genre_name}
 										</span>
 									)}
 								</div>
@@ -518,7 +598,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										Número de Catálogo
 									</div>
 									<div className="text-sm font-semibold text-gray-900">
-										{formData.catalogue_number || 'Sin número'}
+										{safeFormData.catalogue_number || 'Sin número'}
 									</div>
 								</div>
 								<div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -526,7 +606,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										Género
 									</div>
 									<div className="text-sm font-semibold text-gray-900">
-										{formData.genre_name || 'Sin género'}
+										{safeFormData.genre_name || 'Sin género'}
 									</div>
 								</div>
 							</div>
@@ -559,7 +639,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									Tracks
 								</span>
 								<span className="text-sm text-gray-500">
-									{release.tracks?.length || 0} canciones
+									{safeRelease.tracks?.length || 0} canciones
 								</span>
 							</div>
 						</div>
@@ -577,7 +657,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							isTracksExpanded ? 'block' : 'hidden'
 						}`}
 					>
-						{release.tracks?.map((track, index) => {
+						{safeRelease.tracks?.map((track, index) => {
 							const genre = genres.find(g => g.id === track.genre);
 							const subgenre = genre?.subgenres.find(
 								s => s.id === track.subgenre
@@ -728,19 +808,19 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							);
 						})}
 
-						{(!release.tracks || release.tracks.length === 0) && (
+						{(!safeRelease.tracks || safeRelease.tracks.length === 0) && (
 							<div className="text-sm text-gray-500 p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
 								No hay tracks agregados
 							</div>
 						)}
 
 						{/* Mostrar tracks pendientes de subir */}
-						{formData.newTracks && formData.newTracks.length > 0 && (
+						{safeFormData.newTracks && safeFormData.newTracks.length > 0 && (
 							<div className="mt-6">
 								<h4 className="text-sm font-medium text-gray-700 mb-3 px-1">
 									Tracks pendientes de subir
 								</h4>
-								{formData.newTracks.map((track, index) => {
+								{safeFormData.newTracks.map((track, index) => {
 									const releaseTrack: ReleaseTrack = {
 										title: track.title,
 										mix_name: track.mixName,
@@ -850,7 +930,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<input
 								type="text"
 								name="name"
-								value={formData?.name}
+								value={safeFormData.name}
 								onChange={handleChange}
 								className={inputStyles}
 							/>
@@ -861,9 +941,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select
 								value={
-									labels.find(label => label.value === formData?.label) || {
-										value: formData?.label || 0,
-										label: formData?.label_name || 'Seleccionar label',
+									labels.find(label => label.value === safeFormData.label) || {
+										value: safeFormData.label || 0,
+										label: safeFormData.label_name || 'Seleccionar label',
 									}
 								}
 								onChange={(selectedOption: SingleValue<LabelOption>) => {
@@ -894,8 +974,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<Select
 								name="language"
 								value={{
-									value: formData?.language || '',
-									label: formData?.language === 'ES' ? 'Español' : 'English',
+									value: safeFormData.language || '',
+									label: safeFormData.language === 'ES' ? 'Español' : 'English',
 								}}
 								onChange={(
 									selectedOption: SingleValue<{ value: string; label: string }>
@@ -924,7 +1004,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select
 								value={RELEASE_TYPES.find(
-									type => type.value === formData?.kind
+									type => type.value === safeFormData.kind
 								)}
 								onChange={(selectedOption: SingleValue<KindOption>) => {
 									if (selectedOption) {
@@ -948,7 +1028,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<input
 								type="text"
 								name="catalogue_number"
-								value={formData.catalogue_number}
+								value={safeFormData.catalogue_number}
 								onChange={handleChange}
 								className={inputStyles}
 							/>
@@ -960,7 +1040,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<input
 								type="text"
 								name="release_version"
-								value={formData.release_version}
+								value={safeFormData.release_version}
 								onChange={handleChange}
 								className={inputStyles}
 							/>
@@ -980,13 +1060,13 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select<SubgenreOption>
 								value={
-									formData.genre_name
+									safeFormData.genre_name
 										? {
 												value:
 													genres.find(
-														(g: GenreData) => g.name === formData.genre_name
+														(g: GenreData) => g.name === safeFormData.genre_name
 													)?.id || 0,
-												label: formData.genre_name,
+												label: safeFormData.genre_name,
 										  }
 										: null
 								}
@@ -1030,9 +1110,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select<SubgenreOption>
 								value={
-									subgenres.find(sub => sub.value === formData.subgenre) || {
-										value: formData.subgenre || 0,
-										label: formData.subgenre_name || 'Seleccionar subgénero',
+									subgenres.find(
+										sub => sub.value === safeFormData.subgenre
+									) || {
+										value: safeFormData.subgenre || 0,
+										label:
+											safeFormData.subgenre_name || 'Seleccionar subgénero',
 									}
 								}
 								onChange={(selectedOption: SingleValue<SubgenreOption>) => {
@@ -1049,7 +1132,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className="react-select-container"
 								classNamePrefix="react-select"
 								styles={reactSelectStyles}
-								isDisabled={!formData.genre || subgenres.length === 0}
+								isDisabled={!safeFormData.genre || subgenres.length === 0}
 							/>
 						</div>
 						<div>
@@ -1058,8 +1141,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select
 								value={{
-									value: formData.is_new_release || 0,
-									label: formData.is_new_release ? 'Sí' : 'No',
+									value: safeFormData.is_new_release || 0,
+									label: safeFormData.is_new_release ? 'Sí' : 'No',
 								}}
 								onChange={(
 									selectedOption: SingleValue<{ value: number; label: string }>
@@ -1087,7 +1170,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<input
 								type="date"
 								name="official_date"
-								value={formData.official_date}
+								value={safeFormData.official_date}
 								onChange={handleChange}
 								className={inputStyles}
 							/>
@@ -1099,7 +1182,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<input
 								type="date"
 								name="original_date"
-								value={formData.original_date}
+								value={safeFormData.original_date}
 								onChange={handleChange}
 								className={inputStyles}
 							/>
@@ -1120,10 +1203,11 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<Select<PublisherOption>
 								value={
 									publishers.find(
-										publisher => publisher.value === formData.publisher
+										publisher => publisher.value === safeFormData.publisher
 									) || {
-										value: formData.publisher || 0,
-										label: formData.publisher_name || 'Seleccionar publisher',
+										value: safeFormData.publisher || 0,
+										label:
+											safeFormData.publisher_name || 'Seleccionar publisher',
 									}
 								}
 								onChange={(selectedOption: SingleValue<PublisherOption>) => {
@@ -1153,8 +1237,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select
 								value={{
-									value: formData.publisher_year || '',
-									label: formData.publisher_year || 'Seleccionar año',
+									value: safeFormData.publisher_year || '',
+									label: safeFormData.publisher_year || 'Seleccionar año',
 								}}
 								onChange={(
 									selectedOption: SingleValue<{ value: string; label: string }>
@@ -1202,7 +1286,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<input
 								type="text"
 								name="copyright_holder"
-								value={formData.copyright_holder}
+								value={safeFormData.copyright_holder}
 								onChange={handleChange}
 								className={inputStyles}
 							/>
@@ -1228,8 +1312,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select
 								value={{
-									value: formData.copyright_holder_year || '',
-									label: formData.copyright_holder_year || 'Seleccionar año',
+									value: safeFormData.copyright_holder_year || '',
+									label:
+										safeFormData.copyright_holder_year || 'Seleccionar año',
 								}}
 								onChange={(
 									selectedOption: SingleValue<{ value: string; label: string }>
@@ -1259,7 +1344,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					<div className="grid grid-cols-2 gap-4">
 						<div className="flex items-end min-h-9">
 							<CustomSwitch
-								checked={formData?.generate_ean ?? false}
+								checked={safeFormData?.generate_ean ?? false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1276,12 +1361,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<label className="ml-2 mr-4 block text-sm text-gray-700">
 								Generar UPC
 							</label>
-							{!formData.generate_ean && (
+							{!safeFormData.generate_ean && (
 								<div className="mt-2">
 									<input
 										type="text"
 										name="ean"
-										value={formData.ean || ''}
+										value={safeFormData.ean || ''}
 										onChange={handleChange}
 										className="w-full px-3 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 										placeholder="Ingrese el UPC"
@@ -1291,7 +1376,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						</div>
 						<div className="flex items-end">
 							<CustomSwitch
-								checked={formData.dolby_atmos ?? false}
+								checked={safeFormData.dolby_atmos ?? false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1323,8 +1408,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						</label>
 						<Select
 							value={{
-								value: formData.territory || '',
-								label: formData.territory || 'Seleccionar territorio',
+								value: safeFormData.territory || '',
+								label: safeFormData.territory || 'Seleccionar territorio',
 							}}
 							onChange={(
 								selectedOption: SingleValue<{ value: string; label: string }>
@@ -1347,7 +1432,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							classNamePrefix="react-select"
 							styles={reactSelectStyles}
 						/>
-						{formData.territory !== 'worldwide' && (
+						{safeFormData.territory !== 'worldwide' && (
 							<div className="mt-2 flex gap-x-4">
 								<Select<CountryOption, true>
 									isMulti
@@ -1367,7 +1452,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										}
 									}}
 									options={RELEVANT_COUNTRIES.filter(
-										country => !formData.countries?.includes(country.value)
+										country => !safeFormData.countries?.includes(country.value)
 									)}
 									placeholder="Seleccionar países"
 									className="react-select-container"
@@ -1377,42 +1462,44 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									isClearable
 									closeMenuOnSelect={false}
 								/>
-								{formData.countries && formData.countries.length > 0 && (
-									<div className="mt-2 bg-gray-50">
-										<div className="text-sm text-gray-500">
-											Países seleccionados: {formData.countries.length}/200
-										</div>
-										<div className="flex flex-wrap gap-2 mt-2">
-											{formData.countries.map((countryCode, index) => (
-												<div
-													key={index}
-													className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-sm"
-												>
-													<span>
-														{RELEVANT_COUNTRIES.find(
-															c => c.value === countryCode
-														)?.label || countryCode}
-													</span>
-													<button
-														type="button"
-														onClick={() => {
-															setFormData((prev: Release) => ({
-																...prev,
-																countries:
-																	prev.countries?.filter(
-																		(_, i) => i !== index
-																	) || [],
-															}));
-														}}
-														className="text-gray-500 hover:text-red-500"
+								{safeFormData.countries &&
+									safeFormData.countries.length > 0 && (
+										<div className="mt-2 bg-gray-50">
+											<div className="text-sm text-gray-500">
+												Países seleccionados: {safeFormData.countries.length}
+												/200
+											</div>
+											<div className="flex flex-wrap gap-2 mt-2">
+												{safeFormData.countries.map((countryCode, index) => (
+													<div
+														key={index}
+														className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-sm"
 													>
-														<XCircle size={14} />
-													</button>
-												</div>
-											))}
+														<span>
+															{RELEVANT_COUNTRIES.find(
+																c => c.value === countryCode
+															)?.label || countryCode}
+														</span>
+														<button
+															type="button"
+															onClick={() => {
+																setFormData((prev: Release) => ({
+																	...prev,
+																	countries:
+																		prev.countries?.filter(
+																			(_, i) => i !== index
+																		) || [],
+																}));
+															}}
+															className="text-gray-500 hover:text-red-500"
+														>
+															<XCircle size={14} />
+														</button>
+													</div>
+												))}
+											</div>
 										</div>
-									</div>
-								)}
+									)}
 							</div>
 						)}
 					</div>
@@ -1429,8 +1516,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						</label>
 						<div className="space-y-4 flex flex-col p-2 bg-slate-100">
 							<ArtistSelector
-								artists={formData.artists || []}
-								newArtists={formData.newArtists}
+								artists={safeFormData.artists || []}
+								newArtists={safeFormData.newArtists}
 								artistData={artistData}
 								onArtistsChange={newArtists =>
 									setFormData((prev: Release) => ({
@@ -1460,7 +1547,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					</div>
 					<div className="flex items-center">
 						<CustomSwitch
-							checked={formData?.youtube_declaration ?? false}
+							checked={safeFormData?.youtube_declaration ?? false}
 							onChange={checked => {
 								const event = {
 									target: {
@@ -1483,7 +1570,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			{isUploadModalOpen && (
 				<UploadTrackToRelease
 					isOpen={isUploadModalOpen}
-					releaseId={release._id}
+					releaseId={safeRelease._id}
 					onClose={() => setIsUploadModalOpen(false)}
 					onTrackUploaded={track => {
 						// Agregar el nuevo track al array newTracks
@@ -1491,8 +1578,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							title: track.name || '',
 							mixName: track.mix_name || '',
 							order:
-								(formData.newTracks?.length || 0) +
-								(formData.tracks?.length || 0),
+								(safeFormData.newTracks?.length || 0) +
+								(safeFormData.tracks?.length || 0),
 							resource:
 								track.resource instanceof File
 									? URL.createObjectURL(track.resource)
@@ -1690,7 +1777,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								onClick={() => {
 									// Crear el nuevo artista con la estructura requerida
 									const newArtist: NewArtist = {
-										order: (formData.newArtists || []).length,
+										order: (safeFormData.newArtists || []).length,
 										artist: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
 										name: newArtistData.name,
 										kind: 'main',

@@ -265,21 +265,30 @@ export default function EditPage() {
 				releaseData,
 			});
 
-			// const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
-			// 	method: 'PUT',
-			// 	body: formData,
-			// });
+			const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
+				method: 'PUT',
+				body: formData,
+			});
 
-			// const data = await response.json();
-			// if (data.success) {
-			// 	setFormData(data.data);
-			// 	// Limpiar los tracks editados después de guardar exitosamente
-			// 	setEditedTracks([]);
-			// 	toast.success('Release actualizado correctamente');
-			// 	await mutateRelease();
-			// } else {
-			// 	toast.error(data.message || 'Error al actualizar el release');
-			// }
+			const data = await response.json();
+			if (data.success) {
+				// Si tenemos datos en la respuesta, los usamos
+				if (data.data) {
+					setFormData(data.data);
+				} else {
+					// Si no hay datos en la respuesta, mantenemos los datos actuales
+					setFormData(prev => ({
+						...prev,
+						newTracks: prev.newTracks || [],
+					}));
+				}
+				// Limpiar los tracks editados después de guardar exitosamente
+				setEditedTracks([]);
+				toast.success('Release actualizado correctamente');
+				await mutateRelease();
+			} else {
+				toast.error(data.message || 'Error al actualizar el release');
+			}
 		} catch (error) {
 			console.error('Error updating release:', error);
 			throw error;

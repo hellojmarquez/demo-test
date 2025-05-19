@@ -274,7 +274,14 @@ export default function EditPage() {
 					external_id: track.external_id ? Number(track.external_id) : 0,
 				})),
 				editedTracks: editedTracks,
-				newTracks: updatedRelease.newTracks || [],
+				newTracks:
+					updatedRelease.newTracks?.map(track => ({
+						...track,
+						resource:
+							track.resource instanceof File
+								? track.resource.name
+								: track.resource,
+					})) || [],
 			};
 
 			// Si la imagen es un archivo, agrégala como 'picture'
@@ -286,12 +293,30 @@ export default function EditPage() {
 				releaseData.picture = picture;
 			}
 
+			// Agregar los archivos de los nuevos tracks
+			if (updatedRelease.newTracks) {
+				updatedRelease.newTracks.forEach(track => {
+					if (track.resource instanceof File) {
+						formData.append(`track_${track.resource.name}`, track.resource);
+					}
+				});
+			}
+
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
 
 			console.log('formData completo:', {
 				releaseData,
 				picture: picture instanceof File ? 'File' : picture,
+				trackFiles: updatedRelease.newTracks?.map(track =>
+					track.resource instanceof File
+						? {
+								name: track.resource.name,
+								size: track.resource.size,
+								type: track.resource.type,
+						  }
+						: track.resource
+				),
 			});
 
 			const response = await fetch(

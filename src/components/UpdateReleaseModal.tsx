@@ -1591,7 +1591,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							order:
 								(safeFormData.newTracks?.length || 0) +
 								(safeFormData.tracks?.length || 0),
-							resource: track.resource instanceof File ? track.resource : '',
+							resource: track.resource instanceof File ? track.resource : '', // Ensure we keep the File object if it exists
 							dolby_atmos_resource: track.dolby_atmos_resource || '',
 							ISRC: track.ISRC || '',
 							DA_ISRC: track.DA_ISRC || '',

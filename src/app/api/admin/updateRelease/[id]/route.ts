@@ -9,7 +9,6 @@ export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
-	console.log('releasebyid');
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -45,11 +44,9 @@ export async function PUT(
 		}
 
 		const releaseData = JSON.parse(data as string);
-		console.log('picture from formData:', picture);
 
 		// Procesar los nuevos artistas de release
 		if (releaseData.newArtists && releaseData.newArtists.length > 0) {
-			console.log('Procesando nuevos artistas...');
 			for (const artist of releaseData.newArtists) {
 				try {
 					const artistResponse = await fetch(
@@ -72,7 +69,7 @@ export async function PUT(
 					);
 
 					const artistResult = await artistResponse.json();
-					console.log('Resultado de creación de artista:', artistResult);
+
 					releaseData.artists.push(artistResult.artist);
 				} catch (error) {
 					console.error('Error al procesar artista:', error);
@@ -82,24 +79,65 @@ export async function PUT(
 
 		// Procesar los nuevos tracks
 		if (releaseData.newTracks && releaseData.newTracks.length > 0) {
-			console.log('Procesando nuevos tracks...', releaseData.newTracks);
 			for (const track of releaseData.newTracks) {
-				console.log('trackfile', track.resource);
-				if (track.resource instanceof File) {
-					const formData = new FormData();
-					formData.append('file', track.resource);
-					formData.append('data', JSON.stringify(track));
+				console.log('Procesando track:', track);
+
+				// Buscar el archivo en el FormData usando el nombre del recurso
+				const trackFile = formData.get(`track_${track.resource}`);
+				if (trackFile) {
+					console.log('Archivo encontrado para track:', track.title);
+					const trackFormData = new FormData();
+
+					// Preparar los datos del track para la API
+					const trackData = {
+						name: track.title,
+						mix_name: track.mixName || '',
+						language: track.language || 'ES',
+						vocals: track.vocals || 'ZXX',
+						artists: track.artists || [],
+						publishers: releaseData.publishers || [],
+						contributors: releaseData.contributors || [],
+						label_share: track.label_share || '',
+						genre: track.genre || 3,
+						genre_name: track.genre_name || 'Alternative',
+						subgenre: track.subgenre || 90,
+						subgenre_name: track.subgenre_name || 'Alternative',
+						dolby_atmos_resource: track.dolby_atmos_resource || '',
+						copyright_holder: track.copyright_holder || 'ISLA sOUNDS',
+						copyright_holder_year: track.copyright_holder_year || '2025',
+						album_only: track.album_only || true,
+						sample_start: track.sample_start || '',
+						explicit_content: track.explicit_content || true,
+						ISRC: track.ISRC || '',
+						generate_isrc: true,
+						DA_ISRC: track.DA_ISRC || '',
+						track_lenght: track.track_length || '',
+					};
+
+					trackFormData.append('file', trackFile);
+					trackFormData.append('data', JSON.stringify(trackData));
+
 					const response = await fetch(
-						`${process.env.NEXT_PUBLIC_API_URL}/api/admin/createSingle`,
+						`${req.nextUrl.origin}/api/admin/createSingle`,
 						{
 							method: 'POST',
-							body: formData,
+							headers: {
+								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+							},
+							body: trackFormData,
 						}
 					);
 					const data = await response.json();
 					if (!data.success) {
 						throw new Error(data.message || 'Error al crear el track');
 					}
+
+					// Agregar el track creado al release
+					if (data.track) {
+						releaseData.tracks.push(data.track);
+					}
+				} else {
+					console.log('No se encontró archivo para track:', track.title);
 				}
 			}
 		}
@@ -107,7 +145,6 @@ export async function PUT(
 		// Procesar los edited tracks
 		if (releaseData.editedTracks && releaseData.editedTracks.length > 0) {
 			for (const track of releaseData.editedTracks) {
-				console.log('Procesando nuevos tracks...', track);
 				try {
 					const trackFormData = new FormData();
 
@@ -115,7 +152,6 @@ export async function PUT(
 					let processedArtists = [];
 					if (track.newArtists && track.newArtists.length > 0) {
 						for (const newArtist of track.newArtists) {
-							console.log('newArtist');
 							try {
 								// Crear el nuevo artista
 								const artistResponse = await fetch(
@@ -140,7 +176,7 @@ export async function PUT(
 								);
 
 								const artistResult = await artistResponse.json();
-								console.log('artistResult', artistResult);
+
 								if (artistResult.success) {
 									// Agregar el artista procesado a la lista de artistas
 									processedArtists.push(artistResult.artist);
@@ -177,7 +213,6 @@ export async function PUT(
 						track_lenght: track.track_lenght || '',
 					};
 
-					console.log('Datos del track a crear:', trackData);
 					trackFormData.append('data', JSON.stringify(trackData));
 					trackFormData.append('file', track.file);
 
@@ -193,15 +228,10 @@ export async function PUT(
 					);
 
 					const trackResult = await trackResponse.json();
-					console.log('Resultado de creación de track:', trackResult);
 
 					if (trackResult.success) {
 						console.log('Track creado exitosamente, agregando al release...');
 						releaseData.tracks.push(trackResult.track);
-						console.log(
-							'Estado actual de tracks en releaseData:',
-							releaseData.tracks
-						);
 					}
 				} catch (error) {
 					console.error('Error al procesar track:', error);
@@ -212,10 +242,9 @@ export async function PUT(
 		let picture_path = '';
 		// Verificar si picture es una nueva imagen o un link existente
 		if (picture) {
-			console.log('picture type:', typeof picture);
 			if (picture instanceof File) {
 				// Es una nueva imagen
-				console.log('Nueva imagen recibida:', picture.name);
+
 				// Aquí puedes procesar la nueva imagen
 				// Por ejemplo, subirla a S3 y obtener la nueva URL
 				const uploadArtworkReq = await fetch(
@@ -296,7 +325,6 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
-		console.log('artists	', releaseData.artists);
 
 		// Llamar a la API externa
 		const apiRes = await fetch(

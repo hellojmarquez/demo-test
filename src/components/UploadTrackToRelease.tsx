@@ -100,7 +100,28 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					name: asset.title,
 					mix_name: asset.mixName,
 					resource: asset.file,
-					artists: [],
+					artists: [
+						{
+							artist: 1541,
+							kind: 'main',
+							order: 5,
+							name: 'Jhon Doe',
+						},
+					],
+					publishers: [
+						{
+							publisher: 70,
+							author: 'Juan Cisneros',
+							order: 3,
+						},
+					],
+					contributors: [
+						{
+							contributor: 1541,
+							role: 2,
+							order: 5,
+						},
+					],
 					ISRC: '',
 					DA_ISRC: '',
 					genre: 0,
@@ -113,9 +134,15 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					generate_isrc: false,
 					status: 'Borrador',
 				};
-
 				// Llamar a onTrackUploaded con el track creado
-				onTrackUploaded(track);
+				onTrackUploaded({
+					...track,
+					contributors: track.contributors.map(contributor => ({
+						...contributor,
+						name: 'Jhon Doe', // Using the same name as the artist for now
+						role_name: 'Producer', // Default role name
+					})),
+				});
 			}
 
 			// Limpiar el formulario

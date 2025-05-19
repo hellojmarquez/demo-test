@@ -69,7 +69,7 @@ export default function CreateInitRelease({
 			formData.append('publisher_name', 'Santiago Montes');
 			formData.append('genre', '4');
 			formData.append('genre_name', 'New Age');
-			formData.append('subgenre', '100');
+			formData.append('subgenre', '108');
 			formData.append('subgenre_name', 'Healing');
 			formData.append('artists', JSON.stringify([]));
 			formData.append('publisher_year', '2025');

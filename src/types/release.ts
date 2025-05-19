@@ -20,7 +20,7 @@ export interface NewArtist {
 export interface Release {
 	_id: string;
 	name: string;
-	picture?: string;
+	picture?: string | File;
 	external_id?: number;
 	auto_detect_language?: boolean;
 	generate_ean?: boolean;
@@ -52,7 +52,7 @@ export interface Release {
 		title: string;
 		mixName: string;
 		order: number;
-		resource: string;
+		resource: string | File;
 		dolby_atmos_resource: string;
 		ISRC: string;
 		DA_ISRC: string;

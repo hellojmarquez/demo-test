@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
 		// Generar un ID temporal basado en timestamp
 		const timestamp = Date.now();
 		const random = Math.floor(Math.random() * 1000);
-		const external_id = parseInt(`${timestamp}${random}`);
 
 		// Parsear campos individuales
 		const picture = formData.get('picture') as File | null;
@@ -59,10 +58,12 @@ export async function POST(req: NextRequest) {
 		const language = formData.get('language') as string;
 		const release_version = formData.get('release_version') as string;
 		const publisher = formData.get('publisher') as string;
+
 		const publisher_name = formData.get('publisher_name') as string;
 		console.log('Publisher data:', { publisher, publisher_name });
 		const publisher_year = formData.get('publisher_year') as string;
 		const copyright_holder = formData.get('copyright_holder') as string;
+
 		const copyright_holder_year = formData.get(
 			'copyright_holder_year'
 		) as string;
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
 			publisher,
 
 			publisher_year,
-			catalogue_number: 'ISLASOUNDS' + external_id,
+			catalogue_number: 'ISLASOUNDS' + temp_id,
 			copyright_holder,
 			copyright_holder_year,
 			is_new_release: 1,
@@ -194,7 +195,7 @@ export async function POST(req: NextRequest) {
 			body: JSON.stringify(releaseToApiData),
 		});
 		const apiRes = await releaseToApi.json();
-
+		console.log('apiRes', apiRes);
 		await dbConnect();
 
 		// Guardar en la base de datos

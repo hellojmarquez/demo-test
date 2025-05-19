@@ -37,7 +37,7 @@ interface ReleaseTrack {
 	subgenre: number;
 	subgenre_name: string;
 	mix_name: string;
-	resource: string;
+	resource: string | File;
 	dolby_atmos_resource: string;
 	album_only: boolean;
 	explicit_content: boolean;
@@ -58,6 +58,7 @@ interface ArtistData {
 	name: string;
 	kind: string;
 	order: number;
+	external_id: number;
 }
 
 interface TrackData {
@@ -239,7 +240,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const safeFormData = formData || {
 		_id: '',
 		name: '',
-		picture: '',
+		picture: '' as string | File,
 		external_id: 0,
 		auto_detect_language: false,
 		generate_ean: false,
@@ -279,7 +280,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const safeRelease = release || {
 		_id: '',
 		name: '',
-		picture: '',
+		picture: '' as string | File,
 		external_id: 0,
 		auto_detect_language: false,
 		generate_ean: false,
@@ -318,12 +319,20 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	// Efecto para cargar la imagen inicial
 	useEffect(() => {
 		if (release?.picture) {
-			// Si la imagen es una URL, la usamos directamente
-			if (release.picture.startsWith('http')) {
-				setImagePreview(release.picture);
-			} else {
-				// Si es base64, la convertimos a URL
-				setImagePreview(`data:image/jpeg;base64,${release.picture}`);
+			if (typeof release.picture === 'string') {
+				// Si la imagen es una URL, la usamos directamente
+				if (release.picture.startsWith('http')) {
+					setImagePreview(release.picture);
+				} else {
+					// Si es base64, la convertimos a URL
+					setImagePreview(`data:image/jpeg;base64,${release.picture}`);
+				}
+			} else if (release.picture instanceof File) {
+				// Si es un File, creamos una URL temporal
+				const objectUrl = URL.createObjectURL(release.picture);
+				setImagePreview(objectUrl);
+				// Limpiar la URL cuando el componente se desmonte
+				return () => URL.revokeObjectURL(objectUrl);
 			}
 		}
 	}, [release?.picture]);
@@ -410,10 +419,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			reader.onloadend = () => {
 				const base64String = reader.result as string;
 				setImagePreview(base64String);
-				const base64Data = base64String.split(',')[1];
 				setFormData((prev: Release) => ({
 					...prev,
-					picture: base64Data,
+					picture: file,
 				}));
 			};
 			reader.readAsDataURL(file);
@@ -1518,7 +1526,10 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<ArtistSelector
 								artists={safeFormData.artists || []}
 								newArtists={safeFormData.newArtists}
-								artistData={artistData}
+								artistData={artistData.map(artist => ({
+									artist: artist.external_id,
+									name: artist.name,
+								}))}
 								onArtistsChange={newArtists =>
 									setFormData((prev: Release) => ({
 										...prev,
@@ -1580,11 +1591,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							order:
 								(safeFormData.newTracks?.length || 0) +
 								(safeFormData.tracks?.length || 0),
-							resource:
-								track.resource instanceof File
-									? URL.createObjectURL(track.resource)
-									: '',
-							file: track.resource instanceof File ? track.resource : null,
+							resource: track.resource instanceof File ? track.resource : '',
 							dolby_atmos_resource: track.dolby_atmos_resource || '',
 							ISRC: track.ISRC || '',
 							DA_ISRC: track.DA_ISRC || '',

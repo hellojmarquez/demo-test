@@ -13,7 +13,7 @@ import { Save } from 'lucide-react';
 
 interface ReleaseTrack {
 	title: string;
-	resource: string;
+	resource: string | File;
 	external_id: number;
 }
 
@@ -24,7 +24,23 @@ interface EditedTrack {
 	DA_ISRC?: string;
 	ISRC?: string;
 	album_only?: boolean;
-	artists?: { artist: number; kind: string; order: number; name: string }[];
+	artists?: {
+		artist: number;
+		kind: string;
+		order: number;
+		name: string;
+	}[];
+	newArtists?: {
+		artist: number;
+		kind: string;
+		order: number;
+		name: string;
+		amazon_music_identifier?: string;
+		apple_identifier?: string;
+		deezer_identifier?: string;
+		email?: string;
+		spotify_identifier?: string;
+	}[];
 	contributors?: any[];
 	copyright_holder?: string;
 	copyright_holder_year?: string;
@@ -40,10 +56,9 @@ interface EditedTrack {
 	order?: number;
 	publishers?: any[];
 	release?: string | null;
-	resource?: string | File | null;
+	resource?: File | string | null;
 	sample_start?: string;
 	track_length?: string;
-
 	vocals?: string;
 	external_id: number;
 	status?: string;
@@ -161,33 +176,37 @@ export default function EditPage() {
 		try {
 			// Si es un track nuevo (sin external_id), lo manejamos diferente
 			if (!trackData.external_id) {
+				// Separar artistas originales de nuevos artistas para el track nuevo
+				const originalArtists =
+					trackData.artists?.filter(artist => artist.artist !== 0) || [];
+				const newArtists =
+					trackData.artists?.filter(artist => artist.artist === 0) || [];
+
 				// Actualizar el track en newTracks
 				setFormData(prev => ({
 					...prev,
-					newTracks:
-						prev.newTracks?.map(t =>
-							t.title === trackData.name
-								? {
-										...t,
-										title: trackData.name || '',
-										mixName: trackData.mix_name || '',
-										order: trackData.order || 0,
-										resource: (trackData.resource as string) || '',
-										dolby_atmos_resource: trackData.dolby_atmos_resource || '',
-										ISRC: trackData.ISRC || '',
-										DA_ISRC: trackData.DA_ISRC || '',
-										genre: trackData.genre || 0,
-										genre_name: trackData.genre_name || '',
-										subgenre: trackData.subgenre || 0,
-										subgenre_name: trackData.subgenre_name || '',
-										album_only: trackData.album_only || false,
-										explicit_content: trackData.explicit_content || false,
-										track_length: trackData.track_length || '',
-										generate_isrc: trackData.generate_isrc || false,
-										artists: trackData.artists || [],
-								  }
-								: t
-						) || [],
+					newTracks: [
+						{
+							title: trackData.name || '',
+							mixName: trackData.mix_name || '',
+							order: trackData.order || 0,
+							resource:
+								trackData.resource instanceof File ? trackData.resource : '',
+							dolby_atmos_resource: trackData.dolby_atmos_resource || '',
+							ISRC: trackData.ISRC || '',
+							DA_ISRC: trackData.DA_ISRC || '',
+							genre: trackData.genre || 0,
+							genre_name: trackData.genre_name || '',
+							subgenre: trackData.subgenre || 0,
+							subgenre_name: trackData.subgenre_name || '',
+							album_only: trackData.album_only || false,
+							explicit_content: trackData.explicit_content || false,
+							track_length: trackData.track_length || '',
+							generate_isrc: trackData.generate_isrc || false,
+							artists: originalArtists,
+							newArtists: newArtists,
+						},
+					],
 				}));
 				return;
 			}
@@ -196,6 +215,12 @@ export default function EditPage() {
 			if (isNaN(trackId)) {
 				throw new Error('ID de track inválido');
 			}
+
+			// Separar artistas originales de nuevos artistas
+			const originalArtists =
+				trackData.artists?.filter(artist => artist.artist !== 0) || [];
+			const newArtists =
+				trackData.artists?.filter(artist => artist.artist === 0) || [];
 
 			// Convertir trackData a EditedTrack
 			const editedTrack: EditedTrack = {
@@ -208,6 +233,8 @@ export default function EditPage() {
 				label_share: trackData.label_share
 					? Number(trackData.label_share)
 					: undefined,
+				artists: originalArtists,
+				newArtists: newArtists,
 			};
 
 			// Actualizar el track en editedTracks con toda la información modificada
@@ -251,11 +278,12 @@ export default function EditPage() {
 			};
 
 			// Si la imagen es un archivo, agrégala como 'picture'
-			if (
-				updatedRelease.picture &&
-				typeof updatedRelease.picture !== 'string'
-			) {
-				formData.append('picture', updatedRelease.picture);
+			const picture = updatedRelease.picture as File | string | null;
+			if (picture instanceof File) {
+				formData.append('picture', picture);
+			} else if (typeof picture === 'string') {
+				// Si es una URL, incluirla en los datos
+				releaseData.picture = picture;
 			}
 
 			// Agregar los datos del release
@@ -263,12 +291,16 @@ export default function EditPage() {
 
 			console.log('formData completo:', {
 				releaseData,
+				picture: picture instanceof File ? 'File' : picture,
 			});
 
-			const response = await fetch(`/api/admin/updateRelease/${releaseId}`, {
-				method: 'PUT',
-				body: formData,
-			});
+			const response = await fetch(
+				`/api/admin/updateRelease/${updatedRelease.external_id}`,
+				{
+					method: 'PUT',
+					body: formData,
+				}
+			);
 
 			const data = await response.json();
 			if (data.success) {
@@ -406,7 +438,10 @@ export default function EditPage() {
 											title: updatedTrack.name || '',
 											mixName: updatedTrack.mix_name || '',
 											order: updatedTrack.order || 0,
-											resource: (updatedTrack.resource as string) || '',
+											resource:
+												updatedTrack.resource instanceof File
+													? updatedTrack.resource
+													: '',
 											dolby_atmos_resource:
 												updatedTrack.dolby_atmos_resource || '',
 											ISRC: updatedTrack.ISRC || '',
@@ -455,49 +490,17 @@ export default function EditPage() {
 									setEditedTrackData(trackData);
 								} else {
 									// Si estamos creando un nuevo track
-									setFormData(prev => {
-										// Si no existe newTracks, lo inicializamos
-										if (!prev.newTracks) {
-											return {
-												...prev,
-												newTracks: [
-													{
-														title: trackData.name || '',
-														mixName: trackData.mix_name || '',
-														order: trackData.order || 0,
-														resource: (trackData.resource as string) || '',
-														dolby_atmos_resource:
-															trackData.dolby_atmos_resource || '',
-														ISRC: trackData.ISRC || '',
-														DA_ISRC: trackData.DA_ISRC || '',
-														genre: trackData.genre || 0,
-														genre_name: trackData.genre_name || '',
-														subgenre: trackData.subgenre || 0,
-														subgenre_name: trackData.subgenre_name || '',
-														album_only: trackData.album_only || false,
-														explicit_content:
-															trackData.explicit_content || false,
-														track_length: trackData.track_length || '',
-														generate_isrc: trackData.generate_isrc || false,
-														artists: trackData.artists || [],
-													},
-												],
-											};
-										}
-
-										// Si el track ya existe en newTracks, lo actualizamos
-										const existingTrackIndex = prev.newTracks.findIndex(
-											t => t.title === trackData.name
-										);
-
-										if (existingTrackIndex >= 0) {
-											const updatedTracks = [...prev.newTracks];
-											updatedTracks[existingTrackIndex] = {
-												...updatedTracks[existingTrackIndex],
+									setFormData(prev => ({
+										...prev,
+										newTracks: [
+											{
 												title: trackData.name || '',
 												mixName: trackData.mix_name || '',
 												order: trackData.order || 0,
-												resource: (trackData.resource as string) || '',
+												resource:
+													trackData.resource instanceof File
+														? trackData.resource
+														: '',
 												dolby_atmos_resource:
 													trackData.dolby_atmos_resource || '',
 												ISRC: trackData.ISRC || '',
@@ -511,40 +514,9 @@ export default function EditPage() {
 												track_length: trackData.track_length || '',
 												generate_isrc: trackData.generate_isrc || false,
 												artists: trackData.artists || [],
-											};
-											return {
-												...prev,
-												newTracks: updatedTracks,
-											};
-										}
-
-										// Si es un track completamente nuevo, lo agregamos
-										return {
-											...prev,
-											newTracks: [
-												...prev.newTracks,
-												{
-													title: trackData.name || '',
-													mixName: trackData.mix_name || '',
-													order: trackData.order || 0,
-													resource: (trackData.resource as string) || '',
-													dolby_atmos_resource:
-														trackData.dolby_atmos_resource || '',
-													ISRC: trackData.ISRC || '',
-													DA_ISRC: trackData.DA_ISRC || '',
-													genre: trackData.genre || 0,
-													genre_name: trackData.genre_name || '',
-													subgenre: trackData.subgenre || 0,
-													subgenre_name: trackData.subgenre_name || '',
-													album_only: trackData.album_only || false,
-													explicit_content: trackData.explicit_content || false,
-													track_length: trackData.track_length || '',
-													generate_isrc: trackData.generate_isrc || false,
-													artists: trackData.artists || [],
-												},
-											],
-										};
-									});
+											},
+										],
+									}));
 
 									toast.success('Track guardado correctamente');
 								}

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SingleTrack from '@/models/SingleTrack';
-import { Binary } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 export async function POST(req: NextRequest) {
@@ -41,10 +40,11 @@ export async function POST(req: NextRequest) {
 			const formData = await req.formData();
 			const file = formData.get('file') as File | null;
 			let data = formData.get('data') as string | null;
-		
+
 			if (data) {
 				trackData = JSON.parse(data);
-			
+				console.log('Track data:', trackData);
+
 				// Asegurarse de que los artistas tengan el formato correcto
 				if (trackData.artists) {
 					trackData.artists = trackData.artists.map((artist: any) => ({
@@ -56,9 +56,7 @@ export async function POST(req: NextRequest) {
 				}
 
 				if (file) {
-				
-
-					console.log('ACTUALIZANDO TRAck');
+					console.log('Procesando archivo:', file.name);
 					const uploadTrackReq = await fetch(
 						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
 						{
@@ -92,21 +90,26 @@ export async function POST(req: NextRequest) {
 					trackFormData.append('file', file);
 
 					// Realizar la solicitud POST a la URL firmada
-					const uploadResponse = await fetch(signedUrl, {
-						method: 'POST',
-						body: trackFormData,
-					});
+					const trackResponse = await fetch(
+						`${req.nextUrl.origin}/api/admin/createSingle`,
+						{
+							method: 'POST',
+							headers: {
+								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+							},
+							body: trackFormData,
+						}
+					);
 
-					picture_url = uploadResponse?.headers?.get('location') || '';
+					picture_url = trackResponse?.headers?.get('location') || '';
 					picture_path = decodeURIComponent(
 						new URL(picture_url).pathname.slice(1)
 					);
-			
 
-					if (!uploadResponse.ok) {
+					if (!trackResponse.ok) {
 						console.error(
 							'Error al subir el archivo de audio a S3:',
-							await uploadResponse.text()
+							await trackResponse.text()
 						);
 						return NextResponse.json(
 							{
@@ -120,7 +123,6 @@ export async function POST(req: NextRequest) {
 			}
 		} else if (contentType.includes('application/json')) {
 			trackData = await req.json();
-		
 		} else {
 			return NextResponse.json(
 				{ success: false, error: 'Invalid content type' },
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 		dataToapi.genre = trackData.genre.id;
 		dataToapi.subgenre = trackData.subgenre.id;
-	
+		console.log('trackData', trackData);
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {
@@ -145,23 +147,30 @@ export async function POST(req: NextRequest) {
 		});
 
 		const trackRes = await trackReq.json();
-
-
-		// Actualizar trackData con los campos corregidos
-		trackData.external_id = trackRes.id;
-		trackData.resource = picture_url;
+		console.log('trackRes', trackRes);
+		if (!trackReq.ok) {
+			console.error('Error al crear el track:', trackRes);
+			return NextResponse.json(
+				{ success: false, error: trackRes },
+				{ status: 500 }
+			);
+		}
+		if (trackRes.success && trackRes.data) {
+			trackData.external_id = trackRes.data.external_id;
+			trackData.resource = picture_url;
+		} else {
+			return NextResponse.json(
+				{ success: false, error: 'Error en la respuesta de la API' },
+				{ status: 500 }
+			);
+		}
 
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
 
 		return NextResponse.json({
 			success: true,
-			data: {
-				_id: createTrack._id,
-				external_id: createTrack.external_id,
-				resource: createTrack.resource,
-				name: createTrack.name,
-			},
+			data: createTrack,
 		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);

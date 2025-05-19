@@ -38,23 +38,23 @@ const ArtistSelector: React.FC<ArtistSelectorProps> = ({
 	onCreateNewArtist,
 	reactSelectStyles,
 }) => {
+	const handleArtistChange = (selectedOption: SingleValue<ArtistOption>) => {
+		if (selectedOption) {
+			const newArtist = {
+				order: artists.length,
+				artist: selectedOption.value,
+				kind: 'main',
+				name: selectedOption.label,
+			};
+			onArtistsChange([...artists, newArtist]);
+		}
+	};
+
 	return (
 		<div className="space-y-4 flex flex-col p-2 bg-slate-100">
 			<Select<ArtistOption>
 				value={null}
-				onChange={(selectedOption: SingleValue<ArtistOption>) => {
-					if (selectedOption) {
-						onArtistsChange([
-							...artists,
-							{
-								order: artists.length,
-								artist: selectedOption.value,
-								kind: 'main',
-								name: selectedOption.label,
-							},
-						]);
-					}
-				}}
+				onChange={handleArtistChange}
 				options={artistData.map(artist => ({
 					value: artist.artist,
 					label: artist.name,

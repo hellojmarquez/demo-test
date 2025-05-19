@@ -13,6 +13,7 @@ export interface Track {
 		kind: string;
 		order: number;
 		name: string;
+		isNew?: boolean;
 	}>;
 	contributors?: Array<{
 		contributor: number;

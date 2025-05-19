@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
 		await dbConnect();
 
 		const artist = await req.json();
-
+		console.log('artist', artist);
 		// Extraer los campos del FormData
-		const order = artist.order;
+		const order = artist.order || 0;
 		const kind = artist.kind;
 		let name = artist.name;
 		let email = artist.email;

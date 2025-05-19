@@ -203,12 +203,12 @@ export async function PUT(
 		console.log('updatedTrack', updatedTrack);
 		return NextResponse.json({
 			success: true,
-			track: {
-				external_id: updatedTrack?.external_id,
-				resource: updatedTrack?.resource,
-				title: updatedTrack?.name,
-				mixName: updatedTrack?.mix_name,
-			},
+			// track: {
+			// 	external_id: updatedTrack?.external_id,
+			// 	resource: updatedTrack?.resource,
+			// 	title: updatedTrack?.name,
+			// 	mixName: updatedTrack?.mix_name,
+			// },
 		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);

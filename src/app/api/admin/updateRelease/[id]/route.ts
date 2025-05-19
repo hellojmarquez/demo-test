@@ -84,70 +84,68 @@ export async function PUT(
 				// Buscar el archivo en el FormData usando el nombre del recurso
 				const trackFile = formData.get(`track_${track.resource}`);
 				console.log('trackFile nuevo', trackFile);
+				console.log('new artists: ', track.newArtists);
+				console.log('publisher: ', track.publishers);
+				console.log('contributor: ', track.contributors);
+				const trackData = {
+					name: track.title,
+					mix_name: track.mixName || '',
+					language: track.language || 'ES',
+					vocals: track.vocals || 'ZXX',
+					artists: track.artists || [],
+					publishers: track.publishers || [],
+					contributors: track.contributors || [],
+					label_share: track.label_share || '',
+					genre: track.genre || 0,
+					genre_name: track.genre_name || '',
+					subgenre: track.subgenre || 0,
+					subgenre_name: track.subgenre_name || '',
+					dolby_atmos_resource: track.dolby_atmos_resource || '',
+					copyright_holder: track.copyright_holder || '',
+					copyright_holder_year: track.copyright_holder_year || '',
+					album_only: track.album_only || false,
+					sample_start: track.sample_start || '',
+					explicit_content: track.explicit_content || false,
+					ISRC: track.ISRC || '',
+					generate_isrc: track.generate_isrc || false,
+					DA_ISRC: track.DA_ISRC || '',
+					track_lenght: track.track_length || '',
+				};
+				const trackFormData = new FormData();
+				trackFormData.append('data', JSON.stringify(trackData));
 				if (trackFile) {
-					console.log('Archivo encontrado para track:', track.title);
-					const trackFormData = new FormData();
-
-					// Preparar los datos del track para la API
-					const trackData = {
-						name: track.title,
-						mix_name: track.mixName || '',
-						language: track.language || 'ES',
-						vocals: track.vocals || 'ZXX',
-						artists: track.artists || [],
-						publishers: track.publishers || [],
-						contributors: track.contributors || [],
-						label_share: track.label_share || '',
-						genre: track.genre || 0,
-						genre_name: track.genre_name || '',
-						subgenre: track.subgenre || 0,
-						subgenre_name: track.subgenre_name || '',
-						dolby_atmos_resource: track.dolby_atmos_resource || '',
-						copyright_holder: track.copyright_holder || '',
-						copyright_holder_year: track.copyright_holder_year || '',
-						album_only: track.album_only || false,
-						sample_start: track.sample_start || '',
-						explicit_content: track.explicit_content || false,
-						ISRC: track.ISRC || '',
-						generate_isrc: track.generate_isrc || false,
-						DA_ISRC: track.DA_ISRC || '',
-						track_lenght: track.track_length || '',
-					};
-
 					trackFormData.append('file', trackFile);
-					trackFormData.append('data', JSON.stringify(trackData));
-
-					const response = await fetch(
-						`${req.nextUrl.origin}/api/admin/createSingle`,
-						{
-							method: 'POST',
-							headers: {
-								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
-							},
-							body: trackFormData,
-						}
-					);
-					const data = await response.json();
-					if (!data.success) {
-						throw new Error(data.message || 'Error al crear el track');
-					}
-
-					// Agregar el track creado al release
-					if (data.track) {
-						releaseTrackMetadata.push({
-							title: data.track.name,
-							external_id: data.track.external_id,
-							mixName: data.track.mix_name,
-							resource: data.track.resource,
-						});
-						const source_path = decodeURIComponent(
-							new URL(data.track.resource).pathname.slice(1)
-						);
-						data.track.resource = source_path;
-						fullNewTrack.push(data.track);
-					}
 				} else {
 					console.log('No se encontró archivo para track:', track.title);
+				}
+				const response = await fetch(
+					`${req.nextUrl.origin}/api/admin/createSingle`,
+					{
+						method: 'POST',
+						headers: {
+							Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+						},
+						body: trackFormData,
+					}
+				);
+				const data = await response.json();
+				if (!data.success) {
+					throw new Error(data.message || 'Error al crear el track');
+				}
+
+				// Agregar el track creado al release
+				if (data.track) {
+					releaseTrackMetadata.push({
+						title: data.track.name,
+						external_id: data.track.external_id,
+						mixName: data.track.mix_name,
+						resource: data.track.resource,
+					});
+					const source_path = decodeURIComponent(
+						new URL(data.track.resource).pathname.slice(1)
+					);
+					data.track.resource = source_path;
+					fullNewTrack.push(data.track);
 				}
 			}
 		}
@@ -237,7 +235,7 @@ export async function PUT(
 					const trackResponse = await fetch(
 						`${req.nextUrl.origin}/api/admin/updateSingle/`,
 						{
-							method: 'POST',
+							method: 'PUT',
 							headers: {
 								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
 							},
@@ -245,7 +243,18 @@ export async function PUT(
 						}
 					);
 
-					const trackResult = await trackResponse.json();
+					// Log de la respuesta para debug
+					const responseText = await trackResponse.text();
+					console.log('Respuesta del servidor:', responseText);
+
+					// Intentar parsear la respuesta como JSON
+					let trackResult;
+					try {
+						trackResult = JSON.parse(responseText);
+					} catch (e) {
+						console.error('Error al parsear la respuesta como JSON:', e);
+						throw new Error('Respuesta del servidor inválida');
+					}
 
 					if (trackResult.success) {
 						console.log('Track creado exitosamente, agregando al release...');

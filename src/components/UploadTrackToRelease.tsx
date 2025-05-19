@@ -137,6 +137,9 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					track_lenght: '',
 					status: 'Borrador',
 				};
+
+				console.log('Track antes de onTrackUploaded:', track);
+
 				// Llamar a onTrackUploaded con el track creado
 				onTrackUploaded({
 					...track,

@@ -159,10 +159,11 @@ export async function POST(req: NextRequest) {
 		trackData.resource = picture_url;
 
 		// Crear el track
-		// const createTrack = await SingleTrack.create(trackData);
-
+		const createTrack = await SingleTrack.create(trackData);
+		console.log('createTrack', createTrack);
 		return NextResponse.json({
 			success: true,
+			track: createTrack,
 		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);

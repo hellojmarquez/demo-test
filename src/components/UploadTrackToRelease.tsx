@@ -97,6 +97,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			// Procesar cada asset y crear un objeto track
 			for (const asset of validAssets) {
 				const track = {
+					order: 0,
 					name: asset.title,
 					mix_name: asset.mixName,
 					resource: asset.file,

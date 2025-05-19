@@ -76,7 +76,8 @@ export async function PUT(
 				}
 			}
 		}
-
+		const fullNewTrack = [];
+		const releaseTrackMetadata = [];
 		// Procesar los nuevos tracks
 		if (releaseData.newTracks && releaseData.newTracks.length > 0) {
 			for (const track of releaseData.newTracks) {
@@ -134,7 +135,17 @@ export async function PUT(
 
 					// Agregar el track creado al release
 					if (data.track) {
-						releaseData.tracks.push(data.track);
+						releaseTrackMetadata.push({
+							title: data.track.name,
+							external_id: data.track.external_id,
+							mixName: data.track.mix_name,
+							resource: data.track.resource,
+						});
+						const source_path = decodeURIComponent(
+							new URL(data.track.resource).pathname.slice(1)
+						);
+						data.track.resource = source_path;
+						fullNewTrack.push(data.track);
 					}
 				} else {
 					console.log('No se encontró archivo para track:', track.title);
@@ -325,7 +336,8 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
-
+		releaseData.tracks = fullNewTrack;
+		console.log('releaseData to api', releaseData);
 		// Llamar a la API externa
 		const apiRes = await fetch(
 			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
@@ -342,7 +354,7 @@ export async function PUT(
 		);
 		const apiResJson = await apiRes.json();
 		console.log('apiResJson', apiResJson);
-
+		releaseData.tracks = releaseTrackMetadata;
 		// Luego usar el _id de MongoDB para la actualización
 		const updatedRelease = await Release.findByIdAndUpdate(
 			release._id, // Usar el _id de MongoDB

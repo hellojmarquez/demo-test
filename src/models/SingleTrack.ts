@@ -38,7 +38,7 @@ const SingleTrackSchema = new mongoose.Schema(
 	{
 		order: {
 			type: Number,
-			default: null,
+			default: 0,
 		},
 		external_id: {
 			type: Number,

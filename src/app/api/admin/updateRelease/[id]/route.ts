@@ -344,46 +344,61 @@ export async function PUT(
 			releaseData.artwork = decodeURIComponent(url.pathname.slice(1));
 		}
 
-		// // Primero buscar el release por external_id
-		// const release = await Release.findOne({ external_id: params.id });
-		// if (!release) {
-		// 	return NextResponse.json(
-		// 		{ success: false, message: 'No se encontró el release' },
-		// 		{ status: 404 }
-		// 	);
-		// }
-		// releaseData.tracks = fullNewTrack;
-		// console.log('releaseData to api', releaseData);
-		// // Llamar a la API externa
-		// const apiRes = await fetch(
-		// 	`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
-		// 	{
-		// 		method: 'PUT',
-		// 		body: JSON.stringify(releaseData),
-		// 		headers: {
-		// 			'Content-Type': 'application/json',
-		// 			Authorization: `JWT ${moveMusicAccessToken}`,
-		// 			'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-		// 			Referer: process.env.MOVEMUSIC_REFERER || '',
-		// 		},
-		// 	}
-		// );
-		// const apiResJson = await apiRes.json();
-		// console.log('apiResJson', apiResJson);
-		// releaseData.tracks = releaseTrackMetadata;
-		// // Luego usar el _id de MongoDB para la actualización
-		// const updatedRelease = await Release.findByIdAndUpdate(
-		// 	release._id, // Usar el _id de MongoDB
-		// 	{ $set: releaseData },
-		// 	{ new: true, runValidators: true }
-		// );
+		// Mantener los tracks existentes y agregar los nuevos
+		releaseData.tracks = [...(releaseData.tracks || []), ...fullNewTrack];
 
-		// if (!updatedRelease) {
-		// 	return NextResponse.json(
-		// 		{ success: false, message: 'No se encontró el release' },
-		// 		{ status: 404 }
-		// 	);
-		// }
+		// Primero buscar el release por external_id
+		const release = await Release.findOne({ external_id: params.id });
+		if (!release) {
+			return NextResponse.json(
+				{ success: false, message: 'No se encontró el release' },
+				{ status: 404 }
+			);
+		}
+		console.log('releaseData to api', releaseData);
+		// Preparar los datos para la API externa
+		const apiReleaseData = {
+			...releaseData,
+			tracks: fullNewTrack,
+		};
+
+		// Preparar los datos para la base de datos
+		const dbReleaseData = {
+			...releaseData,
+			tracks: [...(release.tracks || []), ...releaseTrackMetadata],
+		};
+		console.log('dbReleaseData', dbReleaseData);
+
+		// Llamar a la API externa con la estructura completa
+		const externalApiRes = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+			{
+				method: 'PUT',
+				body: JSON.stringify(apiReleaseData),
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const externalApiResJson = await externalApiRes.json();
+		console.log('externalApiResJson', externalApiResJson);
+
+		// Actualizar la base de datos con la estructura simplificada
+		const updatedRelease = await Release.findByIdAndUpdate(
+			release._id,
+			{ $set: dbReleaseData },
+			{ new: true, runValidators: true }
+		);
+
+		if (!updatedRelease) {
+			return NextResponse.json(
+				{ success: false, message: 'Error al actualizar el release' },
+				{ status: 500 }
+			);
+		}
 
 		return NextResponse.json({
 			success: true,

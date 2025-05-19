@@ -110,28 +110,30 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					],
 					publishers: [
 						{
+							order: 3,
 							publisher: 70,
 							author: 'Juan Cisneros',
-							order: 3,
 						},
 					],
 					contributors: [
 						{
-							contributor: 1541,
+							order: 3,
+							contributor: 1019,
 							role: 2,
-							order: 5,
 						},
 					],
+					generate_isrc: true,
+					copyright_holder: 'Isla Sounds',
+					copyright_holder_year: '2025',
 					ISRC: '',
 					DA_ISRC: '',
-					genre: 0,
-					genre_name: '',
-					subgenre: 0,
-					subgenre_name: '',
+					genre: 3,
+					genre_name: 'Alternative',
+					subgenre: 90,
+					subgenre_name: 'Alternative',
 					album_only: false,
 					explicit_content: false,
 					track_lenght: '',
-					generate_isrc: false,
 					status: 'Borrador',
 				};
 				// Llamar a onTrackUploaded con el track creado
@@ -140,7 +142,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					contributors: track.contributors.map(contributor => ({
 						...contributor,
 						name: 'Jhon Doe', // Using the same name as the artist for now
-						role_name: 'Producer', // Default role name
+						role_name: 'Producer',
 					})),
 				});
 			}

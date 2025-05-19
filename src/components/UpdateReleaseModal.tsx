@@ -1604,6 +1604,10 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							track_length: track.track_length || '',
 							generate_isrc: track.generate_isrc || false,
 							artists: track.artists || [],
+							publishers: track.publishers || [],
+							contributors: track.contributors || [],
+							copyright_holder: track.copyright_holder || '',
+							copyright_holder_year: track.copyright_holder_year || '',
 						};
 
 						setFormData((prev: Release) => ({

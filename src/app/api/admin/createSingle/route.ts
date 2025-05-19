@@ -46,16 +46,6 @@ export async function POST(req: NextRequest) {
 				trackData = JSON.parse(data);
 				console.log('trackData1', trackData);
 
-				// Asegurarse de que los artistas tengan el formato correcto
-				if (trackData.artists) {
-					trackData.artists = trackData.artists.map((artist: any) => ({
-						artist: Number(artist.artist) || 0,
-						kind: String(artist.kind || 'main'),
-						order: Number(artist.order || 0),
-						name: String(artist.name || ''),
-					}));
-				}
-
 				if (file) {
 					console.log('ACTUALIZANDO TRAck');
 					const uploadTrackReq = await fetch(
@@ -127,9 +117,30 @@ export async function POST(req: NextRequest) {
 
 		trackData.resource = picture_path;
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
-		// dataToapi.genre = trackData.genre.id;
-		// dataToapi.subgenre = trackData.subgenre.id;
-		console.log('dataToapi', dataToapi);
+
+		// Asegurar que publishers tenga la estructura correcta
+		if (Array.isArray(dataToapi.publishers)) {
+			dataToapi.publishers = dataToapi.publishers.map((pub: any) => ({
+				order: pub.order || 0,
+				publisher: pub.publisher || 0,
+				author: pub.author || '',
+			}));
+		} else {
+			dataToapi.publishers = [];
+		}
+
+		// Asegurar que contributors tenga la estructura correcta
+		if (Array.isArray(dataToapi.contributors)) {
+			dataToapi.contributors = dataToapi.contributors.map((cont: any) => ({
+				order: cont.order || 0,
+				contributor: cont.contributor || 0,
+				role: cont.role || 0,
+			}));
+		} else {
+			dataToapi.contributors = [];
+		}
+
+		console.log('dataToapi22', dataToapi);
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {
@@ -142,22 +153,16 @@ export async function POST(req: NextRequest) {
 		});
 
 		const trackRes = await trackReq.json();
-		console.log('trackRes', trackRes);
+		console.log('trackRes de api', trackRes);
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;
 
 		// Crear el track
-		const createTrack = await SingleTrack.create(trackData);
+		// const createTrack = await SingleTrack.create(trackData);
 
 		return NextResponse.json({
 			success: true,
-			data: {
-				_id: createTrack._id,
-				external_id: createTrack.external_id,
-				resource: createTrack.resource,
-				name: createTrack.name,
-			},
 		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);

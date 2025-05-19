@@ -304,6 +304,18 @@ export default function EditPage() {
 				});
 			}
 
+			// Agregar los archivos de los tracks editados
+			if (editedTracks) {
+				editedTracks.forEach(track => {
+					if (track.resource instanceof File) {
+						formData.append(
+							`edited_track_${track.external_id}`,
+							track.resource
+						);
+					}
+				});
+			}
+
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
 

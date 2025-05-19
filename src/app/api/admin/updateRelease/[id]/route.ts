@@ -81,10 +81,9 @@ export async function PUT(
 		// Procesar los nuevos tracks
 		if (releaseData.newTracks && releaseData.newTracks.length > 0) {
 			for (const track of releaseData.newTracks) {
-				console.log('Procesando track:', track);
-
 				// Buscar el archivo en el FormData usando el nombre del recurso
 				const trackFile = formData.get(`track_${track.resource}`);
+				console.log('trackFile nuevo', trackFile);
 				if (trackFile) {
 					console.log('Archivo encontrado para track:', track.title);
 					const trackFormData = new FormData();
@@ -156,8 +155,14 @@ export async function PUT(
 		// Procesar los edited tracks
 		if (releaseData.editedTracks && releaseData.editedTracks.length > 0) {
 			for (const track of releaseData.editedTracks) {
+				console.log('track edit a update: ', track);
+
 				try {
 					const trackFormData = new FormData();
+
+					// Buscar el archivo en el FormData usando el external_id
+					const trackFile = formData.get(`edited_track_${track.external_id}`);
+					console.log('Archivo encontrado para track editado:', trackFile);
 
 					// Procesar newArtists si existen
 					let processedArtists = [];
@@ -225,7 +230,9 @@ export async function PUT(
 					};
 
 					trackFormData.append('data', JSON.stringify(trackData));
-					trackFormData.append('file', track.file);
+					if (trackFile) {
+						trackFormData.append('file', trackFile);
+					}
 
 					const trackResponse = await fetch(
 						`${req.nextUrl.origin}/api/admin/updateSingle/`,
@@ -328,46 +335,46 @@ export async function PUT(
 			releaseData.artwork = decodeURIComponent(url.pathname.slice(1));
 		}
 
-		// Primero buscar el release por external_id
-		const release = await Release.findOne({ external_id: params.id });
-		if (!release) {
-			return NextResponse.json(
-				{ success: false, message: 'No se encontró el release' },
-				{ status: 404 }
-			);
-		}
-		releaseData.tracks = fullNewTrack;
-		console.log('releaseData to api', releaseData);
-		// Llamar a la API externa
-		const apiRes = await fetch(
-			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
-			{
-				method: 'PUT',
-				body: JSON.stringify(releaseData),
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-			}
-		);
-		const apiResJson = await apiRes.json();
-		console.log('apiResJson', apiResJson);
-		releaseData.tracks = releaseTrackMetadata;
-		// Luego usar el _id de MongoDB para la actualización
-		const updatedRelease = await Release.findByIdAndUpdate(
-			release._id, // Usar el _id de MongoDB
-			{ $set: releaseData },
-			{ new: true, runValidators: true }
-		);
+		// // Primero buscar el release por external_id
+		// const release = await Release.findOne({ external_id: params.id });
+		// if (!release) {
+		// 	return NextResponse.json(
+		// 		{ success: false, message: 'No se encontró el release' },
+		// 		{ status: 404 }
+		// 	);
+		// }
+		// releaseData.tracks = fullNewTrack;
+		// console.log('releaseData to api', releaseData);
+		// // Llamar a la API externa
+		// const apiRes = await fetch(
+		// 	`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+		// 	{
+		// 		method: 'PUT',
+		// 		body: JSON.stringify(releaseData),
+		// 		headers: {
+		// 			'Content-Type': 'application/json',
+		// 			Authorization: `JWT ${moveMusicAccessToken}`,
+		// 			'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+		// 			Referer: process.env.MOVEMUSIC_REFERER || '',
+		// 		},
+		// 	}
+		// );
+		// const apiResJson = await apiRes.json();
+		// console.log('apiResJson', apiResJson);
+		// releaseData.tracks = releaseTrackMetadata;
+		// // Luego usar el _id de MongoDB para la actualización
+		// const updatedRelease = await Release.findByIdAndUpdate(
+		// 	release._id, // Usar el _id de MongoDB
+		// 	{ $set: releaseData },
+		// 	{ new: true, runValidators: true }
+		// );
 
-		if (!updatedRelease) {
-			return NextResponse.json(
-				{ success: false, message: 'No se encontró el release' },
-				{ status: 404 }
-			);
-		}
+		// if (!updatedRelease) {
+		// 	return NextResponse.json(
+		// 		{ success: false, message: 'No se encontró el release' },
+		// 		{ status: 404 }
+		// 	);
+		// }
 
 		return NextResponse.json({
 			success: true,

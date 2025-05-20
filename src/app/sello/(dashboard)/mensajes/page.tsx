@@ -308,6 +308,15 @@ export default function Mensajes() {
 				{selectedTicket ? (
 					<>
 						<div className="flex-1 p-4 overflow-y-auto">
+							{/* Mostrar la descripción del ticket como primer mensaje */}
+							<div className="mb-4 text-left">
+								<div className="inline-block p-3 rounded-lg bg-gray-200">
+									<p>{selectedTicket.description}</p>
+									<p className="text-xs mt-1">
+										{selectedTicket.createdBy} (Creador del ticket)
+									</p>
+								</div>
+							</div>
 							{messages.map((message, index) => (
 								<div
 									key={index}

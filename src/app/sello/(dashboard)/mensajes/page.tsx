@@ -398,22 +398,24 @@ export default function Mensajes() {
 									required
 								/>
 							</div>
-							<div>
-								<label className="block text-sm font-medium mb-1">
-									Prioridad
-								</label>
-								<select
-									value={newTicket.priority}
-									onChange={e =>
-										setNewTicket({ ...newTicket, priority: e.target.value })
-									}
-									className="w-full border rounded px-3 py-2"
-								>
-									<option value="low">Baja</option>
-									<option value="medium">Media</option>
-									<option value="high">Alta</option>
-								</select>
-							</div>
+							{user?.role === 'admin' && (
+								<div>
+									<label className="block text-sm font-medium mb-1">
+										Prioridad
+									</label>
+									<select
+										value={newTicket.priority}
+										onChange={e =>
+											setNewTicket({ ...newTicket, priority: e.target.value })
+										}
+										className="w-full border rounded px-3 py-2"
+									>
+										<option value="low">Baja</option>
+										<option value="medium">Media</option>
+										<option value="high">Alta</option>
+									</select>
+								</div>
+							)}
 							<div className="flex justify-end gap-2">
 								<button
 									type="button"

@@ -78,6 +78,7 @@ interface Ticket {
 	status: string;
 	priority: string;
 	messages: Message[];
+	createdBy: string;
 }
 
 export default function Mensajes() {

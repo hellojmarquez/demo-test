@@ -97,7 +97,8 @@ export default function Mensajes() {
 	});
 	const [messages, setMessages] = useState<Message[]>([]);
 
-	const { sendMessage, onMessage } = useSocket(selectedTicket?._id || '');
+	const { sendMessage, onMessage, onTicketUpdate, updateTicket, socket } =
+		useSocket(selectedTicket?._id || '');
 
 	const fetchTickets = async () => {
 		try {
@@ -124,26 +125,86 @@ export default function Mensajes() {
 	}, [user, loading, router]);
 
 	useEffect(() => {
-		if (selectedTicket) {
-			onMessage(message => {
-				console.log('Mensaje recibido en el componente:', message);
-				setMessages(prev => {
-					const messageExists = prev.some(
-						m =>
-							m.content === message.content &&
-							m.sender === message.sender &&
-							new Date(m.createdAt).getTime() ===
-								new Date(message.createdAt).getTime()
-					);
+		if (!selectedTicket) return;
 
-					if (!messageExists) {
-						return [...prev, message];
-					}
-					return prev;
-				});
+		console.log(
+			'Configurando listeners de socket para ticket:',
+			selectedTicket._id
+		);
+
+		// Configurar listener de mensajes
+		const messageHandler = (message: any) => {
+			console.log('Mensaje recibido:', message);
+			setMessages(prev => {
+				const messageExists = prev.some(
+					m =>
+						m.content === message.content &&
+						m.sender === message.sender &&
+						new Date(m.createdAt).getTime() ===
+							new Date(message.createdAt).getTime()
+				);
+				return messageExists ? prev : [...prev, message];
 			});
-		}
-	}, [selectedTicket, onMessage]);
+		};
+
+		// Configurar listener de actualizaciones de ticket
+		const ticketUpdateHandler = (updatedTicket: any) => {
+			console.log('Ticket actualizado recibido en el cliente:', updatedTicket);
+			console.log('Ticket seleccionado actual:', selectedTicket);
+
+			// Actualizar el ticket seleccionado
+			setSelectedTicket(prev => {
+				if (!prev) return null;
+				console.log('Actualizando ticket seleccionado:', {
+					prev,
+					updated: {
+						...prev,
+						status: updatedTicket.status,
+						priority: updatedTicket.priority,
+						updatedAt: updatedTicket.updatedAt,
+						updatedBy: updatedTicket.updatedBy,
+					},
+				});
+				return {
+					...prev,
+					status: updatedTicket.status,
+					priority: updatedTicket.priority,
+					updatedAt: updatedTicket.updatedAt,
+					updatedBy: updatedTicket.updatedBy,
+				};
+			});
+
+			// Actualizar el ticket en la lista
+			setTickets(prevTickets => {
+				console.log('Actualizando lista de tickets');
+				return prevTickets.map(ticket =>
+					ticket._id === updatedTicket._id
+						? {
+								...ticket,
+								status: updatedTicket.status,
+								priority: updatedTicket.priority,
+								updatedAt: updatedTicket.updatedAt,
+								updatedBy: updatedTicket.updatedBy,
+						  }
+						: ticket
+				);
+			});
+		};
+
+		// Registrar los listeners
+		console.log('Registrando listeners de socket');
+		onMessage(messageHandler);
+		onTicketUpdate(ticketUpdateHandler);
+
+		// Limpiar los listeners cuando el componente se desmonte o cambie el ticket
+		return () => {
+			console.log('Limpiando listeners de socket');
+			if (socket) {
+				socket.off('message-received', messageHandler);
+				socket.off('ticket-updated', ticketUpdateHandler);
+			}
+		};
+	}, [selectedTicket, onMessage, onTicketUpdate, socket]);
 
 	const handleSendMessage = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -171,10 +232,8 @@ export default function Mensajes() {
 			const messageData = await response.json();
 			console.log('Mensaje enviado:', messageData);
 
-			setMessages(prev => [...prev, messageData]);
-
+			// No agregamos el mensaje aquí, lo dejamos que llegue por socket
 			sendMessage(messageData);
-
 			setNewMessage('');
 		} catch (error) {
 			console.error('Error al enviar mensaje:', error);
@@ -195,7 +254,11 @@ export default function Mensajes() {
 
 			if (res.ok) {
 				const ticket = await res.json();
-				setTickets(prev => [...prev, ticket]);
+				// Verificar si el ticket ya existe antes de agregarlo
+				setTickets(prev => {
+					const exists = prev.some(t => t._id === ticket._id);
+					return exists ? prev : [...prev, ticket];
+				});
 				setIsModalOpen(false);
 				setNewTicket({
 					title: '',
@@ -237,6 +300,85 @@ export default function Mensajes() {
 		}
 	};
 
+	const handleCloseTicket = async () => {
+		if (!selectedTicket || !user || user.role !== 'admin') return;
+
+		try {
+			console.log('Iniciando cierre de ticket:', selectedTicket._id);
+			const response = await fetch(`/api/admin/tickets/${selectedTicket._id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ status: 'closed' }),
+			});
+
+			if (!response.ok) {
+				throw new Error('Error al cerrar el ticket');
+			}
+
+			const updatedTicket = await response.json();
+			console.log('Respuesta del servidor:', updatedTicket);
+
+			// Primero emitimos la actualización por socket
+			console.log('Emitiendo actualización por socket');
+			updateTicket({
+				...updatedTicket,
+				_id: selectedTicket._id,
+			});
+
+			// Esperamos un momento para asegurar que el socket emitió el evento
+			await new Promise(resolve => setTimeout(resolve, 100));
+
+			// Luego actualizamos el estado local
+			console.log('Actualizando estado local');
+			setSelectedTicket(prev => {
+				if (!prev) return null;
+				return {
+					...prev,
+					status: 'closed',
+					updatedAt: updatedTicket.updatedAt,
+					updatedBy: updatedTicket.updatedBy,
+				};
+			});
+
+			setTickets(prevTickets =>
+				prevTickets.map(ticket =>
+					ticket._id === selectedTicket._id
+						? {
+								...ticket,
+								status: 'closed',
+								updatedAt: updatedTicket.updatedAt,
+								updatedBy: updatedTicket.updatedBy,
+						  }
+						: ticket
+				)
+			);
+
+			toast.success('Ticket cerrado correctamente');
+		} catch (error) {
+			console.error('Error al cerrar ticket:', error);
+			toast.error('Error al cerrar el ticket');
+		}
+	};
+
+	// Función para cargar los mensajes de un ticket
+	const loadTicketMessages = async (ticketId: string) => {
+		try {
+			const response = await fetch(`/api/admin/tickets/${ticketId}/messages`);
+			if (response.ok) {
+				const data = await response.json();
+				setMessages(data);
+			} else {
+				console.error('Error al cargar mensajes');
+				setMessages([]);
+			}
+		} catch (error) {
+			console.error('Error al cargar mensajes:', error);
+			setMessages([]);
+		}
+	};
+
 	if (loadingTickets) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
@@ -270,7 +412,10 @@ export default function Mensajes() {
 								? 'bg-blue-100'
 								: 'bg-gray-50 hover:bg-gray-100'
 						}`}
-						onClick={() => setSelectedTicket(ticket)}
+						onClick={() => {
+							setSelectedTicket(ticket);
+							loadTicketMessages(ticket._id);
+						}}
 					>
 						<h3 className="font-semibold">{ticket.title}</h3>
 						<p className="text-sm text-gray-600">{ticket.description}</p>
@@ -341,22 +486,36 @@ export default function Mensajes() {
 							))}
 						</div>
 						<div className="border-t p-4">
-							<div className="flex gap-2">
-								<input
-									type="text"
-									value={newMessage}
-									onChange={e => setNewMessage(e.target.value)}
-									placeholder="Escribe un mensaje..."
-									className="flex-1 border rounded px-4 py-2"
-									onKeyPress={e => e.key === 'Enter' && handleSendMessage(e)}
-								/>
-								<button
-									onClick={e => handleSendMessage(e)}
-									className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-								>
-									Enviar
-								</button>
-							</div>
+							{selectedTicket.status === 'closed' ? (
+								<div className="text-center text-gray-500">
+									Este ticket está cerrado y no se pueden enviar más mensajes
+								</div>
+							) : (
+								<div className="flex gap-2">
+									<input
+										type="text"
+										value={newMessage}
+										onChange={e => setNewMessage(e.target.value)}
+										placeholder="Escribe un mensaje..."
+										className="flex-1 border rounded px-4 py-2"
+										onKeyPress={e => e.key === 'Enter' && handleSendMessage(e)}
+									/>
+									<button
+										onClick={e => handleSendMessage(e)}
+										className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+									>
+										Enviar
+									</button>
+									{user?.role === 'admin' && (
+										<button
+											onClick={handleCloseTicket}
+											className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+										>
+											Cerrar Ticket
+										</button>
+									)}
+								</div>
+							)}
 						</div>
 					</>
 				) : (

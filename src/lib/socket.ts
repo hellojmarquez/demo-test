@@ -43,6 +43,18 @@ export const initSocket = (res: NextApiResponseWithSocket) => {
 				io?.to(ticketId).emit('message-received', message);
 			});
 
+			socket.on('ticket-updated', ({ ticketId, ticket }) => {
+				console.log('Socket: Ticket actualizado recibido:', {
+					ticketId,
+					ticket,
+				});
+				console.log('Socket: Emitiendo a sala del ticket:', ticketId);
+				io?.to(ticketId).emit('ticket-updated', ticket);
+				console.log('Socket: Emitiendo a todos los clientes');
+				io?.emit('ticket-updated', ticket);
+				console.log('Socket: Evento emitido correctamente');
+			});
+
 			socket.on('disconnect', () => {
 				console.log('Cliente desconectado:', socket.id);
 			});

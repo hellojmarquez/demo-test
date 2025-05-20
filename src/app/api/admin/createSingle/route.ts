@@ -157,10 +157,11 @@ export async function POST(req: NextRequest) {
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;
+		console.log('createsingle api ', trackRes);
 
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
-		console.log('createTrack', createTrack);
+		console.log('createTrack MONGO', createTrack);
 		return NextResponse.json({
 			success: true,
 			track: createTrack,

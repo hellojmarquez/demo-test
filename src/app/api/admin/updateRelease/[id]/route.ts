@@ -76,17 +76,15 @@ export async function PUT(
 				}
 			}
 		}
-		const fullNewTrack = [];
+		const fullNewTrackToApi = [];
+		const fullNewTrackToBBDD = [];
 		const releaseTrackMetadata = [];
 		// Procesar los nuevos tracks
 		if (releaseData.newTracks && releaseData.newTracks.length > 0) {
 			for (const track of releaseData.newTracks) {
 				// Buscar el archivo en el FormData usando el nombre del recurso
 				const trackFile = formData.get(`track_${track.resource}`);
-				console.log('trackFile nuevo', trackFile);
-				console.log('new artists: ', track.newArtists);
-				console.log('publisher: ', track.publishers);
-				console.log('contributor: ', track.contributors);
+
 				const trackData = {
 					name: track.title,
 					mix_name: track.mixName || '',
@@ -144,8 +142,12 @@ export async function PUT(
 					const source_path = decodeURIComponent(
 						new URL(data.track.resource).pathname.slice(1)
 					);
+
 					data.track.resource = source_path;
-					fullNewTrack.push(data.track);
+					data.track.id = data.track.extrernal_id;
+					fullNewTrackToApi.push(data.track);
+					delete data.track.id;
+					fullNewTrackToBBDD.push(data.track);
 				}
 			}
 		}
@@ -153,14 +155,11 @@ export async function PUT(
 		// Procesar los edited tracks
 		if (releaseData.editedTracks && releaseData.editedTracks.length > 0) {
 			for (const track of releaseData.editedTracks) {
-				console.log('track edit a update: ', track);
-
 				try {
 					const trackFormData = new FormData();
 
 					// Buscar el archivo en el FormData usando el external_id
 					const trackFile = formData.get(`edited_track_${track.external_id}`);
-					console.log('Archivo encontrado para track editado:', trackFile);
 
 					// Procesar newArtists si existen
 					let processedArtists = [];
@@ -233,7 +232,7 @@ export async function PUT(
 					}
 
 					const trackResponse = await fetch(
-						`${req.nextUrl.origin}/api/admin/updateSingle/`,
+						`${req.nextUrl.origin}/api/admin/updateSingle/${track.external_id}`,
 						{
 							method: 'PUT',
 							headers: {
@@ -245,7 +244,7 @@ export async function PUT(
 
 					// Log de la respuesta para debug
 					const responseText = await trackResponse.text();
-					console.log('Respuesta del servidor:', responseText);
+					console.log('Respuesta edit del servidor:', responseText);
 
 					// Intentar parsear la respuesta como JSON
 					let trackResult;
@@ -345,7 +344,7 @@ export async function PUT(
 		}
 
 		// Mantener los tracks existentes y agregar los nuevos
-		releaseData.tracks = [...(releaseData.tracks || []), ...fullNewTrack];
+		releaseData.tracks = [...(releaseData.tracks || []), ...fullNewTrackToBBDD];
 
 		// Primero buscar el release por external_id
 		const release = await Release.findOne({ external_id: params.id });
@@ -355,19 +354,19 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
-		console.log('releaseData to api', releaseData);
+		// console.log('releaseData to api', releaseData);
 		// Preparar los datos para la API externa
 		const apiReleaseData = {
 			...releaseData,
-			tracks: fullNewTrack,
+			tracks: fullNewTrackToApi                                                                                                         ,
 		};
-
+		console.log('apiReleaseData', apiReleaseData);
 		// Preparar los datos para la base de datos
 		const dbReleaseData = {
 			...releaseData,
 			tracks: [...(release.tracks || []), ...releaseTrackMetadata],
 		};
-		console.log('dbReleaseData', dbReleaseData);
+		// console.log('dbReleaseData', dbReleaseData);
 
 		// Llamar a la API externa con la estructura completa
 		const externalApiRes = await fetch(
@@ -384,9 +383,9 @@ export async function PUT(
 			}
 		);
 		const externalApiResJson = await externalApiRes.json();
-		console.log('externalApiResJson', externalApiResJson);
+		console.log('edit release externalApiRes', externalApiResJson);
 
-		// Actualizar la base de datos con la estructura simplificada
+		// Actualiza   r la base de datos con la estructura simplificada
 		const updatedRelease = await Release.findByIdAndUpdate(
 			release._id,
 			{ $set: dbReleaseData },

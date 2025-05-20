@@ -36,6 +36,7 @@ export async function PUT(
 		}
 		await dbConnect();
 		const trackId = params.id;
+		console.log('trackId', trackId);
 		let track_url = '';
 
 		// Get the current track first
@@ -185,7 +186,7 @@ export async function PUT(
 			}
 		);
 		const apires = await trackToApi.json();
-		console.log('apires', apires);
+		console.log('apires updateSingle', apires);
 		if (!apires.ok) {
 			console.error('Error al actualizar el track:', apires);
 			return NextResponse.json(

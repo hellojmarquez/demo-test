@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Rubik } from 'next/font/google';
-import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
+import Providers from './providers';
 
 const rubik = Rubik({
 	weight: ['300', '400', '500', '700'],
@@ -12,13 +12,14 @@ const rubik = Rubik({
 
 export const metadata: Metadata = {
 	title: 'Isla Sounds',
+	description: 'Plataforma de música y colaboración',
 };
 
 export default function RootLayout({
 	children,
-}: Readonly<{
+}: {
 	children: React.ReactNode;
-}>) {
+}) {
 	return (
 		<html lang="es">
 			<head>
@@ -39,7 +40,7 @@ export default function RootLayout({
 				<meta name="apple-mobile-web-app-title" content="CMMG" />
 			</head>
 			<body className={rubik.className}>
-				<AuthProvider>{children}</AuthProvider>
+				<Providers>{children}</Providers>
 			</body>
 		</html>
 	);

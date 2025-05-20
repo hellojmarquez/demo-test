@@ -38,9 +38,12 @@ export default function DashboardLayout({
 
 	const isActive = (path: string) => {
 		if (path === '/sello') {
-			return pathname === path;
+			return pathname?.toString() === path;
 		}
-		return pathname === path || pathname.startsWith(path + '/');
+		return (
+			pathname?.toString() === path ||
+			pathname?.toString().startsWith(path + '/')
+		);
 	};
 
 	if (loading) {
@@ -110,10 +113,10 @@ export default function DashboardLayout({
 										<span>Usuarios</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
-									<a
-										href="/admin/mensajes"
+									<Link
+										href="/sello/mensajes"
 										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/admin/mensajes')
+											isActive('/sello/mensajes')
 												? 'text-white border-b-2'
 												: 'text-white'
 										}`}
@@ -122,7 +125,7 @@ export default function DashboardLayout({
 										<MessageSquare size={18} className="mr-2" />
 										<span>Mensajes</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</a>
+									</Link>
 									<Link
 										href="/sello/catalogo"
 										className={`flex items-center p-2 transition-colors relative group ${
@@ -194,9 +197,9 @@ export default function DashboardLayout({
 											<span>Usuarios</span>
 										</Link>
 										<a
-											href="/admin/mensajes"
+											href="/sello/mensajes"
 											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/admin/mensajes')
+												isActive('/sello/mensajes')
 													? 'text-white border-l-2 border-white'
 													: 'text-white'
 											}`}

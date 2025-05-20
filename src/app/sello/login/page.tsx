@@ -46,7 +46,7 @@ export default function SelloLogin() {
 			const data = await res.json();
 
 			if (res.ok) {
-				const userDB = data.userDB;
+				const userDB = data.user;
 
 				const subAccounts = (userDB.subcuentas || [])
 					.filter((sub: any) => sub.email !== userDB.email)

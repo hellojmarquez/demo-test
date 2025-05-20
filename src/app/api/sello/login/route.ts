@@ -1,28 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SignJWT } from 'jose'; // Ensure jose is imported
+import { SignJWT } from 'jose';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
-import { comparePassword, encryptPassword } from '@/utils/auth';
+
 export async function POST(req: NextRequest) {
-	// console.log('Login sello request received');
 	try {
 		const { email, password } = await req.json();
 
-		//Checking if fields are empty
 		if (!email || !password) {
 			return NextResponse.json(
-				{ error: 'credentials are required' },
+				{ error: 'Se requieren credenciales' },
 				{ status: 400 }
 			);
 		}
+
 		await dbConnect();
 
-		//Getting the user from DDBB
 		const userDB = await User.findOne({ email: email });
 
-		// 	// Verifying the password
-		// 	// const isMatch = await comparePassword(password, userDB.password);
+		if (!userDB) {
+			return NextResponse.json(
+				{ error: 'Usuario no encontrado' },
+				{ status: 404 }
+			);
+		}
 
+		// Comparación directa de contraseñas (sin encriptación)
 		if (password === userDB.password) {
 			try {
 				// fetch para obtener access token y refresh token para hacer peticiones a move music
@@ -41,45 +44,52 @@ export async function POST(req: NextRequest) {
 					.then(res => res.json())
 					.then(r => console.log(r));
 
-				const token = await new SignJWT({ role: 'admin' })
+				const token = await new SignJWT({
+					role: userDB.role || 'admin',
+					email: userDB.email,
+					id: userDB._id,
+				})
 					.setProtectedHeader({ alg: 'HS256' })
 					.setIssuedAt()
 					.setExpirationTime('1h')
 					.sign(new TextEncoder().encode(process.env.JWT_SECRET));
+
 				const plainUser = userDB.toObject();
 				delete plainUser.password;
-			
 
-				// Set the JWT as a cookie
 				const response = NextResponse.json({
-					message: 'Login successful',
-					userDB: plainUser,
+					message: 'Login exitoso',
+					user: plainUser,
 				});
+
 				response.cookies.set({
 					name: 'admin-log',
 					value: token,
-					path: '/', // Set the cookie available for the entire site
-					maxAge: 2 * 60 * 60, // 2 hours
-					httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
-					secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-					sameSite: 'strict', // Prevent CSRF attacks
+					path: '/',
+					maxAge: 2 * 60 * 60, // 2 horas
+					httpOnly: true,
+					secure: process.env.NODE_ENV === 'production',
+					sameSite: 'strict',
 				});
 
 				return response;
 			} catch (error) {
-				console.error('Error creating JWT:', error);
+				console.error('Error al generar el token:', error);
 				return NextResponse.json(
-					{ error: 'Error generating token' },
+					{ error: 'Error al generar el token' },
 					{ status: 500 }
 				);
 			}
 		} else {
-			return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+			return NextResponse.json(
+				{ error: 'Contraseña incorrecta' },
+				{ status: 401 }
+			);
 		}
 	} catch (error) {
-		console.error('Error in login request:', error);
+		console.error('Error en la solicitud de login:', error);
 		return NextResponse.json(
-			{ error: 'Internal Server Error' },
+			{ error: 'Error interno del servidor' },
 			{ status: 500 }
 		);
 	}

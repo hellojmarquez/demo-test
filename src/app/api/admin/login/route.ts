@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 		const { email, password } = await req.json();
 		if (!email || !password) {
 			return NextResponse.json(
-				{ error: 'credentials are required' },
+				{ error: 'Se requieren credenciales' },
 				{ status: 400 }
 			);
 		}
@@ -18,92 +18,77 @@ export async function POST(req: NextRequest) {
 		await dbConnect();
 		const userDB = await User.findOne({ email: email });
 
-		if (password === userDB.password) {
-			// Generamos el JWT local
-			const plainUser = userDB.toObject();
-			const token = await new SignJWT({ role: plainUser.role })
-				.setProtectedHeader({ alg: 'HS256' })
-				.setIssuedAt()
-				.setExpirationTime('2h')
-				.sign(new TextEncoder().encode(process.env.JWT_SECRET));
-
-			delete plainUser.password;
-
-			const moveMusicLoginRes = await fetch(
-				`${process.env.MOVEMUSIC_API}/auth/obtain-token/`,
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-						Referer: process.env.MOVEMUSIC_REFERER || '',
-					},
-					body: JSON.stringify({
-						username: process.env.MOVEMUSIC_USERNAME || '',
-						password: process.env.MOVEMUSIC_PASSWORD || '',
-					}),
-				}
+		if (!userDB) {
+			return NextResponse.json(
+				{ error: 'Usuario no encontrado' },
+				{ status: 404 }
 			);
+		}
 
-			const moveMusicToken = await moveMusicLoginRes.json();
+		if (password === userDB.password) {
+			try {
+				const token = await new SignJWT({
+					role: userDB.role || 'admin',
+					email: userDB.email,
+					id: userDB._id,
+				})
+					.setProtectedHeader({ alg: 'HS256' })
+					.setIssuedAt()
+					.setExpirationTime('1h')
+					.sign(new TextEncoder().encode(process.env.JWT_SECRET));
 
-			// if (!moveMusicToken.access || !moveMusicToken.refresh) {
-			// 	return NextResponse.json(
-			// 		{ error: 'Could not obtain MoveMusic tokens' },
-			// 		{ status: 401 }
-			// 	);
-			// }
+				const plainUser = userDB.toObject();
+				delete plainUser.password;
 
-			const response = NextResponse.json({
-				message: 'Login successful',
-				userDB: plainUser,
-			});
+				const response = NextResponse.json({
+					message: 'Login exitoso',
+					user: plainUser,
+				});
 
-			const isProd = process.env.NODE_ENV === 'production';
-			const cookieDomain = isProd ? process.env.COOKIE_DOMAIN : undefined;
-			const sameSite = isProd ? 'none' : 'lax';
+				const isProd = process.env.NODE_ENV === 'production';
+				const cookieDomain = isProd ? process.env.COOKIE_DOMAIN : undefined;
+				const sameSite = isProd ? 'none' : 'lax';
 
-			response.cookies.set({
-				name: 'loginToken',
-				value: token,
-				path: '/',
-				maxAge: 2 * 60 * 60,
-				httpOnly: true,
-				secure: isProd,
-				sameSite: 'strict',
-				domain: cookieDomain,
-			});
+				response.cookies.set({
+					name: 'loginToken',
+					value: token,
+					path: '/',
+					maxAge: 2 * 60 * 60,
+					httpOnly: true,
+					secure: isProd,
+					sameSite: 'strict',
+					domain: cookieDomain,
+				});
 
-			response.cookies.set({
-				name: 'accessToken',
-				value: moveMusicToken.access,
-				path: '/',
-				maxAge: 2 * 60 * 60, // 2 horas
-				httpOnly: true,
-				secure: isProd,
-				sameSite: sameSite,
-				domain: cookieDomain,
-			});
+				response.cookies.set({
+					name: 'userId',
+					value: userDB._id.toString(),
+					path: '/',
+					maxAge: 2 * 60 * 60,
+					httpOnly: true,
+					secure: isProd,
+					sameSite: sameSite,
+					domain: cookieDomain,
+				});
 
-			response.cookies.set({
-				name: 'refreshToken',
-				value: moveMusicToken.refresh,
-				path: '/',
-				maxAge: 60 * 60 * 24 * 7,
-				httpOnly: true,
-				secure: isProd,
-				sameSite: sameSite,
-				domain: cookieDomain,
-			});
-
-			return response;
+				return response;
+			} catch (error) {
+				console.error('Error al generar el token:', error);
+				return NextResponse.json(
+					{ error: 'Error al generar el token' },
+					{ status: 500 }
+				);
+			}
 		} else {
-			return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+			return NextResponse.json(
+				{ error: 'Contraseña incorrecta' },
+				{ status: 401 }
+			);
 		}
 	} catch (error) {
-		console.error('Error in login request:', error);
+		console.error('Error en la solicitud de login:', error);
 		return NextResponse.json(
-			{ error: 'Internal Server Error' },
+			{ error: 'Error interno del servidor' },
 			{ status: 500 }
 		);
 	}

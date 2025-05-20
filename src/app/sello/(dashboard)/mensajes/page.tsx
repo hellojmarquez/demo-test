@@ -79,6 +79,8 @@ interface Ticket {
 	priority: string;
 	messages: Message[];
 	createdBy: string;
+	updatedAt: string;
+	updatedBy: string;
 }
 
 export default function Mensajes() {
@@ -362,6 +364,11 @@ export default function Mensajes() {
 		}
 	};
 
+	const handleSelectTicket = async (ticket: Ticket) => {
+		setSelectedTicket(ticket);
+		await loadTicketMessages(ticket._id);
+	};
+
 	// Función para cargar los mensajes de un ticket
 	const loadTicketMessages = async (ticketId: string) => {
 		try {
@@ -392,208 +399,148 @@ export default function Mensajes() {
 	}
 
 	return (
-		<div className="flex h-screen">
-			{/* Lista de tickets */}
-			<div className="w-1/3 border-r p-4 overflow-y-auto">
-				<div className="flex justify-between items-center mb-4">
-					<h2 className="text-xl font-bold">Tickets</h2>
-					<button
-						onClick={() => setIsModalOpen(true)}
-						className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-					>
-						Nuevo Ticket
-					</button>
+		<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-6 sm:px-6 md:px-8">
+			<div className="max-w-7xl mx-auto space-y-6">
+				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+					<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+						Mensajes
+					</h1>
 				</div>
-				{tickets.map(ticket => (
-					<div
-						key={ticket._id}
-						className={`p-4 mb-2 rounded cursor-pointer ${
-							selectedTicket?._id === ticket._id
-								? 'bg-blue-100'
-								: 'bg-gray-50 hover:bg-gray-100'
-						}`}
-						onClick={() => {
-							setSelectedTicket(ticket);
-							loadTicketMessages(ticket._id);
-						}}
-					>
-						<h3 className="font-semibold">{ticket.title}</h3>
-						<p className="text-sm text-gray-600">{ticket.description}</p>
-						<div className="flex justify-between items-center mt-2">
-							<span
-								className={`px-2 py-1 rounded text-sm ${
-									ticket.status === 'open'
-										? 'bg-green-100 text-green-800'
-										: ticket.status === 'in-progress'
-										? 'bg-yellow-100 text-yellow-800'
-										: 'bg-red-100 text-red-800'
-								}`}
-							>
-								{ticket.status}
-							</span>
-							{user?.role === 'admin' && (
-								<select
-									value={ticket.priority}
-									onChange={e =>
-										handlePriorityChange(ticket._id, e.target.value)
-									}
-									className="text-sm border rounded px-2 py-1"
-								>
-									<option value="low">Baja</option>
-									<option value="medium">Media</option>
-									<option value="high">Alta</option>
-								</select>
-							)}
-						</div>
-					</div>
-				))}
-			</div>
 
-			{/* Chat del ticket seleccionado */}
-			<div className="flex-1 flex flex-col">
-				{selectedTicket ? (
-					<>
-						<div className="flex-1 p-4 overflow-y-auto">
-							{/* Mostrar la descripción del ticket como primer mensaje */}
-							<div className="mb-4 text-left">
-								<div className="inline-block p-3 rounded-lg bg-gray-200">
-									<p>{selectedTicket.description}</p>
-									<p className="text-xs mt-1">
-										{selectedTicket.createdBy} (Creador del ticket)
-									</p>
-								</div>
-							</div>
-							{messages.map((message, index) => (
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+					{/* Lista de tickets */}
+					<div className="lg:col-span-1 bg-white rounded-lg shadow-sm overflow-hidden">
+						<div className="p-4 border-b border-gray-200">
+							<h2 className="text-lg font-semibold text-gray-900">Tickets</h2>
+						</div>
+						<div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+							{tickets.map(ticket => (
 								<div
-									key={index}
-									className={`mb-4 ${
-										message.sender === user?.email ? 'text-right' : 'text-left'
+									key={ticket._id}
+									onClick={() => handleSelectTicket(ticket)}
+									className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
+										selectedTicket?._id === ticket._id
+											? 'bg-brand-light bg-opacity-10'
+											: ''
 									}`}
 								>
-									<div
-										className={`inline-block p-3 rounded-lg ${
-											message.sender === user?.email
-												? 'bg-blue-500 text-white'
-												: 'bg-gray-200'
-										}`}
-									>
-										<p>{message.content}</p>
-										<p className="text-xs mt-1">
-											{message.sender} ({message.senderRole})
-										</p>
+									<div className="flex justify-between items-start">
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-medium text-gray-900 truncate">
+												{ticket.title}
+											</p>
+											<p className="text-xs text-gray-500 mt-1 truncate">
+												{ticket.description}
+											</p>
+										</div>
+										<div className="ml-4 flex-shrink-0">
+											<span
+												className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+													ticket.status === 'open'
+														? 'bg-green-100 text-green-800'
+														: 'bg-gray-100 text-gray-800'
+												}`}
+											>
+												{ticket.status === 'open' ? 'Abierto' : 'Cerrado'}
+											</span>
+										</div>
+									</div>
+									<div className="mt-2 flex items-center justify-between">
+										<div className="flex items-center space-x-2">
+											<span className="text-xs text-gray-500">
+												{new Date(ticket.updatedAt).toLocaleDateString()}
+											</span>
+											<span className="text-xs text-gray-500">•</span>
+											<span className="text-xs text-gray-500">
+												{ticket.messages.length} mensajes
+											</span>
+										</div>
 									</div>
 								</div>
 							))}
 						</div>
-						<div className="border-t p-4">
-							{selectedTicket.status === 'closed' ? (
-								<div className="text-center text-gray-500">
-									Este ticket está cerrado y no se pueden enviar más mensajes
-								</div>
-							) : (
-								<div className="flex gap-2">
-									<input
-										type="text"
-										value={newMessage}
-										onChange={e => setNewMessage(e.target.value)}
-										placeholder="Escribe un mensaje..."
-										className="flex-1 border rounded px-4 py-2"
-										onKeyPress={e => e.key === 'Enter' && handleSendMessage(e)}
-									/>
-									<button
-										onClick={e => handleSendMessage(e)}
-										className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-									>
-										Enviar
-									</button>
-									{user?.role === 'admin' && (
+					</div>
+
+					{/* Área de mensajes */}
+					<div className="lg:col-span-2 bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-[calc(100vh-300px)]">
+						{selectedTicket ? (
+							<>
+								<div className="p-4 border-b border-gray-200 flex justify-between items-center">
+									<div>
+										<h2 className="text-lg font-semibold text-gray-900">
+											{selectedTicket.title}
+										</h2>
+										<p className="text-sm text-gray-500">
+											{selectedTicket.messages.length} mensajes
+										</p>
+									</div>
+									{selectedTicket.status === 'open' && (
 										<button
 											onClick={handleCloseTicket}
-											className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+											className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
 										>
 											Cerrar Ticket
 										</button>
 									)}
 								</div>
-							)}
-						</div>
-					</>
-				) : (
-					<div className="flex items-center justify-center h-full text-gray-500">
-						Selecciona un ticket para ver los mensajes
-					</div>
-				)}
-			</div>
 
-			{/* Modal para crear nuevo ticket */}
-			{isModalOpen && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-					<div className="bg-white p-6 rounded-lg w-full max-w-md">
-						<h2 className="text-xl font-bold mb-4">Nuevo Ticket</h2>
-						<form onSubmit={handleCreateTicket} className="space-y-4">
-							<div>
-								<label className="block text-sm font-medium mb-1">Título</label>
-								<input
-									type="text"
-									value={newTicket.title}
-									onChange={e =>
-										setNewTicket({ ...newTicket, title: e.target.value })
-									}
-									className="w-full border rounded px-3 py-2"
-									required
-								/>
-							</div>
-							<div>
-								<label className="block text-sm font-medium mb-1">
-									Descripción
-								</label>
-								<textarea
-									value={newTicket.description}
-									onChange={e =>
-										setNewTicket({ ...newTicket, description: e.target.value })
-									}
-									className="w-full border rounded px-3 py-2"
-									rows={4}
-									required
-								/>
-							</div>
-							{user?.role === 'admin' && (
-								<div>
-									<label className="block text-sm font-medium mb-1">
-										Prioridad
-									</label>
-									<select
-										value={newTicket.priority}
-										onChange={e =>
-											setNewTicket({ ...newTicket, priority: e.target.value })
-										}
-										className="w-full border rounded px-3 py-2"
-									>
-										<option value="low">Baja</option>
-										<option value="medium">Media</option>
-										<option value="high">Alta</option>
-									</select>
+								<div className="flex-1 overflow-y-auto p-4 space-y-4">
+									{selectedTicket.messages.map((message, index) => (
+										<div
+											key={index}
+											className={`flex ${
+												message.sender === 'user'
+													? 'justify-end'
+													: 'justify-start'
+											}`}
+										>
+											<div
+												className={`max-w-[80%] rounded-lg px-4 py-2 ${
+													message.sender === 'user'
+														? 'bg-brand-light text-white'
+														: 'bg-gray-100 text-gray-900'
+												}`}
+											>
+												<p className="text-sm">{message.content}</p>
+												<p className="text-xs mt-1 opacity-75">
+													{new Date(message.createdAt).toLocaleString()}
+												</p>
+											</div>
+										</div>
+									))}
 								</div>
-							)}
-							<div className="flex justify-end gap-2">
-								<button
-									type="button"
-									onClick={() => setIsModalOpen(false)}
-									className="px-4 py-2 border rounded hover:bg-gray-100"
-								>
-									Cancelar
-								</button>
-								<button
-									type="submit"
-									className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-								>
-									Crear Ticket
-								</button>
+
+								{selectedTicket.status === 'open' && (
+									<div className="p-4 border-t border-gray-200">
+										<form onSubmit={handleSendMessage} className="flex gap-2">
+											<input
+												type="text"
+												value={newMessage}
+												onChange={e => setNewMessage(e.target.value)}
+												placeholder="Escribe un mensaje..."
+												className="flex-1 min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-light focus:outline-none focus:ring-1 focus:ring-brand-light"
+											/>
+											<button
+												type="submit"
+												disabled={!newMessage.trim()}
+												className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-dark hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark disabled:opacity-50 disabled:cursor-not-allowed"
+											>
+												Enviar
+											</button>
+										</form>
+									</div>
+								)}
+							</>
+						) : (
+							<div className="flex-1 flex items-center justify-center p-4">
+								<p className="text-gray-500 text-center">
+									Selecciona un ticket para ver los mensajes
+								</p>
 							</div>
-						</form>
+						)}
 					</div>
 				</div>
-			)}
+			</div>
 		</div>
 	);
 }

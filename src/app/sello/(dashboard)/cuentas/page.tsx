@@ -73,7 +73,6 @@ export default function UsuariosPage() {
 				const res = await fetch('/api/admin/getAllUsers');
 				const data = await res.json();
 				if (data.success) {
-				
 					setUsers(data.users);
 				}
 			} catch (error) {
@@ -351,150 +350,151 @@ export default function UsuariosPage() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-6 sm:px-6 md:px-8">
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
 					exit={{ opacity: 0, y: -20 }}
-					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
+					className="fixed top-4 right-4 left-4 sm:left-auto sm:right-4 bg-green-500 text-white px-4 sm:px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 backdrop-blur-sm"
 				>
-					<CheckCircle size={18} />
-					<span>{deletedUserName} eliminado/a exitosamente</span>
+					<CheckCircle className="h-5 w-5" />
+					<span>
+						{deletedUserName
+							? `Usuario "${deletedUserName}" eliminado correctamente`
+							: 'Usuario actualizado correctamente'}
+					</span>
 				</motion.div>
 			)}
 
-			<div className="flex justify-between items-center">
-				<h2 className="text-2xl font-bold text-blue-700">
-					Gestión de Usuarios
-				</h2>
-				<div className="flex space-x-2">
+			<div className="max-w-7xl mx-auto space-y-6">
+				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+					<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+						Gestión de Usuarios
+					</h1>
 					<Link
 						href="/sello/crearUsuario"
-						className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
+						className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-dark hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
 					>
-						<Plus
-							size={18}
-							className="text-brand-light group-hover:text-white"
-						/>
-						<span className="font-medium">Crear usuario</span>
+						<Plus className="h-4 w-4 mr-1.5" />
+						Nuevo Usuario
 					</Link>
 				</div>
-			</div>
 
-			<div className="bg-white rounded-lg shadow overflow-hidden">
-				<div className="overflow-x-auto">
-					<table className="min-w-full divide-y divide-gray-200">
-						<thead className="bg-gray-50">
-							<tr>
-								<th
-									scope="col"
-									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-								>
-									Usuario
-								</th>
-								<th
-									scope="col"
-									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-								>
-									Email
-								</th>
-								<th
-									scope="col"
-									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-								>
-									Rol
-								</th>
-								<th
-									scope="col"
-									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-								>
-									Estado
-								</th>
-								<th
-									scope="col"
-									className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-								>
-									Acciones
-								</th>
-							</tr>
-						</thead>
-						<tbody className="bg-white divide-y divide-gray-200">
-							{users.map(user => (
-								<tr key={user._id} className="hover:bg-gray-50">
-									<td className="px-6 py-4 whitespace-nowrap">
-										<div className="flex items-center">
-											<div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
-												{user.picture?.base64 ? (
-													<img
-														src={`data:image/jpeg;base64,${user.picture.base64}`}
-														alt={user.name}
-														className="h-full w-full object-cover"
-													/>
-												) : (
-													<div className="h-full w-full bg-gray-200 flex items-center justify-center">
-														<span className="text-gray-500 text-lg">
-															{user.name.charAt(0)}
-														</span>
+				<div className="bg-white shadow-sm rounded-lg overflow-hidden">
+					<div className="overflow-x-auto -mx-4 sm:mx-0">
+						<table className="min-w-full divide-y divide-gray-200">
+							<thead className="bg-gray-50">
+								<tr>
+									<th
+										scope="col"
+										className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+									>
+										Nombre
+									</th>
+									<th
+										scope="col"
+										className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+									>
+										Email
+									</th>
+									<th
+										scope="col"
+										className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+									>
+										Rol
+									</th>
+									<th
+										scope="col"
+										className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+									>
+										Estado
+									</th>
+									<th
+										scope="col"
+										className="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+									>
+										Acciones
+									</th>
+								</tr>
+							</thead>
+							<tbody className="bg-white divide-y divide-gray-200">
+								{users.map(user => (
+									<tr key={user._id} className="hover:bg-gray-50">
+										<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+											<div className="flex items-center">
+												<div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
+													{user.picture?.base64 ? (
+														<img
+															src={`data:image/jpeg;base64,${user.picture.base64}`}
+															alt={user.name}
+															className="h-full w-full object-cover"
+														/>
+													) : (
+														<div className="h-full w-full bg-gray-200 flex items-center justify-center">
+															<span className="text-gray-500 text-lg">
+																{user.name.charAt(0)}
+															</span>
+														</div>
+													)}
+												</div>
+												<div className="ml-4">
+													<div className="text-sm font-medium text-gray-900">
+														{user.name}
 													</div>
-												)}
-											</div>
-											<div className="ml-4">
-												<div className="text-sm font-medium text-gray-900">
-													{user.name}
 												</div>
 											</div>
-										</div>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
-										<div className="text-sm text-gray-900">{user.email}</div>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
-										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-											{user.role}
-										</span>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
-										<span
-											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-												user.status === 'active'
-													? 'bg-green-100 text-green-800'
-													: 'bg-red-100 text-red-800'
-											}`}
-										>
-											{user.status || 'inactive'}
-										</span>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-										<div className="flex items-center justify-end space-x-2">
-											<motion.button
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-												onClick={() => handleEdit(user)}
-												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+										</td>
+										<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+											<div className="text-sm text-gray-900">{user.email}</div>
+										</td>
+										<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+											<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+												{user.role}
+											</span>
+										</td>
+										<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+											<span
+												className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+													user.status === 'active'
+														? 'bg-green-100 text-green-800'
+														: 'bg-red-100 text-red-800'
+												}`}
 											>
-												<Pencil
-													className="text-brand-light hover:text-brand-dark"
-													size={18}
-												/>
-											</motion.button>
-											<motion.button
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-												onClick={() => handleDeleteClick(user)}
-												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
-											>
-												<Trash2
-													className="text-red-500 hover:text-red-700"
-													size={18}
-												/>
-											</motion.button>
-										</div>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+												{user.status || 'inactive'}
+											</span>
+										</td>
+										<td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+											<div className="flex items-center justify-end space-x-2">
+												<motion.button
+													whileHover={{ scale: 1.05 }}
+													whileTap={{ scale: 0.95 }}
+													onClick={() => handleEdit(user)}
+													className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+												>
+													<Pencil
+														className="text-brand-light hover:text-brand-dark"
+														size={18}
+													/>
+												</motion.button>
+												<motion.button
+													whileHover={{ scale: 1.05 }}
+													whileTap={{ scale: 0.95 }}
+													onClick={() => handleDeleteClick(user)}
+													className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+												>
+													<Trash2
+														className="text-red-500 hover:text-red-700"
+														size={18}
+													/>
+												</motion.button>
+											</div>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 				</div>
 			</div>
 

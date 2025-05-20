@@ -40,6 +40,23 @@ export async function POST(req: NextRequest) {
 				const plainUser = userDB.toObject();
 				delete plainUser.password;
 
+				const moveMusicLoginRes = await fetch(
+					`${process.env.MOVEMUSIC_API}/auth/obtain-token/`,
+					{
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+							Referer: process.env.MOVEMUSIC_REFERER || '',
+						},
+						body: JSON.stringify({
+							username: process.env.MOVEMUSIC_USERNAME || '',
+							password: process.env.MOVEMUSIC_PASSWORD || '',
+						}),
+					}
+				);
+
+				const moveMusicToken = await moveMusicLoginRes.json();
 				const response = NextResponse.json({
 					message: 'Login exitoso',
 					user: plainUser,
@@ -48,7 +65,28 @@ export async function POST(req: NextRequest) {
 				const isProd = process.env.NODE_ENV === 'production';
 				const cookieDomain = isProd ? process.env.COOKIE_DOMAIN : undefined;
 				const sameSite = isProd ? 'none' : 'lax';
-
+				response.cookies.set({
+					name: 'accessToken',
+					value: moveMusicToken.access,
+					path: '/',
+					maxAge: 2 * 60 * 60, // 2 horas
+					httpOnly: true,
+					secure: isProd,
+					sameSite: sameSite,
+					domain: cookieDomain,
+				});
+	
+				response.cookies.set({
+					name: 'refreshToken',
+					value: moveMusicToken.refresh,
+					path: '/',
+					maxAge: 60 * 60 * 24 * 7,
+					httpOnly: true,
+					secure: isProd,
+					sameSite: sameSite,
+					domain: cookieDomain,
+				});
+	
 				response.cookies.set({
 					name: 'loginToken',
 					value: token,

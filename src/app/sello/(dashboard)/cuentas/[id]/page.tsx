@@ -1,49 +1,671 @@
-import Image from "next/image";
-import { UserServices } from "@/services/UserServices";
-import { getToken } from "@/utils/cookies";
-import AllowedArtists from "@/components/AllowedArtists";
-import { AdminServices } from "@/services/AdminServices";
-import AllowedArtistsAdmin from "@/components/AllowedArtistsAdmin";
-import DeleteUser from "@/components/DeleteUser";
+'use client';
 
-export default async function User({ params }: { params: { id: string } }) {
-  const { data } = await AdminServices.getUserById(params.id);
+import { useEffect, useState } from 'react';
+import {
+	Pencil,
+	Trash2,
+	Plus,
+	X,
+	AlertTriangle,
+	CheckCircle,
+} from 'lucide-react';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import UpdateArtistaModal from '@/components/updateArtistaModal';
+import UpdateSelloModal from '@/components/UpdateSelloModal';
+import UpdateAdminModal from '@/components/UpdateAdminModal';
+import { UpdateContributorModal } from '@/components/UpdateContributorModal';
+import { UpdatePublisherModal } from '@/components/UpdatePublisherModal';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
-  const allArtists = await AdminServices.getAllArtists();
-  const currentArtists = await AdminServices.getArtistsOfUser(params.id);
+interface User {
+	_id: string;
+	name: string;
+	email: string;
+	role: string;
+	picture?: { base64: string };
+	status?: string;
+	permissions?: string[];
+	subaccounts?: any[];
+	artists?: any[];
+	catalog_num?: number;
+	year?: number;
+	contract_received?: boolean;
+	information_accepted?: boolean;
+	label_approved?: boolean;
+	assigned_artists?: string[];
+	createdAt?: string;
+	updatedAt?: string;
+	external_id?: string | number;
+	type: string;
+	[key: string]: any;
+}
 
-  return (
-    <>
-      <div className="container mx-auto max-w-4xl md:p-8 flex flex-col gap-4 p-2">
-        <div className="h-32 flex items-center  bg-white p-4 md:p-8 rounded-md shadow-md backgroundPattern gap-2 md:gap-8">
-          <Image
-            src={data.picture}
-            alt="avatar"
-            width={100}
-            height={100}
-            className="rounded-full aspect-square object-cover md:w-24 md:h-24 w-16 h-16"
-          />
+export default function UsuariosPage() {
+	const [users, setUsers] = useState<User[]>([]);
+	const [editingUserId, setEditingUserId] = useState<string | null>(null);
+	const [editedUser, setEditedUser] = useState<User | null>(null);
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [showArtistModal, setShowArtistModal] = useState(false);
+	const [selectedArtist, setSelectedArtist] = useState<User | null>(null);
+	const [showSelloModal, setShowSelloModal] = useState(false);
+	const [selectedSello, setSelectedSello] = useState<User | null>(null);
+	const [showAdminModal, setShowAdminModal] = useState(false);
+	const [selectedAdmin, setSelectedAdmin] = useState<User | null>(null);
+	const [showContributorModal, setShowContributorModal] = useState(false);
+	const [selectedContributor, setSelectedContributor] = useState<User | null>(
+		null
+	);
+	const [showPublisherModal, setShowPublisherModal] = useState(false);
+	const [selectedPublisher, setSelectedPublisher] = useState<User | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
+	const [userToDelete, setUserToDelete] = useState<any>(null);
+	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [deletedUserName, setDeletedUserName] = useState<string>('');
+	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const router = useRouter();
 
-          <div>
-            <h2 className="text-2xl font-bold">{data.name}</h2>
-            <p className="text-gray-500 text-md md:text-lg">{data.email}</p>
-          </div>
-        </div>
-        {/* <UserForm initalMe={data} /> */}
+	useEffect(() => {
+		const fetchUsers = async () => {
+			try {
+				const res = await fetch('/api/admin/getAllUsers');
+				const data = await res.json();
+				if (data.success) {
+					setUsers(data.users);
+				}
+			} catch (error) {
+				console.error('Error fetching users:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchUsers();
+	}, []);
 
-        <div className="container mx-auto max-w-4xl flex flex-col gap-4">
-          <div className="bg-white p-4 md:p-8 rounded-md shadow-md gap-2 md:gap-8">
-            <DeleteUser id={params.id} />
+	if (loading) {
+		return (
+			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-dark"></div>
+			</div>
+		);
+	}
 
-            <h2 className="text-2xl font-bold">Artistas:</h2>
-            <AllowedArtistsAdmin
-              currentArtists={currentArtists}
-              allowedArtists={allArtists}
-              id={params.id}
-            />
-          </div>
-        </div>
-      </div>
-    </>
-  );
+	const handleEdit = (user: User) => {
+		console.log('Rol del usuario:', user.role);
+
+		// Verificar si el rol es "artist" o "artista" (ignorando mayúsculas/minúsculas)
+		if (
+			user.role &&
+			(user.role.toLowerCase() === 'artist' ||
+				user.role.toLowerCase() === 'artista')
+		) {
+			console.log('Es un artista, abriendo modal de artista');
+			// Asegurarse de que el artista tenga el external_id
+			const artista = {
+				...user,
+				external_id: user.external_id || user._id,
+			};
+			setSelectedArtist(artista);
+			setShowArtistModal(true);
+		}
+		// Verificar si el rol es "sello"
+		else if (user.role && user.role.toLowerCase() === 'sello') {
+			console.log('Es un sello, abriendo modal de sello');
+			// Adaptar los datos del usuario al formato esperado por UpdateSelloModal
+			const adaptedSelloData = {
+				_id: user._id,
+				name: user.name,
+				picture: user.picture || { base64: '' },
+				catalog_num: user.catalog_num || 0,
+				year: user.year || 0,
+				status: user.status || 'active',
+				contract_received: user.contract_received || false,
+				information_accepted: user.information_accepted || false,
+				label_approved: user.label_approved || false,
+				assigned_artists: user.assigned_artists || [],
+				createdAt: user.createdAt || new Date().toISOString(),
+				updatedAt: user.updatedAt || new Date().toISOString(),
+			};
+			// Usar any para evitar problemas de tipo
+			setSelectedSello(adaptedSelloData as any);
+			setShowSelloModal(true);
+		}
+		// Verificar si el rol es "admin"
+		else if (user.role && user.role.toLowerCase() === 'admin') {
+			console.log('Es un administrador, abriendo modal de admin');
+			setSelectedAdmin(user);
+			setShowAdminModal(true);
+		}
+		// Verificar si el rol es "contributor"
+		else if (user.role && user.role.toLowerCase() === 'contributor') {
+			console.log('Es un contribuidor, abriendo modal de contribuidor');
+			setSelectedContributor(user);
+			setShowContributorModal(true);
+		}
+		// Verificar si el rol es "publisher"
+		else if (user.role && user.role.toLowerCase() === 'publisher') {
+			console.log('Es un publisher, abriendo modal de publisher');
+			setSelectedPublisher(user);
+			setShowPublisherModal(true);
+		} else {
+			console.log(
+				'No es un artista, sello, admin, contribuidor ni publisher, usando edición normal'
+			);
+			setEditingUserId(user._id);
+			setEditedUser({ ...user });
+		}
+	};
+
+	const handleCancel = () => {
+		setEditingUserId(null);
+		setEditedUser(null);
+	};
+
+	const handleDeleteClick = (user: any) => {
+		setUserToDelete(user);
+		setShowDeleteModal(true);
+	};
+
+	const handleConfirmDelete = async () => {
+		if (!userToDelete) return;
+		setIsDeleting(true);
+		setDeleteError(null);
+
+		try {
+			const response = await fetch(
+				`/api/admin/deleteUser/${userToDelete._id}`,
+				{
+					method: 'DELETE',
+				}
+			);
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.message || 'Error al eliminar el usuario');
+			}
+
+			// Guardamos el nombre del usuario eliminado
+			setDeletedUserName(userToDelete.name);
+
+			// Actualizamos el estado local
+			setUsers(prevUsers => prevUsers.filter(u => u._id !== userToDelete._id));
+
+			// Cerramos el modal y mostramos el mensaje de éxito
+			setShowDeleteModal(false);
+			setUserToDelete(null);
+			setShowSuccessMessage(true);
+			router.refresh();
+
+			// Ocultamos el mensaje después de 5 segundos
+			setTimeout(() => {
+				setShowSuccessMessage(false);
+				setDeletedUserName('');
+			}, 5000);
+		} catch (error) {
+			console.error('Error deleting user:', error);
+			setDeleteError(
+				error instanceof Error ? error.message : 'Error al eliminar el usuario'
+			);
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
+	const handleContributorUpdate = () => {
+		// Recargar la lista de usuarios después de actualizar un contribuidor
+		const fetchUsers = async () => {
+			const res = await fetch('/api/admin/getAllUsers');
+			const data = await res.json();
+			if (data.success) {
+				setUsers(data.users);
+			}
+		};
+		fetchUsers();
+	};
+
+	const handlePublisherUpdate = () => {
+		// Recargar la lista de usuarios después de actualizar un publisher
+		const fetchUsers = async () => {
+			const res = await fetch('/api/admin/getAllUsers');
+			const data = await res.json();
+			if (data.success) {
+				setUsers(data.users);
+			}
+		};
+		fetchUsers();
+	};
+
+	const handleArtistSave = async (updatedArtist: any) => {
+		try {
+			// Asegurarse de que el artista tenga el rol 'artista'
+			const artistToSave = {
+				...updatedArtist,
+				role: 'artista',
+			};
+
+			console.log('Updating artista with data:', {
+				external_id: artistToSave.external_id,
+				_id: artistToSave._id,
+			});
+
+			// Verificar que tenemos un external_id válido
+			if (!artistToSave.external_id) {
+				throw new Error('No se encontró el external_id del artista');
+			}
+
+			const res = await fetch(
+				`/api/admin/updateArtist/${artistToSave.external_id}`,
+				{
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(artistToSave),
+				}
+			);
+
+			if (!res.ok) {
+				const errorData = await res.json();
+				throw new Error(errorData.error || 'Error al actualizar el artista');
+			}
+
+			const data = await res.json();
+			if (data.success) {
+				setUsers(
+					users.map(u => (u._id === artistToSave._id ? artistToSave : u))
+				);
+				setShowArtistModal(false);
+				setSelectedArtist(null);
+			}
+		} catch (error) {
+			console.error('Error updating artist:', error);
+			alert(
+				error instanceof Error
+					? error.message
+					: 'Error al actualizar el artista'
+			);
+		}
+	};
+
+	const handleSelloSave = async (updatedSello: any) => {
+		try {
+			const res = await fetch(`/api/admin/updateUser/${updatedSello._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(updatedSello),
+			});
+			const data = await res.json();
+			if (data.success) {
+				// Mantener los campos originales del usuario y actualizar con los nuevos datos
+				setUsers(
+					users.map(u => {
+						if (u._id === updatedSello._id) {
+							return {
+								...u, // Mantener todos los campos originales
+								...updatedSello, // Actualizar con los nuevos datos
+								role: 'sello', // Asegurar que el rol se mantenga como 'sello'
+							};
+						}
+						return u;
+					})
+				);
+				setShowSelloModal(false);
+				setSelectedSello(null);
+			}
+		} catch (error) {
+			console.error('Error updating sello:', error);
+			alert('Error al actualizar el sello');
+		}
+	};
+
+	const handleAdminSave = async (updatedAdmin: any) => {
+		try {
+			const res = await fetch(`/api/admin/updateUser/${updatedAdmin._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(updatedAdmin),
+			});
+			const data = await res.json();
+			if (data.success) {
+				// Mantener los campos originales del usuario y actualizar con los nuevos datos
+				setUsers(
+					users.map(u => {
+						if (u._id === updatedAdmin._id) {
+							return {
+								...u, // Mantener todos los campos originales
+								...updatedAdmin, // Actualizar con los nuevos datos
+								role: 'admin', // Asegurar que el rol se mantenga como 'admin'
+							};
+						}
+						return u;
+					})
+				);
+				setShowAdminModal(false);
+				setSelectedAdmin(null);
+			}
+		} catch (error) {
+			console.error('Error updating admin:', error);
+			alert('Error al actualizar el administrador');
+		}
+	};
+
+	return (
+		<div className="space-y-6">
+			{showSuccessMessage && (
+				<motion.div
+					initial={{ opacity: 0, y: -20 }}
+					animate={{ opacity: 1, y: 0 }}
+					exit={{ opacity: 0, y: -20 }}
+					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
+				>
+					<CheckCircle size={18} />
+					<span>{deletedUserName} eliminado/a exitosamente</span>
+				</motion.div>
+			)}
+
+			<div className="flex justify-between items-center">
+				<h2 className="text-2xl font-bold text-blue-700">
+					Gestión de Usuarios
+				</h2>
+				<div className="flex space-x-2">
+					<Link
+						href="/sello/crearUsuario"
+						className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
+					>
+						<Plus
+							size={18}
+							className="text-brand-light group-hover:text-white"
+						/>
+						<span className="font-medium">Crear usuario</span>
+					</Link>
+				</div>
+			</div>
+
+			<div className="bg-white rounded-lg shadow overflow-hidden">
+				<div className="overflow-x-auto">
+					<table className="min-w-full divide-y divide-gray-200">
+						<thead className="bg-gray-50">
+							<tr>
+								<th
+									scope="col"
+									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+								>
+									Usuario
+								</th>
+								<th
+									scope="col"
+									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+								>
+									Email
+								</th>
+								<th
+									scope="col"
+									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+								>
+									Rol
+								</th>
+								<th
+									scope="col"
+									className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+								>
+									Estado
+								</th>
+								<th
+									scope="col"
+									className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+								>
+									Acciones
+								</th>
+							</tr>
+						</thead>
+						<tbody className="bg-white divide-y divide-gray-200">
+							{users.map(user => (
+								<tr key={user._id} className="hover:bg-gray-50">
+									<td className="px-6 py-4 whitespace-nowrap">
+										<div className="flex items-center">
+											<div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
+												{user.picture?.base64 ? (
+													<img
+														src={`data:image/jpeg;base64,${user.picture.base64}`}
+														alt={user.name}
+														className="h-full w-full object-cover"
+													/>
+												) : (
+													<div className="h-full w-full bg-gray-200 flex items-center justify-center">
+														<span className="text-gray-500 text-lg">
+															{user.name.charAt(0)}
+														</span>
+													</div>
+												)}
+											</div>
+											<div className="ml-4">
+												<div className="text-sm font-medium text-gray-900">
+													{user.name}
+												</div>
+											</div>
+										</div>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<div className="text-sm text-gray-900">{user.email}</div>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+											{user.role}
+										</span>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<span
+											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+												user.status === 'active'
+													? 'bg-green-100 text-green-800'
+													: 'bg-red-100 text-red-800'
+											}`}
+										>
+											{user.status || 'inactive'}
+										</span>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+										<div className="flex items-center justify-end space-x-2">
+											<motion.button
+												whileHover={{ scale: 1.05 }}
+												whileTap={{ scale: 0.95 }}
+												onClick={() => handleEdit(user)}
+												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+											>
+												<Pencil
+													className="text-brand-light hover:text-brand-dark"
+													size={18}
+												/>
+											</motion.button>
+											<motion.button
+												whileHover={{ scale: 1.05 }}
+												whileTap={{ scale: 0.95 }}
+												onClick={() => handleDeleteClick(user)}
+												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+											>
+												<Trash2
+													className="text-red-500 hover:text-red-700"
+													size={18}
+												/>
+											</motion.button>
+										</div>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			{showArtistModal && selectedArtist && (
+				<>
+					{console.log('Renderizando modal de artista')}
+					<UpdateArtistaModal
+						artista={selectedArtist}
+						isOpen={showArtistModal}
+						onClose={() => {
+							console.log('Cerrando modal de artista');
+							setShowArtistModal(false);
+							setSelectedArtist(null);
+						}}
+						onSave={handleArtistSave}
+					/>
+				</>
+			)}
+
+			{showSelloModal && selectedSello && (
+				<>
+					{console.log('Renderizando modal de sello')}
+					<UpdateSelloModal
+						sello={selectedSello as any}
+						isOpen={showSelloModal}
+						onClose={() => {
+							console.log('Cerrando modal de sello');
+							setShowSelloModal(false);
+							setSelectedSello(null);
+						}}
+						onSave={handleSelloSave}
+					/>
+				</>
+			)}
+
+			{showAdminModal && selectedAdmin && (
+				<>
+					{console.log('Renderizando modal de admin')}
+					<UpdateAdminModal
+						admin={selectedAdmin}
+						isOpen={showAdminModal}
+						onClose={() => {
+							console.log('Cerrando modal de admin');
+							setShowAdminModal(false);
+							setSelectedAdmin(null);
+						}}
+						onSave={handleAdminSave}
+					/>
+				</>
+			)}
+
+			{showContributorModal && selectedContributor && (
+				<>
+					{console.log('Renderizando modal de contribuidor')}
+					<UpdateContributorModal
+						contributor={{
+							id: selectedContributor._id,
+							external_id: selectedContributor.external_id
+								? Number(selectedContributor.external_id)
+								: 0,
+							name: selectedContributor.name,
+						}}
+						onUpdate={handleContributorUpdate}
+						isOpen={showContributorModal}
+						onClose={() => {
+							console.log('Cerrando modal de contribuidor');
+							setShowContributorModal(false);
+							setSelectedContributor(null);
+						}}
+					/>
+				</>
+			)}
+
+			{showPublisherModal && selectedPublisher && (
+				<>
+					{console.log('Renderizando modal de publisher')}
+					<UpdatePublisherModal
+						publisher={{
+							id: selectedPublisher._id,
+							external_id: selectedPublisher.external_id
+								? Number(selectedPublisher.external_id)
+								: 0,
+							name: selectedPublisher.name,
+						}}
+						onUpdate={handlePublisherUpdate}
+						isOpen={showPublisherModal}
+						onClose={() => {
+							console.log('Cerrando modal de publisher');
+							setShowPublisherModal(false);
+							setSelectedPublisher(null);
+						}}
+					/>
+				</>
+			)}
+
+			<AnimatePresence>
+				{showDeleteModal && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+						onClick={() => !isDeleting && setShowDeleteModal(false)}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+							className="bg-white rounded-xl shadow-xl w-full max-w-md"
+							onClick={e => e.stopPropagation()}
+						>
+							<div className="p-6 border-b border-gray-200 flex justify-between items-center">
+								<h2 className="text-xl font-semibold text-gray-800">
+									Confirmar Eliminación
+								</h2>
+								<button
+									onClick={() => !isDeleting && setShowDeleteModal(false)}
+									className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+									disabled={isDeleting}
+								>
+									<X size={20} className="text-gray-500" />
+								</button>
+							</div>
+
+							<div className="p-6">
+								<div className="flex items-center gap-3 mb-4">
+									<AlertTriangle className="h-6 w-6 text-red-500" />
+									<p className="text-gray-700">
+										¿Estás seguro de que deseas eliminar al usuario{' '}
+										<span className="font-semibold">{userToDelete?.name}</span>?
+									</p>
+								</div>
+								<p className="text-sm text-gray-500 mb-6">
+									Esta acción no se puede deshacer. Todos los datos asociados a
+									este usuario serán eliminados permanentemente.
+								</p>
+
+								{deleteError && (
+									<div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+										{deleteError}
+									</div>
+								)}
+
+								<div className="flex justify-end space-x-3">
+									<button
+										onClick={() => !isDeleting && setShowDeleteModal(false)}
+										className="px-4 py-2 rounded-md text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										disabled={isDeleting}
+									>
+										Cancelar
+									</button>
+									<button
+										onClick={handleConfirmDelete}
+										className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										disabled={isDeleting}
+									>
+										{isDeleting ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												<span>Eliminando...</span>
+											</>
+										) : (
+											'Eliminar'
+										)}
+									</button>
+								</div>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</div>
+	);
 }

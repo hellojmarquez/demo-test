@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-
+		console.log('moveMusicAccessToken', moveMusicAccessToken);
+		console.log('token', token);
 		// Verificar JWT
 		try {
 			const { payload: verifiedPayload } = await jwtVerify(
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const uploadArtworkRes = await uploadArtworkReq.json();
-
+			console.log('uploadArtworkRes', uploadArtworkRes);
 			// Extraer la URL y los campos del objeto firmado
 			const { url: signedUrl, fields: resFields } = uploadArtworkRes.signed_url;
 			// Crear un objeto FormData y agregar los campos y el archivo

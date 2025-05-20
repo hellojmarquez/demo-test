@@ -125,26 +125,42 @@ const Assets = () => {
 		}
 	};
 
-	const handleSaveEdit = async (updatedTrack: Track) => {
-		if (!updatedTrack._id) {
+	const handleSaveEdit = async (trackData: {
+		order?: number;
+		name: string;
+		mixName: string;
+		genre?: number;
+		copyright_holder: string;
+		file?: File;
+	}) => {
+		if (!selectedTrack?._id) {
 			alert('Error: Track ID no encontrado');
 			return;
 		}
 
 		try {
+			const updatedTrack = {
+				...selectedTrack,
+				name: trackData.name,
+				mix_name: trackData.mixName,
+				genre: trackData.genre,
+				copyright_holder: trackData.copyright_holder,
+				resource: trackData.file,
+			};
+
 			let response;
-			if (updatedTrack.resource instanceof File) {
+			if (trackData.file) {
 				const submitFormData = new FormData();
-				submitFormData.append('file', updatedTrack.resource);
+				submitFormData.append('file', trackData.file);
 				const { resource, ...restData } = updatedTrack;
 				submitFormData.append('data', JSON.stringify(restData));
 
-				response = await fetch(`/api/admin/updateSingle/${updatedTrack._id}`, {
+				response = await fetch(`/api/admin/updateSingle/${selectedTrack._id}`, {
 					method: 'PUT',
 					body: submitFormData,
 				});
 			} else {
-				response = await fetch(`/api/admin/updateSingle/${updatedTrack._id}`, {
+				response = await fetch(`/api/admin/updateSingle/${selectedTrack._id}`, {
 					method: 'PUT',
 					headers: {
 						'Content-Type': 'application/json',
@@ -152,6 +168,7 @@ const Assets = () => {
 					body: JSON.stringify(updatedTrack),
 				});
 			}
+
 			if (!response.ok) {
 				throw new Error('Error al actualizar el track');
 			}
@@ -159,10 +176,12 @@ const Assets = () => {
 			const data = await response.json();
 			if (data.success) {
 				setAssets(prev =>
-					prev.map(t => (t._id === updatedTrack._id ? data.data : t))
+					prev.map(t => (t._id === selectedTrack._id ? data.data : t))
 				);
 				setShowSuccessMessage(true);
 				setTimeout(() => setShowSuccessMessage(false), 3000);
+				setIsEditModalOpen(false);
+				setSelectedTrack(null);
 			} else {
 				throw new Error(data.error || 'Error al actualizar el track');
 			}
@@ -221,12 +240,14 @@ const Assets = () => {
 	};
 
 	return (
-		<div className="p-6">
-			<div className="flex justify-between items-center mb-6">
-				<h1 className="text-2xl font-semibold text-gray-800">Tracks</h1>
+		<div className="p-4 sm:p-6">
+			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+				<h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+					Tracks
+				</h1>
 				{/* <button
 					onClick={() => setIsCreateModalOpen(true)}
-					className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
+					className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
 				>
 					<Plus size={18} className="text-brand-light group-hover:text-white" />
 					<span className="font-medium">Crear Track</span>
@@ -238,397 +259,215 @@ const Assets = () => {
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
 					exit={{ opacity: 0, y: -20 }}
-					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
+					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2 backdrop-blur-sm"
 				>
 					<CheckCircle size={18} />
-					<span>Track actualizado exitosamente</span>
+					<span className="text-sm sm:text-base">
+						Track actualizado exitosamente
+					</span>
 				</motion.div>
 			)}
 			{assets.length === 0 ? (
 				<motion.div
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
-					className="text-gray-500 text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
+					className="text-gray-500 text-center py-12 sm:py-20 bg-white rounded-2xl shadow-sm border border-gray-100"
 				>
-					<Music className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-					<p className="text-xl font-medium">No hay assets disponibles.</p>
-					<p className="text-sm text-gray-400 mt-2">
-						Agrega un nuevo track para comenzar.
+					<Music className="h-16 w-16 sm:h-20 sm:w-20 mx-auto text-gray-300 mb-4 sm:mb-6" />
+					<p className="text-xl sm:text-2xl font-semibold text-gray-700">
+						No hay tracks disponibles
+					</p>
+					<p className="text-sm sm:text-base text-gray-400 mt-2 sm:mt-3">
+						Agrega un nuevo track para comenzar
 					</p>
 				</motion.div>
 			) : (
-				assets.map(track => (
-					<motion.div
-						key={track._id}
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.3 }}
-						className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
-					>
-						<div
-							onClick={() => toggleExpand(track._id)}
-							className="p-5 cursor-pointer flex items-center justify-between"
+				<div className="space-y-4">
+					{assets.map(track => (
+						<motion.div
+							key={track._id}
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.3 }}
+							className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
 						>
-							<div className="flex-1 flex items-center gap-5">
-								<div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-lg shadow-sm">
-									<Music className="h-8 w-8 text-gray-400" />
-								</div>
-								<div>
-									<h2 className="text-xl font-semibold text-gray-900 mb-1">
-										{track.name}
-									</h2>
-									<div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
-										<Mic className="h-4 w-4 text-brand-light" />
-										<span>Artista: {track.vocals}</span>
+							<div className="p-4 sm:p-6">
+								<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+									<div className="flex-1 min-w-0">
+										<div className="flex items-center gap-3 mb-2">
+											<div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+												<Music className="h-5 w-5 text-gray-400" />
+											</div>
+											<div className="min-w-0 flex-1">
+												<h2 className="text-lg font-semibold text-gray-900 truncate">
+													{track.name}
+												</h2>
+												<div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+													<FileMusic className="h-4 w-4 text-brand-light" />
+													<span className="truncate">
+														{getReleaseName(track.release)}
+													</span>
+												</div>
+											</div>
+										</div>
+										<div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+											<div className="flex items-center gap-1">
+												<Calendar className="h-4 w-4" />
+												<span>
+													{track.createdAt
+														? new Date(track.createdAt).toLocaleDateString()
+														: 'No especificado'}
+												</span>
+											</div>
+											{track.genre_name && (
+												<div className="flex items-center gap-1">
+													<Disc className="h-4 w-4" />
+													<span>{track.genre_name}</span>
+												</div>
+											)}
+											{track.language && (
+												<div className="flex items-center gap-1">
+													<Languages className="h-4 w-4" />
+													<span>{track.language}</span>
+												</div>
+											)}
+										</div>
 									</div>
-									<div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-										<Calendar className="h-3 w-3" />
-										<span>
-											Creado:{' '}
-											{track.createdAt
-												? new Date(track.createdAt).toLocaleDateString()
-												: 'No especificado'}
-										</span>
+									<div className="flex items-center gap-2">
+										<motion.button
+											whileHover={{ scale: 1.05 }}
+											whileTap={{ scale: 0.95 }}
+											onClick={e => handleEdit(e, track)}
+											className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+										>
+											<Pencil className="h-5 w-5 text-brand-light" />
+										</motion.button>
+										<motion.button
+											whileHover={{ scale: 1.05 }}
+											whileTap={{ scale: 0.95 }}
+											onClick={e => handleDelete(e, track)}
+											disabled={isDeleting === track._id}
+											className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+										>
+											{isDeleting === track._id ? (
+												<div className="h-5 w-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+											) : (
+												<Trash2 className="h-5 w-5 text-red-500" />
+											)}
+										</motion.button>
+										<motion.button
+											whileHover={{ scale: 1.05 }}
+											whileTap={{ scale: 0.95 }}
+											onClick={() => toggleExpand(track._id)}
+											className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+										>
+											{expandedTrack === track._id ? (
+												<ChevronUp className="h-5 w-5" />
+											) : (
+												<ChevronDown className="h-5 w-5" />
+											)}
+										</motion.button>
 									</div>
 								</div>
-							</div>
-							<div className="flex items-center">
-								<motion.button
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-									onClick={e => handleEdit(e, track)}
-									className="p-2.5 flexitems-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
-								>
-									<Pencil
-										className="text-brand-light group-hover:text-brand-dark"
-										size={18}
-									/>
-								</motion.button>
-								<motion.button
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-									onClick={e => handleDelete(e, track)}
-									disabled={isDeleting === track._id}
-									className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
-								>
-									{isDeleting === track._id ? (
-										<div className="h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-									) : (
-										<Trash2
-											className="text-red-500 hover:text-red-700"
-											size={18}
-										/>
-									)}
-								</motion.button>
-								{expandedTrack === track._id ? (
-									<ChevronUp className="h-5 w-5 text-gray-400" />
-								) : (
-									<ChevronDown className="h-5 w-5 text-gray-400" />
+
+								{expandedTrack === track._id && (
+									<motion.div
+										initial={{ opacity: 0, height: 0 }}
+										animate={{ opacity: 1, height: 'auto' }}
+										exit={{ opacity: 0, height: 0 }}
+										transition={{
+											duration: 0.4,
+											ease: 'easeInOut',
+											height: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+										}}
+										className="mt-4 pt-4 border-t border-gray-100"
+									>
+										<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+											<div className="space-y-3">
+												<p className="flex items-start gap-2">
+													<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+														<Hash className="h-4 w-4 text-brand-light" /> ID:
+													</span>
+													<span className="text-gray-600 text-sm break-all">
+														{track._id}
+													</span>
+												</p>
+												<p className="flex items-start gap-2">
+													<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+														<Clock className="h-4 w-4 text-brand-light" />{' '}
+														Duración:
+													</span>
+													<span className="text-gray-600 text-sm">
+														{track.track_length || 'No especificada'}
+													</span>
+												</p>
+												<p className="flex items-start gap-2">
+													<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+														<Copyright className="h-4 w-4 text-brand-light" />{' '}
+														Derechos:
+													</span>
+													<span className="text-gray-600 text-sm break-words">
+														{track.copyright_holder || 'No especificados'}
+													</span>
+												</p>
+											</div>
+											<div className="space-y-3">
+												<p className="flex items-start gap-2">
+													<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+														<Share2 className="h-4 w-4 text-brand-light" />{' '}
+														ISRC:
+													</span>
+													<span className="text-gray-600 text-sm break-all">
+														{track.ISRC || 'No especificado'}
+													</span>
+												</p>
+												<p className="flex items-start gap-2">
+													<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+														<Languages className="h-4 w-4 text-brand-light" />{' '}
+														Idioma:
+													</span>
+													<span className="text-gray-600 text-sm">
+														{track.language || 'No especificado'}
+													</span>
+												</p>
+											</div>
+										</div>
+
+										{track.artists && track.artists.length > 0 && (
+											<div className="mt-4 pt-4 border-t border-gray-100">
+												<p className="font-medium text-gray-700 mb-3 flex items-center gap-2 text-sm">
+													<Users className="h-4 w-4 text-brand-light" />{' '}
+													Artistas
+												</p>
+												<div className="flex flex-wrap gap-2">
+													{track.artists.map((artist: any, index: number) => (
+														<span
+															key={`${track._id}-artist-${index}`}
+															className="inline-flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-full text-xs"
+														>
+															<span className="text-xs bg-brand-light/10 text-brand-light px-1.5 py-0.5 rounded-full whitespace-nowrap">
+																{artist.kind === 'main'
+																	? 'Principal'
+																	: artist.kind === 'featuring'
+																	? 'Featuring'
+																	: artist.kind === 'remixer'
+																	? 'Remixer'
+																	: artist.kind}
+															</span>
+															<span className="text-gray-700 truncate max-w-[150px]">
+																{artist.name}
+															</span>
+														</span>
+													))}
+												</div>
+											</div>
+										)}
+									</motion.div>
 								)}
 							</div>
-						</div>
-
-						<AnimatePresence>
-							{expandedTrack === track._id && (
-								<motion.div
-									initial={{ height: 0, opacity: 0 }}
-									animate={{ height: 'auto', opacity: 1 }}
-									exit={{ height: 0, opacity: 0 }}
-									transition={{ duration: 0.2 }}
-									className="border-t border-gray-100"
-								>
-									<div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-										<div className="space-y-3">
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Hash className="h-4 w-4 text-brand-light" /> ID:
-												</span>
-												<span className="text-gray-600">{track._id}</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<FileMusic className="h-4 w-4 text-brand-light" />{' '}
-													Mix:
-												</span>
-												<span className="text-gray-600">
-													{track.mix_name || 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Tag className="h-4 w-4 text-brand-light" /> Género:
-												</span>
-												<span className="text-gray-600">
-													{track.genre_name || 'Sin género'} /{' '}
-													{track.subgenre_name || 'Sin subgénero'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Clock className="h-4 w-4 text-brand-light" />{' '}
-													Duración:
-												</span>
-												<span className="text-gray-600">
-													{track.track_lenght || track.track_length
-														? track.track_lenght || track.track_length
-														: 'No especificada'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Languages className="h-4 w-4 text-brand-light" />{' '}
-													Idioma:
-												</span>
-												<span className="text-gray-600">
-													{track.language || 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Mic className="h-4 w-4 text-brand-light" />{' '}
-													Vocalista:
-												</span>
-												<span className="text-gray-600">
-													{track.vocals || 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Volume2 className="h-4 w-4 text-brand-light" />{' '}
-													Explícito:
-												</span>
-												<span className="text-gray-600">
-													{track.explicit_content ? (
-														<span className="flex items-center gap-1 text-green-600">
-															<CheckCircle className="h-4 w-4" /> Sí
-														</span>
-													) : (
-														<span className="flex items-center gap-1 text-red-500">
-															<XCircle className="h-4 w-4" /> No
-														</span>
-													)}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Copyright className="h-4 w-4 text-brand-light" />{' '}
-													Copyright:
-												</span>
-												<span className="text-gray-600">
-													{track.copyright_holder
-														? `${track.copyright_holder} © ${
-																track.copyright_holder_year || ''
-														  }`
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Share2 className="h-4 w-4 text-brand-light" /> Label
-													Share:
-												</span>
-												<span className="text-gray-600">
-													{track.label_share !== undefined &&
-													track.label_share !== null
-														? track.label_share
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Headphones className="h-4 w-4 text-brand-light" />{' '}
-													Dolby Atmos:
-												</span>
-												<span className="text-gray-600">
-													{track.dolby_atmos_resource !== undefined &&
-													track.dolby_atmos_resource !== null
-														? track.dolby_atmos_resource
-														: 'No especificado'}
-												</span>
-											</p>
-										</div>
-										<div className="space-y-3">
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Barcode className="h-4 w-4 text-brand-light" /> ISRC:
-												</span>
-												<span className="text-gray-600">
-													{track.ISRC !== undefined && track.ISRC !== null
-														? track.ISRC
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Barcode className="h-4 w-4 text-brand-light" /> DA
-													ISRC:
-												</span>
-												<span className="text-gray-600">
-													{track.DA_ISRC !== undefined && track.DA_ISRC !== null
-														? track.DA_ISRC
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Archive className="h-4 w-4 text-brand-light" /> Album
-													Only:
-												</span>
-												<span className="text-gray-600">
-													{track.album_only ? (
-														<span className="flex items-center gap-1 text-green-600">
-															<CheckCircle className="h-4 w-4" /> Sí
-														</span>
-													) : (
-														<span className="flex items-center gap-1 text-red-500">
-															<XCircle className="h-4 w-4" /> No
-														</span>
-													)}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Barcode className="h-4 w-4 text-brand-light" />{' '}
-													Generate ISRC:
-												</span>
-												<span className="text-gray-600">
-													{track.generate_isrc ? (
-														<span className="flex items-center gap-1 text-green-600">
-															<CheckCircle className="h-4 w-4" /> Sí
-														</span>
-													) : (
-														<span className="flex items-center gap-1 text-red-500">
-															<XCircle className="h-4 w-4" /> No
-														</span>
-													)}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<FileMusic className="h-4 w-4 text-brand-light" />{' '}
-													Resource:
-												</span>
-												<span className="text-gray-600">
-													{track.resource
-														? typeof track.resource === 'string'
-															? track.resource
-															: track.resource instanceof File
-															? track.resource.name
-															: 'No especificado'
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Clock className="h-4 w-4 text-brand-light" /> Sample
-													Start:
-												</span>
-												<span className="text-gray-600">
-													{track.sample_start !== undefined &&
-													track.sample_start !== null
-														? track.sample_start
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Tag className="h-4 w-4 text-brand-light" /> Order:
-												</span>
-												<span className="text-gray-600">
-													{track.order !== undefined && track.order !== null
-														? track.order
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Disc className="h-4 w-4 text-brand-light" /> Release:
-												</span>
-												<span className="text-gray-600">
-													{getReleaseName(track.release)}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Users className="h-4 w-4 text-brand-light" />{' '}
-													Artists:
-												</span>
-												<span className="text-gray-600">
-													{Array.isArray(track.artists) &&
-													track.artists.length > 0
-														? track.artists
-																.map(
-																	a => `Artist ID: ${a.artist}, Kind: ${a.kind}`
-																)
-																.join(', ')
-														: 'No especificados'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Users className="h-4 w-4 text-brand-light" />{' '}
-													Contributors:
-												</span>
-												<span className="text-gray-600">
-													{Array.isArray(track.contributors) &&
-													track.contributors.length > 0
-														? track.contributors
-																.map(
-																	c =>
-																		`Contributor ID: ${c.contributor}, Name: ${c.name}, Role: ${c.role}`
-																)
-																.join(', ')
-														: 'No especificados'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Copyright className="h-4 w-4 text-brand-light" />{' '}
-													Publishers:
-												</span>
-												<span className="text-gray-600">
-													{Array.isArray(track.publishers) &&
-													track.publishers.length > 0
-														? track.publishers
-																.map(
-																	p =>
-																		`Publisher ID: ${p.publisher}, Author: ${p.author}`
-																)
-																.join(', ')
-														: 'No especificados'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Calendar className="h-4 w-4 text-brand-light" />{' '}
-													Creado:
-												</span>
-												<span className="text-gray-600">
-													{track.createdAt &&
-													!isNaN(new Date(track.createdAt).getTime())
-														? new Date(track.createdAt).toLocaleString()
-														: 'No especificado'}
-												</span>
-											</p>
-											<p className="flex items-center gap-2">
-												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Calendar className="h-4 w-4 text-brand-light" />{' '}
-													Actualizado:
-												</span>
-												<span className="text-gray-600">
-													{track.updatedAt &&
-													!isNaN(new Date(track.updatedAt).getTime())
-														? new Date(track.updatedAt).toLocaleString()
-														: 'No especificado'}
-												</span>
-											</p>
-										</div>
-									</div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</motion.div>
-				))
+						</motion.div>
+					))}
+				</div>
 			)}
 
 			{/* <CreateTrackModal
@@ -637,17 +476,9 @@ const Assets = () => {
 				onSave={handleCreateTrack}
 			/> */}
 
-			{/* {isEditModalOpen && selectedTrack && (
-				<UpdateTrackModal
-					track={selectedTrack}
-					isOpen={isEditModalOpen}
-					onClose={() => {
-						setIsEditModalOpen(false);
-						setSelectedTrack(null);
-					}}
-					onSave={handleSaveEdit}
-				/>
-			)} */}
+			{isEditModalOpen && selectedTrack && (
+				<UpdateTrackModal track={selectedTrack} onSave={handleSaveEdit} />
+			)}
 		</div>
 	);
 };

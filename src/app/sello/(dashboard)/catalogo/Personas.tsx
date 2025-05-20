@@ -319,10 +319,12 @@ const Personas = () => {
 	}
 
 	return (
-		<div className="container mx-auto px-4 py-8">
-			<div className="flex justify-between items-center mb-6">
-				<h1 className="text-2xl font-bold text-gray-800">Personas</h1>
-				<button className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group">
+		<div className="p-4 sm:p-6">
+			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+				<h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+					Personas
+				</h1>
+				<button className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group">
 					<Plus size={18} className="text-brand-light group-hover:text-white" />
 					<span className="font-medium">Agregar Persona</span>
 				</button>
@@ -333,73 +335,75 @@ const Personas = () => {
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
 					exit={{ opacity: 0, y: -20 }}
-					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2"
+					className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center gap-2 backdrop-blur-sm"
 				>
-					<span>Operación exitosa</span>
+					<span className="text-sm sm:text-base">Operación exitosa</span>
 				</motion.div>
 			)}
 
-			<div className="bg-white shadow-md rounded-lg overflow-hidden">
-				<table className="min-w-full divide-y divide-gray-200">
+			<div className="overflow-x-auto">
+				<table className="min-w-full divide-y divide-gray-400">
 					<thead className="bg-gray-50">
 						<tr>
-							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+							<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Usuario
 							</th>
-							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+							<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Email
 							</th>
-							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+							<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Rol
 							</th>
-							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+							<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Estado
 							</th>
-							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+							<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Acciones
 							</th>
 						</tr>
 					</thead>
-					<tbody className="bg-white divide-y divide-gray-200">
+					<tbody className="bg-white divide-y divide-gray-300">
 						{personas.map(persona => (
 							<React.Fragment key={persona._id}>
 								<tr
 									className="hover:bg-gray-50 cursor-pointer"
 									onClick={() => toggleExpand(persona._id)}
 								>
-									<td className="px-6 py-4 whitespace-nowrap">
+									<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 										<div className="flex items-center">
-											<div className="flex-shrink-0 h-10 w-10">
+											<div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
 												{persona.picture?.base64 ? (
 													<motion.img
 														whileHover={{ scale: 1.05 }}
 														transition={{ duration: 0.2 }}
 														src={`data:image/jpeg;base64,${persona.picture.base64}`}
 														alt={persona.name}
-														className="h-10 w-10 rounded-full object-cover"
+														className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover"
 													/>
 												) : (
-													<div className="h-10 w-10 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-full">
-														<User className="h-6 w-6 text-gray-400" />
+													<div className="h-8 w-8 sm:h-10 sm:w-10 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-full">
+														<User className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
 													</div>
 												)}
 											</div>
-											<div className="ml-4">
-												<div className="text-sm font-medium text-gray-900">
+											<div className="ml-3 sm:ml-4">
+												<div className="text-sm font-medium text-gray-900 truncate max-w-[150px] sm:max-w-none">
 													{persona.name}
 												</div>
 											</div>
 										</div>
 									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
-										<div className="text-sm text-gray-900">{persona.email}</div>
+									<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+										<div className="text-sm text-gray-900 truncate max-w-[150px] sm:max-w-none">
+											{persona.email}
+										</div>
 									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
+									<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
 											{persona.role}
 										</span>
 									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
+									<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 										<span
 											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
 												persona.status === 'active'
@@ -410,7 +414,7 @@ const Personas = () => {
 											{persona.status}
 										</span>
 									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+									<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 										<div className="flex items-center space-x-2">
 											<motion.button
 												whileHover={{ scale: 1.05 }}
@@ -419,11 +423,11 @@ const Personas = () => {
 													e.stopPropagation();
 													handleEdit(e, persona);
 												}}
-												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+												className="p-2 sm:p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 											>
 												<Pencil
 													className="text-brand-light hover:text-brand-dark"
-													size={18}
+													size={16}
 												/>
 											</motion.button>
 											<motion.button
@@ -434,21 +438,21 @@ const Personas = () => {
 													handleDelete(e, persona);
 												}}
 												disabled={isDeleting === persona._id}
-												className="p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
+												className="p-2 sm:p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 											>
 												{isDeleting === persona._id ? (
 													<div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
 												) : (
 													<Trash2
 														className="text-red-500 hover:text-red-700"
-														size={18}
+														size={16}
 													/>
 												)}
 											</motion.button>
 											{expandedUser === persona._id ? (
-												<ChevronUp className="h-5 w-5 text-gray-400" />
+												<ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
 											) : (
-												<ChevronDown className="h-5 w-5 text-gray-400" />
+												<ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
 											)}
 										</div>
 									</td>
@@ -456,7 +460,7 @@ const Personas = () => {
 								<AnimatePresence>
 									{expandedUser === persona._id && (
 										<tr>
-											<td colSpan={5} className="px-6 py-4 bg-gray-50">
+											<td colSpan={5} className="px-4 sm:px-6 py-4 bg-gray-50">
 												<motion.div
 													initial={{ height: 0, opacity: 0 }}
 													animate={{ height: 'auto', opacity: 1 }}
@@ -464,37 +468,37 @@ const Personas = () => {
 													transition={{ duration: 0.2 }}
 													className="overflow-hidden"
 												>
-													<div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+													<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-sm">
 														<div className="space-y-3">
-															<p className="flex items-center gap-2">
-																<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+															<p className="flex items-start gap-2">
+																<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																	<Hash className="h-4 w-4 text-brand-light" />{' '}
 																	ID:
 																</span>
-																<span className="text-gray-600">
+																<span className="text-gray-600 text-sm break-all">
 																	{persona._id}
 																</span>
 															</p>
 															{persona.external_id && (
-																<p className="flex items-center gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																<p className="flex items-start gap-2">
+																	<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																		<Tag className="h-4 w-4 text-brand-light" />{' '}
 																		External ID:
 																	</span>
-																	<span className="text-gray-600">
+																	<span className="text-gray-600 text-sm break-all">
 																		{persona.external_id}
 																	</span>
 																</p>
 															)}
-															{persona.role?.toLowerCase() === 'artista' && (
+															{persona.role === 'artista' && (
 																<>
-																	<p className="flex items-center gap-2">
-																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																	<p className="flex items-start gap-2">
+																		<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																			<Music className="h-4 w-4 text-brand-light" />{' '}
 																			Amazon Music:
 																		</span>
 																		<span
-																			className={`text-gray-600 ${
+																			className={`text-gray-600 text-sm ${
 																				!persona.amazon_music_identifier
 																					? 'text-gray-400 italic'
 																					: ''
@@ -504,13 +508,13 @@ const Personas = () => {
 																				'Cuenta no encontrada'}
 																		</span>
 																	</p>
-																	<p className="flex items-center gap-2">
-																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																	<p className="flex items-start gap-2">
+																		<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																			<Music className="h-4 w-4 text-brand-light" />{' '}
 																			Apple Music:
 																		</span>
 																		<span
-																			className={`text-gray-600 ${
+																			className={`text-gray-600 text-sm ${
 																				!persona.apple_identifier
 																					? 'text-gray-400 italic'
 																					: ''
@@ -520,13 +524,13 @@ const Personas = () => {
 																				'Cuenta no encontrada'}
 																		</span>
 																	</p>
-																	<p className="flex items-center gap-2">
-																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																	<p className="flex items-start gap-2">
+																		<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																			<Music className="h-4 w-4 text-brand-light" />{' '}
 																			Deezer:
 																		</span>
 																		<span
-																			className={`text-gray-600 ${
+																			className={`text-gray-600 text-sm ${
 																				!persona.deezer_identifier
 																					? 'text-gray-400 italic'
 																					: ''
@@ -536,13 +540,13 @@ const Personas = () => {
 																				'Cuenta no encontrada'}
 																		</span>
 																	</p>
-																	<p className="flex items-center gap-2">
-																		<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																	<p className="flex items-start gap-2">
+																		<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																			<Music className="h-4 w-4 text-brand-light" />{' '}
 																			Spotify:
 																		</span>
 																		<span
-																			className={`text-gray-600 ${
+																			className={`text-gray-600 text-sm ${
 																				!persona.spotify_identifier
 																					? 'text-gray-400 italic'
 																					: ''
@@ -554,37 +558,37 @@ const Personas = () => {
 																	</p>
 																</>
 															)}
-															{persona.role?.toLowerCase() === 'sello' && (
+															{persona.role === 'sello' && (
 																<>
 																	{persona.catalog_num && (
-																		<p className="flex items-center gap-2">
-																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																				<Tag className="h-4 w-4 text-brand-light" />{' '}
 																				Catálogo:
 																			</span>
-																			<span className="text-gray-600">
+																			<span className="text-gray-600 text-sm">
 																				{persona.catalog_num}
 																			</span>
 																		</p>
 																	)}
 																	{persona.year && (
-																		<p className="flex items-center gap-2">
-																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																				<Calendar className="h-4 w-4 text-brand-light" />{' '}
 																				Año:
 																			</span>
-																			<span className="text-gray-600">
+																			<span className="text-gray-600 text-sm">
 																				{persona.year}
 																			</span>
 																		</p>
 																	)}
 																	{persona.primary_genre && (
-																		<p className="flex items-center gap-2">
-																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																				<Music className="h-4 w-4 text-brand-light" />{' '}
 																				Género:
 																			</span>
-																			<span className="text-gray-600">
+																			<span className="text-gray-600 text-sm">
 																				{persona.primary_genre}
 																			</span>
 																		</p>
@@ -594,34 +598,34 @@ const Personas = () => {
 														</div>
 														<div className="space-y-3">
 															{persona.createdAt && (
-																<p className="flex items-center gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																<p className="flex items-start gap-2">
+																	<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																		<Clock className="h-4 w-4 text-brand-light" />{' '}
 																		Creado:
 																	</span>
-																	<span className="text-gray-600">
+																	<span className="text-gray-600 text-sm">
 																		{formatDate(persona.createdAt)}
 																	</span>
 																</p>
 															)}
 															{persona.updatedAt && (
-																<p className="flex items-center gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																<p className="flex items-start gap-2">
+																	<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																		<Clock className="h-4 w-4 text-brand-light" />{' '}
 																		Actualizado:
 																	</span>
-																	<span className="text-gray-600">
+																	<span className="text-gray-600 text-sm">
 																		{formatDate(persona.updatedAt)}
 																	</span>
 																</p>
 															)}
 															{persona.parentName && (
-																<p className="flex items-center gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
+																<p className="flex items-start gap-2">
+																	<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
 																		<Building2 className="h-4 w-4 text-brand-light" />{' '}
 																		Cuenta Principal:
 																	</span>
-																	<span className="text-gray-600">
+																	<span className="text-gray-600 text-sm">
 																		{persona.parentName}
 																	</span>
 																</p>

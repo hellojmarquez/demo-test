@@ -14,7 +14,7 @@ app.prepare().then(() => {
 	});
 
 	// Inicializar Socket.IO
-	initSocket().attach(server);
+	initSocket({ socket: { server } } as any);
 
 	server.listen(3000, () => {
 		console.log('> Ready on http://localhost:3000');

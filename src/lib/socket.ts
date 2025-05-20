@@ -10,16 +10,18 @@ export type NextApiResponseWithSocket = NextApiResponse & {
 	};
 };
 
-let io: SocketIOServer;
+let io: SocketIOServer | null = null;
 
-export const initSocket = () => {
-	if (!io) {
-		io = new SocketIOServer({
+export const initSocket = (res: NextApiResponseWithSocket) => {
+	if (!res.socket.server.io) {
+		console.log('Inicializando Socket.IO...');
+		io = new SocketIOServer(res.socket.server, {
 			path: '/api/socket',
 			addTrailingSlash: false,
 			cors: {
 				origin: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
 				methods: ['GET', 'POST'],
+				credentials: true,
 			},
 		});
 
@@ -27,23 +29,26 @@ export const initSocket = () => {
 			console.log('Cliente conectado:', socket.id);
 
 			socket.on('join-ticket', (ticketId: string) => {
-				socket.join(`ticket-${ticketId}`);
-				console.log(`Cliente ${socket.id} se unió a ticket-${ticketId}`);
+				console.log(`Cliente ${socket.id} se unió al ticket ${ticketId}`);
+				socket.join(ticketId);
 			});
 
 			socket.on('leave-ticket', (ticketId: string) => {
-				socket.leave(`ticket-${ticketId}`);
-				console.log(`Cliente ${socket.id} dejó ticket-${ticketId}`);
+				console.log(`Cliente ${socket.id} dejó el ticket ${ticketId}`);
+				socket.leave(ticketId);
 			});
 
-			socket.on('new-message', (data: { ticketId: string; message: any }) => {
-				io.to(`ticket-${data.ticketId}`).emit('message-received', data.message);
+			socket.on('new-message', ({ ticketId, message }) => {
+				console.log('Nuevo mensaje recibido:', { ticketId, message });
+				io?.to(ticketId).emit('message-received', message);
 			});
 
 			socket.on('disconnect', () => {
 				console.log('Cliente desconectado:', socket.id);
 			});
 		});
+
+		res.socket.server.io = io;
 	}
 	return io;
 };

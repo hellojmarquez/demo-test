@@ -94,6 +94,7 @@ export default function Mensajes() {
 		description: '',
 		priority: 'medium',
 	});
+	const [messages, setMessages] = useState<Message[]>([]);
 
 	const { sendMessage, onMessage } = useSocket(selectedTicket?._id || '');
 
@@ -124,48 +125,58 @@ export default function Mensajes() {
 	useEffect(() => {
 		if (selectedTicket) {
 			onMessage(message => {
-				setSelectedTicket(prev => {
-					if (!prev) return null;
-					// Verificar si el mensaje ya existe para evitar duplicados
-					const messageExists = prev.messages.some(
+				console.log('Mensaje recibido en el componente:', message);
+				setMessages(prev => {
+					const messageExists = prev.some(
 						m =>
 							m.content === message.content &&
 							m.sender === message.sender &&
-							m.createdAt === message.createdAt
+							new Date(m.createdAt).getTime() ===
+								new Date(message.createdAt).getTime()
 					);
-					if (messageExists) return prev;
-					return {
-						...prev,
-						messages: [...prev.messages, message],
-					};
+
+					if (!messageExists) {
+						return [...prev, message];
+					}
+					return prev;
 				});
 			});
 		}
 	}, [selectedTicket, onMessage]);
 
-	const handleSendMessage = async () => {
+	const handleSendMessage = async (e: React.FormEvent) => {
+		e.preventDefault();
 		if (!newMessage.trim() || !selectedTicket) return;
 
 		try {
-			const res = await fetch(
+			const response: Response = await fetch(
 				`/api/admin/tickets/${selectedTicket._id}/messages`,
 				{
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({ content: newMessage }),
+					body: JSON.stringify({
+						content: newMessage,
+						sender: user?.email,
+					}),
 				}
 			);
 
-			if (res.ok) {
-				const message = await res.json();
-				// Emitir el mensaje para actualización en tiempo real
-				sendMessage(message);
-				setNewMessage('');
+			if (!response.ok) {
+				throw new Error('Error al enviar el mensaje');
 			}
-		} catch (err) {
-			console.error('Error al enviar mensaje:', err);
+
+			const messageData = await response.json();
+			console.log('Mensaje enviado:', messageData);
+
+			setMessages(prev => [...prev, messageData]);
+
+			sendMessage(messageData);
+
+			setNewMessage('');
+		} catch (error) {
+			console.error('Error al enviar mensaje:', error);
 			toast.error('Error al enviar el mensaje');
 		}
 	};
@@ -297,7 +308,7 @@ export default function Mensajes() {
 				{selectedTicket ? (
 					<>
 						<div className="flex-1 p-4 overflow-y-auto">
-							{selectedTicket.messages.map((message, index) => (
+							{messages.map((message, index) => (
 								<div
 									key={index}
 									className={`mb-4 ${
@@ -327,10 +338,10 @@ export default function Mensajes() {
 									onChange={e => setNewMessage(e.target.value)}
 									placeholder="Escribe un mensaje..."
 									className="flex-1 border rounded px-4 py-2"
-									onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+									onKeyPress={e => e.key === 'Enter' && handleSendMessage(e)}
 								/>
 								<button
-									onClick={handleSendMessage}
+									onClick={e => handleSendMessage(e)}
 									className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
 								>
 									Enviar

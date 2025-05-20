@@ -1,40 +1,88 @@
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
-import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
+import { paginationMiddleware } from '@/middleware/pagination';
+import { searchMiddleware } from '@/middleware/search';
 
 export async function GET(req: NextRequest) {
+	console.log('get sellos roles received');
+
 	try {
+		const token = req.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
+
 		await dbConnect();
-		const sellos = await User.find({ role: 'sello' })
-			.select('-password')
-			.sort({ createdAt: -1 });
 
-		// Obtener la información completa de las subcuentas
-		const sellosConSubcuentas = await Promise.all(
-			sellos.map(async sello => {
-				const selloObj = sello.toObject();
-				if (selloObj.subaccounts && selloObj.subaccounts.length > 0) {
-					const subcuentas = await User.find({
-						_id: { $in: selloObj.subaccounts },
-					}).select('name _id');
-					selloObj.subaccounts = subcuentas.map(sub => ({
-						_id: sub._id,
-						name: sub.name,
-					}));
-				}
-				return selloObj;
-			})
-		);
+		// Aplicar middleware de paginación
+		const { page, limit, skip } = paginationMiddleware(req);
 
-		return NextResponse.json({
-			success: true,
-			data: sellosConSubcuentas,
-		});
-	} catch (error) {
-		console.error('Error al obtener sellos:', error);
+		// Aplicar middleware de búsqueda
+		const searchQuery = searchMiddleware(req, 'name');
+
+		// Combinar la búsqueda con el filtro de rol
+		const query = {
+			...searchQuery,
+			role: 'sello',
+		};
+
+		// Obtener el total de documentos que coinciden con la búsqueda
+		const total = await User.countDocuments(query);
+
+		// Obtener los sellos paginados y filtrados
+		const sellos = await User.find(query)
+			.sort({ createdAt: -1 })
+			.skip(skip)
+			.limit(limit)
+			.lean();
+
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				success: true,
+				data: {
+					sellos,
+					pagination: {
+						total,
+						page,
+						limit,
+						totalPages: Math.ceil(total / limit),
+					},
+				},
+			},
+			{
+				headers: {
+					'Cache-Control':
+						'no-store, no-cache, must-revalidate, proxy-revalidate',
+					Pragma: 'no-cache',
+					Expires: '0',
+				},
+			}
+		);
+	} catch (error) {
+		console.error('Error fetching sellos:', error);
+		return NextResponse.json(
+			{ success: false, error: 'Error fetching sellos' },
 			{ status: 500 }
 		);
 	}

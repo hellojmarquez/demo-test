@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Release from '@/models/ReleaseModel';
 import { jwtVerify } from 'jose';
+import { paginationMiddleware } from '@/middleware/pagination';
+import { searchMiddleware } from '@/middleware/search';
+import { sortMiddleware, SortOptions } from '@/middleware/sort';
 
 export async function GET(req: NextRequest) {
 	console.log('get releases roles received');
@@ -33,10 +36,43 @@ export async function GET(req: NextRequest) {
 		}
 
 		await dbConnect();
-		const releases = await Release.find({}).sort({ createdAt: -1 });
-	
+
+		// Aplicar middleware de paginación
+		const { page, limit, skip } = paginationMiddleware(req);
+
+		// Aplicar middleware de búsqueda
+		const searchQuery = searchMiddleware(req, 'name');
+
+		// Aplicar middleware de ordenamiento
+		const sortOptions: SortOptions = {
+			newest: { createdAt: -1 as const },
+			oldest: { createdAt: 1 as const },
+		};
+		const sort = sortMiddleware(req, sortOptions);
+
+		// Obtener el total de documentos que coinciden con la búsqueda
+		const total = await Release.countDocuments(searchQuery);
+
+		// Obtener los releases paginados, filtrados y ordenados
+		const releases = await Release.find(searchQuery)
+			.sort(sort)
+			.skip(skip)
+			.limit(limit)
+			.lean();
+
 		return NextResponse.json(
-			{ success: true, data: releases },
+			{
+				success: true,
+				data: {
+					releases,
+					pagination: {
+						total,
+						page,
+						limit,
+						totalPages: Math.ceil(total / limit),
+					},
+				},
+			},
 			{
 				headers: {
 					'Cache-Control':

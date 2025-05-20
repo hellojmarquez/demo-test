@@ -18,6 +18,9 @@ import { UpdateContributorModal } from '@/components/UpdateContributorModal';
 import { UpdatePublisherModal } from '@/components/UpdatePublisherModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import Pagination from '@/components/Pagination';
+import SearchInput from '@/components/SearchInput';
+import SortSelect from '@/components/SortSelect';
 
 interface User {
 	_id: string;
@@ -65,15 +68,26 @@ export default function UsuariosPage() {
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [deletedUserName, setDeletedUserName] = useState<string>('');
 	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalItems, setTotalItems] = useState(0);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [sortBy, setSortBy] = useState('newest');
 	const router = useRouter();
 
 	useEffect(() => {
 		const fetchUsers = async () => {
 			try {
-				const res = await fetch('/api/admin/getAllUsers');
+				const res = await fetch(
+					`/api/admin/getAllUsers?page=${currentPage}${
+						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+					}&sort=${sortBy}`
+				);
 				const data = await res.json();
 				if (data.success) {
-					setUsers(data.users);
+					setUsers(data.data.users);
+					setTotalPages(data.data.pagination.totalPages);
+					setTotalItems(data.data.pagination.total);
 				}
 			} catch (error) {
 				console.error('Error fetching users:', error);
@@ -82,7 +96,7 @@ export default function UsuariosPage() {
 			}
 		};
 		fetchUsers();
-	}, []);
+	}, [currentPage, searchQuery, sortBy]);
 
 	if (loading) {
 		return (
@@ -216,10 +230,16 @@ export default function UsuariosPage() {
 	const handleContributorUpdate = () => {
 		// Recargar la lista de usuarios después de actualizar un contribuidor
 		const fetchUsers = async () => {
-			const res = await fetch('/api/admin/getAllUsers');
+			const res = await fetch(
+				`/api/admin/getAllUsers?page=${currentPage}${
+					searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+				}`
+			);
 			const data = await res.json();
 			if (data.success) {
-				setUsers(data.users);
+				setUsers(data.data.users);
+				setTotalPages(data.data.pagination.totalPages);
+				setTotalItems(data.data.pagination.total);
 			}
 		};
 		fetchUsers();
@@ -228,10 +248,16 @@ export default function UsuariosPage() {
 	const handlePublisherUpdate = () => {
 		// Recargar la lista de usuarios después de actualizar un publisher
 		const fetchUsers = async () => {
-			const res = await fetch('/api/admin/getAllUsers');
+			const res = await fetch(
+				`/api/admin/getAllUsers?page=${currentPage}${
+					searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+				}`
+			);
 			const data = await res.json();
 			if (data.success) {
-				setUsers(data.users);
+				setUsers(data.data.users);
+				setTotalPages(data.data.pagination.totalPages);
+				setTotalItems(data.data.pagination.total);
 			}
 		};
 		fetchUsers();
@@ -372,13 +398,30 @@ export default function UsuariosPage() {
 					<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
 						Gestión de Usuarios
 					</h1>
-					<Link
-						href="/sello/crearUsuario"
-						className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-dark hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-					>
-						<Plus className="h-4 w-4 mr-1.5" />
-						Nuevo Usuario
-					</Link>
+					<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+						<SearchInput
+							value={searchQuery}
+							onChange={setSearchQuery}
+							className="w-full sm:w-64"
+							placeholder="Buscar por nombre..."
+						/>
+						<SortSelect
+							value={sortBy}
+							onChange={setSortBy}
+							options={[
+								{ value: 'newest', label: 'Más recientes' },
+								{ value: 'oldest', label: 'Más antiguos' },
+							]}
+							className="w-full sm:w-48"
+						/>
+						<Link
+							href="/sello/crearUsuario"
+							className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium bg-white text-brand-light hover:text-white hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+						>
+							<Plus className="h-4 w-4 mr-1.5" />
+							Crear
+						</Link>
+					</div>
 				</div>
 
 				<div className="bg-white shadow-sm rounded-lg overflow-hidden">
@@ -496,6 +539,15 @@ export default function UsuariosPage() {
 						</table>
 					</div>
 				</div>
+
+				<Pagination
+					currentPage={currentPage}
+					totalPages={totalPages}
+					totalItems={totalItems}
+					itemsPerPage={10}
+					onPageChange={setCurrentPage}
+					className="mt-4"
+				/>
 			</div>
 
 			{showArtistModal && selectedArtist && (

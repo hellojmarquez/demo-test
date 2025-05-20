@@ -5,11 +5,33 @@ import SingleTrack from '@/models/SingleTrack';
 import { paginationMiddleware } from '@/middleware/pagination';
 import { searchMiddleware } from '@/middleware/search';
 import { sortMiddleware, SortOptions } from '@/middleware/sort';
+import { jwtVerify } from 'jose';
 
 export async function GET(req: NextRequest) {
 	console.log('get singletracks received');
 
 	try {
+		const token = req.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
 		await dbconnect();
 
 		// Aplicar middlewares

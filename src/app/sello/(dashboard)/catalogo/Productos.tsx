@@ -25,6 +25,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import CreateInitRelease from '@/components/CreateInitRelease';
 import { toast } from 'react-hot-toast';
+import Pagination from '@/components/Pagination';
+import SearchInput from '@/components/SearchInput';
+import SortSelect from '@/components/SortSelect';
 
 interface PictureObject {
 	picture: string;
@@ -87,20 +90,33 @@ const Productos: React.FC = () => {
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalItems, setTotalItems] = useState(0);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [sortBy, setSortBy] = useState('newest');
 	const router = useRouter();
+
 	useEffect(() => {
 		const fetchReleases = async () => {
 			setLoading(true);
 			try {
-				const res = await fetch('/api/admin/getAllReleases', {
-					cache: 'no-store',
-					headers: {
-						'Cache-Control': 'no-cache',
-					},
-				});
+				const res = await fetch(
+					`/api/admin/getAllReleases?page=${currentPage}${
+						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+					}&sort=${sortBy}`,
+					{
+						cache: 'no-store',
+						headers: {
+							'Cache-Control': 'no-cache',
+						},
+					}
+				);
 				const data = await res.json();
 				if (data.success) {
-					setReleases(data.data as Release[]);
+					setReleases(data.data.releases as Release[]);
+					setTotalPages(data.data.pagination.totalPages);
+					setTotalItems(data.data.pagination.total);
 					console.log('data.data: ', data.data);
 				}
 			} catch (error) {
@@ -109,8 +125,9 @@ const Productos: React.FC = () => {
 				setLoading(false);
 			}
 		};
+
 		fetchReleases();
-	}, []);
+	}, [currentPage, searchQuery, sortBy]);
 
 	const handleToggleExpand = (id: string) => {
 		setExpandedRelease(currentId => (currentId === id ? null : id));
@@ -262,17 +279,32 @@ const Productos: React.FC = () => {
 					<h1 className="text-xl sm:text-2xl font-bold text-gray-800">
 						Catálogo de Lanzamientos
 					</h1>
-					<motion.button
-						whileHover={{ scale: 1.02 }}
-						whileTap={{ scale: 0.98 }}
-						onClick={() => setIsModalOpen(true)}
-						className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-brand-light text-white rounded-xl hover:bg-brand-dark transition-all duration-200 shadow-md group"
-					>
-						<Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-						<span className="font-medium text-sm sm:text-base">
-							Crear lanzamiento
-						</span>
-					</motion.button>
+					<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+						<SearchInput
+							value={searchQuery}
+							onChange={setSearchQuery}
+							className="w-full sm:w-64"
+							placeholder="Buscar por nombre..."
+						/>
+						<SortSelect
+							value={sortBy}
+							onChange={setSortBy}
+							options={[
+								{ value: 'newest', label: 'Más recientes' },
+								{ value: 'oldest', label: 'Más antiguos' },
+							]}
+							className="w-full sm:w-48"
+						/>
+						<motion.button
+							whileHover={{ scale: 1.02 }}
+							whileTap={{ scale: 0.98 }}
+							onClick={() => setIsModalOpen(true)}
+							className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group"
+						>
+							<Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+							<span className="font-medium text-sm sm:text-base">Crear</span>
+						</motion.button>
+					</div>
 				</div>
 
 				{releases.length === 0 ? (
@@ -529,6 +561,14 @@ const Productos: React.FC = () => {
 					</div>
 				</div>
 			)}
+			<Pagination
+				currentPage={currentPage}
+				totalPages={totalPages}
+				totalItems={totalItems}
+				itemsPerPage={10}
+				onPageChange={setCurrentPage}
+				className="mt-4"
+			/>
 		</div>
 	);
 };

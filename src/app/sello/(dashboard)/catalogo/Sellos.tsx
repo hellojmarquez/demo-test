@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { Sello } from '@/types/sello';
+import Pagination from '@/components/Pagination';
+import SearchInput from '@/components/SearchInput';
 
 export default function SellosPage() {
 	const [sellos, setSellos] = useState<Sello[]>([]);
@@ -26,38 +28,33 @@ export default function SellosPage() {
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalItems, setTotalItems] = useState(0);
+	const [searchQuery, setSearchQuery] = useState('');
 
 	useEffect(() => {
 		const fetchSellos = async () => {
 			setLoading(true);
 			try {
-				const res = await fetch('/api/admin/getAllSellos');
-				const response = await res.json();
-
-				// Asegurarnos de que response.data sea un array
-				const sellosData = Array.isArray(response.data) ? response.data : [];
-
-				// Asegurarse de que cada sello tenga la estructura correcta
-				const sellosFormateados = sellosData.map((sello: Sello) => {
-					// Convertir year y catalog_num a números
-					const year =
-						typeof sello.year === 'string'
-							? parseInt(sello.year, 10)
-							: sello.year;
-					const catalog_num =
-						typeof sello.catalog_num === 'string'
-							? parseInt(sello.catalog_num, 10)
-							: sello.catalog_num;
-
-					return {
-						...sello,
-						year,
-						catalog_num,
-						picture: sello.picture || null,
-					};
-				});
-
-				setSellos(sellosFormateados);
+				const res = await fetch(
+					`/api/admin/getAllSellos?page=${currentPage}${
+						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+					}`,
+					{
+						cache: 'no-store',
+						headers: {
+							'Cache-Control': 'no-cache',
+						},
+					}
+				);
+				const data = await res.json();
+				if (data.success) {
+					setSellos(data.data.sellos as Sello[]);
+					setTotalPages(data.data.pagination.totalPages);
+					setTotalItems(data.data.pagination.total);
+					console.log('data.data: ', data.data);
+				}
 			} catch (error) {
 				console.error('Error fetching sellos:', error);
 			} finally {
@@ -65,7 +62,7 @@ export default function SellosPage() {
 			}
 		};
 		fetchSellos();
-	}, []);
+	}, [currentPage, searchQuery]);
 
 	const toggleExpand = (selloId: string) => {
 		setExpandedSello(expandedSello === selloId ? null : selloId);
@@ -174,6 +171,20 @@ export default function SellosPage() {
 					<span>Operación completada exitosamente</span>
 				</motion.div>
 			)}
+
+			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+				<h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+					Catálogo de Sellos
+				</h1>
+				<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+					<SearchInput
+						value={searchQuery}
+						onChange={setSearchQuery}
+						className="w-full sm:w-64"
+						placeholder="Buscar por nombre..."
+					/>
+				</div>
+			</div>
 
 			{!sellos || sellos.length === 0 ? (
 				<motion.div
@@ -409,6 +420,15 @@ export default function SellosPage() {
 					onSave={handleEdit}
 				/>
 			)}
+
+			<Pagination
+				currentPage={currentPage}
+				totalPages={totalPages}
+				totalItems={totalItems}
+				itemsPerPage={10}
+				onPageChange={setCurrentPage}
+				className="mt-4"
+			/>
 		</div>
 	);
 }

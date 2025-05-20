@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
+import { paginationMiddleware } from '@/middleware/pagination';
+import { searchMiddleware } from '@/middleware/search';
+import { sortMiddleware, SortOptions } from '@/middleware/sort';
 
 export async function GET(req: NextRequest) {
 	console.log('get users received');
@@ -9,35 +12,41 @@ export async function GET(req: NextRequest) {
 	try {
 		await dbConnect();
 
-		// Obtener todos los usuarios de la base de datos
-		const users = await User.find({}).select('-password');
-		const sanitizedUsers = users.map(user => {
-			const userObj = user.toObject(); // Convertir a objeto plano
-			return {
-				...userObj,
-				picture: userObj.picture
-					? {
-							base64: userObj.picture.toString('base64'),
-					  }
-					: null,
-				subcuentas: userObj.subcuentas
-					? userObj.subcuentas.map((sub: any) => ({
-							...sub,
-							password: '',
-					  }))
-					: [],
-			};
-		});
+		// Aplicar middlewares
+		const { page, limit, skip } = paginationMiddleware(req);
+		const searchQuery = searchMiddleware(req, 'name'); // Buscar por nombre
+		const sortOptions: SortOptions = {
+			newest: { createdAt: -1 as const },
+			oldest: { createdAt: 1 as const },
+		};
+		const sort = sortMiddleware(req, sortOptions);
 
-		// Puedes devolver directamente los usuarios
+		// Obtener el total de documentos que coinciden con la búsqueda
+		const total = await User.countDocuments(searchQuery);
+
+		// Obtener los usuarios paginados y filtrados
+		const users = await User.find(searchQuery)
+			.sort(sort)
+			.skip(skip)
+			.limit(limit)
+			.lean();
+
 		return NextResponse.json({
 			success: true,
-			users: sanitizedUsers,
+			data: {
+				users,
+				pagination: {
+					total,
+					page,
+					limit,
+					totalPages: Math.ceil(total / limit),
+				},
+			},
 		});
 	} catch (error) {
-		console.error('Error fetching users:', error);
+		console.error('Error in getAllUsers:', error);
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{ success: false, error: 'Error al obtener los usuarios' },
 			{ status: 500 }
 		);
 	}

@@ -20,6 +20,9 @@ import { UpdateContributorModal } from '@/components/UpdateContributorModal';
 import UpdateArtistaModal from '@/components/updateArtistaModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { Sello } from '@/types/sello';
+import SearchInput from '@/components/SearchInput';
+import Pagination from '@/components/Pagination';
+import SortSelect from '@/components/SortSelect';
 
 // Definir la interfaz Artista para que coincida con la del componente UpdateArtistaModal
 interface Artista {
@@ -64,8 +67,13 @@ interface Persona {
 }
 
 const Personas = () => {
-	const [personas, setPersonas] = useState<Persona[]>([]);
+	const [users, setUsers] = useState<Persona[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalItems, setTotalItems] = useState(0);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [sortBy, setSortBy] = useState('newest');
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [selectedUser, setSelectedUser] = useState<Persona | null>(null);
 	const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -83,12 +91,25 @@ const Personas = () => {
 	const [selectedSello, setSelectedSello] = useState<Persona | null>(null);
 	const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
-	const fetchUsers = async () => {
+	const fetchUsers = async (
+		page: number = 1,
+		search: string = '',
+		sort: string = 'newest'
+	) => {
 		try {
-			const response = await fetch('/api/admin/getAllPersonas');
+			const response = await fetch(
+				`/api/admin/getAllPersonas?page=${page}${
+					search ? `&search=${encodeURIComponent(search)}` : ''
+				}&sort=${sort}`
+			);
 			if (response.ok) {
 				const data = await response.json();
-				setPersonas(data.data || []);
+				if (data.success) {
+					setUsers(data.data.users);
+					setTotalPages(data.data.pagination.totalPages);
+					setTotalItems(data.data.pagination.total);
+					setCurrentPage(data.data.pagination.page);
+				}
 			}
 			setIsLoading(false);
 		} catch (error) {
@@ -98,8 +119,8 @@ const Personas = () => {
 	};
 
 	useEffect(() => {
-		fetchUsers();
-	}, []);
+		fetchUsers(currentPage, searchQuery, sortBy);
+	}, [currentPage, searchQuery, sortBy]);
 
 	const handleDelete = async (e: React.MouseEvent, persona: Persona) => {
 		e.preventDefault();
@@ -111,7 +132,7 @@ const Personas = () => {
 				});
 				if (res.ok) {
 					// Actualizar la lista después de eliminar
-					fetchUsers();
+					fetchUsers(currentPage, searchQuery, sortBy);
 				}
 			} catch (error) {
 				console.error('Error deleting persona:', error);
@@ -130,7 +151,7 @@ const Personas = () => {
 			});
 			if (res.ok) {
 				// Actualizar la lista después de editar
-				fetchUsers();
+				fetchUsers(currentPage, searchQuery, sortBy);
 			}
 		} catch (error) {
 			console.error('Error updating persona:', error);
@@ -148,7 +169,7 @@ const Personas = () => {
 			});
 			if (res.ok) {
 				// Actualizar la lista después de crear
-				fetchUsers();
+				fetchUsers(currentPage, searchQuery, sortBy);
 			}
 		} catch (error) {
 			console.error('Error creating persona:', error);
@@ -203,7 +224,7 @@ const Personas = () => {
 			const response = await fetch(`/api/admin/getAllArtists`);
 			const data = await response.json();
 			if (data.success) {
-				setPersonas(data.data);
+				setUsers(data.data);
 				setShowSuccessMessage(true);
 				setTimeout(() => setShowSuccessMessage(false), 3000);
 			}
@@ -214,12 +235,12 @@ const Personas = () => {
 
 	const handlePublisherUpdate = () => {
 		// Recargar la lista de personas después de actualizar un publisher
-		fetchUsers();
+		fetchUsers(currentPage, searchQuery, sortBy);
 	};
 
 	const handleContributorUpdate = () => {
 		// Recargar la lista de personas después de actualizar un contribuidor
-		fetchUsers();
+		fetchUsers(currentPage, searchQuery, sortBy);
 	};
 
 	const handleArtistaUpdate = async (updatedArtista: Artista) => {
@@ -257,7 +278,7 @@ const Personas = () => {
 			const data = await res.json();
 			if (data.success) {
 				// Recargar la lista de personas después de actualizar un artista
-				fetchUsers();
+				fetchUsers(currentPage, searchQuery, sortBy);
 				setShowArtistaModal(false);
 				setSelectedArtista(null);
 			}
@@ -287,7 +308,7 @@ const Personas = () => {
 			const data = await res.json();
 			if (data.success) {
 				// Recargar la lista de personas después de actualizar un sello
-				fetchUsers();
+				fetchUsers(currentPage, searchQuery, sortBy);
 				setShowSelloModal(false);
 				setSelectedSello(null);
 			}
@@ -322,8 +343,24 @@ const Personas = () => {
 		<div className="p-4 sm:p-6">
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
 				<h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-					Personas
+					Usuarios
 				</h1>
+				<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+					<SearchInput
+						value={searchQuery}
+						onChange={setSearchQuery}
+						className="w-full sm:w-64"
+					/>
+					<SortSelect
+						value={sortBy}
+						onChange={setSortBy}
+						options={[
+							{ value: 'newest', label: 'Más recientes' },
+							{ value: 'oldest', label: 'Más antiguos' },
+						]}
+						className="w-full sm:w-48"
+					/>
+				</div>
 				<button className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group">
 					<Plus size={18} className="text-brand-light group-hover:text-white" />
 					<span className="font-medium">Agregar Persona</span>
@@ -363,7 +400,7 @@ const Personas = () => {
 						</tr>
 					</thead>
 					<tbody className="bg-white divide-y divide-gray-300">
-						{personas.map(persona => (
+						{users.map(persona => (
 							<React.Fragment key={persona._id}>
 								<tr
 									className="hover:bg-gray-50 cursor-pointer"
@@ -642,6 +679,16 @@ const Personas = () => {
 					</tbody>
 				</table>
 			</div>
+
+			{/* Pagination */}
+			<Pagination
+				currentPage={currentPage}
+				totalPages={totalPages}
+				totalItems={totalItems}
+				itemsPerPage={5}
+				onPageChange={setCurrentPage}
+				className="mt-4"
+			/>
 
 			{selectedUser && (
 				<UpdateUserModal

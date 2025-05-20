@@ -33,6 +33,7 @@ import CreateTrackModal from '@/components/CreateTrackModal';
 import Pagination from '@/components/Pagination';
 import { Track } from '@/types/track';
 import SearchInput from '@/components/SearchInput';
+import SortSelect from '@/components/SortSelect';
 
 interface Artist {
 	name: string;
@@ -67,13 +68,19 @@ const Assets = () => {
 	const [releases, setReleases] = useState<Release[]>([]);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
+	const [sortBy, setSortBy] = useState('newest');
+
+	const sortOptions = [
+		{ label: 'Más recientes', value: 'newest' },
+		{ label: 'Más antiguos', value: 'oldest' },
+	];
 
 	const fetchTracks = async (page: number = 1, search: string = '') => {
 		try {
 			const response = await fetch(
 				`/api/admin/getAllTracks?page=${page}${
 					search ? `&search=${encodeURIComponent(search)}` : ''
-				}`
+				}&sort=${sortBy}`
 			);
 			if (response.ok) {
 				const data = await response.json();
@@ -102,7 +109,7 @@ const Assets = () => {
 				}
 			})
 			.catch(error => console.error('Error fetching releases:', error));
-	}, [currentPage, searchQuery]);
+	}, [currentPage, searchQuery, sortBy]);
 
 	const toggleExpand = (trackId: string | undefined) => {
 		if (!trackId) return;
@@ -271,11 +278,17 @@ const Assets = () => {
 				<h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
 					Tracks
 				</h1>
-				<div className="w-full sm:w-auto">
+				<div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
 					<SearchInput
 						value={searchQuery}
 						onChange={setSearchQuery}
 						className="w-full sm:w-64"
+					/>
+					<SortSelect
+						value={sortBy}
+						onChange={setSortBy}
+						options={sortOptions}
+						className="w-full sm:w-48"
 					/>
 				</div>
 			</div>

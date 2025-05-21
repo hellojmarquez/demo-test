@@ -86,6 +86,7 @@ export default function UsuariosPage() {
 				const data = await res.json();
 				if (data.success) {
 					setUsers(data.data.users);
+					console.log(data.data.users);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
 				}
@@ -467,9 +468,33 @@ export default function UsuariosPage() {
 										<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 											<div className="flex items-center">
 												<div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
-													{user.picture?.base64 ? (
+													{user.picture ? (
 														<img
-															src={`data:image/jpeg;base64,${user.picture.base64}`}
+															src={
+																typeof user.picture === 'object' &&
+																user.picture !== null &&
+																'base64' in user.picture
+																	? `data:image/jpeg;base64,${
+																			(user.picture as { base64: string })
+																				.base64
+																	  }`
+																	: typeof user.picture === 'string' &&
+																	  (user.picture as string).includes(
+																			'data:image'
+																	  )
+																	? user.picture
+																	: typeof user.picture === 'string' &&
+																	  ((user.picture as string).includes(
+																			'http'
+																	  ) ||
+																			/\.(jpg|jpeg|png|gif|webp)$/i.test(
+																				user.picture as string
+																			))
+																	? user.picture
+																	: typeof user.picture === 'string'
+																	? `data:image/jpeg;base64,${user.picture}`
+																	: ''
+															}
 															alt={user.name}
 															className="h-full w-full object-cover"
 														/>

@@ -27,7 +27,7 @@ interface User {
 	name: string;
 	email: string;
 	role: string;
-	picture?: { base64: string };
+	picture?: { base64: string } | string;
 	status?: string;
 	permissions?: string[];
 	subaccounts?: any[];

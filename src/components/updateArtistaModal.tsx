@@ -8,11 +8,12 @@ interface Artista {
 	name: string;
 	email: string;
 	password?: string;
-	picture?: { base64: string };
+	picture?: { base64: string } | string;
 	amazon_music_identifier?: string;
 	apple_identifier?: string;
 	deezer_identifier?: string;
 	spotify_identifier?: string;
+	role: string;
 	[key: string]: any;
 }
 
@@ -35,7 +36,11 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
-		artista.picture ? `data:image/jpeg;base64,${artista.picture.base64}` : null
+		artista.picture
+			? typeof artista.picture === 'string'
+				? artista.picture
+				: `data:image/jpeg;base64,${artista.picture.base64}`
+			: null
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 

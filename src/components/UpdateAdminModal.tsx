@@ -7,7 +7,7 @@ interface Admin {
 	name: string;
 	email: string;
 	password?: string;
-	picture?: { base64: string };
+	picture?: { base64: string } | string;
 	role: string;
 	[key: string]: any;
 }
@@ -27,10 +27,30 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 }) => {
 	const [formData, setFormData] = useState<Admin>({ ...admin });
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [imagePreview, setImagePreview] = useState<string | null>(
-		admin.picture ? `data:image/jpeg;base64,${admin.picture.base64}` : null
-	);
+	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		console.log('Admin data:', admin);
+		console.log('Admin picture type:', typeof admin.picture);
+		console.log('Admin picture value:', admin.picture);
+		if (admin.picture) {
+			if (typeof admin.picture === 'string') {
+				console.log('Setting string image:', admin.picture);
+				setImagePreview(
+					admin.picture.startsWith('data:image')
+						? admin.picture
+						: `data:image/jpeg;base64,${admin.picture}`
+				);
+			} else {
+				console.log('Setting base64 image:', admin.picture.base64);
+				setImagePreview(`data:image/jpeg;base64,${admin.picture.base64}`);
+			}
+		} else {
+			console.log('No picture available');
+			setImagePreview(null);
+		}
+	}, [admin]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -59,8 +79,14 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 					...formData,
 					picture: { base64: base64Data },
 				});
+				console.log('Imagen procesada:', base64Data.substring(0, 50) + '...');
 			};
 			reader.readAsDataURL(file);
+		} else {
+			setFormData({
+				...formData,
+				picture: '',
+			});
 		}
 	};
 
@@ -79,7 +105,7 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 			formDataToSend.append('role', 'admin');
 
 			// Si hay una imagen, convertirla a File y agregarla al FormData
-			if (formData.picture?.base64) {
+			if (typeof formData.picture === 'object' && formData.picture?.base64) {
 				// Convertir base64 a Blob
 				const base64Data = formData.picture.base64;
 				const byteCharacters = atob(base64Data);
@@ -238,7 +264,6 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 										value={formData.password}
 										onChange={handleChange}
 										className={inputStyles}
-										required
 									/>
 								</div>
 							</div>

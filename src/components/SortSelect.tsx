@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUpDown } from 'lucide-react';
 
 interface SortOption {
@@ -19,20 +19,51 @@ const SortSelect: React.FC<SortSelectProps> = ({
 	options,
 	className = '',
 }) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+	const selectRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				selectRef.current &&
+				!selectRef.current.contains(event.target as Node)
+			) {
+				setIsExpanded(false);
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
+
+	const selectedOption = options.find(option => option.value === value);
+
 	return (
-		<div className={`relative ${className}`}>
-			<select
-				value={value}
-				onChange={e => onChange(e.target.value)}
-				className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent appearance-none bg-white cursor-pointer transition-all duration-200"
+		<div className={`relative ${className}`} ref={selectRef}>
+			{isExpanded ? (
+				<div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+					{options.map(option => (
+						<button
+							key={option.value}
+							onClick={() => {
+								onChange(option.value);
+								setIsExpanded(false);
+							}}
+							className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors duration-200 ${
+								option.value === value ? 'text-brand-light' : 'text-gray-700'
+							}`}
+						>
+							{option.label}
+						</button>
+					))}
+				</div>
+			) : null}
+			<button
+				onClick={() => setIsExpanded(!isExpanded)}
+				className="w-10 h-10 flex items-center justify-center hover:text-brand-light transition-all duration-300 ease-in-out"
 			>
-				{options.map(option => (
-					<option key={option.value} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</select>
-			<ArrowUpDown className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+				<ArrowUpDown className="h-4 w-4 text-gray-400" />
+			</button>
 		</div>
 	);
 };

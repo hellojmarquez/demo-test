@@ -3,14 +3,22 @@ import dbConnect from '@/lib/mongodb';
 import { Admin } from '@/models/UserModel';
 import bcrypt from 'bcryptjs';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
 	console.log('create admin request received');
 
 	try {
+		const token = request.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
 		await dbConnect();
 
 		const { name, email, password, picture } = await request.json();
-	
+		console.log(name, email, password);
 		// Validar campos requeridos
 		if (!name || !email || !password) {
 			return NextResponse.json(
@@ -27,9 +35,9 @@ export async function POST(request: Request) {
 				{ status: 400 }
 			);
 		}
-
+		console.log(name, email, password);
 		// Hashear la contraseña
-		const hashedPassword = await bcrypt.hash(password, 10);
+		// const hashedPassword = await bcrypt.hash(password, 10);
 
 		// Convertir la imagen base64 a Buffer si existe
 		let pictureBuffer = null;
@@ -41,14 +49,14 @@ export async function POST(request: Request) {
 		const newAdmin = await Admin.create({
 			name,
 			email,
-			password: hashedPassword,
+			password,
 			picture: pictureBuffer,
 			role: 'admin',
 			status: 'active',
 			permissions: ['admin'],
 		});
 		console.log('newAdmin: ', newAdmin);
-
+		console.log(newAdmin);
 		return NextResponse.json(
 			{
 				message: 'Administrador creado exitosamente',

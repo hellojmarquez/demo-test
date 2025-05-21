@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 
 interface SearchInputProps {
@@ -14,16 +14,35 @@ const SearchInput: React.FC<SearchInputProps> = ({
 	placeholder = 'Buscar...',
 	className = '',
 }) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+
 	return (
 		<div className={`relative ${className}`}>
-			<input
-				type="text"
-				placeholder={placeholder}
-				value={value}
-				onChange={e => onChange(e.target.value)}
-				className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-transparent transition-all duration-200"
-			/>
-			<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+			{isExpanded ? (
+				<input
+					type="text"
+					placeholder={placeholder}
+					value={value}
+					onChange={e => onChange(e.target.value)}
+					className="w-full pl-10 pr-4 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent transition-all duration-300 ease-in-out"
+					autoFocus
+					onBlur={() => {
+						if (!value) {
+							setIsExpanded(false);
+						}
+					}}
+				/>
+			) : (
+				<button
+					onClick={() => setIsExpanded(true)}
+					className="w-10 h-10 flex items-center justify-center hover:text-brand-light transition-all duration-300 ease-in-out"
+				>
+					<Search className="h-4 w-4 text-gray-400" />
+				</button>
+			)}
+			{isExpanded && (
+				<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+			)}
 		</div>
 	);
 };

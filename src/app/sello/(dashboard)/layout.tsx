@@ -139,8 +139,21 @@ export default function DashboardLayout({
 										<span>Catálogo</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
-									<a
-										href="/admin/config"
+									<Link
+										href="/sello/contabilidad"
+										className={`flex items-center p-2 transition-colors relative group ${
+											isActive('/sello/catalogo')
+												? 'text-white border-b-2'
+												: 'text-white'
+										}`}
+										onClick={() => setMobileMenuOpen(false)}
+									>
+										<FileMusic size={18} className="mr-2" />
+										<span>Contabilidad</span>
+										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+									</Link>
+									<Link
+										href="#!"
 										className={`flex items-center p-2 transition-colors relative group ${
 											isActive('/admin/config')
 												? 'text-white border-b-2'
@@ -149,9 +162,9 @@ export default function DashboardLayout({
 										onClick={() => setMobileMenuOpen(false)}
 									>
 										<Settings size={18} className="mr-2" />
-										<span>Configuraciones</span>
+										<span>Configuración</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</a>
+									</Link>
 								</div>
 							</nav>
 
@@ -196,7 +209,7 @@ export default function DashboardLayout({
 											<Users size={18} className="mr-2" />
 											<span>Usuarios</span>
 										</Link>
-										<a
+										<Link
 											href="/sello/mensajes"
 											className={`flex items-center p-3 transition-colors relative group ${
 												isActive('/sello/mensajes')
@@ -207,7 +220,7 @@ export default function DashboardLayout({
 										>
 											<MessageSquare size={18} className="mr-2" />
 											<span>Mensajes</span>
-										</a>
+										</Link>
 										<Link
 											href="/sello/catalogo"
 											className={`flex items-center p-3 transition-colors relative group ${
@@ -220,8 +233,20 @@ export default function DashboardLayout({
 											<FileMusic size={18} className="mr-2" />
 											<span>Catálogo</span>
 										</Link>
-										<a
-											href="/admin/config"
+										<Link
+											href="/sello/catalogo"
+											className={`flex items-center p-3 transition-colors relative group ${
+												isActive('/sello/catalogo')
+													? 'text-white border-l-2 border-white'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<FileMusic size={18} className="mr-2" />
+											<span>Contabilidad</span>
+										</Link>
+										<Link
+											href="#!"
 											className={`flex items-center p-3 transition-colors relative group ${
 												isActive('/admin/config')
 													? 'text-white border-l-2 border-white'
@@ -230,8 +255,8 @@ export default function DashboardLayout({
 											onClick={() => setMobileMenuOpen(false)}
 										>
 											<Settings size={18} className="mr-2" />
-											<span>Configuraciones</span>
-										</a>
+											<span>Configuración</span>
+										</Link>
 									</div>
 								</div>
 							</nav>

@@ -345,26 +345,26 @@ const Personas = () => {
 				<h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
 					Usuarios
 				</h1>
-				<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-					<SearchInput
-						value={searchQuery}
-						onChange={setSearchQuery}
-						className="w-full sm:w-64"
-					/>
-					<SortSelect
-						value={sortBy}
-						onChange={setSortBy}
-						options={[
-							{ value: 'newest', label: 'Más recientes' },
-							{ value: 'oldest', label: 'Más antiguos' },
-						]}
-						className="w-full sm:w-48"
-					/>
+				<div className="flex justify-end gap-4 w-full sm:w-auto">
+					<div className="flex items-center gap-x-10 justify-center gap-4">
+						<SearchInput value={searchQuery} onChange={setSearchQuery} />
+						<SortSelect
+							value={sortBy}
+							onChange={setSortBy}
+							options={[
+								{ value: 'newest', label: 'Más recientes' },
+								{ value: 'oldest', label: 'Más antiguos' },
+							]}
+						/>
+					</div>
+					<button className="w-auto flex items-center justify-center gap-2 px-6 py-3 md:px-6 md:py-2 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group">
+						<Plus
+							size={18}
+							className="text-brand-light group-hover:text-white"
+						/>
+						<span className="font-medium">Agregar</span>
+					</button>
 				</div>
-				<button className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group">
-					<Plus size={18} className="text-brand-light group-hover:text-white" />
-					<span className="font-medium">Agregar Persona</span>
-				</button>
 			</div>
 
 			{showSuccessMessage && (

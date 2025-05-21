@@ -279,30 +279,30 @@ const Productos: React.FC = () => {
 					<h1 className="text-xl sm:text-2xl font-bold text-gray-800">
 						Catálogo de Lanzamientos
 					</h1>
-					<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-						<SearchInput
-							value={searchQuery}
-							onChange={setSearchQuery}
-							className="w-full sm:w-64"
-							placeholder="Buscar por nombre..."
-						/>
-						<SortSelect
-							value={sortBy}
-							onChange={setSortBy}
-							options={[
-								{ value: 'newest', label: 'Más recientes' },
-								{ value: 'oldest', label: 'Más antiguos' },
-							]}
-							className="w-full sm:w-48"
-						/>
+					<div className="flex justify-end gap-4 w-full sm:w-auto">
+						<div className="flex items-center gap-x-10 justify-center gap-4">
+							<SearchInput
+								value={searchQuery}
+								onChange={setSearchQuery}
+								placeholder="Buscar por nombre..."
+							/>
+							<SortSelect
+								value={sortBy}
+								onChange={setSortBy}
+								options={[
+									{ value: 'newest', label: 'Más recientes' },
+									{ value: 'oldest', label: 'Más antiguos' },
+								]}
+							/>
+						</div>
 						<motion.button
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
 							onClick={() => setIsModalOpen(true)}
-							className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group"
+							className="w-auto flex items-center justify-center gap-2 px-6 py-3 md:px-6 md:py-2 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group"
 						>
-							<Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-							<span className="font-medium text-sm sm:text-base">Crear</span>
+							<Plus className="h-4 w-4" />
+							<span className="font-medium text-sm">Crear</span>
 						</motion.button>
 					</div>
 				</div>

@@ -279,17 +279,14 @@ const Assets = () => {
 					Tracks
 				</h1>
 				<div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
-					<SearchInput
-						value={searchQuery}
-						onChange={setSearchQuery}
-						className="w-full sm:w-64"
-					/>
-					<SortSelect
-						value={sortBy}
-						onChange={setSortBy}
-						options={sortOptions}
-						className="w-full sm:w-48"
-					/>
+					<div className="flex items-center gap-x-10 justify-center  gap-4 ">
+						<SearchInput value={searchQuery} onChange={setSearchQuery} />
+						<SortSelect
+							value={sortBy}
+							onChange={setSortBy}
+							options={sortOptions}
+						/>
+					</div>
 				</div>
 			</div>
 

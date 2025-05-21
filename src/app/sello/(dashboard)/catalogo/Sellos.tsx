@@ -19,6 +19,7 @@ import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { Sello } from '@/types/sello';
 import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
+import SortSelect from '@/components/SortSelect';
 
 export default function SellosPage() {
 	const [sellos, setSellos] = useState<Sello[]>([]);
@@ -32,6 +33,7 @@ export default function SellosPage() {
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalItems, setTotalItems] = useState(0);
 	const [searchQuery, setSearchQuery] = useState('');
+	const [sortBy, setSortBy] = useState('newest');
 
 	useEffect(() => {
 		const fetchSellos = async () => {
@@ -40,7 +42,7 @@ export default function SellosPage() {
 				const res = await fetch(
 					`/api/admin/getAllSellos?page=${currentPage}${
 						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
-					}`,
+					}&sort=${sortBy}`,
 					{
 						cache: 'no-store',
 						headers: {
@@ -50,6 +52,7 @@ export default function SellosPage() {
 				);
 				const data = await res.json();
 				if (data.success) {
+					console.log(data.data.sellos);
 					setSellos(data.data.sellos as Sello[]);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
@@ -62,7 +65,7 @@ export default function SellosPage() {
 			}
 		};
 		fetchSellos();
-	}, [currentPage, searchQuery]);
+	}, [currentPage, searchQuery, sortBy]);
 
 	const toggleExpand = (selloId: string) => {
 		setExpandedSello(expandedSello === selloId ? null : selloId);
@@ -177,12 +180,22 @@ export default function SellosPage() {
 					Catálogo de Sellos
 				</h1>
 				<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-					<SearchInput
-						value={searchQuery}
-						onChange={setSearchQuery}
-						className="w-full sm:w-64"
-						placeholder="Buscar por nombre..."
-					/>
+					<div className="flex items-center gap-x-10 justify-center gap-4">
+						<SearchInput
+							value={searchQuery}
+							onChange={setSearchQuery}
+							className="w-full sm:w-64"
+							placeholder="Buscar por nombre..."
+						/>
+						<SortSelect
+							value={sortBy}
+							onChange={setSortBy}
+							options={[
+								{ value: 'newest', label: 'Más recientes' },
+								{ value: 'oldest', label: 'Más antiguos' },
+							]}
+						/>
+					</div>
 				</div>
 			</div>
 

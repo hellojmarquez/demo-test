@@ -31,7 +31,7 @@ interface Artista {
 	name: string;
 	email: string;
 	password?: string;
-	picture?: { base64: string };
+	picture?: string;
 	amazon_music_identifier?: string;
 	apple_identifier?: string;
 	deezer_identifier?: string;
@@ -43,9 +43,7 @@ interface Persona {
 	_id: string;
 	name: string;
 	email: string;
-	picture?: {
-		base64: string;
-	};
+	picture?: string;
 	role: string;
 	status: string;
 	external_id?: string | number;
@@ -409,11 +407,11 @@ const Personas = () => {
 									<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 										<div className="flex items-center">
 											<div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-												{persona.picture?.base64 ? (
+												{persona?.picture ? (
 													<motion.img
 														whileHover={{ scale: 1.05 }}
 														transition={{ duration: 0.2 }}
-														src={`data:image/jpeg;base64,${persona.picture.base64}`}
+														src={persona.picture}
 														alt={persona.name}
 														className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover"
 													/>
@@ -750,14 +748,16 @@ const Personas = () => {
 				<>
 					{console.log('Renderizando modal de artista')}
 					<UpdateArtistaModal
-						artista={selectedArtista as unknown as Artista}
+						artista={{ ...selectedArtista, role: 'artista' }}
 						isOpen={showArtistaModal}
 						onClose={() => {
 							console.log('Cerrando modal de artista');
 							setShowArtistaModal(false);
 							setSelectedArtista(null);
 						}}
-						onSave={handleArtistaUpdate}
+						onSave={async (artista: Artista) => {
+							await handleArtistaUpdate(artista);
+						}}
 					/>
 				</>
 			)}
@@ -769,7 +769,7 @@ const Personas = () => {
 						sello={{
 							_id: selectedSello._id,
 							name: selectedSello.name,
-							picture: selectedSello.picture?.base64 || undefined,
+							picture: selectedSello.picture || undefined,
 							catalog_num: selectedSello.catalog_num || 0,
 							year: selectedSello.year || 0,
 							status: (selectedSello.status || 'active') as

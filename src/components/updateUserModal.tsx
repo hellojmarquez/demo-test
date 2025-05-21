@@ -9,9 +9,7 @@ interface UpdateUserModalProps {
 		_id: string;
 		name: string;
 		email: string;
-		picture?: {
-			base64: string;
-		};
+		picture?: string;
 		role: string;
 		status: string;
 	};
@@ -29,10 +27,10 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
 		email: user.email,
 		role: user.role,
 		status: user.status,
-		picture: user.picture?.base64 || '',
+		picture: user.picture || '',
 	});
 	const [previewImage, setPreviewImage] = useState<string | null>(
-		user.picture?.base64 || null
+		user.picture || null
 	);
 	const [isLoading, setIsLoading] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,9 +54,7 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
 			reader.readAsDataURL(file);
 			reader.onload = () => {
 				if (typeof reader.result === 'string') {
-					// Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
-					const base64String = reader.result.split(',')[1];
-					resolve(base64String);
+					resolve(reader.result);
 				}
 			};
 			reader.onerror = error => reject(error);
@@ -75,10 +71,7 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({
-					...formData,
-					picture: formData.picture ? { base64: formData.picture } : null,
-				}),
+				body: JSON.stringify(formData),
 			});
 
 			if (response.ok) {
@@ -132,7 +125,7 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
 								>
 									{previewImage ? (
 										<img
-											src={`data:image/jpeg;base64,${previewImage}`}
+											src={previewImage}
 											alt="Profile"
 											className="w-full h-full object-cover"
 										/>

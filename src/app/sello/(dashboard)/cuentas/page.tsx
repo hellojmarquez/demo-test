@@ -27,7 +27,7 @@ interface User {
 	name: string;
 	email: string;
 	role: string;
-	picture?: { base64: string } | string;
+	picture?: string;
 	status?: string;
 	permissions?: string[];
 	subaccounts?: any[];
@@ -132,7 +132,7 @@ export default function UsuariosPage() {
 			const adaptedSelloData = {
 				_id: user._id,
 				name: user.name,
-				picture: user.picture || { base64: '' },
+				picture: user.picture || '',
 				catalog_num: user.catalog_num || 0,
 				year: user.year || 0,
 				status: user.status || 'active',
@@ -471,29 +471,9 @@ export default function UsuariosPage() {
 													{user.picture ? (
 														<img
 															src={
-																typeof user.picture === 'object' &&
-																user.picture !== null &&
-																'base64' in user.picture
-																	? `data:image/jpeg;base64,${
-																			(user.picture as { base64: string })
-																				.base64
-																	  }`
-																	: typeof user.picture === 'string' &&
-																	  (user.picture as string).includes(
-																			'data:image'
-																	  )
+																user.picture.startsWith('data:')
 																	? user.picture
-																	: typeof user.picture === 'string' &&
-																	  ((user.picture as string).includes(
-																			'http'
-																	  ) ||
-																			/\.(jpg|jpeg|png|gif|webp)$/i.test(
-																				user.picture as string
-																			))
-																	? user.picture
-																	: typeof user.picture === 'string'
-																	? `data:image/jpeg;base64,${user.picture}`
-																	: ''
+																	: `data:image/jpeg;base64,${user.picture}`
 															}
 															alt={user.name}
 															className="h-full w-full object-cover"

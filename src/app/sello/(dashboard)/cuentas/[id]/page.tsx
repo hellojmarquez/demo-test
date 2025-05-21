@@ -24,7 +24,7 @@ interface User {
 	name: string;
 	email: string;
 	role: string;
-	picture?: { base64: string };
+	picture?: string;
 	status?: string;
 	permissions?: string[];
 	subaccounts?: any[];
@@ -117,7 +117,7 @@ export default function UsuariosPage() {
 			const adaptedSelloData = {
 				_id: user._id,
 				name: user.name,
-				picture: user.picture || { base64: '' },
+				picture: user.picture || '',
 				catalog_num: user.catalog_num || 0,
 				year: user.year || 0,
 				status: user.status || 'active',
@@ -424,9 +424,9 @@ export default function UsuariosPage() {
 									<td className="px-6 py-4 whitespace-nowrap">
 										<div className="flex items-center">
 											<div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
-												{user.picture?.base64 ? (
+												{user?.picture ? (
 													<img
-														src={`data:image/jpeg;base64,${user.picture.base64}`}
+														src={user.picture}
 														alt={user.name}
 														className="h-full w-full object-cover"
 													/>

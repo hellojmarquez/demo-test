@@ -8,7 +8,7 @@ interface Artista {
 	name: string;
 	email: string;
 	password?: string;
-	picture?: { base64: string } | string;
+	picture?: string;
 	amazon_music_identifier?: string;
 	apple_identifier?: string;
 	deezer_identifier?: string;
@@ -32,15 +32,11 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 }) => {
 	const [formData, setFormData] = useState<Artista>({
 		...artista,
-		external_id: artista.external_id || artista._id, // Use external_id if available, fallback to _id
+		external_id: artista.external_id || artista._id,
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
-		artista.picture
-			? typeof artista.picture === 'string'
-				? artista.picture
-				: `data:image/jpeg;base64,${artista.picture.base64}`
-			: null
+		artista.picture || null
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,14 +67,10 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				const base64String = reader.result as string;
-				// Mantener el prefijo data:image/jpeg;base64, para la vista previa
 				setImagePreview(base64String);
-
-				// Para enviar a la API, usar solo la parte base64 sin el prefijo
-				const base64Data = base64String.split(',')[1];
 				setFormData({
 					...formData,
-					picture: { base64: base64Data },
+					picture: base64String,
 				});
 			};
 			reader.readAsDataURL(file);

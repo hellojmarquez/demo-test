@@ -473,6 +473,8 @@ export default function UsuariosPage() {
 															src={
 																user.picture.startsWith('data:')
 																	? user.picture
+																	: user.picture.startsWith('http')
+																	? user.picture
 																	: `data:image/jpeg;base64,${user.picture}`
 															}
 															alt={user.name}

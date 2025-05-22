@@ -92,10 +92,14 @@ export async function POST(req: NextRequest) {
 		console.log('Obteniendo datos del body...');
 		const body = await req.json();
 		console.log('Datos recibidos:', body);
-		const { title, description, priority } = body;
+		const { title, description, priority, assignedTo } = body;
 
-		if (!title || !description) {
-			console.log('Error: Faltan campos requeridos', { title, description });
+		if (!title || !description || !assignedTo) {
+			console.log('Error: Faltan campos requeridos', {
+				title,
+				description,
+				assignedTo,
+			});
 			return NextResponse.json(
 				{ success: false, error: 'Faltan campos requeridos' },
 				{ status: 400 }
@@ -123,7 +127,8 @@ export async function POST(req: NextRequest) {
 			description,
 			priority: priority || 'medium',
 			status: 'open',
-			userId,
+			userId: assignedTo, // El userId será el mismo que assignedTo
+			assignedTo, // Guardamos el ID del usuario asignado
 			createdBy: payload.email, // Guardamos el email del creador
 		};
 		console.log('Datos del ticket a crear:', ticketData);

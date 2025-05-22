@@ -73,6 +73,10 @@ export async function PUT(
 		if (body.priority) {
 			updateData.priority = body.priority;
 		}
+		if (body.assignedTo) {
+			updateData.assignedTo = body.assignedTo;
+			updateData.userId = body.assignedTo;
+		}
 
 		updateData.updatedBy = payload.email;
 		updateData.updatedAt = new Date();

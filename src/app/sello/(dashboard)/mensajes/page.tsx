@@ -79,12 +79,24 @@ interface Ticket {
 	priority: string;
 	messages: Message[];
 	createdBy: string;
+	userId: string;
+	assignedTo: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface User {
+	_id: string;
+	name: string;
+	email: string;
+	role: string;
 }
 
 export default function Mensajes() {
 	const { user, loading } = useAuth();
 	const router = useRouter();
 	const [tickets, setTickets] = useState<Ticket[]>([]);
+	const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
 	const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 	const [newMessage, setNewMessage] = useState('');
 	const [loadingTickets, setLoadingTickets] = useState(true);
@@ -94,8 +106,11 @@ export default function Mensajes() {
 		title: '',
 		description: '',
 		priority: 'medium',
+		assignedTo: '',
 	});
 	const [messages, setMessages] = useState<Message[]>([]);
+	const [users, setUsers] = useState<User[]>([]);
+	const [loadingUsers, setLoadingUsers] = useState(false);
 
 	const { sendMessage, onMessage, onTicketUpdate, updateTicket, socket } =
 		useSocket(selectedTicket?._id || '');
@@ -106,6 +121,23 @@ export default function Mensajes() {
 			if (res.ok) {
 				const data = await res.json();
 				setTickets(data);
+
+				// Filtrar tickets según el rol del usuario
+				if (user?.role === 'admin') {
+					// Los administradores ven todos los tickets
+					setFilteredTickets(data);
+				} else {
+					// Los usuarios normales solo ven los tickets asignados a ellos
+					const userTickets = data.filter(
+						(ticket: Ticket) =>
+							// Verificar si el ticket está asignado al usuario actual
+							ticket.userId === user?._id ||
+							ticket.assignedTo === user?._id ||
+							// O si el usuario lo creó
+							ticket.createdBy === user?.email
+					);
+					setFilteredTickets(userTickets);
+				}
 			} else {
 				setError('Error al cargar los tickets');
 			}
@@ -206,6 +238,26 @@ export default function Mensajes() {
 		};
 	}, [selectedTicket, onMessage, onTicketUpdate, socket]);
 
+	useEffect(() => {
+		const fetchUsers = async () => {
+			if (user?.role === 'admin') {
+				setLoadingUsers(true);
+				try {
+					const res = await fetch('/api/admin/getAllUsers');
+					const data = await res.json();
+					if (data.success) {
+						setUsers(data.data.users);
+					}
+				} catch (error) {
+					console.error('Error fetching users:', error);
+				} finally {
+					setLoadingUsers(false);
+				}
+			}
+		};
+		fetchUsers();
+	}, [user]);
+
 	const handleSendMessage = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!newMessage.trim() || !selectedTicket) return;
@@ -221,6 +273,7 @@ export default function Mensajes() {
 					body: JSON.stringify({
 						content: newMessage,
 						sender: user?.email,
+						notifyAssignedUser: true,
 					}),
 				}
 			);
@@ -232,7 +285,6 @@ export default function Mensajes() {
 			const messageData = await response.json();
 			console.log('Mensaje enviado:', messageData);
 
-			// No agregamos el mensaje aquí, lo dejamos que llegue por socket
 			sendMessage(messageData);
 			setNewMessage('');
 		} catch (error) {
@@ -243,18 +295,42 @@ export default function Mensajes() {
 
 	const handleCreateTicket = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!newTicket.assignedTo) {
+			toast.error('Debes seleccionar un usuario para asignar el ticket');
+			return;
+		}
+
 		try {
+			// Encontrar el usuario asignado
+			const assignedUser = users.find(u => u._id === newTicket.assignedTo);
+			if (!assignedUser) {
+				toast.error('Usuario asignado no encontrado');
+				return;
+			}
+
+			const ticketData = {
+				title: newTicket.title,
+				description: newTicket.description,
+				priority: newTicket.priority,
+				status: 'open',
+				createdBy: user?.email,
+				userId: assignedUser._id,
+				assignedTo: assignedUser._id,
+			};
+
+			console.log('Enviando datos del ticket:', ticketData);
+
 			const res = await fetch('/api/admin/tickets', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify(newTicket),
+				body: JSON.stringify(ticketData),
 			});
 
 			if (res.ok) {
 				const ticket = await res.json();
-				// Verificar si el ticket ya existe antes de agregarlo
+				console.log('Ticket creado:', ticket);
 				setTickets(prev => {
 					const exists = prev.some(t => t._id === ticket._id);
 					return exists ? prev : [...prev, ticket];
@@ -264,10 +340,12 @@ export default function Mensajes() {
 					title: '',
 					description: '',
 					priority: 'medium',
+					assignedTo: '',
 				});
-				toast.success('Ticket creado exitosamente');
+				toast.success(`Ticket creado y asignado a ${assignedUser.name}`);
 			} else {
 				const error = await res.json();
+				console.error('Error al crear ticket:', error);
 				toast.error(error.error || 'Error al crear el ticket');
 			}
 		} catch (err) {
@@ -362,6 +440,67 @@ export default function Mensajes() {
 		}
 	};
 
+	const handleAssignTicket = async (ticketId: string, userId: string) => {
+		if (!user?.role || user.role !== 'admin') return;
+
+		try {
+			// Encontrar el usuario asignado
+			const assignedUser = users.find(u => u._id === userId);
+			if (!assignedUser) {
+				toast.error('Usuario no encontrado');
+				return;
+			}
+
+			const updateData = {
+				userId: assignedUser._id,
+				assignedTo: assignedUser._id,
+				notifyUser: true,
+				assignedBy: user.email,
+			};
+
+			console.log('Actualizando ticket con datos:', updateData);
+
+			const res = await fetch(`/api/admin/tickets/${ticketId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(updateData),
+			});
+
+			if (res.ok) {
+				const updatedTicket = await res.json();
+				console.log('Ticket actualizado:', updatedTicket);
+				setTickets(prev =>
+					prev.map(ticket =>
+						ticket._id === ticketId
+							? {
+									...ticket,
+									userId: assignedUser._id,
+									assignedTo: assignedUser._id,
+							  }
+							: ticket
+					)
+				);
+				if (selectedTicket?._id === ticketId) {
+					setSelectedTicket(prev =>
+						prev
+							? {
+									...prev,
+									userId: assignedUser._id,
+									assignedTo: assignedUser._id,
+							  }
+							: null
+					);
+				}
+				toast.success(`Ticket asignado a ${assignedUser.name}`);
+			}
+		} catch (err) {
+			console.error('Error al asignar ticket:', err);
+			toast.error('Error al asignar el ticket');
+		}
+	};
+
 	// Función para cargar los mensajes de un ticket
 	const loadTicketMessages = async (ticketId: string) => {
 		try {
@@ -392,79 +531,124 @@ export default function Mensajes() {
 	}
 
 	return (
-		<div className="flex h-screen overflow-hidden">
+		<div className="flex flex-col md:flex-row h-screen overflow-hidden">
 			{/* Lista de tickets */}
-			<div className="w-1/3 border-r flex flex-col">
-				<div className="flex justify-between items-center p-4 border-b">
-					<h2 className="text-xl font-bold">Tickets</h2>
+			<div className="w-full md:w-1/3 border-r flex flex-col h-[40vh] md:h-screen">
+				<div className="flex justify-between items-center p-4 border-b bg-white">
+					<h2 className="text-xl font-bold">
+						{user?.role === 'admin' ? 'Tickets' : 'Mis Tickets'}
+					</h2>
 					<button
 						onClick={() => setIsModalOpen(true)}
-						className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+						className="bg-blue-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded hover:bg-blue-600 text-sm md:text-base"
 					>
 						Nuevo Ticket
 					</button>
 				</div>
-				<div className="flex-1 overflow-y-auto">
-					{tickets.map(ticket => (
-						<div
-							key={ticket._id}
-							className={`p-4 border-b cursor-pointer ${
-								selectedTicket?._id === ticket._id
-									? 'bg-blue-100'
-									: 'bg-white hover:bg-gray-50'
-							}`}
-							onClick={() => {
-								setSelectedTicket(ticket);
-								loadTicketMessages(ticket._id);
-							}}
-						>
-							<h3 className="font-semibold">{ticket.title}</h3>
-							<p className="text-sm text-gray-600">{ticket.description}</p>
-							<div className="flex justify-between items-center mt-2">
-								<span
-									className={`px-2 py-1 rounded text-sm ${
-										ticket.status === 'open'
-											? 'bg-green-100 text-green-800'
-											: ticket.status === 'in-progress'
-											? 'bg-yellow-100 text-yellow-800'
-											: 'bg-red-100 text-red-800'
-									}`}
-								>
-									{ticket.status}
-								</span>
-								{user?.role === 'admin' && (
-									<select
-										value={ticket.priority}
-										onChange={e =>
-											handlePriorityChange(ticket._id, e.target.value)
-										}
-										className="text-sm border rounded px-2 py-1"
-									>
-										<option value="low">Baja</option>
-										<option value="medium">Media</option>
-										<option value="high">Alta</option>
-									</select>
-								)}
-							</div>
+				<div className="flex-1 overflow-y-auto bg-white">
+					{filteredTickets.length === 0 ? (
+						<div className="p-4 text-center text-gray-500">
+							{user?.role === 'admin'
+								? 'No hay tickets disponibles'
+								: 'No tienes tickets asignados'}
 						</div>
-					))}
+					) : (
+						filteredTickets.map(ticket => (
+							<div
+								key={ticket._id}
+								className={`p-3 md:p-4 border-b cursor-pointer ${
+									selectedTicket?._id === ticket._id
+										? 'bg-blue-100'
+										: 'bg-white hover:bg-gray-50'
+								}`}
+								onClick={() => {
+									setSelectedTicket(ticket);
+									loadTicketMessages(ticket._id);
+								}}
+							>
+								<h3 className="font-semibold text-sm md:text-base">
+									{ticket.title}
+								</h3>
+								<p className="text-xs md:text-sm text-gray-600 line-clamp-2">
+									{ticket.description}
+								</p>
+								<div className="flex justify-between items-center mt-2">
+									<span
+										className={`px-2 py-1 rounded text-xs md:text-sm ${
+											ticket.status === 'open'
+												? 'bg-green-100 text-green-800'
+												: ticket.status === 'in-progress'
+												? 'bg-yellow-100 text-yellow-800'
+												: 'bg-red-100 text-red-800'
+										}`}
+									>
+										{ticket.status}
+									</span>
+									{user?.role === 'admin' && (
+										<select
+											value={ticket.priority}
+											onChange={e =>
+												handlePriorityChange(ticket._id, e.target.value)
+											}
+											className="text-xs md:text-sm border rounded px-1.5 py-0.5 md:px-2 md:py-1"
+										>
+											<option value="low">Baja</option>
+											<option value="medium">Media</option>
+											<option value="high">Alta</option>
+										</select>
+									)}
+								</div>
+							</div>
+						))
+					)}
 				</div>
 			</div>
 
 			{/* Chat del ticket seleccionado */}
-			<div className="flex-1 flex flex-col">
+			<div className="flex-1 flex flex-col h-[60vh] md:h-screen">
 				{selectedTicket ? (
 					<>
-						<div className="flex-1 p-4 overflow-y-auto">
-							{/* Mostrar la descripción del ticket como primer mensaje */}
-							<div className="mb-4 text-left">
-								<div className="inline-block p-3 rounded-lg bg-gray-200">
-									<p>{selectedTicket.description}</p>
-									<p className="text-xs mt-1">
-										{selectedTicket.createdBy} (Creador del ticket)
-									</p>
+						<div className="flex-1 p-3 md:p-4 overflow-y-auto bg-gray-50">
+							{/* Información del ticket */}
+							<div className="mb-4 p-3 bg-white rounded-lg shadow-sm">
+								<h3 className="font-semibold text-sm md:text-base mb-2">
+									{selectedTicket.title}
+								</h3>
+								<p className="text-sm text-gray-600 mb-2">
+									{selectedTicket.description}
+								</p>
+								<div className="flex flex-wrap gap-2 items-center">
+									<span
+										className={`px-2 py-1 rounded text-xs ${
+											selectedTicket.status === 'open'
+												? 'bg-green-100 text-green-800'
+												: selectedTicket.status === 'in-progress'
+												? 'bg-yellow-100 text-yellow-800'
+												: 'bg-red-100 text-red-800'
+										}`}
+									>
+										{selectedTicket.status}
+									</span>
+									{user?.role === 'admin' && (
+										<select
+											value={selectedTicket.assignedTo || ''}
+											onChange={e =>
+												handleAssignTicket(selectedTicket._id, e.target.value)
+											}
+											className="text-xs border rounded px-2 py-1"
+										>
+											<option value="">Asignar a...</option>
+											{users.map(user => (
+												<option key={user._id} value={user._id}>
+													{user.name}
+												</option>
+											))}
+										</select>
+									)}
 								</div>
 							</div>
+
+							{/* Mensajes existentes */}
 							{messages.map((message, index) => (
 								<div
 									key={index}
@@ -473,13 +657,13 @@ export default function Mensajes() {
 									}`}
 								>
 									<div
-										className={`inline-block p-3 rounded-lg ${
+										className={`inline-block p-3 rounded-lg max-w-[85%] md:max-w-[70%] ${
 											message.sender === user?.email
 												? 'bg-blue-500 text-white'
 												: 'bg-gray-200'
 										}`}
 									>
-										<p>{message.content}</p>
+										<p className="text-sm md:text-base">{message.content}</p>
 										<p className="text-xs mt-1">
 											{message.sender} ({message.senderRole})
 										</p>
@@ -487,9 +671,9 @@ export default function Mensajes() {
 								</div>
 							))}
 						</div>
-						<div className="border-t p-4">
+						<div className="border-t p-3 md:p-4 bg-white">
 							{selectedTicket.status === 'closed' ? (
-								<div className="text-center text-gray-500">
+								<div className="text-center text-gray-500 text-sm md:text-base">
 									Este ticket está cerrado y no se pueden enviar más mensajes
 								</div>
 							) : (
@@ -499,21 +683,21 @@ export default function Mensajes() {
 										value={newMessage}
 										onChange={e => setNewMessage(e.target.value)}
 										placeholder="Escribe un mensaje..."
-										className="flex-1 border rounded px-4 py-2"
+										className="flex-1 border rounded px-3 py-2 text-sm md:text-base"
 										onKeyPress={e => e.key === 'Enter' && handleSendMessage(e)}
 									/>
 									<button
 										onClick={e => handleSendMessage(e)}
-										className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+										className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm md:text-base whitespace-nowrap"
 									>
 										Enviar
 									</button>
 									{user?.role === 'admin' && (
 										<button
 											onClick={handleCloseTicket}
-											className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+											className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm md:text-base whitespace-nowrap"
 										>
-											Cerrar Ticket
+											Cerrar
 										</button>
 									)}
 								</div>
@@ -521,7 +705,7 @@ export default function Mensajes() {
 						</div>
 					</>
 				) : (
-					<div className="flex items-center justify-center h-full text-gray-500">
+					<div className="flex items-center justify-center h-full text-gray-500 text-sm md:text-base">
 						Selecciona un ticket para ver los mensajes
 					</div>
 				)}
@@ -529,8 +713,8 @@ export default function Mensajes() {
 
 			{/* Modal para crear nuevo ticket */}
 			{isModalOpen && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-					<div className="bg-white p-6 rounded-lg w-full max-w-md">
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+					<div className="bg-white p-4 md:p-6 rounded-lg w-full max-w-md">
 						<h2 className="text-xl font-bold mb-4">Nuevo Ticket</h2>
 						<form onSubmit={handleCreateTicket} className="space-y-4">
 							<div>
@@ -541,7 +725,7 @@ export default function Mensajes() {
 									onChange={e =>
 										setNewTicket({ ...newTicket, title: e.target.value })
 									}
-									className="w-full border rounded px-3 py-2"
+									className="w-full border rounded px-3 py-2 text-sm md:text-base"
 									required
 								/>
 							</div>
@@ -554,40 +738,64 @@ export default function Mensajes() {
 									onChange={e =>
 										setNewTicket({ ...newTicket, description: e.target.value })
 									}
-									className="w-full border rounded px-3 py-2"
+									className="w-full border rounded px-3 py-2 text-sm md:text-base"
 									rows={4}
 									required
 								/>
 							</div>
 							{user?.role === 'admin' && (
-								<div>
-									<label className="block text-sm font-medium mb-1">
-										Prioridad
-									</label>
-									<select
-										value={newTicket.priority}
-										onChange={e =>
-											setNewTicket({ ...newTicket, priority: e.target.value })
-										}
-										className="w-full border rounded px-3 py-2"
-									>
-										<option value="low">Baja</option>
-										<option value="medium">Media</option>
-										<option value="high">Alta</option>
-									</select>
-								</div>
+								<>
+									<div>
+										<label className="block text-sm font-medium mb-1">
+											Prioridad
+										</label>
+										<select
+											value={newTicket.priority}
+											onChange={e =>
+												setNewTicket({ ...newTicket, priority: e.target.value })
+											}
+											className="w-full border rounded px-3 py-2 text-sm md:text-base"
+										>
+											<option value="low">Baja</option>
+											<option value="medium">Media</option>
+											<option value="high">Alta</option>
+										</select>
+									</div>
+									<div>
+										<label className="block text-sm font-medium mb-1">
+											Asignar a
+										</label>
+										<select
+											value={newTicket.assignedTo}
+											onChange={e =>
+												setNewTicket({
+													...newTicket,
+													assignedTo: e.target.value,
+												})
+											}
+											className="w-full border rounded px-3 py-2 text-sm md:text-base"
+										>
+											<option value="">Seleccionar usuario...</option>
+											{users.map(user => (
+												<option key={user._id} value={user._id}>
+													{user.name}
+												</option>
+											))}
+										</select>
+									</div>
+								</>
 							)}
 							<div className="flex justify-end gap-2">
 								<button
 									type="button"
 									onClick={() => setIsModalOpen(false)}
-									className="px-4 py-2 border rounded hover:bg-gray-100"
+									className="px-3 py-2 border rounded hover:bg-gray-100 text-sm md:text-base"
 								>
 									Cancelar
 								</button>
 								<button
 									type="submit"
-									className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+									className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm md:text-base"
 								>
 									Crear Ticket
 								</button>

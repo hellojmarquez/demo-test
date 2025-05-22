@@ -67,6 +67,7 @@ export default function SelloLogin() {
 				};
 
 				const userData = {
+					_id: userDB._id,
 					name: userDB.name,
 					email: userDB.email,
 					role: userDB.role,

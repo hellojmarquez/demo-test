@@ -7,7 +7,7 @@
 		"build": "next build",
 		"start": "NODE_ENV=production ts-node --project tsconfig.server.json src/server.ts",
 		"lint": "next lint",
-		"postbuild": "next-sitemap"
+		"postbuild": "next-sitemap --config next-sitemap.config.js"
 	},
 	"dependencies": {
 		"@eslint/config-array": "^0.17.0",

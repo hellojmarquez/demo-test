@@ -54,6 +54,7 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 			console.log('No picture available');
 			setImagePreview(null);
 		}
+		console.log(admin);
 	}, [admin]);
 
 	const handleChange = (

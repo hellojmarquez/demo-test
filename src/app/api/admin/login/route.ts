@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
 				{ status: 404 }
 			);
 		}
-
-		if (password === userDB.password) {
+		const isValidPassword = await comparePassword(password, userDB.password);
+		if (isValidPassword) {
 			try {
 				const token = await new SignJWT({
-					role: userDB.role || 'admin',
+					role: userDB.role,
 					email: userDB.email,
 					id: userDB._id,
 				})
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 					sameSite: sameSite,
 					domain: cookieDomain,
 				});
-	
+
 				response.cookies.set({
 					name: 'refreshToken',
 					value: moveMusicToken.refresh,
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 					sameSite: sameSite,
 					domain: cookieDomain,
 				});
-	
+
 				response.cookies.set({
 					name: 'loginToken',
 					value: token,

@@ -3,7 +3,7 @@ import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
-
+import { encryptPassword } from '@/utils/auth';
 export async function POST(req: NextRequest) {
 	console.log('create publisher received');
 
@@ -62,13 +62,13 @@ export async function POST(req: NextRequest) {
 
 		// Conectar a la base de datos local
 		await dbConnect();
-
+		const hashedPassword = await encryptPassword(password);
 		// Crear y guardar el publisher en la base de datos local
 		const publisher = new User({
 			external_id: publisherRes.id,
 			name,
 			email,
-			password,
+			password: hashedPassword,
 			role: 'publisher',
 		});
 

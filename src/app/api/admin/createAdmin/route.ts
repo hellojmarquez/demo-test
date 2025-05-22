@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Admin } from '@/models/UserModel';
-import bcrypt from 'bcryptjs';
+import { encryptPassword } from '@/utils/auth';
 
 export async function POST(request: NextRequest) {
 	console.log('create admin request received');
@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
 		if (picture?.base64) {
 			pictureBuffer = Buffer.from(picture.base64, 'base64');
 		}
-
+		const hashedPassword = await encryptPassword(password);
 		// Crear el nuevo administrador usando el discriminador Admin
 		const newAdmin = await Admin.create({
 			name,
 			email,
-			password,
+			password: hashedPassword,
 			picture: pictureBuffer,
 			role: 'admin',
 			status: 'active',

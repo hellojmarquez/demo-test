@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
-import bcrypt from 'bcryptjs';
+import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
 
 export async function POST(req: NextRequest) {
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
 		let name = formData.get('name') as string;
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
+		const hashedPassword = await encryptPassword(password);
 		const amazon_music_identifier = formData.get(
 			'amazon_music_identifier'
 		) as string;
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
 			external_id: artistaRes.id,
 			name,
 			email,
-			password,
+			password: hashedPassword,
 			picture: pictureBuffer,
 			role: 'artista',
 			status: 'active',

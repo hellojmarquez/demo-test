@@ -2,22 +2,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
+import { encryptPassword } from '@/utils/auth';
+import { jwtVerify } from 'jose';
 
 export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
-	await dbConnect();
-
 	try {
+		const token = req.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
 		const body = await req.json();
+		if (!body.name || !body.email || !body.password) {
+			return NextResponse.json(
+				{ message: 'Nombre, email y contraseña son requeridos' },
+				{ status: 400 }
+			);
+		}
 		console.log(params.id);
 
 		// Si hay una imagen en base64, convertirla a Buffer
 		if (body.picture && body.picture.base64) {
 			body.picture = Buffer.from(body.picture.base64, 'base64');
 		}
-
+		const hashedPassword = await encryptPassword(body.password);
+		body.password = hashedPassword;
+		await dbConnect();
 		const updatedUser = await User.findByIdAndUpdate(params.id, body, {
 			new: true,
 			runValidators: true,

@@ -212,12 +212,12 @@ export default function SelloLogin() {
 								onChange={e => setUser(e.target.value)}
 								onFocus={() => setIsUserFocused(true)}
 								onBlur={() => setIsUserFocused(false)}
-								className="w-full pl-10 pr-4 pt-4 pb-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+								className="w-full pl-10 pr-4 pt-4 pb-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent text-black"
 							/>
 						</div>
 						<div className="relative">
 							<Lock
-								className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600"
+								className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
 								size={20}
 							/>
 							<label
@@ -235,7 +235,7 @@ export default function SelloLogin() {
 								onChange={e => setPassword(e.target.value)}
 								onFocus={() => setIsPasswordFocused(true)}
 								onBlur={() => setIsPasswordFocused(false)}
-								className="w-full pl-10 pr-4 pt-4 pb-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+								className="w-full pl-10 pr-4 pt-4 pb-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent text-black"
 								disabled={loading}
 							/>
 						</div>

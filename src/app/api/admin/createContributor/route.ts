@@ -3,7 +3,7 @@ import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
-import bcrypt from 'bcryptjs';
+import { encryptPassword } from '@/utils/auth';
 
 export async function POST(req: NextRequest) {
 	console.log('get contributors received');
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Hashear la contraseña
-		const hashedPassword = await bcrypt.hash(password, 10);
+		const hashedPassword = await encryptPassword(password);
 
 		// Crear y guardar el contribuidor en la base de datos local
 		const contributor = new User({

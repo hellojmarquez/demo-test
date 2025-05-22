@@ -1,13 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
+import {
+	X,
+	Save,
+	Image as ImageIcon,
+	XCircle,
+	Upload,
+	User,
+	Mail,
+	Lock,
+} from 'lucide-react';
 
 interface Admin {
 	_id: string;
 	name: string;
 	email: string;
 	password?: string;
-	picture?: { base64: string } | string;
+	picture?: string;
 	role: string;
 	[key: string]: any;
 }
@@ -35,16 +44,14 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 		console.log('Admin picture type:', typeof admin.picture);
 		console.log('Admin picture value:', admin.picture);
 		if (admin.picture) {
-			if (typeof admin.picture === 'string') {
-				console.log('Setting string image:', admin.picture);
-				setImagePreview(
-					admin.picture.startsWith('data:image')
-						? admin.picture
-						: `data:image/jpeg;base64,${admin.picture}`
-				);
+			if (
+				typeof admin.picture === 'string' &&
+				!admin.picture.startsWith('data:') &&
+				!admin.picture.startsWith('http')
+			) {
+				setImagePreview(`data:image/jpeg;base64,${admin.picture}`);
 			} else {
-				console.log('Setting base64 image:', admin.picture.base64);
-				setImagePreview(`data:image/jpeg;base64,${admin.picture.base64}`);
+				setImagePreview(admin.picture);
 			}
 		} else {
 			console.log('No picture available');
@@ -70,16 +77,11 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				const base64String = reader.result as string;
-				// Mantener el prefijo data:image/jpeg;base64, para la vista previa
 				setImagePreview(base64String);
-
-				// Para enviar a la API, usar solo la parte base64 sin el prefijo
-				const base64Data = base64String.split(',')[1];
 				setFormData({
 					...formData,
-					picture: { base64: base64Data },
+					picture: base64String,
 				});
-				console.log('Imagen procesada:', base64Data.substring(0, 50) + '...');
 			};
 			reader.readAsDataURL(file);
 		} else {
@@ -95,41 +97,6 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 		setIsSubmitting(true);
 
 		try {
-			// Crear FormData para enviar la imagen
-			const formDataToSend = new FormData();
-			formDataToSend.append('name', formData.name);
-			formDataToSend.append('email', formData.email);
-			if (formData.password) {
-				formDataToSend.append('password', formData.password);
-			}
-			formDataToSend.append('role', 'admin');
-
-			// Si hay una imagen, convertirla a File y agregarla al FormData
-			if (typeof formData.picture === 'object' && formData.picture?.base64) {
-				// Convertir base64 a Blob
-				const base64Data = formData.picture.base64;
-				const byteCharacters = atob(base64Data);
-				const byteArrays = [];
-
-				for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-					const slice = byteCharacters.slice(offset, offset + 512);
-					const byteNumbers = new Array(slice.length);
-
-					for (let i = 0; i < slice.length; i++) {
-						byteNumbers[i] = slice.charCodeAt(i);
-					}
-
-					const byteArray = new Uint8Array(byteNumbers);
-					byteArrays.push(byteArray);
-				}
-
-				const blob = new Blob(byteArrays, { type: 'image/jpeg' });
-				const file = new File([blob], 'admin-picture.jpg', {
-					type: 'image/jpeg',
-				});
-				formDataToSend.append('picture', file);
-			}
-
 			await onSave(formData);
 		} catch (error) {
 			console.error('Error saving admin:', error);
@@ -139,7 +106,7 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 	};
 
 	const inputStyles =
-		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+		'w-full pl-10 pr-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
 	return (
 		<AnimatePresence>
@@ -214,57 +181,66 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 							</div>
 
 							<div className="space-y-4">
-								<div>
+								<div className="relative">
 									<label
 										htmlFor="name"
 										className="block text-sm font-medium text-gray-700 mb-1"
 									>
 										Nombre
 									</label>
-									<input
-										type="text"
-										id="name"
-										name="name"
-										value={formData.name}
-										onChange={handleChange}
-										className={inputStyles}
-										required
-									/>
+									<div className="relative">
+										<User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+										<input
+											type="text"
+											id="name"
+											name="name"
+											value={formData.name}
+											onChange={handleChange}
+											className={inputStyles}
+											required
+										/>
+									</div>
 								</div>
 
-								<div>
+								<div className="relative">
 									<label
 										htmlFor="email"
 										className="block text-sm font-medium text-gray-700 mb-1"
 									>
 										Email
 									</label>
-									<input
-										type="email"
-										id="email"
-										name="email"
-										value={formData.email}
-										onChange={handleChange}
-										className={inputStyles}
-										required
-									/>
+									<div className="relative">
+										<Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+										<input
+											type="email"
+											id="email"
+											name="email"
+											value={formData.email}
+											onChange={handleChange}
+											className={inputStyles}
+											required
+										/>
+									</div>
 								</div>
 
-								<div>
+								<div className="relative">
 									<label
 										htmlFor="password"
 										className="block text-sm font-medium text-gray-700 mb-1"
 									>
 										Contraseña
 									</label>
-									<input
-										type="password"
-										id="password"
-										name="password"
-										value={formData.password}
-										onChange={handleChange}
-										className={inputStyles}
-									/>
+									<div className="relative">
+										<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+										<input
+											type="password"
+											id="password"
+											name="password"
+											value={formData.password}
+											onChange={handleChange}
+											className={inputStyles}
+										/>
+									</div>
 								</div>
 							</div>
 

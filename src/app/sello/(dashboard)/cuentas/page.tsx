@@ -471,11 +471,13 @@ export default function UsuariosPage() {
 													{user.picture ? (
 														<img
 															src={
-																user.picture.startsWith('data:')
-																	? user.picture
-																	: user.picture.startsWith('http')
-																	? user.picture
-																	: `data:image/jpeg;base64,${user.picture}`
+																typeof user.picture === 'string'
+																	? user.picture.startsWith('data:')
+																		? user.picture
+																		: user.picture.startsWith('http')
+																		? user.picture
+																		: `data:image/jpeg;base64,${user.picture}`
+																	: ''
 															}
 															alt={user.name}
 															className="h-full w-full object-cover"

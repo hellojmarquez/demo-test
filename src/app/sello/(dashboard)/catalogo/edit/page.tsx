@@ -464,7 +464,7 @@ export default function EditPage() {
 						</div>
 					</>
 				) : (
-					<div className="w-full overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+					<div className="w-full overflow-x-auto sm:mx-0 px-3 sm:px-0">
 						<TrackForm
 							track={selectedTrack || undefined}
 							onTrackChange={(updatedTrack: Partial<Track>) => {

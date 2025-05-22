@@ -518,7 +518,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	};
 
 	return (
-		<div className="container mx-auto px-4 py-8">
+		<div className="container mx-auto md:px-4 py-8">
 			<audio ref={audioRef} />
 			<div className="bg-white rounded-lg md:p-6">
 				{/* Sección de imagen y datos básicos */}

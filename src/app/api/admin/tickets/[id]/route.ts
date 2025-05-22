@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Ticket from '@/models/TicketModel';
 import { jwtVerify } from 'jose';
+import User from '@/models/UserModel';
 
 // Función auxiliar para verificar el token
 async function verifyToken(token: string) {
@@ -74,8 +75,19 @@ export async function PUT(
 			updateData.priority = body.priority;
 		}
 		if (body.assignedTo) {
-			updateData.assignedTo = body.assignedTo;
-			updateData.userId = body.assignedTo;
+			// Verificar si el usuario asignado es un admin
+			const assignedUser = await User.findById(body.assignedTo);
+			if (assignedUser?.role === 'admin') {
+				// Si el usuario asignado es un admin, solo ese admin podrá ver el ticket
+				updateData.assignedTo = body.assignedTo;
+				updateData.userId = body.assignedTo;
+				updateData.isAdminAssigned = true;
+			} else {
+				// Si no es admin, el ticket será visible para todos los admins
+				updateData.assignedTo = body.assignedTo;
+				updateData.userId = body.assignedTo;
+				updateData.isAdminAssigned = false;
+			}
 		}
 
 		updateData.updatedBy = payload.email;

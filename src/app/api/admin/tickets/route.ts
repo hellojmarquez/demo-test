@@ -51,7 +51,18 @@ export async function GET(req: NextRequest) {
 
 		console.log('Buscando tickets...');
 		const tickets = isAdmin
-			? await Ticket.find().sort({ createdAt: -1 })
+			? await Ticket.find({
+					$or: [
+						{ assignedTo: userId }, // Tickets asignados al admin actual
+						{ assignedTo: { $exists: false } }, // Tickets sin asignar
+						{
+							$and: [
+								{ assignedTo: { $ne: userId } }, // Tickets asignados a otros usuarios
+								{ isAdminAssigned: false }, // Que no sean tickets autoasignados por otros admins
+							],
+						},
+					],
+			  }).sort({ createdAt: -1 })
 			: await Ticket.find({ userId }).sort({ createdAt: -1 });
 		console.log('Tickets encontrados:', tickets.length);
 

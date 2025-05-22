@@ -47,6 +47,10 @@ const ticketSchema = new mongoose.Schema(
 			type: String,
 			required: true,
 		},
+		isAdminAssigned: {
+			type: Boolean,
+			default: false,
+		},
 		createdBy: {
 			type: String,
 			required: true,

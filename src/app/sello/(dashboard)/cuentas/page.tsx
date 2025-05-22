@@ -86,7 +86,7 @@ export default function UsuariosPage() {
 				const data = await res.json();
 				if (data.success) {
 					setUsers(data.data.users);
-					console.log(data.data.users);
+
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
 				}

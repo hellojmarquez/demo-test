@@ -20,15 +20,19 @@ export async function middleware(request: NextRequest) {
 		request.nextUrl.pathname.startsWith('/sello/contabilidad');
 	console.log('Is admin route:', isAdminRoute);
 
-	if (isAdminRoute) {
-		if (!loginToken) {
-			console.log('No token found, redirecting to home');
-			return NextResponse.redirect(new URL('/', request.url));
-		}
+	// Si no hay token y es una ruta protegida, redirigir al login
+	if (
+		!loginToken &&
+		(isAdminRoute || request.nextUrl.pathname.startsWith('/sello'))
+	) {
+		console.log('No token found, redirecting to login');
+		return NextResponse.redirect(new URL('/login', request.url));
+	}
 
+	if (isAdminRoute && loginToken) {
 		if (!process.env.JWT_SECRET) {
 			console.error('JWT_SECRET is not defined in environment variables');
-			return NextResponse.redirect(new URL('/', request.url));
+			return NextResponse.redirect(new URL('/login', request.url));
 		}
 
 		try {
@@ -54,7 +58,7 @@ export async function middleware(request: NextRequest) {
 				message: error?.message,
 				stack: error?.stack,
 			});
-			return NextResponse.redirect(new URL('/', request.url));
+			return NextResponse.redirect(new URL('/login', request.url));
 		}
 	}
 
@@ -63,5 +67,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ['/sello/cuentas/:path*', '/sello/contabilidad/:path*'],
+	matcher: ['/sello/:path*'],
 };

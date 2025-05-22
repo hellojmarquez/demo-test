@@ -807,11 +807,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								placeholder="Seleccionar género"
 								styles={{
 									...customSelectStyles,
-									control: provided => ({
+									control: (provided: any) => ({
 										...provided,
-										minHeight: '42px',
+										minHeight: '36px',
 										'@media (max-width: 768px)': {
-											minHeight: '48px',
+											minHeight: '42px',
 										},
 									}),
 								}}
@@ -853,11 +853,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								placeholder="Seleccionar subgénero"
 								styles={{
 									...customSelectStyles,
-									control: provided => ({
+									control: (provided: any) => ({
 										...provided,
-										minHeight: '42px',
+										minHeight: '36px',
 										'@media (max-width: 768px)': {
-											minHeight: '48px',
+											minHeight: '42px',
 										},
 									}),
 								}}
@@ -888,11 +888,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								placeholder="Seleccionar idioma"
 								styles={{
 									...customSelectStyles,
-									control: provided => ({
+									control: (provided: any) => ({
 										...provided,
-										minHeight: '42px',
+										minHeight: '36px',
 										'@media (max-width: 768px)': {
-											minHeight: '48px',
+											minHeight: '42px',
 										},
 									}),
 								}}
@@ -923,11 +923,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								placeholder="Seleccionar vocals"
 								styles={{
 									...customSelectStyles,
-									control: provided => ({
+									control: (provided: any) => ({
 										...provided,
-										minHeight: '42px',
+										minHeight: '36px',
 										'@media (max-width: 768px)': {
-											minHeight: '48px',
+											minHeight: '42px',
 										},
 									}),
 								}}
@@ -1120,9 +1120,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								...customSelectStyles,
 								control: (provided: any) => ({
 									...provided,
-									minHeight: '42px',
+									minHeight: '36px',
 									'@media (max-width: 768px)': {
-										minHeight: '48px',
+										minHeight: '42px',
 									},
 								}),
 								container: (provided: any) => ({
@@ -1133,6 +1133,41 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									...provided,
 									width: '100%',
 									zIndex: 9999,
+								}),
+								valueContainer: (provided: any) => ({
+									...provided,
+									padding: '0 8px',
+									'@media (max-width: 768px)': {
+										padding: '0 12px',
+									},
+								}),
+								input: (provided: any) => ({
+									...provided,
+									margin: '0',
+									padding: '0',
+								}),
+								indicatorsContainer: (provided: any) => ({
+									...provided,
+									padding: '0 8px',
+									'@media (max-width: 768px)': {
+										padding: '0 12px',
+									},
+								}),
+								option: (provided: any, state: any) => ({
+									...provided,
+									padding: '6px 12px',
+									'@media (max-width: 768px)': {
+										padding: '8px 12px',
+									},
+									backgroundColor: state.isSelected
+										? '#4B5563'
+										: state.isFocused
+										? '#F3F4F6'
+										: 'white',
+									color: state.isSelected ? 'white' : '#1F2937',
+									'&:hover': {
+										backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+									},
 								}),
 							}}
 						/>
@@ -1167,9 +1202,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								...customSelectStyles,
 								control: (provided: any) => ({
 									...provided,
-									minHeight: '42px',
+									minHeight: '36px',
 									'@media (max-width: 768px)': {
-										minHeight: '48px',
+										minHeight: '42px',
 									},
 								}),
 								container: (provided: any) => ({
@@ -1180,6 +1215,41 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									...provided,
 									width: '100%',
 									zIndex: 9999,
+								}),
+								valueContainer: (provided: any) => ({
+									...provided,
+									padding: '0 8px',
+									'@media (max-width: 768px)': {
+										padding: '0 12px',
+									},
+								}),
+								input: (provided: any) => ({
+									...provided,
+									margin: '0',
+									padding: '0',
+								}),
+								indicatorsContainer: (provided: any) => ({
+									...provided,
+									padding: '0 8px',
+									'@media (max-width: 768px)': {
+										padding: '0 12px',
+									},
+								}),
+								option: (provided: any, state: any) => ({
+									...provided,
+									padding: '6px 12px',
+									'@media (max-width: 768px)': {
+										padding: '8px 12px',
+									},
+									backgroundColor: state.isSelected
+										? '#4B5563'
+										: state.isFocused
+										? '#F3F4F6'
+										: 'white',
+									color: state.isSelected ? 'white' : '#1F2937',
+									'&:hover': {
+										backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+									},
 								}),
 							}}
 						/>
@@ -1222,9 +1292,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											...customSelectStyles,
 											control: (provided: any) => ({
 												...provided,
-												minHeight: '42px',
+												minHeight: '36px',
 												'@media (max-width: 768px)': {
-													minHeight: '48px',
+													minHeight: '42px',
 												},
 											}),
 											container: (provided: any) => ({
@@ -1235,6 +1305,43 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												...provided,
 												width: '100%',
 												zIndex: 9999,
+											}),
+											valueContainer: (provided: any) => ({
+												...provided,
+												padding: '0 8px',
+												'@media (max-width: 768px)': {
+													padding: '0 12px',
+												},
+											}),
+											input: (provided: any) => ({
+												...provided,
+												margin: '0',
+												padding: '0',
+											}),
+											indicatorsContainer: (provided: any) => ({
+												...provided,
+												padding: '0 8px',
+												'@media (max-width: 768px)': {
+													padding: '0 12px',
+												},
+											}),
+											option: (provided: any, state: any) => ({
+												...provided,
+												padding: '6px 12px',
+												'@media (max-width: 768px)': {
+													padding: '8px 12px',
+												},
+												backgroundColor: state.isSelected
+													? '#4B5563'
+													: state.isFocused
+													? '#F3F4F6'
+													: 'white',
+												color: state.isSelected ? 'white' : '#1F2937',
+												'&:hover': {
+													backgroundColor: state.isSelected
+														? '#4B5563'
+														: '#F3F4F6',
+												},
 											}),
 										}}
 										isClearable
@@ -1300,9 +1407,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												...customSelectStyles,
 												control: (provided: any) => ({
 													...provided,
-													minHeight: '42px',
+													minHeight: '36px',
 													'@media (max-width: 768px)': {
-														minHeight: '48px',
+														minHeight: '42px',
 													},
 												}),
 												container: (provided: any) => ({
@@ -1313,6 +1420,43 @@ const TrackForm: React.FC<TrackFormProps> = ({
 													...provided,
 													width: '100%',
 													zIndex: 9999,
+												}),
+												valueContainer: (provided: any) => ({
+													...provided,
+													padding: '0 8px',
+													'@media (max-width: 768px)': {
+														padding: '0 12px',
+													},
+												}),
+												input: (provided: any) => ({
+													...provided,
+													margin: '0',
+													padding: '0',
+												}),
+												indicatorsContainer: (provided: any) => ({
+													...provided,
+													padding: '0 8px',
+													'@media (max-width: 768px)': {
+														padding: '0 12px',
+													},
+												}),
+												option: (provided: any, state: any) => ({
+													...provided,
+													padding: '6px 12px',
+													'@media (max-width: 768px)': {
+														padding: '8px 12px',
+													},
+													backgroundColor: state.isSelected
+														? '#4B5563'
+														: state.isFocused
+														? '#F3F4F6'
+														: 'white',
+													color: state.isSelected ? 'white' : '#1F2937',
+													'&:hover': {
+														backgroundColor: state.isSelected
+															? '#4B5563'
+															: '#F3F4F6',
+													},
 												}),
 											}}
 											isClearable

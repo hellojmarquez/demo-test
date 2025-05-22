@@ -416,24 +416,24 @@ export default function EditPage() {
 
 	if (releaseData?.data) {
 		return (
-			<div className="container mx-auto px-4 py-8">
-				<div className="flex space-x-4 mb-6">
+			<div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-full">
+				<div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
 					<button
 						onClick={() => setActiveTab('details')}
-						className={`px-4 py-2 rounded-md ${
+						className={`w-full sm:w-auto px-4 py-2.5 rounded-md text-sm sm:text-base font-medium ${
 							activeTab === 'details'
 								? 'bg-brand-light text-white'
-								: 'bg-gray-200 text-gray-700'
+								: 'bg-gray-200 text-gray-700 hover:bg-gray-300'
 						}`}
 					>
 						Detalles
 					</button>
 					<button
 						onClick={() => setActiveTab('tracks')}
-						className={`px-4 py-2 rounded-md ${
+						className={`w-full sm:w-auto px-4 py-2.5 rounded-md text-sm sm:text-base font-medium ${
 							activeTab === 'tracks'
 								? 'bg-brand-light text-white'
-								: 'bg-gray-200 text-gray-700'
+								: 'bg-gray-200 text-gray-700 hover:bg-gray-300'
 						}`}
 					>
 						Tracks
@@ -442,134 +442,140 @@ export default function EditPage() {
 
 				{activeTab === 'details' ? (
 					<>
-						<UpdateReleasePage
-							release={formData}
-							onSave={handleSave}
-							formData={formData}
-							setFormData={setFormData}
-							onEditTrack={handleEditTrack}
-							genres={genres}
-						/>
-						<div className="flex justify-end space-x-3 mt-6">
+						<div className="w-full overflow-x-auto bg-white sm:mx-0 p-0 md:px-3  sm:px-0">
+							<UpdateReleasePage
+								release={formData}
+								onSave={handleSave}
+								formData={formData}
+								setFormData={setFormData}
+								onEditTrack={handleEditTrack}
+								genres={genres}
+							/>
+						</div>
+						<div className="flex justify-end mt-4 sm:mt-6">
 							<button
 								type="button"
 								onClick={() => handleSave(formData)}
-								className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+								className="w-full sm:w-auto px-4 py-2.5 text-brand-light rounded-md flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium hover:bg-gray-50"
 							>
+								<Save className="w-4 h-4 sm:w-5 sm:h-5" />
 								<span className="group-hover:text-brand-dark">Actualizar</span>
 							</button>
 						</div>
 					</>
 				) : (
-					<TrackForm
-						track={selectedTrack || undefined}
-						onTrackChange={(updatedTrack: Partial<Track>) => {
-							// Actualizar el track seleccionado
-							setSelectedTrack(updatedTrack as Track);
-							setEditedTrackData(updatedTrack);
+					<div className="w-full overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+						<TrackForm
+							track={selectedTrack || undefined}
+							onTrackChange={(updatedTrack: Partial<Track>) => {
+								// Actualizar el track seleccionado
+								setSelectedTrack(updatedTrack as Track);
+								setEditedTrackData(updatedTrack);
 
-							// Si es un track nuevo (sin external_id), actualizarlo en newTracks
-							if (!updatedTrack.external_id) {
-								setFormData(prev => ({
-									...prev,
-									newTracks: [
-										{
-											title: updatedTrack.name || '',
-											mixName: updatedTrack.mix_name || '',
-											order: updatedTrack.order || 0,
-											resource:
-												updatedTrack.resource instanceof File
-													? updatedTrack.resource
-													: '',
-											dolby_atmos_resource:
-												updatedTrack.dolby_atmos_resource || '',
-											ISRC: updatedTrack.ISRC || '',
-											DA_ISRC: updatedTrack.DA_ISRC || '',
-											genre: updatedTrack.genre || 0,
-											genre_name: updatedTrack.genre_name || '',
-											subgenre: updatedTrack.subgenre || 0,
-											subgenre_name: updatedTrack.subgenre_name || '',
-											album_only: updatedTrack.album_only || false,
-											explicit_content: updatedTrack.explicit_content || false,
-											track_length: updatedTrack.track_length || '',
-											generate_isrc: updatedTrack.generate_isrc || false,
-											artists: updatedTrack.artists || [],
-										},
-									],
-								}));
-							}
-						}}
-						onSave={async trackData => {
-							try {
-								if (selectedTrack) {
-									// Si estamos editando un track existente
-									const trackExternalId = Number(selectedTrack.external_id);
-
-									// Solo agregar a editedTracks si el track tiene un external_id válido
-									if (trackExternalId && !isNaN(trackExternalId)) {
-										setEditedTracks(prev => {
-											const filteredTracks = prev.filter(
-												t => t.external_id !== trackExternalId
-											);
-
-											const completeTrack: EditedTrack = {
-												...selectedTrack,
-												...trackData,
-												external_id: trackExternalId,
-												label_share: trackData.label_share
-													? Number(trackData.label_share)
-													: undefined,
-											};
-
-											return [...filteredTracks, completeTrack];
-										});
-									}
-
-									await handleTrackSave(trackData);
-									setEditedTrackData(trackData);
-								} else {
-									// Si estamos creando un nuevo track
+								// Si es un track nuevo (sin external_id), actualizarlo en newTracks
+								if (!updatedTrack.external_id) {
 									setFormData(prev => ({
 										...prev,
 										newTracks: [
 											{
-												title: trackData.name || '',
-												mixName: trackData.mix_name || '',
-												order: trackData.order || 0,
+												title: updatedTrack.name || '',
+												mixName: updatedTrack.mix_name || '',
+												order: updatedTrack.order || 0,
 												resource:
-													trackData.resource instanceof File
-														? trackData.resource
+													updatedTrack.resource instanceof File
+														? updatedTrack.resource
 														: '',
 												dolby_atmos_resource:
-													trackData.dolby_atmos_resource || '',
-												ISRC: trackData.ISRC || '',
-												DA_ISRC: trackData.DA_ISRC || '',
-												genre: trackData.genre || 0,
-												genre_name: trackData.genre_name || '',
-												subgenre: trackData.subgenre || 0,
-												subgenre_name: trackData.subgenre_name || '',
-												album_only: trackData.album_only || false,
-												explicit_content: trackData.explicit_content || false,
-												track_length: trackData.track_length || '',
-												generate_isrc: trackData.generate_isrc || false,
-												artists: trackData.artists || [],
+													updatedTrack.dolby_atmos_resource || '',
+												ISRC: updatedTrack.ISRC || '',
+												DA_ISRC: updatedTrack.DA_ISRC || '',
+												genre: updatedTrack.genre || 0,
+												genre_name: updatedTrack.genre_name || '',
+												subgenre: updatedTrack.subgenre || 0,
+												subgenre_name: updatedTrack.subgenre_name || '',
+												album_only: updatedTrack.album_only || false,
+												explicit_content:
+													updatedTrack.explicit_content || false,
+												track_length: updatedTrack.track_length || '',
+												generate_isrc: updatedTrack.generate_isrc || false,
+												artists: updatedTrack.artists || [],
 											},
 										],
 									}));
-
-									toast.success('Track guardado correctamente');
 								}
-							} catch (error) {
-								console.error('Error al guardar el track:', error);
-								throw error;
-							}
-						}}
-						genres={genres}
-						onClose={() => {
-							setSelectedTrack(null);
-							setEditedTrackData(null);
-						}}
-					/>
+							}}
+							onSave={async trackData => {
+								try {
+									if (selectedTrack) {
+										// Si estamos editando un track existente
+										const trackExternalId = Number(selectedTrack.external_id);
+
+										// Solo agregar a editedTracks si el track tiene un external_id válido
+										if (trackExternalId && !isNaN(trackExternalId)) {
+											setEditedTracks(prev => {
+												const filteredTracks = prev.filter(
+													t => t.external_id !== trackExternalId
+												);
+
+												const completeTrack: EditedTrack = {
+													...selectedTrack,
+													...trackData,
+													external_id: trackExternalId,
+													label_share: trackData.label_share
+														? Number(trackData.label_share)
+														: undefined,
+												};
+
+												return [...filteredTracks, completeTrack];
+											});
+										}
+
+										await handleTrackSave(trackData);
+										setEditedTrackData(trackData);
+									} else {
+										// Si estamos creando un nuevo track
+										setFormData(prev => ({
+											...prev,
+											newTracks: [
+												{
+													title: trackData.name || '',
+													mixName: trackData.mix_name || '',
+													order: trackData.order || 0,
+													resource:
+														trackData.resource instanceof File
+															? trackData.resource
+															: '',
+													dolby_atmos_resource:
+														trackData.dolby_atmos_resource || '',
+													ISRC: trackData.ISRC || '',
+													DA_ISRC: trackData.DA_ISRC || '',
+													genre: trackData.genre || 0,
+													genre_name: trackData.genre_name || '',
+													subgenre: trackData.subgenre || 0,
+													subgenre_name: trackData.subgenre_name || '',
+													album_only: trackData.album_only || false,
+													explicit_content: trackData.explicit_content || false,
+													track_length: trackData.track_length || '',
+													generate_isrc: trackData.generate_isrc || false,
+													artists: trackData.artists || [],
+												},
+											],
+										}));
+
+										toast.success('Track guardado correctamente');
+									}
+								} catch (error) {
+									console.error('Error al guardar el track:', error);
+									throw error;
+								}
+							}}
+							genres={genres}
+							onClose={() => {
+								setSelectedTrack(null);
+								setEditedTrackData(null);
+							}}
+						/>
+					</div>
 				)}
 			</div>
 		);

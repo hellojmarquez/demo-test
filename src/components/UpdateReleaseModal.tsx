@@ -520,12 +520,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	return (
 		<div className="container mx-auto px-4 py-8">
 			<audio ref={audioRef} />
-			<div className="bg-white rounded-lg p-6">
+			<div className="bg-white rounded-lg md:p-6">
 				{/* Sección de imagen y datos básicos */}
-				<div className="space-y-2 bg-slate-50 p-2">
-					<div className="flex items-center gap-4 relative overflow-hidden bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border border-gray-100 shadow-sm">
+				<div className="space-y-2  bg-slate-50 p-2">
+					<div className="flex flex-col md:flex-row items-center md:items-start gap-4 relative overflow-hidden bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 md:p-6 border border-gray-100 shadow-sm">
 						{/* Elementos decorativos musicales */}
-						<div className="absolute inset-0">
+						<div className="absolute inset-0 pointer-events-none">
 							{/* Ondas de sonido decorativas */}
 							<div className="absolute top-0 left-0 w-full h-full">
 								<div className="absolute top-1/4 left-0 w-full h-1 bg-brand-light/30 animate-pulse"></div>
@@ -534,13 +534,13 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</div>
 
 							{/* Notas musicales decorativas */}
-							<div className="absolute top-4 right-4 text-brand-light/30 text-4xl">
+							<div className="absolute top-2 right-2 text-brand-light/30 text-2xl md:text-4xl">
 								♪
 							</div>
-							<div className="absolute bottom-4 left-4 text-brand-light/30 text-4xl">
+							<div className="absolute bottom-2 left-2 text-brand-light/30 text-2xl md:text-4xl">
 								♫
 							</div>
-							<div className="absolute top-1/2 right-1/4 text-brand-light/30 text-4xl">
+							<div className="absolute top-1/2 right-1/4 text-brand-light/30 text-2xl md:text-4xl">
 								♩
 							</div>
 
@@ -548,7 +548,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_70%)]"></div>
 						</div>
 
-						<div className="w-52 h-52 rounded-xl border-2 border-gray-100 flex items-center justify-center overflow-hidden relative group shadow-lg bg-white">
+						<div className="w-full max-w-xs md:w-52 md:h-52 aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center overflow-hidden relative group shadow-lg bg-white">
 							{imagePreview ? (
 								<img
 									src={imagePreview}
@@ -576,7 +576,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								<button
 									type="button"
 									onClick={() => fileInputRef.current?.click()}
-									className="inline-flex items-center px-4 py-2.5 border border-white/20 shadow-lg text-sm font-medium rounded-lg text-white bg-black/30 backdrop-blur-sm hover:bg-black/40 hover:border-white/30 transition-all duration-200"
+									className="w-full md:w-auto inline-flex items-center px-4 py-2.5 border border-white/20 shadow-lg text-sm font-medium rounded-lg text-white bg-black/30 backdrop-blur-sm hover:bg-black/40 hover:border-white/30 transition-all duration-200"
 								>
 									<Upload className="h-4 w-4 mr-2" />
 									Cambiar imagen
@@ -584,47 +584,47 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</div>
 						</div>
 
-						<div className="flex-1 flex flex-col gap-4 relative z-10">
+						<div className="flex-1 flex flex-col gap-4 relative z-10 w-full md:w-auto mt-4 md:mt-0">
 							<div>
-								<h1 className="text-4xl font-bold text-gray-900 mb-2">
+								<h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
 									{safeFormData.name || 'Sin nombre'}
 								</h1>
-								<div className="flex items-center gap-3">
-									<span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600 capitalize">
+								<div className="flex flex-wrap items-center gap-2 md:gap-3">
+									<span className="px-3 py-1 bg-gray-100 rounded-full text-xs md:text-sm text-gray-600 capitalize">
 										{safeFormData.kind || 'Sin tipo'}
 									</span>
 									{safeFormData.genre_name && (
-										<span className="px-3 py-1 bg-brand-light/10 rounded-full text-sm text-brand-dark">
+										<span className="px-3 py-1 bg-brand-light/10 rounded-full text-xs md:text-sm text-brand-dark">
 											{safeFormData.genre_name}
 										</span>
 									)}
 								</div>
 							</div>
-							<div className="grid grid-cols-2 gap-4">
-								<div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
+								<div className="p-2 md:p-4 bg-gray-50 rounded-xl border border-gray-100">
 									<div className="text-xs font-medium text-gray-500 mb-1">
 										Número de Catálogo
 									</div>
-									<div className="text-sm font-semibold text-gray-900">
+									<div className="text-xs md:text-sm font-semibold text-gray-900">
 										{safeFormData.catalogue_number || 'Sin número'}
 									</div>
 								</div>
-								<div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+								<div className="p-2 md:p-4 bg-gray-50 rounded-xl border border-gray-100">
 									<div className="text-xs font-medium text-gray-500 mb-1">
 										Género
 									</div>
-									<div className="text-sm font-semibold text-gray-900">
+									<div className="text-xs md:text-sm font-semibold text-gray-900">
 										{safeFormData.genre_name || 'Sin género'}
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
-					<div className="flex justify-end border-t border-gray-300 mt-4">
+					<div className="flex justify-end border-t border-gray-300 mt-4 pt-2 ">
 						<button
 							type="button"
 							onClick={() => setIsUploadModalOpen(true)}
-							className="inline-flex items-center text-brand-light px-4 py-2 text-sm font-medium hover:text-gray-900 transition-colors duration-200"
+							className="w-full md:w-auto inline-flex items-center text-brand-light px-4 py-2 text-sm font-medium hover:text-gray-900 transition-colors duration-200"
 						>
 							<ArrowBigUp className="h-6 w-6 mr-2 fill-current" />
 							Subir track
@@ -633,7 +633,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				</div>
 
 				{/* Sección de tracks */}
-				<div className="space-y-2">
+				<div className="space-y-2 mt-4 md:mt-0">
 					<button
 						onClick={() => setIsTracksExpanded(!isTracksExpanded)}
 						className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:bg-gray-50/50 transition-all duration-200 shadow-sm"
@@ -930,8 +930,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					<h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
 						Información Básica
 					</h3>
-					<div className="grid grid-cols-2 gap-4">
-						<div>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Nombre
 							</label>
@@ -943,7 +943,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className={inputStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Label
 							</label>
@@ -975,7 +975,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								styles={reactSelectStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Idioma
 							</label>
@@ -1006,7 +1006,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								styles={reactSelectStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Tipo
 							</label>
@@ -1029,7 +1029,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								styles={reactSelectStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Número de Catálogo
 							</label>
@@ -1041,7 +1041,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className={inputStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Versión del Release
 							</label>
@@ -1061,8 +1061,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					<h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
 						Clasificación y Fechas
 					</h3>
-					<div className="grid grid-cols-2 gap-4">
-						<div>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Género
 							</label>
@@ -1112,7 +1112,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								styles={reactSelectStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Subgénero
 							</label>
@@ -1143,7 +1143,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								isDisabled={!safeFormData.genre || subgenres.length === 0}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								¿Es Nuevo Lanzamiento?
 							</label>
@@ -1171,7 +1171,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								styles={reactSelectStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Fecha Oficial
 							</label>
@@ -1183,7 +1183,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className={inputStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Fecha Original
 							</label>
@@ -1203,8 +1203,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					<h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
 						Derechos y Copyright
 					</h3>
-					<div className="grid grid-cols-2 gap-4">
-						<div>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Publisher
 							</label>
@@ -1239,7 +1239,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								styles={reactSelectStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								Año del Publisher
 							</label>
@@ -1272,7 +1272,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								styles={reactSelectStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -1299,7 +1299,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className={inputStyles}
 							/>
 						</div>
-						<div>
+						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -1349,8 +1349,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							/>
 						</div>
 					</div>
-					<div className="grid grid-cols-2 gap-4">
-						<div className="flex items-end min-h-9">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+						<div className="flex items-end min-h-9 w-full">
 							<CustomSwitch
 								checked={safeFormData?.generate_ean ?? false}
 								onChange={checked => {
@@ -1370,7 +1370,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								Generar UPC
 							</label>
 							{!safeFormData.generate_ean && (
-								<div className="mt-2">
+								<div className="mt-2 flex-1">
 									<input
 										type="text"
 										name="ean"
@@ -1382,7 +1382,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								</div>
 							)}
 						</div>
-						<div className="flex items-end">
+						<div className="flex items-end w-full">
 							<CustomSwitch
 								checked={safeFormData.dolby_atmos ?? false}
 								onChange={checked => {
@@ -1410,7 +1410,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					<h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
 						Distribución
 					</h3>
-					<div className="mt-2 p-4">
+					<div className="mt-2 p-2 md:p-4">
 						<label className="block text-sm font-medium text-gray-700">
 							Territorio
 						</label>
@@ -1441,43 +1441,46 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							styles={reactSelectStyles}
 						/>
 						{safeFormData.territory !== 'worldwide' && (
-							<div className="mt-2 flex gap-x-4">
-								<Select<CountryOption, true>
-									isMulti
-									value={[]}
-									onChange={selectedOptions => {
-										if (selectedOptions) {
-											const newCountries = selectedOptions.map(
-												option => option.value
-											);
-											setFormData((prev: Release) => ({
-												...prev,
-												countries: [
-													...(prev.countries || []),
-													...newCountries,
-												].slice(0, 200),
-											}));
-										}
-									}}
-									options={RELEVANT_COUNTRIES.filter(
-										country => !safeFormData.countries?.includes(country.value)
-									)}
-									placeholder="Seleccionar países"
-									className="react-select-container"
-									classNamePrefix="react-select"
-									styles={reactSelectStyles}
-									noOptionsMessage={() => 'No hay más países disponibles'}
-									isClearable
-									closeMenuOnSelect={false}
-								/>
+							<div className="mt-4 flex flex-col md:flex-row gap-4">
+								<div className="w-full">
+									<Select<CountryOption, true>
+										isMulti
+										value={[]}
+										onChange={selectedOptions => {
+											if (selectedOptions) {
+												const newCountries = selectedOptions.map(
+													option => option.value
+												);
+												setFormData((prev: Release) => ({
+													...prev,
+													countries: [
+														...(prev.countries || []),
+														...newCountries,
+													].slice(0, 200),
+												}));
+											}
+										}}
+										options={RELEVANT_COUNTRIES.filter(
+											country =>
+												!safeFormData.countries?.includes(country.value)
+										)}
+										placeholder="Seleccionar países"
+										className="react-select-container"
+										classNamePrefix="react-select"
+										styles={reactSelectStyles}
+										noOptionsMessage={() => 'No hay más países disponibles'}
+										isClearable
+										closeMenuOnSelect={false}
+									/>
+								</div>
 								{safeFormData.countries &&
 									safeFormData.countries.length > 0 && (
-										<div className="mt-2 bg-gray-50">
-											<div className="text-sm text-gray-500">
+										<div className="w-full mt-4 md:mt-0 bg-gray-50 p-3 rounded-lg">
+											<div className="text-sm text-gray-500 mb-2">
 												Países seleccionados: {safeFormData.countries.length}
 												/200
 											</div>
-											<div className="flex flex-wrap gap-2 mt-2">
+											<div className="flex flex-wrap gap-2">
 												{safeFormData.countries.map((countryCode, index) => (
 													<div
 														key={index}

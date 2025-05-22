@@ -1,46 +1,67 @@
 // middleware.ts
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
-export function middleware(request: NextRequest) {
-  const { pathname, hostname } = request.nextUrl
-  const url = request.nextUrl.clone()
+export async function middleware(request: NextRequest) {
+	console.log('=== MIDDLEWARE START ===');
+	console.log('Request URL:', request.url);
+	console.log('Request pathname:', request.nextUrl.pathname);
 
-  const token = request.cookies.get('session-token')?.value
+	const loginToken = request.cookies.get('loginToken')?.value;
+	console.log('Login token exists:', !!loginToken);
+	if (loginToken) {
+		console.log('Token length:', loginToken.length);
+		console.log('Token first 20 chars:', loginToken.substring(0, 20));
+	}
 
-  // Simulamos roles en base al token (hasta que conectes con backend real)
-  const mockRolesByToken: Record<string, string[]> = {
-    'admin-token': ['admin'],
-    'sello-token': ['sello'],
-    'multi-token': ['admin', 'sello', 'artista'],
-  }
+	const isAdminRoute =
+		request.nextUrl.pathname.startsWith('/sello/cuentas') ||
+		request.nextUrl.pathname.startsWith('/sello/contabilidad');
+	console.log('Is admin route:', isAdminRoute);
 
-  const roles = token ? mockRolesByToken[token] || [] : []
+	if (isAdminRoute) {
+		if (!loginToken) {
+			console.log('No token found, redirecting to home');
+			return NextResponse.redirect(new URL('/', request.url));
+		}
 
-  // LOGIN redirige si ya tiene sesión
-  if (hostname.startsWith('login') && token && roles.length === 1) {
-    const role = roles[0]
-    url.hostname = `${role}.islasounds.com`
-    return NextResponse.redirect(url)
-  }
+		if (!process.env.JWT_SECRET) {
+			console.error('JWT_SECRET is not defined in environment variables');
+			return NextResponse.redirect(new URL('/', request.url));
+		}
 
-  // LOGIN redirige a selector si tiene múltiples roles
-  if (hostname.startsWith('login') && token && roles.length > 1) {
-    url.pathname = '/seleccionar-cuenta'
-    return NextResponse.rewrite(url)
-  }
+		try {
+			const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+			console.log('Secret encoded length:', secret.length);
 
-  // Protegemos rutas si no hay token
-  const protectedHosts = ['admin', 'distro', 'colabs', 'ajustes']
-  if (protectedHosts.some(h => hostname.startsWith(h)) && !token) {
-    url.hostname = 'login.islasounds.com'
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
+			console.log('Attempting to verify token...');
+			const { payload } = await jwtVerify(loginToken, secret);
+			console.log('Token verified successfully');
+			console.log('Token payload:', payload);
+			console.log('User role:', payload.role);
 
-  return NextResponse.next()
+			if (payload.role !== 'admin') {
+				console.log('User is not admin, redirecting to sello');
+				return NextResponse.redirect(new URL('/sello', request.url));
+			}
+
+			console.log('Access granted to admin route');
+			return NextResponse.next();
+		} catch (error: any) {
+			console.error('Error details:', {
+				name: error?.name,
+				message: error?.message,
+				stack: error?.stack,
+			});
+			return NextResponse.redirect(new URL('/', request.url));
+		}
+	}
+
+	console.log('=== MIDDLEWARE END ===');
+	return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico|api|static).*)'],
-}
+	matcher: ['/sello/cuentas/:path*', '/sello/contabilidad/:path*'],
+};

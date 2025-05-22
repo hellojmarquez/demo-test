@@ -16,6 +16,7 @@ import {
 	FileMusic,
 	Settings,
 	LogOut,
+	Calculator,
 } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -45,6 +46,8 @@ export default function DashboardLayout({
 			pathname?.toString().startsWith(path + '/')
 		);
 	};
+
+	const isAdmin = user?.role === 'admin';
 
 	if (loading) {
 		return (
@@ -100,19 +103,21 @@ export default function DashboardLayout({
 										<span>Dashboard</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
-									<Link
-										href="/sello/cuentas"
-										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/sello/cuentas')
-												? 'text-white border-b-2'
-												: 'text-white'
-										}`}
-										onClick={() => setMobileMenuOpen(false)}
-									>
-										<Users size={18} className="mr-2" />
-										<span>Usuarios</span>
-										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</Link>
+									{isAdmin && (
+										<Link
+											href="/sello/cuentas"
+											className={`flex items-center p-2 transition-colors relative group ${
+												isActive('/sello/cuentas')
+													? 'text-white border-b-2'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<Users size={18} className="mr-2" />
+											<span>Usuarios</span>
+											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+										</Link>
+									)}
 									<Link
 										href="/sello/mensajes"
 										className={`flex items-center p-2 transition-colors relative group ${
@@ -139,19 +144,21 @@ export default function DashboardLayout({
 										<span>Catálogo</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
-									<Link
-										href="/sello/contabilidad"
-										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/sello/catalogo')
-												? 'text-white border-b-2'
-												: 'text-white'
-										}`}
-										onClick={() => setMobileMenuOpen(false)}
-									>
-										<FileMusic size={18} className="mr-2" />
-										<span>Contabilidad</span>
-										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</Link>
+									{isAdmin && (
+										<Link
+											href="/sello/contabilidad"
+											className={`flex items-center p-2 transition-colors relative group ${
+												isActive('/sello/contabilidad')
+													? 'text-white border-b-2'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<Calculator size={18} className="mr-2" />
+											<span>Contabilidad</span>
+											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+										</Link>
+									)}
 									<Link
 										href="#!"
 										className={`flex items-center p-2 transition-colors relative group ${
@@ -197,18 +204,20 @@ export default function DashboardLayout({
 											<Home size={18} className="mr-2" />
 											<span>Dashboard</span>
 										</Link>
-										<Link
-											href="/sello/cuentas"
-											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/sello/cuentas')
-													? 'text-white border-l-2 border-white'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
-										>
-											<Users size={18} className="mr-2" />
-											<span>Usuarios</span>
-										</Link>
+										{isAdmin && (
+											<Link
+												href="/sello/cuentas"
+												className={`flex items-center p-3 transition-colors relative group ${
+													isActive('/sello/cuentas')
+														? 'text-white border-l-2 border-white'
+														: 'text-white'
+												}`}
+												onClick={() => setMobileMenuOpen(false)}
+											>
+												<Users size={18} className="mr-2" />
+												<span>Usuarios</span>
+											</Link>
+										)}
 										<Link
 											href="/sello/mensajes"
 											className={`flex items-center p-3 transition-colors relative group ${
@@ -233,18 +242,20 @@ export default function DashboardLayout({
 											<FileMusic size={18} className="mr-2" />
 											<span>Catálogo</span>
 										</Link>
-										<Link
-											href="/sello/catalogo"
-											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/sello/catalogo')
-													? 'text-white border-l-2 border-white'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
-										>
-											<FileMusic size={18} className="mr-2" />
-											<span>Contabilidad</span>
-										</Link>
+										{isAdmin && (
+											<Link
+												href="/sello/contabilidad"
+												className={`flex items-center p-3 transition-colors relative group ${
+													isActive('/sello/contabilidad')
+														? 'text-white border-l-2 border-white'
+														: 'text-white'
+												}`}
+												onClick={() => setMobileMenuOpen(false)}
+											>
+												<Calculator size={18} className="mr-2" />
+												<span>Contabilidad</span>
+											</Link>
+										)}
 										<Link
 											href="#!"
 											className={`flex items-center p-3 transition-colors relative group ${

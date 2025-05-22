@@ -103,6 +103,10 @@ const Personas = () => {
 			if (response.ok) {
 				const data = await response.json();
 				if (data.success) {
+					console.log(
+						'Datos obtenidos de la API (completos):',
+						data.data.users
+					);
 					setUsers(data.data.users);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
@@ -175,44 +179,74 @@ const Personas = () => {
 	};
 
 	const handleEdit = (e: React.MouseEvent, persona: Persona) => {
-		e.preventDefault();
+		try {
+			e.preventDefault();
+			e.stopPropagation();
 
-		// Verificar si el rol es "publisher"
-		if (persona.role && persona.role.toLowerCase() === 'publisher') {
-			console.log('Es un publisher, abriendo modal de publisher');
-			setSelectedPublisher(persona);
-			setShowPublisherModal(true);
-		}
-		// Verificar si el rol es "contributor"
-		else if (persona.role && persona.role.toLowerCase() === 'contributor') {
-			console.log('Es un contribuidor, abriendo modal de contribuidor');
-			setSelectedContributor(persona);
-			setShowContributorModal(true);
-		}
-		// Verificar si el rol es "artist" o "artista"
-		else if (
-			persona.role &&
-			(persona.role.toLowerCase() === 'artist' ||
-				persona.role.toLowerCase() === 'artista')
-		) {
-			console.log('Es un artista, abriendo modal de artista');
-			// Asegurarse de que el artista tenga el external_id
-			const artista = {
-				...persona,
-				external_id: persona.external_id || persona._id,
-			};
-			setSelectedArtista(artista);
-			setShowArtistaModal(true);
-		}
-		// Verificar si el rol es "sello"
-		else if (persona.role && persona.role.toLowerCase() === 'sello') {
-			console.log('Es un sello, abriendo modal de sello');
-			setSelectedSello(persona);
-			setShowSelloModal(true);
-		} else {
-			// Para otros roles, usar el modal genérico
-			setSelectedUser(persona);
-			setIsUpdateModalOpen(true);
+			if (persona.role && persona.role.toLowerCase() === 'publisher') {
+				if (!persona.external_id) {
+					console.error('No se encontró el external_id del publisher');
+					alert('Error: No se encontró el ID del publisher');
+					return;
+				}
+
+				// Asegurarnos de que el email esté presente
+				if (!persona.email) {
+					console.error('No se encontró el email del publisher');
+					alert('Error: No se encontró el email del publisher');
+					return;
+				}
+
+				// Crear un objeto que coincida exactamente con la interfaz esperada
+				const publisherData = {
+					_id: persona._id,
+					name: persona.name,
+					email: persona.email,
+					role: persona.role,
+					external_id: persona.external_id,
+					status: persona.status || 'active',
+					picture: persona.picture || '',
+				};
+
+				console.log('Es un publisher, datos completos:', publisherData);
+				console.log('Email del publisher:', publisherData.email);
+				setSelectedPublisher(publisherData);
+				setShowPublisherModal(true);
+			}
+			// Verificar si el rol es "contributor"
+			else if (persona.role && persona.role.toLowerCase() === 'contributor') {
+				console.log('Es un contribuidor, abriendo modal de contribuidor');
+				setSelectedContributor(persona);
+				setShowContributorModal(true);
+			}
+			// Verificar si el rol es "artist" o "artista"
+			else if (
+				persona.role &&
+				(persona.role.toLowerCase() === 'artist' ||
+					persona.role.toLowerCase() === 'artista')
+			) {
+				console.log('Es un artista, abriendo modal de artista');
+				// Asegurarse de que el artista tenga el external_id
+				const artista = {
+					...persona,
+					external_id: persona.external_id || persona._id,
+				};
+				setSelectedArtista(artista);
+				setShowArtistaModal(true);
+			}
+			// Verificar si el rol es "sello"
+			else if (persona.role && persona.role.toLowerCase() === 'sello') {
+				console.log('Es un sello, abriendo modal de sello');
+				setSelectedSello(persona);
+				setShowSelloModal(true);
+			} else {
+				// Para otros roles, usar el modal genérico
+				setSelectedUser(persona);
+				setIsUpdateModalOpen(true);
+			}
+		} catch (error) {
+			console.error('Error en handleEdit:', error);
+			alert('Error al editar el usuario');
 		}
 	};
 
@@ -231,9 +265,16 @@ const Personas = () => {
 		}
 	};
 
-	const handlePublisherUpdate = () => {
-		// Recargar la lista de personas después de actualizar un publisher
-		fetchUsers(currentPage, searchQuery, sortBy);
+	const handlePublisherUpdate = async () => {
+		try {
+			// Recargar la lista de personas después de actualizar un publisher
+			await fetchUsers(currentPage, searchQuery, sortBy);
+			setShowSuccessMessage(true);
+			setTimeout(() => setShowSuccessMessage(false), 3000);
+		} catch (error) {
+			console.error('Error al actualizar la lista de personas:', error);
+			alert('Error al actualizar la lista de personas');
+		}
 	};
 
 	const handleContributorUpdate = () => {
@@ -251,12 +292,24 @@ const Personas = () => {
 			if (isFormData) {
 				// Si es FormData, no establecer Content-Type (el navegador lo hará automáticamente)
 				body = data;
+				console.log('Enviando FormData:', {
+					name: data.get('name'),
+					email: data.get('email'),
+					external_id: data.get('external_id'),
+					hasPicture: data.has('picture'),
+				});
 			} else {
 				// Si es JSON, establecer Content-Type y convertir a string
 				headers['Content-Type'] = 'application/json';
 				body = JSON.stringify({
 					...data,
 					role: 'artista',
+				});
+				console.log('Enviando JSON:', {
+					name: data.name,
+					email: data.email,
+					external_id: data.external_id,
+					hasPicture: !!data.picture,
 				});
 			}
 
@@ -281,6 +334,20 @@ const Personas = () => {
 			}
 
 			const responseData = await res.json();
+			console.log('Respuesta del servidor:', {
+				success: responseData.success,
+				artist: {
+					_id: responseData.artist._id,
+					name: responseData.artist.name,
+					email: responseData.artist.email,
+					picture: responseData.artist.picture
+						? 'Imagen presente'
+						: 'Sin imagen',
+					external_id: responseData.artist.external_id,
+					role: responseData.artist.role,
+				},
+			});
+
 			if (responseData.success) {
 				// Recargar la lista de personas después de actualizar un artista
 				fetchUsers(currentPage, searchQuery, sortBy);
@@ -462,8 +529,15 @@ const Personas = () => {
 												whileHover={{ scale: 1.05 }}
 												whileTap={{ scale: 0.95 }}
 												onClick={e => {
+													console.log('Botón de editar clickeado');
+													e.preventDefault();
 													e.stopPropagation();
-													handleEdit(e, persona);
+													console.log('Click en botón de editar:', persona);
+													try {
+														handleEdit(e, persona);
+													} catch (error) {
+														console.error('Error en handleEdit:', error);
+													}
 												}}
 												className="p-2 sm:p-2.5 flex items-center text-gray-600 rounded-lg transition-colors group hover:bg-gray-100"
 											>
@@ -709,15 +783,12 @@ const Personas = () => {
 
 			{showPublisherModal && selectedPublisher && (
 				<>
-					{console.log('Renderizando modal de publisher')}
+					{console.log(
+						'Renderizando modal de publisher con datos:',
+						selectedPublisher
+					)}
 					<UpdatePublisherModal
-						publisher={{
-							id: selectedPublisher._id,
-							external_id: selectedPublisher.external_id
-								? Number(selectedPublisher.external_id)
-								: 0,
-							name: selectedPublisher.name,
-						}}
+						publisher={selectedPublisher}
 						onUpdate={handlePublisherUpdate}
 						isOpen={showPublisherModal}
 						onClose={() => {

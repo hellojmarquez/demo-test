@@ -162,7 +162,16 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
-		console.log('updatedArtist', updatedArtist);
+
+		console.log('Artista actualizado en la base de datos:', {
+			_id: updatedArtist._id,
+			name: updatedArtist.name,
+			email: updatedArtist.email,
+			picture: updatedArtist.picture ? 'Imagen presente' : 'Sin imagen',
+			external_id: updatedArtist.external_id,
+			role: updatedArtist.role,
+		});
+
 		return NextResponse.json({
 			success: true,
 			artist: updatedArtist,

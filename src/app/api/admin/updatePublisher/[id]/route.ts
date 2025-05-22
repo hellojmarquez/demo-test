@@ -3,6 +3,7 @@ import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
+import { encryptPassword } from '@/utils/auth';
 
 export async function PUT(
 	req: NextRequest,
@@ -33,7 +34,7 @@ export async function PUT(
 		}
 
 		const body = await req.json();
-		const { name } = body;
+		const { name, email, password } = body;
 
 		// Actualizar publisher en la API externa
 		const publisherReq = await fetch(
@@ -55,26 +56,45 @@ export async function PUT(
 		// Conectar a la base de datos local
 		await dbConnect();
 
+		// Preparar el objeto de actualización
+		const updateData: any = {
+			name: publisherRes.name,
+			external_id: publisherRes.id,
+			...(email && { email }), // Solo incluir email si se proporcionó uno nuevo
+		};
+
+		// Si se proporcionó una nueva contraseña, hashearla
+		if (password) {
+			const hashedPassword = await encryptPassword(password);
+			updateData.password = hashedPassword;
+		}
+
 		// Actualizar el publisher en la base de datos local
-		const updatedContributor = await User.findOneAndUpdate(
+		const updatedPublisher = await User.findOneAndUpdate(
 			{ external_id: params.id },
-			{
-				name: publisherRes.name,
-				email: publisherRes.id,
-				external_id: publisherRes.id,
-			},
+			{ $set: updateData },
 			{ new: true }
 		);
 
-		if (!updatedContributor) {
+		if (!updatedPublisher) {
 			return NextResponse.json(
-				{ success: false, error: 'Contributor not found' },
+				{ success: false, error: 'Publisher not found' },
 				{ status: 404 }
 			);
 		}
 
+		console.log('Publisher actualizado en la base de datos:', {
+			_id: updatedPublisher._id,
+			name: updatedPublisher.name,
+			email: updatedPublisher.email,
+			external_id: updatedPublisher.external_id,
+			role: updatedPublisher.role,
+			updatedAt: updatedPublisher.updatedAt,
+		});
+
 		return NextResponse.json({
 			success: true,
+			publisher: updatedPublisher,
 		});
 	} catch (error) {
 		console.error('Error updating publisher:', error);

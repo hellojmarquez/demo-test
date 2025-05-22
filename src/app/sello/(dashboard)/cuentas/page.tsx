@@ -653,16 +653,19 @@ export default function UsuariosPage() {
 					{console.log('Renderizando modal de publisher')}
 					<UpdatePublisherModal
 						publisher={{
-							id: selectedPublisher._id,
+							_id: selectedPublisher._id,
+							name: selectedPublisher.name,
+							email: selectedPublisher.email,
 							external_id: selectedPublisher.external_id
 								? Number(selectedPublisher.external_id)
 								: 0,
-							name: selectedPublisher.name,
+							role: selectedPublisher.role,
+							status: selectedPublisher.status || 'active',
+							picture: selectedPublisher.picture,
 						}}
 						onUpdate={handlePublisherUpdate}
 						isOpen={showPublisherModal}
 						onClose={() => {
-							console.log('Cerrando modal de publisher');
 							setShowPublisherModal(false);
 							setSelectedPublisher(null);
 						}}

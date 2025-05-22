@@ -3,41 +3,85 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, XCircle } from 'lucide-react';
+import { X, Save, XCircle, User, Mail, Lock } from 'lucide-react';
 
 interface UpdatePublisherModalProps {
 	publisher: {
-		id: string;
-		external_id: number;
+		_id: string;
 		name: string;
+		email: string;
+		external_id?: string | number;
+		role: string;
+		status: string;
+		picture?: string;
 	};
 	onUpdate: () => void;
 	isOpen: boolean;
 	onClose: () => void;
 }
 
-export function UpdatePublisherModal({
+export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 	publisher,
 	onUpdate,
 	isOpen,
 	onClose,
-}: UpdatePublisherModalProps) {
-	const [name, setName] = useState(publisher.name);
+}) => {
+	console.log('UpdatePublisherModal recibió publisher:', publisher);
+	console.log('Email recibido en el modal:', publisher.email);
+
+	const [formData, setFormData] = useState({
+		name: publisher.name,
+		email: publisher.email || '',
+		password: '',
+	});
 	const [isLoading, setIsLoading] = useState(false);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
-	// Actualizar el nombre cuando cambia el publisher
 	useEffect(() => {
-		setName(publisher.name);
+		console.log('Publisher actualizado en useEffect:', publisher);
+		console.log('Email del publisher en useEffect:', publisher.email);
+		setFormData(prev => ({
+			...prev,
+			name: publisher.name,
+			email: publisher.email || '',
+			password: '',
+		}));
 	}, [publisher]);
+
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const { name, value } = e.target;
+		console.log(`Cambiando ${name} a:`, value);
+		setFormData(prev => ({
+			...prev,
+			[name]: value,
+		}));
+	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
 
 		try {
+			if (!publisher.external_id) {
+				throw new Error('No se encontró el ID del publisher');
+			}
+
+			// Validar campos requeridos
+			if (!formData.name.trim()) {
+				throw new Error('El nombre es requerido');
+			}
+			if (!formData.email.trim()) {
+				throw new Error('El email es requerido');
+			}
+
+			// Validar formato de email
+			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+			if (!emailRegex.test(formData.email)) {
+				throw new Error('El formato del email no es válido');
+			}
+
 			const response = await fetch(
 				`/api/admin/updatePublisher/${publisher.external_id}`,
 				{
@@ -45,7 +89,11 @@ export function UpdatePublisherModal({
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({ name }),
+					body: JSON.stringify({
+						name: formData.name.trim(),
+						email: formData.email.trim(),
+						...(formData.password && { password: formData.password }),
+					}),
 				}
 			);
 
@@ -109,15 +157,60 @@ export function UpdatePublisherModal({
 									>
 										Nombre
 									</label>
-									<input
-										type="text"
-										id="name"
-										name="name"
-										value={name}
-										onChange={e => setName(e.target.value)}
-										className={inputStyles}
-										required
-									/>
+									<div className="relative">
+										<User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+										<input
+											type="text"
+											id="name"
+											name="name"
+											value={formData.name}
+											onChange={handleChange}
+											className={`${inputStyles} pl-10`}
+											required
+										/>
+									</div>
+								</div>
+
+								<div>
+									<label
+										htmlFor="email"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
+										Email
+									</label>
+									<div className="relative">
+										<Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+										<input
+											type="email"
+											id="email"
+											name="email"
+											value={formData.email}
+											onChange={handleChange}
+											className={`${inputStyles} pl-10`}
+											required
+										/>
+									</div>
+								</div>
+
+								<div>
+									<label
+										htmlFor="password"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
+										Nueva Contraseña (opcional)
+									</label>
+									<div className="relative">
+										<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+										<input
+											type="password"
+											id="password"
+											name="password"
+											value={formData.password}
+											onChange={handleChange}
+											className={`${inputStyles} pl-10`}
+											placeholder="Dejar en blanco para mantener la contraseña actual"
+										/>
+									</div>
 								</div>
 							</div>
 
@@ -157,4 +250,4 @@ export function UpdatePublisherModal({
 			)}
 		</AnimatePresence>
 	);
-}
+};

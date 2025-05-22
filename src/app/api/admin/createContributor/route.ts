@@ -6,7 +6,7 @@ import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 
 export async function POST(req: NextRequest) {
-	console.log('get contributors received');
+	console.log('crear contributors received');
 
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
-			data: contributor,
+			contributor: contributor,
 		});
 	} catch (error) {
 		console.error('Error creating contributor:', error);

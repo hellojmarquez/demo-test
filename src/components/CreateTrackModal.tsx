@@ -1410,23 +1410,23 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			</form>
 
 			{isCreateArtistModalOpen && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-					<div className="bg-white rounded-lg p-6 w-full max-w-md">
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+					<div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
 						<div className="flex justify-between items-center mb-4">
-							<h3 className="text-lg font-medium text-gray-900">
+							<h3 className="text-base sm:text-lg font-medium text-gray-900">
 								Crear Nuevo Artista
 							</h3>
 							<button
 								onClick={() => setIsCreateArtistModalOpen(false)}
-								className="text-gray-400 hover:text-gray-500"
+								className="text-gray-400 hover:text-gray-500 p-1 hover:bg-gray-100 rounded-full transition-colors"
 							>
-								<XCircle className="h-6 w-6" />
+								<XCircle className="h-5 w-5 sm:h-6 sm:w-6" />
 							</button>
 						</div>
 
 						<div className="space-y-4">
 							<div>
-								<label className="block text-sm font-medium text-gray-700">
+								<label className="block text-xs sm:text-sm font-medium text-gray-700">
 									Nombre
 								</label>
 								<input
@@ -1438,12 +1438,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											name: e.target.value,
 										}))
 									}
-									className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 								/>
 							</div>
 
 							<div>
-								<label className="block text-sm font-medium text-gray-700">
+								<label className="block text-xs sm:text-sm font-medium text-gray-700">
 									Email
 								</label>
 								<input
@@ -1455,14 +1455,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											email: e.target.value,
 										}))
 									}
-									className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 								/>
 							</div>
 
-							<div className="grid grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								<div>
-									<label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-										<div className="h-6 w-6 flex items-center">
+									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center">
 											<Image
 												src="/icons/Amazon_Music_logo.svg"
 												alt="Amazon Music"
@@ -1482,13 +1482,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												amazon_music_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 
 								<div>
-									<label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-										<div className="h-6 w-6 flex items-center">
+									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center">
 											<Image
 												src="/icons/ITunes_logo.svg"
 												alt="Apple Music"
@@ -1508,13 +1508,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												apple_music_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 
 								<div>
-									<label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-										<div className="h-6 w-6 flex items-center justify-center">
+									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center">
 											<Image
 												src="/icons/dezzer_logo.svg"
 												alt="Deezer"
@@ -1534,13 +1534,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												deezer_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 
 								<div>
-									<label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-										<div className="h-6 w-6 flex items-center justify-center">
+									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
+										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center">
 											<Image
 												src="/icons/spotify_logo.svg"
 												alt="Spotify"
@@ -1560,16 +1560,16 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												spotify_id: e.target.value,
 											}))
 										}
-										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 									/>
 								</div>
 							</div>
 						</div>
 
-						<div className="mt-6 flex justify-end gap-3">
+						<div className="mt-6 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
 							<button
 								onClick={() => setIsCreateArtistModalOpen(false)}
-								className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+								className="w-full sm:w-auto px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
 							>
 								Cancelar
 							</button>
@@ -1607,7 +1607,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									});
 									setIsCreateArtistModalOpen(false);
 								}}
-								className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md"
+								className="w-full sm:w-auto px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md transition-colors"
 							>
 								Crear Artista
 							</button>

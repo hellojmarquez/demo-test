@@ -21,7 +21,7 @@ interface UpdateArtistaModalProps {
 	artista: Artista;
 	isOpen: boolean;
 	onClose: () => void;
-	onSave: (artista: Artista) => void;
+	onSave: (data: FormData | Artista) => Promise<void>;
 }
 
 const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
@@ -36,7 +36,11 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
-		artista.picture || null
+		artista.picture
+			? artista.picture.startsWith('data:')
+				? artista.picture
+				: `data:image/jpeg;base64,${artista.picture}`
+			: null
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +74,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 				setImagePreview(base64String);
 				setFormData({
 					...formData,
-					picture: base64String,
+					picture: base64String.split(',')[1], // Extraer solo la parte base64 sin el prefijo data:image/...
 				});
 			};
 			reader.readAsDataURL(file);
@@ -82,7 +86,55 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 		setIsSubmitting(true);
 
 		try {
-			await onSave(formData);
+			if (formData.picture && formData.picture !== artista.picture) {
+				const formDataToSend = new FormData();
+
+				formDataToSend.append('name', formData.name);
+				formDataToSend.append('email', formData.email);
+				formDataToSend.append('role', 'artista');
+				formDataToSend.append('_id', formData._id);
+				formDataToSend.append(
+					'external_id',
+					formData.external_id?.toString() || ''
+				);
+
+				if (formData.password) {
+					formDataToSend.append('password', formData.password);
+				}
+
+				formDataToSend.append(
+					'amazon_music_identifier',
+					formData.amazon_music_identifier || ''
+				);
+				formDataToSend.append(
+					'apple_identifier',
+					formData.apple_identifier || ''
+				);
+				formDataToSend.append(
+					'deezer_identifier',
+					formData.deezer_identifier || ''
+				);
+				formDataToSend.append(
+					'spotify_identifier',
+					formData.spotify_identifier || ''
+				);
+
+				const response = await fetch(formData.picture);
+				const blob = await response.blob();
+				const file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+				formDataToSend.append('picture', file);
+				console.log('formDataToSend', formDataToSend);
+				await onSave(formDataToSend);
+			} else {
+				const updatedFormData = {
+					...formData,
+					amazon_music_identifier: formData.amazon_music_identifier || '',
+					apple_identifier: formData.apple_identifier || '',
+					deezer_identifier: formData.deezer_identifier || '',
+					spotify_identifier: formData.spotify_identifier || '',
+				};
+				await onSave(updatedFormData);
+			}
 		} catch (error) {
 			console.error('Error saving artista:', error);
 		} finally {

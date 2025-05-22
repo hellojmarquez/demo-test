@@ -241,40 +241,47 @@ const Personas = () => {
 		fetchUsers(currentPage, searchQuery, sortBy);
 	};
 
-	const handleArtistaUpdate = async (updatedArtista: Artista) => {
+	const handleArtistaUpdate = async (data: FormData | Artista) => {
 		try {
-			// Asegurarse de que el artista tenga el rol 'artista'
-			const artistToSave = {
-				...updatedArtista,
-				role: 'artista',
-			};
+			// Determinar si es FormData o JSON
+			const isFormData = data instanceof FormData;
+			const headers: HeadersInit = {};
+			let body: string | FormData;
 
-			console.log('Updating artist with data:', {
-				external_id: artistToSave.external_id,
-				_id: artistToSave._id,
-			});
+			if (isFormData) {
+				// Si es FormData, no establecer Content-Type (el navegador lo hará automáticamente)
+				body = data;
+			} else {
+				// Si es JSON, establecer Content-Type y convertir a string
+				headers['Content-Type'] = 'application/json';
+				body = JSON.stringify({
+					...data,
+					role: 'artista',
+				});
+			}
 
-			// Verificar que tenemos un external_id válido
-			if (!artistToSave.external_id) {
+			// Obtener el external_id del artista
+			const external_id = isFormData
+				? data.get('external_id')?.toString()
+				: data.external_id?.toString();
+
+			if (!external_id) {
 				throw new Error('No se encontró el external_id del artista');
 			}
 
-			const res = await fetch(
-				`/api/admin/updateArtist/${artistToSave.external_id}`,
-				{
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(artistToSave),
-				}
-			);
+			const res = await fetch(`/api/admin/updateArtist/${external_id}`, {
+				method: 'PUT',
+				headers,
+				body,
+			});
 
 			if (!res.ok) {
 				const errorData = await res.json();
 				throw new Error(errorData.error || 'Error al actualizar el artista');
 			}
 
-			const data = await res.json();
-			if (data.success) {
+			const responseData = await res.json();
+			if (responseData.success) {
 				// Recargar la lista de personas después de actualizar un artista
 				fetchUsers(currentPage, searchQuery, sortBy);
 				setShowArtistaModal(false);
@@ -748,15 +755,13 @@ const Personas = () => {
 				<>
 					{console.log('Renderizando modal de artista')}
 					<UpdateArtistaModal
-						artista={{ ...selectedArtista, role: 'artista' }}
-						isOpen={showArtistaModal}
+						artista={selectedArtista}
+						isOpen={!!selectedArtista}
 						onClose={() => {
-							console.log('Cerrando modal de artista');
-							setShowArtistaModal(false);
 							setSelectedArtista(null);
 						}}
-						onSave={async (artista: Artista) => {
-							await handleArtistaUpdate(artista);
+						onSave={async (data: FormData | Artista) => {
+							await handleArtistaUpdate(data);
 						}}
 					/>
 				</>

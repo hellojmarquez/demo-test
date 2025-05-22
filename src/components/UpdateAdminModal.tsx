@@ -40,9 +40,6 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		console.log('Admin data:', admin);
-		console.log('Admin picture type:', typeof admin.picture);
-		console.log('Admin picture value:', admin.picture);
 		if (admin.picture) {
 			if (
 				typeof admin.picture === 'string' &&

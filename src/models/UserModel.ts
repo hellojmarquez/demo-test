@@ -109,8 +109,8 @@ const artistSchema = new mongoose.Schema({
 		default: '',
 	},
 	picture: {
-		type: mongoose.Schema.Types.Mixed,
-		default: null,
+		type: String,
+		default: '',
 	},
 });
 

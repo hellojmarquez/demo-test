@@ -266,15 +266,20 @@ export default function UsuariosPage() {
 
 	const handleArtistSave = async (updatedArtist: any) => {
 		try {
-			// Asegurarse de que el artista tenga el rol 'artista'
+			// Asegurarse de que el artista tenga el rol 'artista' y el external_id
 			const artistToSave = {
 				...updatedArtist,
 				role: 'artista',
+				external_id:
+					updatedArtist.external_id ||
+					selectedArtist?.external_id ||
+					updatedArtist._id,
 			};
 
 			console.log('Updating artista with data:', {
 				external_id: artistToSave.external_id,
 				_id: artistToSave._id,
+				original_external_id: selectedArtist?.external_id,
 			});
 
 			// Verificar que tenemos un external_id válido
@@ -282,12 +287,26 @@ export default function UsuariosPage() {
 				throw new Error('No se encontró el external_id del artista');
 			}
 
+			// Determinar si es FormData o JSON
+			const isFormData = updatedArtist instanceof FormData;
+			const headers: HeadersInit = {};
+			let body: string | FormData;
+
+			if (isFormData) {
+				// Si es FormData, no establecer Content-Type (el navegador lo hará automáticamente)
+				body = updatedArtist;
+			} else {
+				// Si es JSON, establecer Content-Type y convertir a string
+				headers['Content-Type'] = 'application/json';
+				body = JSON.stringify(artistToSave);
+			}
+
 			const res = await fetch(
 				`/api/admin/updateArtist/${artistToSave.external_id}`,
 				{
 					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(artistToSave),
+					headers,
+					body,
 				}
 			);
 

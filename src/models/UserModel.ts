@@ -140,7 +140,8 @@ const Contributor =
 	mongoose.models.contributor ||
 	User.discriminator('contributor', contributorSchema);
 const Publisher =
-	mongoose.models.publisher || User.discriminator('publisher', publisherSchema);
+	mongoose.models.publisher ||
+	User.discriminator('publisher', publisherSchema, 'publisher');
 
 export { User, Admin, Sello, Artista, Contributor, Publisher };
 export default User;

@@ -151,7 +151,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				setSubgenres(selectedGenre.subgenres || []);
 			}
 		}
-		console.log('el track: ', track);
 	}, [track, genres]);
 
 	// Efecto para actualizar subgéneros cuando cambia el género
@@ -1273,13 +1272,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2">
 								<div className="w-full sm:flex-1">
 									<Select
-										value={null}
+										value={
+											track?.publishers?.[0]?.publisher
+												? {
+														value: track.publishers[0].publisher,
+														label:
+															publishers?.find(
+																p =>
+																	p.external_id ===
+																	track.publishers[0].publisher
+															)?.name || '',
+												  }
+												: null
+										}
 										onChange={(selectedOption: any) => {
-											handlePublisherChange(
-												0,
-												'publisher',
-												selectedOption ? selectedOption.value : 0
-											);
+											if (selectedOption) {
+												handlePublisherChange(
+													0,
+													'publisher',
+													selectedOption.value
+												);
+											}
 										}}
 										options={
 											publishers?.map(p => ({
@@ -1290,61 +1303,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										placeholder="Seleccionar Publisher"
 										styles={{
 											...customSelectStyles,
+											menu: (provided: any) => ({
+												...provided,
+												zIndex: 9999,
+												backgroundColor: 'white',
+												boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+											}),
 											control: (provided: any) => ({
 												...provided,
 												minHeight: '36px',
-												'@media (max-width: 768px)': {
-													minHeight: '42px',
-												},
-											}),
-											container: (provided: any) => ({
-												...provided,
-												width: '100%',
-											}),
-											menu: (provided: any) => ({
-												...provided,
-												width: '100%',
-												zIndex: 9999,
-											}),
-											valueContainer: (provided: any) => ({
-												...provided,
-												padding: '0 8px',
-												'@media (max-width: 768px)': {
-													padding: '0 12px',
-												},
-											}),
-											input: (provided: any) => ({
-												...provided,
-												margin: '0',
-												padding: '0',
-											}),
-											indicatorsContainer: (provided: any) => ({
-												...provided,
-												padding: '0 8px',
-												'@media (max-width: 768px)': {
-													padding: '0 12px',
-												},
-											}),
-											option: (provided: any, state: any) => ({
-												...provided,
-												padding: '6px 12px',
-												'@media (max-width: 768px)': {
-													padding: '8px 12px',
-												},
-												backgroundColor: state.isSelected
-													? '#4B5563'
-													: state.isFocused
-													? '#F3F4F6'
-													: 'white',
-												color: state.isSelected ? 'white' : '#1F2937',
+												backgroundColor: 'white',
+												border: '1px solid #D1D5DB',
+												borderRadius: '4px',
 												'&:hover': {
-													backgroundColor: state.isSelected
-														? '#4B5563'
-														: '#F3F4F6',
+													borderColor: '#4B5563',
 												},
 											}),
 										}}
 										isClearable
+										menuPortalTarget={document.body}
+										menuPosition="fixed"
+										menuPlacement="auto"
 									/>
 								</div>
 
@@ -1355,7 +1334,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										handlePublisherChange(0, 'author', e.target.value);
 									}}
-									className="w-full sm:flex-1 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+									className="w-full sm:flex-1 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
 									placeholder="Autor"
 								/>
 
@@ -1371,7 +1350,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								/>
 							</div>
 						) : (
-							track?.publishers?.map((publisher, index) => (
+							(track?.publishers || []).map((publisher, index) => (
 								<div
 									key={`publisher-row-${index}`}
 									className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2"
@@ -1390,11 +1369,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 													: null
 											}
 											onChange={(selectedOption: any) => {
-												handlePublisherChange(
-													index,
-													'publisher',
-													selectedOption ? selectedOption.value : 0
-												);
+												if (selectedOption) {
+													handlePublisherChange(
+														index,
+														'publisher',
+														selectedOption.value
+													);
+												}
 											}}
 											options={
 												publishers?.map(p => ({
@@ -1405,61 +1386,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											placeholder="Seleccionar Publisher"
 											styles={{
 												...customSelectStyles,
+												menu: (provided: any) => ({
+													...provided,
+													zIndex: 9999,
+													backgroundColor: 'white',
+													boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+												}),
 												control: (provided: any) => ({
 													...provided,
 													minHeight: '36px',
-													'@media (max-width: 768px)': {
-														minHeight: '42px',
-													},
-												}),
-												container: (provided: any) => ({
-													...provided,
-													width: '100%',
-												}),
-												menu: (provided: any) => ({
-													...provided,
-													width: '100%',
-													zIndex: 9999,
-												}),
-												valueContainer: (provided: any) => ({
-													...provided,
-													padding: '0 8px',
-													'@media (max-width: 768px)': {
-														padding: '0 12px',
-													},
-												}),
-												input: (provided: any) => ({
-													...provided,
-													margin: '0',
-													padding: '0',
-												}),
-												indicatorsContainer: (provided: any) => ({
-													...provided,
-													padding: '0 8px',
-													'@media (max-width: 768px)': {
-														padding: '0 12px',
-													},
-												}),
-												option: (provided: any, state: any) => ({
-													...provided,
-													padding: '6px 12px',
-													'@media (max-width: 768px)': {
-														padding: '8px 12px',
-													},
-													backgroundColor: state.isSelected
-														? '#4B5563'
-														: state.isFocused
-														? '#F3F4F6'
-														: 'white',
-													color: state.isSelected ? 'white' : '#1F2937',
+													backgroundColor: 'white',
+													border: '1px solid #D1D5DB',
+													borderRadius: '4px',
 													'&:hover': {
-														backgroundColor: state.isSelected
-															? '#4B5563'
-															: '#F3F4F6',
+														borderColor: '#4B5563',
 													},
 												}),
 											}}
 											isClearable
+											menuPortalTarget={document.body}
+											menuPosition="fixed"
+											menuPlacement="auto"
 										/>
 									</div>
 
@@ -1470,7 +1417,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 											handlePublisherChange(index, 'author', e.target.value);
 										}}
-										className="w-full sm:flex-1 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+										className="w-full sm:flex-1 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
 										placeholder="Autor"
 									/>
 
@@ -1489,7 +1436,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										placeholder="Orden"
 									/>
 
-									{track?.publishers && track.publishers.length > 1 && (
+									{(track?.publishers || []).length > 1 && (
 										<button
 											onClick={() => handleRemovePublisher(index)}
 											className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"

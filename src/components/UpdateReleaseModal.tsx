@@ -12,6 +12,7 @@ import {
 	Link,
 	Upload,
 	Image as ImageIcon,
+	Plus,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -382,14 +383,18 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				// Fetch publishers
 				const publishersRes = await fetch('/api/admin/getAllPublishers');
 				const publishersData = await publishersRes.json();
+				console.log('Publishers API response:', publishersData);
+
 				if (publishersData.success && Array.isArray(publishersData.data)) {
-					setPublishersData(publishersData.data);
-					setPublishers(
-						publishersData.data.map((publisher: any) => ({
+					const mappedPublishers = publishersData.data.map(
+						(publisher: any) => ({
 							value: publisher.external_id,
 							label: publisher.name,
-						}))
+						})
 					);
+					console.log('Mapped publishers:', mappedPublishers);
+					setPublishersData(publishersData.data);
+					setPublishers(mappedPublishers);
 				}
 			} catch (error) {
 				console.error('Error fetching data:', error);
@@ -1210,26 +1215,28 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</label>
 							<Select<PublisherOption>
 								value={
-									publishers.find(
-										publisher => publisher.value === safeFormData.publisher
-									) || {
-										value: safeFormData.publisher || 0,
-										label:
-											safeFormData.publisher_name || 'Seleccionar publisher',
-									}
+									safeFormData.publisher_name
+										? {
+												value: safeFormData.publisher || 0,
+												label: safeFormData.publisher_name,
+										  }
+										: publishers.find(
+												p => p.value === safeFormData.publisher
+										  ) || null
 								}
 								onChange={(selectedOption: SingleValue<PublisherOption>) => {
 									if (selectedOption) {
-										const selectedPublisher = publishersData.find(
-											(p: any) => p.external_id === selectedOption.value
-										);
-										if (selectedPublisher) {
-											setFormData((prev: Release) => ({
-												...prev,
-												publisher: selectedPublisher.external_id,
-												publisher_name: selectedPublisher.name,
-											}));
-										}
+										setFormData((prev: Release) => ({
+											...prev,
+											publisher: selectedOption.value,
+											publisher_name: selectedOption.label,
+										}));
+									} else {
+										setFormData((prev: Release) => ({
+											...prev,
+											publisher: 0,
+											publisher_name: '',
+										}));
 									}
 								}}
 								options={publishers}
@@ -1237,6 +1244,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className="react-select-container"
 								classNamePrefix="react-select"
 								styles={reactSelectStyles}
+								isClearable
 							/>
 						</div>
 						<div className="w-full">

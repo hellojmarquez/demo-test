@@ -155,20 +155,26 @@ export default function EditPage() {
 		}
 	}, [releaseData]);
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				// Fetch genres
-				const genresRes = await fetch('/api/admin/getAllGenres');
-				const genresData = await genresRes.json();
-				if (genresData.success && Array.isArray(genresData.data)) {
-					setGenres(genresData.data);
-				}
-			} catch (error) {
-				console.error('Error fetching genres:', error);
+	const fetchData = async () => {
+		try {
+			// Fetch genres
+			const genresRes = await fetch('/api/admin/getAllGenres');
+			const genresData = await genresRes.json();
+			if (genresData.success && Array.isArray(genresData.data)) {
+				setGenres(genresData.data);
 			}
-		};
 
+			// Fetch publishers for logging
+			const publishersRes = await fetch('/api/admin/getAllPublishers');
+			const publishersData = await publishersRes.json();
+			console.log('Publishers response in edit page:', publishersData);
+			console.log('Publishers data:', publishersData.data);
+		} catch (error) {
+			console.error('Error fetching data:', error);
+		}
+	};
+
+	useEffect(() => {
 		fetchData();
 	}, []);
 

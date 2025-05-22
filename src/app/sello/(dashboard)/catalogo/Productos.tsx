@@ -95,6 +95,13 @@ const Productos: React.FC = () => {
 	const [totalItems, setTotalItems] = useState(0);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('newest');
+	const [artists, setArtists] = useState<{ value: string; label: string }[]>(
+		[]
+	);
+	const [labels, setLabels] = useState<{ value: string; label: string }[]>([]);
+	const [publishers, setPublishers] = useState<
+		{ value: string; label: string }[]
+	>([]);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -249,6 +256,54 @@ const Productos: React.FC = () => {
 		}, 3000);
 	};
 
+	const fetchData = async () => {
+		try {
+			const [artistsRes, labelsRes, publishersRes] = await Promise.all([
+				fetch('/api/admin/getAllArtists'),
+				fetch('/api/admin/getAllLabels'),
+				fetch('/api/admin/getAllPublishers'),
+			]);
+
+			const [artistsData, labelsData, publishersData] = await Promise.all([
+				artistsRes.json(),
+				labelsRes.json(),
+				publishersRes.json(),
+			]);
+
+			console.log('Publishers response:', publishersData);
+
+			if (artistsData.success) {
+				setArtists(
+					artistsData.data.map((artist: any) => ({
+						value: artist._id,
+						label: artist.name,
+					}))
+				);
+			}
+
+			if (labelsData.success) {
+				setLabels(
+					labelsData.data.map((label: any) => ({
+						value: label._id,
+						label: label.name,
+					}))
+				);
+			}
+
+			if (publishersData.success) {
+				console.log('Setting publishers:', publishersData.data);
+				setPublishers(
+					publishersData.data.map((publisher: any) => ({
+						value: publisher._id,
+						label: publisher.name,
+					}))
+				);
+			}
+		} catch (error) {
+			console.error('Error fetching data:', error);
+		}
+	};
+
 	if (loading) {
 		return (
 			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
@@ -324,230 +379,236 @@ const Productos: React.FC = () => {
 					</motion.div>
 				) : (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-						{releases.map(release => (
-							<motion.div
-								key={release._id}
-								initial={{ opacity: 0, y: 20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ duration: 0.3 }}
-								className={`bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group ${
-									expandedRelease === release._id
-										? 'col-span-full md:col-span-2 lg:col-span-3'
-										: ''
-								}`}
-							>
-								<div className="flex flex-col md:flex-row">
-									<div className="relative aspect-square md:w-1/3">
-										{release.picture ? (
-											<motion.img
-												whileHover={{ scale: 1.05 }}
-												transition={{ duration: 0.2 }}
-												src={release.picture}
-												alt={release.name}
-												className="w-full h-full object-cover"
-											/>
-										) : (
-											<div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-												<Music className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400" />
+						{releases && releases.length > 0 ? (
+							releases.map(release => (
+								<motion.div
+									key={release._id}
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ duration: 0.3 }}
+									className={`bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group ${
+										expandedRelease === release._id
+											? 'col-span-full md:col-span-2 lg:col-span-3'
+											: ''
+									}`}
+								>
+									<div className="flex flex-col md:flex-row">
+										<div className="relative aspect-square md:w-1/3">
+											{release.picture ? (
+												<motion.img
+													whileHover={{ scale: 1.05 }}
+													transition={{ duration: 0.2 }}
+													src={release.picture}
+													alt={release.name}
+													className="w-full h-full object-cover"
+												/>
+											) : (
+												<div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+													<Music className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400" />
+												</div>
+											)}
+											<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300" />
+											<div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+												<motion.button
+													whileHover={{ scale: 1.1 }}
+													whileTap={{ scale: 0.9 }}
+													onClick={e => handleEdit(e, release)}
+													className="p-1.5 sm:p-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white transition-colors"
+												>
+													<Pencil className="h-4 w-4 sm:h-5 sm:w-5 text-brand-light" />
+												</motion.button>
+												<motion.button
+													whileHover={{ scale: 1.1 }}
+													whileTap={{ scale: 0.9 }}
+													onClick={e => handleDelete(e, release)}
+													disabled={isDeleting === release._id}
+													className="p-1.5 sm:p-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white transition-colors"
+												>
+													{isDeleting === release._id ? (
+														<div className="h-4 w-4 sm:h-5 sm:w-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+													) : (
+														<Trash2 className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
+													)}
+												</motion.button>
 											</div>
-										)}
-										<div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300" />
-										<div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-											<motion.button
-												whileHover={{ scale: 1.1 }}
-												whileTap={{ scale: 0.9 }}
-												onClick={e => handleEdit(e, release)}
-												className="p-1.5 sm:p-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white transition-colors"
-											>
-												<Pencil className="h-4 w-4 sm:h-5 sm:w-5 text-brand-light" />
-											</motion.button>
-											<motion.button
-												whileHover={{ scale: 1.1 }}
-												whileTap={{ scale: 0.9 }}
-												onClick={e => handleDelete(e, release)}
-												disabled={isDeleting === release._id}
-												className="p-1.5 sm:p-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white transition-colors"
-											>
-												{isDeleting === release._id ? (
-													<div className="h-4 w-4 sm:h-5 sm:w-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-												) : (
-													<Trash2 className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
-												)}
-											</motion.button>
 										</div>
-									</div>
-									<div className="flex-1 p-4 sm:p-6">
-										<div className="flex justify-between items-start mb-3 sm:mb-4">
-											<h2 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-1">
-												{release.name}
-											</h2>
-											<motion.button
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-												onClick={() => handleToggleExpand(release._id)}
-												className="text-xs sm:text-sm text-brand-light hover:text-brand-dark font-medium flex items-center gap-1"
-											>
-												{expandedRelease === release._id ? (
-													<>
-														<span>Ver menos</span>
-														<ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
-													</>
-												) : (
-													<>
-														<span>Ver detalles</span>
-														<ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
-													</>
-												)}
-											</motion.button>
-										</div>
-										<div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
-											<Tag className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />
-											<span>{release.label}</span>
-										</div>
-										<div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
-											<Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-											<span>
-												{new Date(release.createdAt).toLocaleDateString()}
-											</span>
-										</div>
+										<div className="flex-1 p-4 sm:p-6">
+											<div className="flex justify-between items-start mb-3 sm:mb-4">
+												<h2 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-1">
+													{release.name}
+												</h2>
+												<motion.button
+													whileHover={{ scale: 1.05 }}
+													whileTap={{ scale: 0.95 }}
+													onClick={() => handleToggleExpand(release._id)}
+													className="text-xs sm:text-sm text-brand-light hover:text-brand-dark font-medium flex items-center gap-1"
+												>
+													{expandedRelease === release._id ? (
+														<>
+															<span>Ver menos</span>
+															<ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
+														</>
+													) : (
+														<>
+															<span>Ver detalles</span>
+															<ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+														</>
+													)}
+												</motion.button>
+											</div>
+											<div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
+												<Tag className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />
+												<span>{release.label}</span>
+											</div>
+											<div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+												<Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+												<span>
+													{new Date(release.createdAt).toLocaleDateString()}
+												</span>
+											</div>
 
-										{expandedRelease === release._id && (
-											<motion.div
-												initial={{ opacity: 0, height: 0 }}
-												animate={{ opacity: 1, height: 'auto' }}
-												exit={{ opacity: 0, height: 0 }}
-												transition={{
-													duration: 0.4,
-													ease: 'easeInOut',
-													height: {
-														duration: 0.5,
-														ease: [0.4, 0, 0.2, 1],
-													},
-												}}
-												className="mt-4 sm:mt-6 border-t border-gray-100 pt-4 sm:pt-6"
-											>
-												<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-													<div className="space-y-2 sm:space-y-3">
-														<p className="flex items-center gap-2">
-															<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																<Hash className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
-																ID:
-															</span>
-															<span className="text-gray-600 text-sm">
-																{release._id}
-															</span>
-														</p>
-														<p className="flex items-center gap-2">
-															<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																<Languages className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
-																Idioma:
-															</span>
-															<span className="text-gray-600 text-sm">
-																{release.language}
-															</span>
-														</p>
-														<p className="flex items-center gap-2">
-															<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																<Disc className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
-																Tipo:
-															</span>
-															<span className="text-gray-600 text-sm">
-																{release.kind}
-															</span>
-														</p>
+											{expandedRelease === release._id && (
+												<motion.div
+													initial={{ opacity: 0, height: 0 }}
+													animate={{ opacity: 1, height: 'auto' }}
+													exit={{ opacity: 0, height: 0 }}
+													transition={{
+														duration: 0.4,
+														ease: 'easeInOut',
+														height: {
+															duration: 0.5,
+															ease: [0.4, 0, 0.2, 1],
+														},
+													}}
+													className="mt-4 sm:mt-6 border-t border-gray-100 pt-4 sm:pt-6"
+												>
+													<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+														<div className="space-y-2 sm:space-y-3">
+															<p className="flex items-center gap-2">
+																<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
+																	<Hash className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
+																	ID:
+																</span>
+																<span className="text-gray-600 text-sm">
+																	{release._id}
+																</span>
+															</p>
+															<p className="flex items-center gap-2">
+																<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
+																	<Languages className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
+																	Idioma:
+																</span>
+																<span className="text-gray-600 text-sm">
+																	{release.language}
+																</span>
+															</p>
+															<p className="flex items-center gap-2">
+																<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
+																	<Disc className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
+																	Tipo:
+																</span>
+																<span className="text-gray-600 text-sm">
+																	{release.kind}
+																</span>
+															</p>
+														</div>
+														<div className="space-y-2 sm:space-y-3">
+															<p className="flex items-center gap-2">
+																<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
+																	<Globe className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
+																	Países:
+																</span>
+																<span className="text-gray-600 text-sm">
+																	{release.countries.join(', ')}
+																</span>
+															</p>
+															<p className="flex items-center gap-2">
+																<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
+																	<Disc className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
+																	Dolby Atmos:
+																</span>
+																<span className="text-gray-600 text-sm">
+																	{release.dolby_atmos ? (
+																		<span className="flex items-center gap-1 text-green-600">
+																			<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
+																			Sí
+																		</span>
+																	) : (
+																		<span className="flex items-center gap-1 text-red-500">
+																			<XCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
+																			No
+																		</span>
+																	)}
+																</span>
+															</p>
+															<p className="flex items-center gap-2">
+																<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
+																	<Archive className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
+																	Backcatalog:
+																</span>
+																<span className="text-gray-600 text-sm">
+																	{release.backcatalog ? (
+																		<span className="flex items-center gap-1 text-green-600">
+																			<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
+																			Sí
+																		</span>
+																	) : (
+																		<span className="flex items-center gap-1 text-red-500">
+																			<XCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
+																			No
+																		</span>
+																	)}
+																</span>
+															</p>
+														</div>
 													</div>
-													<div className="space-y-2 sm:space-y-3">
-														<p className="flex items-center gap-2">
-															<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																<Globe className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
-																Países:
-															</span>
-															<span className="text-gray-600 text-sm">
-																{release.countries.join(', ')}
-															</span>
-														</p>
-														<p className="flex items-center gap-2">
-															<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																<Disc className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
-																Dolby Atmos:
-															</span>
-															<span className="text-gray-600 text-sm">
-																{release.dolby_atmos ? (
-																	<span className="flex items-center gap-1 text-green-600">
-																		<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
-																		Sí
-																	</span>
-																) : (
-																	<span className="flex items-center gap-1 text-red-500">
-																		<XCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
-																		No
-																	</span>
-																)}
-															</span>
-														</p>
-														<p className="flex items-center gap-2">
-															<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																<Archive className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
-																Backcatalog:
-															</span>
-															<span className="text-gray-600 text-sm">
-																{release.backcatalog ? (
-																	<span className="flex items-center gap-1 text-green-600">
-																		<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
-																		Sí
-																	</span>
-																) : (
-																	<span className="flex items-center gap-1 text-red-500">
-																		<XCircle className="h-3 w-3 sm:h-4 sm:w-4" />{' '}
-																		No
-																	</span>
-																)}
-															</span>
-														</p>
-													</div>
-												</div>
 
-												<div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
-													<p className="font-medium text-gray-700 mb-2 flex items-center gap-2 text-sm">
-														<Users className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
-														Artistas
-													</p>
-													<div className="flex flex-wrap gap-2">
-														{release.artists.length > 0 ? (
-															release.artists.map(
-																(artist: any, index: number) => (
-																	<span
-																		key={`${release._id}-artist-${index}`}
-																		className="inline-flex items-center gap-2 bg-gray-50 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm"
-																	>
-																		<span className="text-xs bg-brand-light/10 text-brand-light px-1.5 sm:px-2 py-0.5 rounded-full">
-																			{artist.kind === 'main'
-																				? 'Principal'
-																				: artist.kind === 'featuring'
-																				? 'Featuring'
-																				: artist.kind === 'remixer'
-																				? 'Remixer'
-																				: artist.kind}
+													<div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
+														<p className="font-medium text-gray-700 mb-2 flex items-center gap-2 text-sm">
+															<Users className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />{' '}
+															Artistas
+														</p>
+														<div className="flex flex-wrap gap-2">
+															{release.artists.length > 0 ? (
+																release.artists.map(
+																	(artist: any, index: number) => (
+																		<span
+																			key={`${release._id}-artist-${index}`}
+																			className="inline-flex items-center gap-2 bg-gray-50 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm"
+																		>
+																			<span className="text-xs bg-brand-light/10 text-brand-light px-1.5 sm:px-2 py-0.5 rounded-full">
+																				{artist.kind === 'main'
+																					? 'Principal'
+																					: artist.kind === 'featuring'
+																					? 'Featuring'
+																					: artist.kind === 'remixer'
+																					? 'Remixer'
+																					: artist.kind}
+																			</span>
+																			<span className="text-gray-700">
+																				{artist.name}
+																			</span>
 																		</span>
-																		<span className="text-gray-700">
-																			{artist.name}
-																		</span>
-																	</span>
+																	)
 																)
-															)
-														) : (
-															<span className="text-sm text-gray-500">
-																No hay artistas asignados
-															</span>
-														)}
+															) : (
+																<span className="text-sm text-gray-500">
+																	No hay artistas asignados
+																</span>
+															)}
+														</div>
 													</div>
-												</div>
-											</motion.div>
-										)}
+												</motion.div>
+											)}
+										</div>
 									</div>
-								</div>
-							</motion.div>
-						))}
+								</motion.div>
+							))
+						) : (
+							<div className="col-span-full text-center py-8">
+								<p className="text-gray-500">No hay productos disponibles</p>
+							</div>
+						)}
 					</div>
 				)}
 			</div>

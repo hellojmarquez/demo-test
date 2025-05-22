@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-	siteUrl: process.env.URL || 'http://example.com',
+	siteUrl: process.env.NEXT_PUBLIC_URL || 'http://localhost:3000',
 	generateRobotsTxt: true,
 	generateIndexSitemap: true,
 	exclude: ['/api/*', '/admin/*'],

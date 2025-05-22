@@ -1,7 +1,7 @@
 // app/api/admin/updateUser/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import User from '@/models/UserModel';
+import { Admin } from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
 
@@ -42,19 +42,22 @@ export async function PUT(
 		console.log(params.id);
 
 		// Si hay una imagen en base64, convertirla a Buffer
-		if (body.picture && body.picture.base64) {
-			console.log('body.picture', body.picture);
-			body.picture = Buffer.from(body.picture.base64, 'base64');
+		if (body.picture && body.picture.startsWith('data:image')) {
+			// Remove the data URL prefix if present
+			body.picture = body.picture.replace(/^data:image\/\w+;base64,/, '');
 		}
 		if (body.password && body.password.length > 0) {
 			const hashedPassword = await encryptPassword(body.password);
 			body.password = hashedPassword;
 		}
+		console.log('body buffer', body);
 		await dbConnect();
-		const updatedUser = await User.findByIdAndUpdate(params.id, body, {
+		const updatedUser = await Admin.findByIdAndUpdate(params.id, body, {
 			new: true,
 			runValidators: true,
 		});
+
+		console.log('res', updatedUser);
 
 		if (!updatedUser) {
 			return NextResponse.json(

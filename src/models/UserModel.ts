@@ -57,7 +57,7 @@ const adminSchema = new mongoose.Schema({
 		default: ['admin'],
 	},
 	picture: {
-		type: mongoose.Schema.Types.Mixed,
+		type: String,
 		default: null,
 	},
 });

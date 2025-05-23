@@ -12,8 +12,6 @@ export async function GET(req: NextRequest) {
 			.select('-password')
 			.sort({ createdAt: -1 });
 
-		console.log('Publishers found:', publishers);
-
 		return NextResponse.json({
 			success: true,
 			data: publishers,

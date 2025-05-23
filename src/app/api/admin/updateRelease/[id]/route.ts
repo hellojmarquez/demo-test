@@ -32,6 +32,13 @@ export async function PUT(
 				{ status: 401 }
 			);
 		}
+		const release = await Release.findOne({ external_id: params.id });
+		if (!release) {
+			return NextResponse.json(
+				{ success: false, message: 'No se encontró el release' },
+				{ status: 404 }
+			);
+		}
 		const formData = await req.formData();
 		const data = formData.get('data');
 		const picture = formData.get('picture');
@@ -133,6 +140,7 @@ export async function PUT(
 
 				// Agregar el track creado al release
 				if (data.track) {
+					console.log('data.track', data.track);
 					releaseTrackMetadata.push({
 						title: data.track.name,
 						external_id: data.track.external_id,
@@ -142,8 +150,9 @@ export async function PUT(
 					const source_path = decodeURIComponent(
 						new URL(data.track.resource).pathname.slice(1)
 					);
-
+					console.log('source_path', source_path);
 					data.track.resource = source_path;
+					console.log('source_path', source_path);
 					data.track.id = data.track.extrernal_id;
 					fullNewTrackToApi.push(data.track);
 					delete data.track.id;
@@ -243,21 +252,28 @@ export async function PUT(
 					);
 
 					// Log de la respuesta para debug
-					const responseText = await trackResponse.text();
-					console.log('Respuesta edit del servidor:', responseText);
-
-					// Intentar parsear la respuesta como JSON
-					let trackResult;
-					try {
-						trackResult = JSON.parse(responseText);
-					} catch (e) {
-						console.error('Error al parsear la respuesta como JSON:', e);
-						throw new Error('Respuesta del servidor inválida');
+					const data = await trackResponse.json();
+					if (!data.success) {
+						throw new Error(data.message || 'Error al crear el track');
 					}
-
-					if (trackResult.success) {
-						console.log('Track creado exitosamente, agregando al release...');
-						releaseData.tracks.push(trackResult.track);
+					if (data.track) {
+						console.log('data.track', data.track);
+						releaseTrackMetadata.push({
+							title: data.track.name,
+							external_id: data.track.external_id,
+							mixName: data.track.mix_name,
+							resource: data.track.resource,
+						});
+						const source_path = decodeURIComponent(
+							new URL(data.track.resource).pathname.slice(1)
+						);
+						console.log('source_path', source_path);
+						data.track.resource = source_path;
+						console.log('source_path', source_path);
+						data.track.id = data.track.extrernal_id;
+						fullNewTrackToApi.push(data.track);
+						delete data.track.id;
+						fullNewTrackToBBDD.push(data.track);
 					}
 				} catch (error) {
 					console.error('Error al procesar track:', error);
@@ -344,50 +360,25 @@ export async function PUT(
 		}
 
 		// Mantener los tracks existentes y agregar los nuevos
+		console.log('release antes de ingresar tracks', releaseData);
 		releaseData.tracks = [...(releaseData.tracks || []), ...fullNewTrackToBBDD];
 
 		// Primero buscar el release por external_id
-		const release = await Release.findOne({ external_id: params.id });
-		if (!release) {
-			return NextResponse.json(
-				{ success: false, message: 'No se encontró el release' },
-				{ status: 404 }
-			);
-		}
-		// console.log('releaseData to api', releaseData);
-		// Preparar los datos para la API externa
-		const apiReleaseData = {
-			...releaseData,
-			tracks: fullNewTrackToApi                                                                                                         ,
-		};
-		console.log('apiReleaseData', apiReleaseData);
+
 		// Preparar los datos para la base de datos
 		const dbReleaseData = {
 			...releaseData,
+
 			tracks: [...(release.tracks || []), ...releaseTrackMetadata],
 		};
-		// console.log('dbReleaseData', dbReleaseData);
-
-		// Llamar a la API externa con la estructura completa
-		const externalApiRes = await fetch(
-			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
-			{
-				method: 'PUT',
-				body: JSON.stringify(apiReleaseData),
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-			}
-		);
-		const externalApiResJson = await externalApiRes.json();
-		console.log('edit release externalApiRes', externalApiResJson);
+		delete dbReleaseData._id;
+		delete dbReleaseData.editedTracks;
+		delete dbReleaseData.newTracks;
+		delete dbReleaseData.newArtists;
 
 		// Actualiza   r la base de datos con la estructura simplificada
-		const updatedRelease = await Release.findByIdAndUpdate(
-			release._id,
+		const updatedRelease = await Release.findOneAndUpdate(
+			{ external_id: params.id },
 			{ $set: dbReleaseData },
 			{ new: true, runValidators: true }
 		);
@@ -398,6 +389,49 @@ export async function PUT(
 				{ status: 500 }
 			);
 		}
+		await Promise.all(
+			release.tracks.map(async (track: any) => {
+				const foundTrack = await SingleTrack.findOne({
+					external_id: track.external_id,
+				});
+				if (foundTrack) {
+					// Modificar el resource usando URL
+					if (foundTrack.resource) {
+						const url = new URL(foundTrack.resource);
+						foundTrack.resource = url.pathname;
+					}
+					delete foundTrack._id;
+					delete foundTrack._v;
+					delete foundTrack.createdAt;
+					delete foundTrack.updatedAt;
+					fullNewTrackToApi.push(foundTrack);
+				}
+			})
+		);
+		const dataToApi = {
+			...releaseData,
+			tracks: fullNewTrackToApi,
+		};
+		delete dataToApi.newTracks;
+		delete dataToApi.editedTracks;
+		delete dataToApi.newArtists;
+		console.log('dataToApi', dataToApi);
+		// Llamar a la API externa con la estructura completa
+		const externalApiRes = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+			{
+				method: 'PUT',
+				body: JSON.stringify(dataToApi),
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const externalApiResJson = await externalApiRes.json();
+		console.log('externalApiResJson', externalApiResJson);
 
 		return NextResponse.json({
 			success: true,

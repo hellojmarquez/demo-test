@@ -36,7 +36,7 @@ export async function PUT(
 		}
 		await dbConnect();
 		const trackId = params.id;
-		console.log('trackId', trackId);
+		console.log('trackId recibido', trackId);
 		let track_url = '';
 
 		// Get the current track first
@@ -186,9 +186,9 @@ export async function PUT(
 			}
 		);
 		const apires = await trackToApi.json();
-		console.log('apires updateSingle', apires);
+
 		if (!apires.ok) {
-			console.error('Error al actualizar el track:', apires);
+			console.error(`Error al actualizar el track: ${trackId}`, apires);
 			return NextResponse.json(
 				{ success: false, error: trackToApi },
 				{ status: 500 }
@@ -201,15 +201,15 @@ export async function PUT(
 			trackData,
 			{ new: true }
 		);
-		console.log('updatedTrack', updatedTrack);
+
 		return NextResponse.json({
 			success: true,
-			// track: {
-			// 	external_id: updatedTrack?.external_id,
-			// 	resource: updatedTrack?.resource,
-			// 	title: updatedTrack?.name,
-			// 	mixName: updatedTrack?.mix_name,
-			// },
+			track: {
+				external_id: updatedTrack?.external_id,
+				resource: updatedTrack?.resource,
+				title: updatedTrack?.name,
+				mixName: updatedTrack?.mix_name,
+			},
 		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);

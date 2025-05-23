@@ -8,8 +8,6 @@ export async function GET(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
-	console.log('get trackbyid received, id:', params.id);
-
 	try {
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
@@ -36,14 +34,10 @@ export async function GET(
 		await dbConnect();
 		const externalId = params.id;
 
-		console.log('Buscando track con external_id:', externalId);
-
 		// Buscar el track por external_id
 		const track = await SingleTrack.findOne({ external_id: externalId })
 			.select('+genre +subgenre') // Forzar la inclusión de estos campos
 			.lean();
-
-		console.log('Resultado de la búsqueda:', track);
 
 		if (!track) {
 			return NextResponse.json(

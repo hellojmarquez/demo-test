@@ -1280,7 +1280,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 															publishers?.find(
 																p =>
 																	p.external_id ===
-																	track.publishers[0].publisher
+																	track?.publishers?.[0]?.publisher
 															)?.name || '',
 												  }
 												: null

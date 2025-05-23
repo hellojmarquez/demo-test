@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
 			if (data) {
 				trackData = JSON.parse(data);
-				console.log('trackData1', trackData);
+				console.log('track recibido en create single', trackData);
 
 				if (file) {
 					console.log('ACTUALIZANDO TRAck');
@@ -140,7 +140,6 @@ export async function POST(req: NextRequest) {
 			dataToapi.contributors = [];
 		}
 
-		console.log('dataToapi22', dataToapi);
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {

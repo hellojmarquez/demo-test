@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 export async function GET(req: NextRequest) {
-	console.log('get contributor roles received');
+	console.log('DISTRIBUTE');
 
 	try {
 		// Obtener el token
@@ -30,19 +30,27 @@ export async function GET(req: NextRequest) {
 			);
 		}
 
-		const genresRes = await fetch(`${process.env.MOVEMUSIC_API}/genres`, {
-			headers: {
-				Authorization: `JWT ${moveMusicAccessToken}`,
-				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-				Referer: process.env.MOVEMUSIC_REFERER || '',
-			},
-		});
+		const releasesRes = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/update-status`,
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+				body: JSON.stringify({
+					id: 814,
+					action: 'distribute',
+				}),
+			}
+		);
 
-		const genresData = await genresRes.json();
-
+		const releasesApi = await releasesRes.json();
+		console.log('releasesApi: ', releasesApi);
 		return NextResponse.json({
 			success: true,
-			data: genresData.results,
 		});
 	} catch (error) {
 		console.error('Error fetching contributor generos:');

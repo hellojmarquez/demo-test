@@ -169,28 +169,78 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const baseSelectStyles = {
 		control: (base: any, state: any) => ({
 			...base,
-			backgroundColor: 'white',
-			borderColor: state.isFocused ? '#4F46E5' : '#E5E7EB',
-			boxShadow: state.isFocused ? '0 0 0 1px #4F46E5' : 'none',
+			backgroundColor: 'transparent',
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			minHeight: '38px',
 			'&:hover': {
-				borderColor: '#4F46E5',
+				borderBottom: '2px solid #4B5563',
+			},
+			'&:focus-within': {
+				borderBottom: '2px solid #4B5563',
+				boxShadow: 'none',
 			},
 		}),
 		option: (base: any, state: any) => ({
 			...base,
 			backgroundColor: state.isSelected
-				? '#4F46E5'
+				? '#4B5563'
 				: state.isFocused
-				? '#EEF2FF'
+				? '#F3F4F6'
 				: 'white',
 			color: state.isSelected ? 'white' : '#1F2937',
+			cursor: 'pointer',
 			'&:hover': {
-				backgroundColor: state.isSelected ? '#4F46E5' : '#EEF2FF',
+				backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
 			},
 		}),
 		menu: (base: any) => ({
 			...base,
 			zIndex: 9999,
+			backgroundColor: 'white',
+			borderRadius: '0.375rem',
+			boxShadow:
+				'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+		}),
+		menuList: (base: any) => ({
+			...base,
+			padding: '0.5rem 0',
+		}),
+		indicatorSeparator: () => ({
+			display: 'none',
+		}),
+		dropdownIndicator: (base: any) => ({
+			...base,
+			color: '#9CA3AF',
+			'&:hover': {
+				color: '#4B5563',
+			},
+		}),
+		clearIndicator: (base: any) => ({
+			...base,
+			color: '#9CA3AF',
+			'&:hover': {
+				color: '#4B5563',
+			},
+		}),
+		valueContainer: (base: any) => ({
+			...base,
+			padding: '0 0.5rem',
+		}),
+		input: (base: any) => ({
+			...base,
+			margin: 0,
+			padding: 0,
+		}),
+		placeholder: (base: any) => ({
+			...base,
+			color: '#9CA3AF',
+		}),
+		singleValue: (base: any) => ({
+			...base,
+			color: '#1F2937',
 		}),
 	};
 
@@ -217,38 +267,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 	// Add a custom select wrapper style
 	const selectWrapperStyles = 'relative';
-
-	// Styles for react-select components
-	const reactSelectStyles = {
-		control: (base: any) => ({
-			...base,
-			border: 'none',
-			borderBottom: '2px solid #E5E7EB',
-			borderRadius: '0',
-			boxShadow: 'none',
-			'&:hover': {
-				borderBottom: '2px solid #4B5563',
-			},
-		}),
-		option: (base: any, state: any) => ({
-			...base,
-			backgroundColor: state.isSelected
-				? '#4B5563' // brand-dark color
-				: state.isFocused
-				? '#F3F4F6'
-				: 'white',
-			color: state.isSelected ? 'white' : '#1F2937',
-			'&:hover': {
-				backgroundColor: state.isSelected
-					? '#4B5563' // brand-dark color
-					: '#F3F4F6',
-			},
-		}),
-		menu: (base: any) => ({
-			...base,
-			zIndex: 9999,
-		}),
-	};
 
 	// Obtener la lista de cuentas principales y subcuentas disponibles
 	useEffect(() => {

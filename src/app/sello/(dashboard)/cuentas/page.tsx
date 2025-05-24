@@ -229,22 +229,56 @@ export default function UsuariosPage() {
 		}
 	};
 
-	const handleContributorUpdate = () => {
-		// Recargar la lista de usuarios después de actualizar un contribuidor
-		const fetchUsers = async () => {
+	const handleContributorUpdate = async (updatedData: {
+		name: string;
+		email: string;
+		status: string;
+		password: string;
+	}) => {
+		try {
+			// Primero actualizamos el contribuidor
+			const updateResponse = await fetch(
+				`/api/admin/updateContributor/${selectedContributor?.external_id}`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(updatedData),
+				}
+			);
+
+			const updateData = await updateResponse.json();
+
+			if (!updateResponse.ok) {
+				throw new Error(
+					updateData.error || 'Error al actualizar el contribuidor'
+				);
+			}
+
+			// Si la actualización fue exitosa, recargamos la lista de usuarios
 			const res = await fetch(
 				`/api/admin/getAllUsers?page=${currentPage}${
 					searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
-				}`
+				}&sort=${sortBy}`
 			);
 			const data = await res.json();
 			if (data.success) {
 				setUsers(data.data.users);
 				setTotalPages(data.data.pagination.totalPages);
 				setTotalItems(data.data.pagination.total);
+				toast.success('Contribuidor actualizado con éxito');
+			} else {
+				throw new Error(data.error || 'Error al recargar la lista de usuarios');
 			}
-		};
-		fetchUsers();
+		} catch (error) {
+			console.error('Error updating contributor:', error);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: 'Error al actualizar el contribuidor'
+			);
+		}
 	};
 
 	const handlePublisherUpdate = () => {
@@ -637,6 +671,12 @@ export default function UsuariosPage() {
 								? Number(selectedContributor.external_id)
 								: 0,
 							name: selectedContributor.name,
+							email: selectedContributor.email,
+							status:
+								selectedContributor.status === 'inactive' ||
+								selectedContributor.status === 'banned'
+									? selectedContributor.status
+									: 'active',
 						}}
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}

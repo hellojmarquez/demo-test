@@ -3,15 +3,23 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, XCircle } from 'lucide-react';
+import { X, Save, XCircle, AlertTriangle } from 'lucide-react';
+import Select from 'react-select';
 
 interface UpdateContributorModalProps {
 	contributor: {
 		id: string;
 		external_id: number;
 		name: string;
+		email: string;
+		status: 'active' | 'inactive' | 'banned';
 	};
-	onUpdate: () => void;
+	onUpdate: (data: {
+		name: string;
+		email: string;
+		status: string;
+		password: string;
+	}) => void;
 	isOpen: boolean;
 	onClose: () => void;
 }
@@ -23,14 +31,51 @@ export function UpdateContributorModal({
 	onClose,
 }: UpdateContributorModalProps) {
 	const [name, setName] = useState(contributor.name);
+	const [email, setEmail] = useState(contributor.email);
+	const [status, setStatus] = useState(contributor.status);
+	const [password, setPassword] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
-	// Actualizar el nombre cuando cambia el contribuidor
+	const statusOptions = [
+		{ value: 'active', label: 'Activo' },
+		{ value: 'inactive', label: 'Inactivo' },
+		{ value: 'banned', label: 'Banneado' },
+	];
+
+	const customStyles = {
+		control: (base: any) => ({
+			...base,
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			backgroundColor: 'transparent',
+			'&:hover': {
+				borderBottom: '2px solid #4B5563',
+			},
+		}),
+		option: (base: any, state: { isSelected: boolean }) => ({
+			...base,
+			backgroundColor: state.isSelected ? '#E5E7EB' : 'white',
+			color: '#1F2937',
+			'&:hover': {
+				backgroundColor: '#F3F4F6',
+			},
+		}),
+		singleValue: (base: any) => ({
+			...base,
+			color: '#1F2937',
+		}),
+	};
+
+	// Actualizar el nombre, email y estado cuando cambia el contribuidor
 	useEffect(() => {
 		setName(contributor.name);
+		setEmail(contributor.email);
+		setStatus(contributor.status);
 	}, [contributor]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -38,26 +83,8 @@ export function UpdateContributorModal({
 		setIsLoading(true);
 
 		try {
-			const response = await fetch(
-				`/api/admin/updateContributor/${contributor.external_id}`,
-				{
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ name }),
-				}
-			);
-
-			const data = await response.json();
-
-			if (!response.ok) {
-				throw new Error(data.error || 'Error al actualizar el contribuidor');
-			}
-
-			toast.success('Contribuidor actualizado con éxito');
+			onUpdate({ name, email, status, password });
 			onClose();
-			onUpdate();
 		} catch (error) {
 			console.error('Error updating contributor:', error);
 			toast.error(
@@ -118,6 +145,74 @@ export function UpdateContributorModal({
 										className={inputStyles}
 										required
 									/>
+								</div>
+								<div>
+									<label
+										htmlFor="email"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
+										Email
+									</label>
+									<input
+										type="email"
+										id="email"
+										name="email"
+										value={email}
+										onChange={e => setEmail(e.target.value)}
+										className={inputStyles}
+										required
+									/>
+								</div>
+								<div>
+									<label
+										htmlFor="password"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
+										Contraseña
+									</label>
+									<input
+										type="password"
+										id="password"
+										name="password"
+										value={password}
+										onChange={e => setPassword(e.target.value)}
+										className={inputStyles}
+										placeholder="Dejar en blanco para mantener la contraseña actual"
+									/>
+								</div>
+								<div>
+									<label
+										htmlFor="status"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
+										Estado
+									</label>
+									<Select
+										id="status"
+										value={statusOptions.find(
+											option => option.value === status
+										)}
+										onChange={option =>
+											setStatus(
+												option?.value as 'active' | 'inactive' | 'banned'
+											)
+										}
+										options={statusOptions}
+										styles={customStyles}
+										isSearchable={false}
+										placeholder="Seleccionar estado"
+									/>
+									{status === 'banned' && (
+										<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+											<AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+											<p className="text-sm text-red-700">
+												Si realiza esa acción este usuario{' '}
+												<span className="font-semibold">
+													no podrá acceder al sitio web
+												</span>
+											</p>
+										</div>
+									)}
 								</div>
 							</div>
 

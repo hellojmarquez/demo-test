@@ -44,10 +44,9 @@ export async function POST(req: NextRequest) {
 
 			if (data) {
 				trackData = JSON.parse(data);
-				console.log('track recibido en create single', trackData);
 
 				if (file) {
-					console.log('ACTUALIZANDO TRAck');
+					console.log('CREANDO TRAck');
 					const uploadTrackReq = await fetch(
 						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
 						{
@@ -114,7 +113,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-
+		console.log('TRACK RECIBIDO EN CREATE SINGLE', trackData);
 		trackData.resource = picture_path;
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 
@@ -152,18 +151,17 @@ export async function POST(req: NextRequest) {
 		});
 
 		const trackRes = await trackReq.json();
-		console.log('trackRes de api', trackRes);
+		console.log('TRACK CREADO EN API', trackRes);
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;
-		console.log('createsingle api ', trackRes);
-
+		console.log('TRACK DATA PARA CREAR EN BBDD', trackData);
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
 		console.log('createTrack MONGO', createTrack);
 		return NextResponse.json({
 			success: true,
-			track: createTrack,
+			track: trackData,
 		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);

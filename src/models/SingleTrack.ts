@@ -18,6 +18,7 @@ const PublisherSchema = new mongoose.Schema(
 		publisher: { type: Number, required: true },
 		author: { type: String, required: true },
 		order: { type: Number, required: true },
+		name: { type: String, required: true },
 	},
 	{ _id: false }
 );
@@ -25,10 +26,11 @@ const PublisherSchema = new mongoose.Schema(
 // Esquema para cada contributor asociado
 const ContributorSchema = new mongoose.Schema(
 	{
-		external_id: { type: Number, required: false },
-		name: { type: String, required: true },
+		contributor: { type: Number, required: true },
 		role: { type: Number, required: true },
 		order: { type: Number, required: true },
+		name: { type: String, required: true },
+		role_name: { type: String, required: true },
 	},
 	{ _id: false }
 );

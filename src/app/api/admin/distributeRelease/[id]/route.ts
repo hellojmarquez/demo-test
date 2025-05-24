@@ -59,6 +59,7 @@ export async function POST(
 
 		const distributeRes = await distributeReq.json();
 		if (distributeRes.error) {
+			console.log('distribute ERROR', distributeRes);
 			return NextResponse.json(
 				{
 					success: false,

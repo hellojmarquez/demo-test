@@ -140,7 +140,6 @@ export async function PUT(
 
 				// Agregar el track creado al release
 				if (data.track) {
-					console.log('data.track', data.track);
 					releaseTrackMetadata.push({
 						title: data.track.name,
 						external_id: data.track.external_id,
@@ -150,10 +149,11 @@ export async function PUT(
 					const source_path = decodeURIComponent(
 						new URL(data.track.resource).pathname.slice(1)
 					);
-					console.log('source_path', source_path);
+
 					data.track.resource = source_path;
-					console.log('source_path', source_path);
+
 					data.track.id = data.track.extrernal_id;
+					delete data.track.external_id;
 					fullNewTrackToApi.push(data.track);
 					delete data.track.id;
 					fullNewTrackToBBDD.push(data.track);
@@ -164,6 +164,7 @@ export async function PUT(
 		// Procesar los edited tracks
 		if (releaseData.editedTracks && releaseData.editedTracks.length > 0) {
 			for (const track of releaseData.editedTracks) {
+				console.log('TRACK TO EDIT', track);
 				try {
 					const trackFormData = new FormData();
 
@@ -230,9 +231,10 @@ export async function PUT(
 						sample_start: track.sample_start || '',
 						explicit_content: track.explicit_content || false,
 						ISRC: track.ISRC || '',
-						generate_isrc: track.generate_isrc || false,
+						generate_isrc: track.generate_isrc || true,
 						DA_ISRC: track.DA_ISRC || '',
 						track_lenght: track.track_lenght || '',
+						external_id: track.external_id || 0,
 					};
 
 					trackFormData.append('data', JSON.stringify(trackData));
@@ -257,7 +259,6 @@ export async function PUT(
 						throw new Error(data.message || 'Error al crear el track');
 					}
 					if (data.track) {
-						console.log('data.track', data.track);
 						releaseTrackMetadata.push({
 							title: data.track.name,
 							external_id: data.track.external_id,
@@ -267,9 +268,9 @@ export async function PUT(
 						const source_path = decodeURIComponent(
 							new URL(data.track.resource).pathname.slice(1)
 						);
-						console.log('source_path', source_path);
+
 						data.track.resource = source_path;
-						console.log('source_path', source_path);
+
 						data.track.id = data.track.extrernal_id;
 						fullNewTrackToApi.push(data.track);
 						delete data.track.id;
@@ -360,7 +361,7 @@ export async function PUT(
 		}
 
 		// Mantener los tracks existentes y agregar los nuevos
-		console.log('release antes de ingresar tracks', releaseData);
+
 		releaseData.tracks = [...(releaseData.tracks || []), ...fullNewTrackToBBDD];
 
 		// Primero buscar el release por external_id
@@ -371,6 +372,7 @@ export async function PUT(
 
 			tracks: [...(release.tracks || []), ...releaseTrackMetadata],
 		};
+
 		delete dbReleaseData._id;
 		delete dbReleaseData.editedTracks;
 		delete dbReleaseData.newTracks;
@@ -383,25 +385,27 @@ export async function PUT(
 			{ new: true, runValidators: true }
 		);
 
-		if (!updatedRelease) {
-			return NextResponse.json(
-				{ success: false, message: 'Error al actualizar el release' },
-				{ status: 500 }
-			);
-		}
+		// if (!updatedRelease) {
+		// 	return NextResponse.json(
+		// 		{ success: false, message: 'Error al actualizar el release' },
+		// 		{ status: 500 }
+		// 	);
+		// }
 		await Promise.all(
 			release.tracks.map(async (track: any) => {
-				const foundTrack = await SingleTrack.findOne({
+				let foundTrack = await SingleTrack.findOne({
 					external_id: track.external_id,
 				});
 				if (foundTrack) {
+					foundTrack = foundTrack.toObject();
 					// Modificar el resource usando URL
 					if (foundTrack.resource) {
 						const url = new URL(foundTrack.resource);
 						foundTrack.resource = url.pathname;
 					}
+					foundTrack.release = release.external_id;
 					delete foundTrack._id;
-					delete foundTrack._v;
+					delete foundTrack.__v;
 					delete foundTrack.createdAt;
 					delete foundTrack.updatedAt;
 					fullNewTrackToApi.push(foundTrack);
@@ -415,35 +419,75 @@ export async function PUT(
 		delete dataToApi.newTracks;
 		delete dataToApi.editedTracks;
 		delete dataToApi.newArtists;
-		console.log('dataToApi', dataToApi);
-		// Llamar a la API externa con la estructura completa
-		const externalApiRes = await fetch(
-			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
-			{
-				method: 'PUT',
-				body: JSON.stringify(dataToApi),
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-			}
-		);
-		const externalApiResJson = await externalApiRes.json();
-		console.log('externalApiResJson', externalApiResJson);
-
-		return NextResponse.json({
-			success: true,
-			message: 'Release actualizado exitosamente',
-			// data: updatedRelease,
+		delete dataToApi._id;
+		delete dataToApi.__v;
+		delete dataToApi.external_id;
+		delete dataToApi.genre_name;
+		delete dataToApi.subgenre_name;
+		delete dataToApi.picture;
+		delete dataToApi.createdAt;
+		delete dataToApi.updatedAt;
+		dataToApi.artists.forEach((artist: any) => {
+			delete artist.name;
 		});
+		dataToApi.tracks = [];
+		// dataToApi.tracks.forEach((track: any) => {
+		// 	delete track.external_id;
+		// 	delete track.status;
+		// 	delete track.genre_name;
+		// 	delete track.subgenre_name;
+		// });
+
+		// Llamar a la API externa con la estructura completa
+		try {
+			const externalApiRes = await fetch(
+				`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+				{
+					method: 'PUT',
+					body: JSON.stringify(dataToApi),
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `JWT ${moveMusicAccessToken}`,
+						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+						Referer: process.env.MOVEMUSIC_REFERER || '',
+					},
+				}
+			);
+
+			if (!externalApiRes.ok) {
+				const errorText = await externalApiRes.text();
+				console.error('API Error Response:', {
+					status: externalApiRes.status,
+					statusText: externalApiRes.statusText,
+					body: errorText,
+				});
+				throw new Error(
+					`API responded with status ${externalApiRes.status}: ${errorText}`
+				);
+			}
+
+			const externalApiResJson = await externalApiRes.json();
+
+			return NextResponse.json({
+				success: true,
+				message: 'Release actualizado exitosamente',
+			});
+		} catch (apiError: any) {
+			console.error('Error en llamada a API externa:', apiError);
+			return NextResponse.json(
+				{
+					success: false,
+					message: `Error en API externa: ${apiError.message}`,
+				},
+				{ status: 500 }
+			);
+		}
 	} catch (error: any) {
-		console.error('Error al actualizar el release:', error);
+		console.error('Error al actualizar el:', error);
 		return NextResponse.json(
 			{
 				success: false,
-				message: error.message || 'Error al actualizar el release',
+				message: error.message || 'Error al actualizar ',
 			},
 			{ status: 500 }
 		);

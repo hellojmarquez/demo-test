@@ -101,6 +101,9 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					name: asset.title,
 					mix_name: asset.mixName,
 					resource: asset.file,
+					release: releaseId,
+					language: 'ES',
+					vocals: 'ES',
 					artists: [
 						{
 							artist: 1541,
@@ -112,7 +115,8 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					publishers: [
 						{
 							order: 3,
-							publisher: 70,
+							publisher: 194,
+							name: 'ISLA SOUNDS',
 							author: 'Juan Cisneros',
 						},
 					],
@@ -123,10 +127,12 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 							role: 2,
 						},
 					],
-					generate_isrc: true,
-					copyright_holder: 'Isla Sounds',
+					label_share: '50',
+					copyright_holder: 'ISLA SOUNDS',
 					copyright_holder_year: '2025',
-					ISRC: '',
+					generate_isrc: true,
+
+					dolby_atmos_resource: '',
 					DA_ISRC: '',
 					genre: 3,
 					genre_name: 'Alternative',
@@ -134,7 +140,8 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					subgenre_name: 'Alternative',
 					album_only: false,
 					explicit_content: false,
-					track_lenght: '',
+					track_lenght: '00:03:00',
+					sample_start: '00:00:00',
 					status: 'Borrador',
 				};
 

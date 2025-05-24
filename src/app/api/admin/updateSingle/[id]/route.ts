@@ -2,8 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SingleTrack from '@/models/SingleTrack';
-import Release from '@/models/ReleaseModel';
-import mongoose from 'mongoose';
 import { jwtVerify } from 'jose';
 
 export async function PUT(
@@ -172,6 +170,7 @@ export async function PUT(
 				{ status: 400 }
 			);
 		}
+		console.log('UPDATESINGLE RECIBIDO', trackData);
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackId}`,
 			{
@@ -186,7 +185,7 @@ export async function PUT(
 			}
 		);
 		const apires = await trackToApi.json();
-
+		console.log('TRACK ACTUALIZADO EN API', apires);
 		if (!apires.ok) {
 			console.error(`Error al actualizar el track: ${trackId}`, apires);
 			return NextResponse.json(

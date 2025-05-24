@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Sello from '@/models/SelloModel';
+import User from '@/models/UserModel';
 import mongoose from 'mongoose';
 
 export async function DELETE(
@@ -26,7 +26,7 @@ export async function DELETE(
 
 		await dbConnect();
 
-		const deletedSello = await Sello.findByIdAndDelete(id);
+		const deletedSello = await User.findByIdAndDelete(id);
 
 		if (!deletedSello) {
 			return NextResponse.json(

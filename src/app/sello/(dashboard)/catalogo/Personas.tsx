@@ -851,12 +851,16 @@ const Personas = () => {
 						sello={{
 							_id: selectedSello._id,
 							name: selectedSello.name,
+							email: selectedSello.email || '',
+							password: selectedSello.password || '',
+							role: 'sello',
 							picture: selectedSello.picture || undefined,
 							catalog_num: selectedSello.catalog_num || 0,
 							year: selectedSello.year || 0,
 							status: (selectedSello.status || 'active') as
 								| 'active'
-								| 'inactive',
+								| 'inactive'
+								| 'banned',
 							contract_received: selectedSello.contract_received || false,
 							information_accepted: selectedSello.information_accepted || false,
 							label_approved: selectedSello.label_approved || false,

@@ -27,6 +27,7 @@ import { Sello } from '@/types/sello';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import Select, { SingleValue } from 'react-select';
+import { StylesConfig } from 'react-select';
 
 interface UpdateSelloModalProps {
 	sello: Sello;
@@ -35,9 +36,46 @@ interface UpdateSelloModalProps {
 	onSave: (formData: FormData) => Promise<void>;
 }
 
-interface AccountOption {
+interface BaseOption {
 	value: string;
 	label: string;
+}
+
+interface AccountOption extends BaseOption {
+	value: 'principal' | 'subcuenta';
+}
+
+interface StatusOption extends BaseOption {
+	value: 'active' | 'inactive' | 'banned';
+}
+
+interface ParentAccountOption extends BaseOption {
+	value: string;
+}
+
+interface SubaccountOption extends BaseOption {
+	value: string;
+}
+
+interface ExclusivityOption extends BaseOption {
+	value: 'exclusivo' | 'no_exclusivo';
+}
+
+interface YearOption extends BaseOption {
+	value: string;
+}
+
+interface ArtistOption extends BaseOption {
+	value: string;
+}
+
+interface SelloFormData extends Sello {
+	tipo: 'principal' | 'subcuenta';
+	parentId: string | null;
+	subaccounts: Array<{ _id: string; name: string }>;
+	email: string;
+	password: string;
+	exclusivity: 'exclusivo' | 'no_exclusivo';
 }
 
 const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
@@ -57,7 +95,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		label: year.toString(),
 	}));
 
-	const [formData, setFormData] = useState<Sello>({
+	const [formData, setFormData] = useState<SelloFormData>({
 		...sello,
 		assigned_artists: sello.assigned_artists || [],
 		tipo: sello.tipo || 'principal',
@@ -65,6 +103,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		subaccounts: sello.subaccounts || [],
 		email: sello.email || '',
 		password: sello.password || '',
+		exclusivity: sello.exclusivity || 'no_exclusivo',
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
@@ -111,10 +150,69 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	});
 	const [currentLimit, setCurrentLimit] = useState<any>(null);
 
+	const statusOptions: StatusOption[] = [
+		{ value: 'active', label: 'Activo' },
+		{ value: 'inactive', label: 'Inactivo' },
+		{ value: 'banned', label: 'Baneado' },
+	];
+
+	const tipoOptions: AccountOption[] = [
+		{ value: 'principal', label: 'Cuenta Principal' },
+		{ value: 'subcuenta', label: 'Subcuenta' },
+	];
+
+	const exclusivityOptions: ExclusivityOption[] = [
+		{ value: 'exclusivo', label: 'Exclusivo' },
+		{ value: 'no_exclusivo', label: 'No Exclusivo' },
+	];
+
+	const baseSelectStyles = {
+		control: (base: any, state: any) => ({
+			...base,
+			backgroundColor: 'white',
+			borderColor: state.isFocused ? '#4F46E5' : '#E5E7EB',
+			boxShadow: state.isFocused ? '0 0 0 1px #4F46E5' : 'none',
+			'&:hover': {
+				borderColor: '#4F46E5',
+			},
+		}),
+		option: (base: any, state: any) => ({
+			...base,
+			backgroundColor: state.isSelected
+				? '#4F46E5'
+				: state.isFocused
+				? '#EEF2FF'
+				: 'white',
+			color: state.isSelected ? 'white' : '#1F2937',
+			'&:hover': {
+				backgroundColor: state.isSelected ? '#4F46E5' : '#EEF2FF',
+			},
+		}),
+		menu: (base: any) => ({
+			...base,
+			zIndex: 9999,
+		}),
+	};
+
+	const createSelectStyles = <T extends BaseOption>(): StylesConfig<
+		T,
+		false
+	> => ({
+		...baseSelectStyles,
+	});
+
+	const statusSelectStyles = createSelectStyles<StatusOption>();
+	const accountSelectStyles = createSelectStyles<AccountOption>();
+	const parentAccountSelectStyles = createSelectStyles<ParentAccountOption>();
+	const subaccountSelectStyles = createSelectStyles<SubaccountOption>();
+	const exclusivitySelectStyles = createSelectStyles<ExclusivityOption>();
+	const yearSelectStyles = createSelectStyles<YearOption>();
+	const artistSelectStyles = createSelectStyles<ArtistOption>();
+
 	// Update the input styles to accommodate icons
 	const inputStyles =
 		'w-full pl-10 pr-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
-	const selectStyles =
+	const selectInputStyles =
 		'w-full pl-10 pr-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
 
 	// Add a custom select wrapper style
@@ -711,46 +809,89 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 										</div>
 									</div>
 
-									<div>
-										<label
-											htmlFor="tipo"
-											className="block text-sm font-medium text-gray-700 mb-1"
-										>
-											Tipo de Cuenta
-										</label>
-										<Select<AccountOption>
-											id="tipo"
-											name="tipo"
-											value={{
-												value: formData.tipo,
-												label:
-													formData.tipo === 'principal'
-														? 'Cuenta Principal'
-														: 'Subcuenta',
-											}}
-											onChange={(
-												selectedOption: SingleValue<AccountOption>
-											) => {
-												if (selectedOption) {
-													handleChange({
-														target: {
-															name: 'tipo',
-															value: selectedOption.value,
-														},
-													} as any);
-												}
-											}}
-											options={[
-												{ value: 'principal', label: 'Cuenta Principal' },
-												{ value: 'subcuenta', label: 'Subcuenta' },
-											]}
-											className="react-select-container"
-											classNamePrefix="react-select"
-											styles={reactSelectStyles}
-										/>
-									</div>
-
 									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div>
+											<label
+												htmlFor="tipo"
+												className="block text-sm font-medium text-gray-700 mb-1"
+											>
+												Tipo de Cuenta
+											</label>
+											<div className="flex items-center gap-2">
+												<Building className="h-5 w-5 text-gray-400" />
+												<div className="flex-1">
+													<Select<AccountOption>
+														id="tipo"
+														value={tipoOptions.find(
+															option => option.value === formData.tipo
+														)}
+														onChange={(option: SingleValue<AccountOption>) => {
+															if (option) {
+																setFormData(prev => ({
+																	...prev,
+																	tipo: option.value,
+																}));
+															}
+														}}
+														options={tipoOptions}
+														placeholder="Seleccionar tipo de cuenta"
+														styles={accountSelectStyles}
+													/>
+												</div>
+											</div>
+										</div>
+
+										{formData.tipo === 'subcuenta' && (
+											<div className="flex items-center gap-2">
+												<Building className="h-5 w-5 text-gray-400" />
+												<div className="flex-1">
+													<label
+														htmlFor="parentId"
+														className="block text-sm font-medium text-gray-700 mb-1"
+													>
+														Cuenta Principal
+													</label>
+													<Select<ParentAccountOption>
+														id="parentId"
+														value={
+															formData.parentId
+																? {
+																		value: formData.parentId,
+																		label:
+																			parentAccounts.find(
+																				account =>
+																					account._id === formData.parentId
+																			)?.name || '',
+																  }
+																: undefined
+														}
+														onChange={(
+															option: SingleValue<ParentAccountOption>
+														) => {
+															if (option) {
+																setFormData(prev => ({
+																	...prev,
+																	parentId: option.value,
+																}));
+															} else {
+																setFormData(prev => ({
+																	...prev,
+																	parentId: null,
+																}));
+															}
+														}}
+														options={parentAccounts.map(account => ({
+															value: account._id,
+															label: account.name,
+														}))}
+														placeholder="Seleccionar cuenta principal"
+														isClearable
+														styles={parentAccountSelectStyles}
+													/>
+												</div>
+											</div>
+										)}
+
 										<div>
 											<label
 												htmlFor="email"
@@ -805,7 +946,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											<div className="flex items-center gap-2">
 												<Calendar className="h-4 w-4 text-gray-400" />
 												<div className="flex-1">
-													<Select<AccountOption>
+													<Select<YearOption>
 														id="year"
 														name="year"
 														value={{
@@ -813,7 +954,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 															label: formData.year.toString(),
 														}}
 														onChange={(
-															selectedOption: SingleValue<AccountOption>
+															selectedOption: SingleValue<YearOption>
 														) => {
 															if (selectedOption) {
 																handleChange({
@@ -827,7 +968,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 														options={years}
 														className="react-select-container"
 														classNamePrefix="react-select"
-														styles={reactSelectStyles}
+														styles={yearSelectStyles}
 													/>
 												</div>
 											</div>
@@ -841,96 +982,29 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 												Estado
 											</label>
 											<div className="flex items-center gap-2">
-												<UserRoundCheck className="h-4 w-4 text-gray-400" />
+												<UserRoundCheck className="h-5 w-5 text-gray-400" />
 												<div className="flex-1">
-													<Select<AccountOption>
+													<Select<StatusOption>
 														id="status"
-														name="status"
-														value={{
-															value: formData.status,
-															label:
-																formData.status === 'active'
-																	? 'Activo'
-																	: 'Inactivo',
-														}}
-														onChange={(
-															selectedOption: SingleValue<AccountOption>
-														) => {
-															if (selectedOption) {
-																handleChange({
-																	target: {
-																		name: 'status',
-																		value: selectedOption.value,
-																	},
-																} as any);
+														value={statusOptions.find(
+															option => option.value === formData.status
+														)}
+														onChange={option => {
+															if (option) {
+																setFormData(prev => ({
+																	...prev,
+																	status: option.value,
+																}));
 															}
 														}}
-														options={[
-															{ value: 'active', label: 'Activo' },
-															{ value: 'inactive', label: 'Inactivo' },
-														]}
-														className="react-select-container"
-														classNamePrefix="react-select"
-														styles={reactSelectStyles}
+														options={statusOptions}
+														placeholder="Seleccionar estado"
+														styles={statusSelectStyles}
 													/>
 												</div>
 											</div>
 										</div>
 									</div>
-
-									{formData.tipo === 'subcuenta' && (
-										<div>
-											<label
-												htmlFor="parentId"
-												className="block text-sm font-medium text-gray-700 mb-1"
-											>
-												Cuenta Principal
-											</label>
-											<Select<AccountOption>
-												id="parentId"
-												name="parentId"
-												value={
-													formData.parentId
-														? {
-																value: formData.parentId,
-																label:
-																	parentAccounts.find(
-																		account => account._id === formData.parentId
-																	)?.name || '',
-														  }
-														: undefined
-												}
-												onChange={(
-													selectedOption: SingleValue<AccountOption>
-												) => {
-													if (selectedOption) {
-														handleChange({
-															target: {
-																name: 'parentId',
-																value: selectedOption.value,
-															},
-														} as any);
-													} else {
-														handleChange({
-															target: {
-																name: 'parentId',
-																value: '',
-															},
-														} as any);
-													}
-												}}
-												options={parentAccounts.map(account => ({
-													value: account._id,
-													label: account.name,
-												}))}
-												placeholder="Seleccionar cuenta principal"
-												isClearable
-												className="react-select-container"
-												classNamePrefix="react-select"
-												styles={reactSelectStyles}
-											/>
-										</div>
-									)}
 								</div>
 
 								{/* Subaccounts Section */}
@@ -978,27 +1052,36 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 											{/* Add New Subaccount */}
 											<div className="flex gap-2">
-												<div className={selectWrapperStyles}>
-													<select
-														value={selectedSubaccount}
-														onChange={e =>
-															setSelectedSubaccount(e.target.value)
+												<div className="flex-1">
+													<Select<SubaccountOption>
+														value={
+															selectedSubaccount
+																? {
+																		value: selectedSubaccount,
+																		label:
+																			availableSubaccounts.find(
+																				sub => sub._id === selectedSubaccount
+																			)?.name || '',
+																  }
+																: undefined
 														}
-														className={selectStyles}
-													>
-														<option value="">Seleccionar subcuenta</option>
-														{availableSubaccounts.map(subaccount => (
-															<option
-																key={subaccount._id}
-																value={subaccount._id}
-															>
-																{subaccount.name}
-															</option>
-														))}
-													</select>
-													<div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
-														<ChevronDown className="h-4 w-4 text-brand-light" />
-													</div>
+														onChange={(
+															option: SingleValue<SubaccountOption>
+														) => {
+															if (option) {
+																setSelectedSubaccount(option.value);
+															} else {
+																setSelectedSubaccount('');
+															}
+														}}
+														options={availableSubaccounts.map(subaccount => ({
+															value: subaccount._id,
+															label: subaccount.name,
+														}))}
+														placeholder="Seleccionar subcuenta"
+														isClearable
+														styles={subaccountSelectStyles}
+													/>
 												</div>
 												<button
 													type="button"
@@ -1128,7 +1211,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 														<div className="flex items-center gap-2">
 															<User className="h-4 w-4 text-gray-400" />
 															<div className="flex-1">
-																<Select<AccountOption>
+																<Select<ArtistOption>
 																	value={
 																		newAsignacion.artista_id
 																			? {
@@ -1143,7 +1226,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 																			: null
 																	}
 																	onChange={(
-																		selectedOption: SingleValue<AccountOption>
+																		selectedOption: SingleValue<ArtistOption>
 																	) => {
 																		if (selectedOption) {
 																			setNewAsignacion(prev => ({
@@ -1165,7 +1248,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 																	isClearable
 																	className="react-select-container"
 																	classNamePrefix="react-select"
-																	styles={reactSelectStyles}
+																	styles={artistSelectStyles}
 																/>
 															</div>
 														</div>
@@ -1177,7 +1260,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 														<div className="flex items-center gap-2">
 															<FileText className="h-4 w-4 text-gray-400" />
 															<div className="flex-1">
-																<Select<AccountOption>
+																<Select<ExclusivityOption>
 																	value={{
 																		value: newAsignacion.tipo_contrato,
 																		label:
@@ -1187,14 +1270,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 																				: 'No Exclusivo',
 																	}}
 																	onChange={(
-																		selectedOption: SingleValue<AccountOption>
+																		selectedOption: SingleValue<ExclusivityOption>
 																	) => {
 																		if (selectedOption) {
 																			setNewAsignacion(prev => ({
 																				...prev,
-																				tipo_contrato: selectedOption.value as
-																					| 'exclusivo'
-																					| 'no_exclusivo',
+																				tipo_contrato: selectedOption.value,
 																			}));
 																		}
 																	}}
@@ -1207,7 +1288,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 																	]}
 																	className="react-select-container"
 																	classNamePrefix="react-select"
-																	styles={reactSelectStyles}
+																	styles={exclusivitySelectStyles}
 																/>
 															</div>
 														</div>

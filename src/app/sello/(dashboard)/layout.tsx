@@ -5,7 +5,7 @@ import AccountSelector from '@/components/AccountSelector';
 import AccountSwitchButton from '@/components/AccountSwitchButton';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
 	Menu,
@@ -26,6 +26,7 @@ export default function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
+	const router = useRouter();
 	const {
 		user,
 		loading,
@@ -48,6 +49,25 @@ export default function DashboardLayout({
 	};
 
 	const isAdmin = user?.role === 'admin';
+
+	const handleLogout = async () => {
+		try {
+			const response = await fetch('/api/auth/logout', {
+				method: 'POST',
+			});
+
+			if (response.ok) {
+				// Limpiar localStorage
+				localStorage.removeItem('user');
+				localStorage.removeItem('nextauth.message');
+
+				// Redirigir al login
+				router.push('/sello/login');
+			}
+		} catch (error) {
+			console.error('Error during logout:', error);
+		}
+	};
 
 	if (loading) {
 		return (
@@ -172,6 +192,13 @@ export default function DashboardLayout({
 										<span>Configuración</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
+									<button
+										onClick={handleLogout}
+										className="flex items-center p-2 text-white hover:text-gray-200 transition-colors"
+									>
+										<LogOut size={18} className="mr-2" />
+										<span>Cerrar Sesión</span>
+									</button>
 								</div>
 							</nav>
 
@@ -268,6 +295,13 @@ export default function DashboardLayout({
 											<Settings size={18} className="mr-2" />
 											<span>Configuración</span>
 										</Link>
+										<button
+											onClick={handleLogout}
+											className="flex items-center p-3 text-white hover:bg-brand-dark/80 transition-colors"
+										>
+											<LogOut size={18} className="mr-2" />
+											<span>Cerrar Sesión</span>
+										</button>
 									</div>
 								</div>
 							</nav>

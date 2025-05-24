@@ -569,6 +569,8 @@ export default function UsuariosPage() {
 												className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
 													user.status === 'active'
 														? 'bg-green-100 text-green-800'
+														: user.status === 'inactive'
+														? 'bg-gray-100 text-gray-400'
 														: 'bg-red-100 text-red-800'
 												}`}
 											>

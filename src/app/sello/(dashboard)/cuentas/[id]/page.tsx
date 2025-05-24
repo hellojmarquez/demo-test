@@ -555,6 +555,12 @@ export default function UsuariosPage() {
 								? Number(selectedContributor.external_id)
 								: 0,
 							name: selectedContributor.name,
+							email: selectedContributor.email || '',
+							status:
+								selectedContributor.status === 'inactive' ||
+								selectedContributor.status === 'banned'
+									? selectedContributor.status
+									: 'active',
 						}}
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}

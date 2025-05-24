@@ -1,15 +1,46 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
-import bcrypt from 'bcryptjs';
+import { encryptPassword } from '@/utils/auth';
+import { jwtVerify } from 'jose';
+
+interface UpdateData {
+	name: string;
+	email: string;
+	status: string;
+	updatedAt: Date;
+	password?: string;
+}
 
 export async function PUT(
-	request: Request,
+	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
 	try {
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
+		const token = req.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
 		const { id } = params;
-		const { name, email, status, password } = await request.json();
+		const { name, email, status, password } = await req.json();
 
 		if (!name || !email || !status) {
 			return NextResponse.json(
@@ -47,7 +78,13 @@ export async function PUT(
 		}
 
 		// Preparar los datos de actualización
-		const updateData: any = {
+		const updateDataToApi = {
+			name,
+			email,
+		};
+
+		// Preparar datos para la base de datos
+		const updatedDataToDDBB: UpdateData = {
 			name,
 			email,
 			status,
@@ -56,28 +93,59 @@ export async function PUT(
 
 		// Si se proporcionó una nueva contraseña, hashearla y agregarla
 		if (password) {
-			const hashedPassword = await bcrypt.hash(password, 10);
-			updateData.password = hashedPassword;
+			const hashedPassword = await encryptPassword(password);
+			updatedDataToDDBB.password = hashedPassword;
 		}
 
-		// Actualizar el contribuidor usando external_id
-		const updatedContributor = await User.findOneAndUpdate(
-			{ external_id: id },
-			{ $set: updateData },
-			{ new: true }
-		);
+		// Llamar a la API externa con la estructura completa
+		try {
+			const externalApiRes = await fetch(
+				`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+				{
+					method: 'PUT',
+					body: JSON.stringify(updateDataToApi),
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `JWT ${moveMusicAccessToken}`,
+						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+						Referer: process.env.MOVEMUSIC_REFERER || '',
+					},
+				}
+			);
 
-		if (!updatedContributor) {
+			if (!externalApiRes.ok) {
+				const errorText = await externalApiRes.text();
+				console.error('API Error Response:', {
+					status: externalApiRes.status,
+					statusText: externalApiRes.statusText,
+					body: errorText,
+				});
+				throw new Error(
+					`API responded with status ${externalApiRes.status}: ${errorText}`
+				);
+			}
+
+			// Actualizar el contribuidor usando external_id
+			const updatedContributor = await User.findOneAndUpdate(
+				{ external_id: id },
+				{ $set: updatedDataToDDBB },
+				{ new: true }
+			);
+
+			return NextResponse.json({
+				success: true,
+				message: 'Contribuidor actualizado exitosamente',
+			});
+		} catch (apiError: any) {
+			console.error('Error en llamada a API externa:', apiError);
 			return NextResponse.json(
-				{ error: 'Contribuidor no encontrado' },
-				{ status: 404 }
+				{
+					success: false,
+					message: `Error en API externa: ${apiError.message}`,
+				},
+				{ status: 500 }
 			);
 		}
-
-		return NextResponse.json({
-			success: true,
-			message: 'Contribuidor actualizado con éxito',
-		});
 	} catch (error) {
 		console.error('Error updating contributor:', error);
 		return NextResponse.json(

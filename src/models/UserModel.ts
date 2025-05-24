@@ -127,21 +127,32 @@ const publisherSchema = new mongoose.Schema({
 	},
 });
 
-// Crear el modelo base solo si no existe
-const User =
-	mongoose.models.User || mongoose.model<IUser>('User', baseUserSchema);
+// Función para inicializar los modelos
+function initializeModels() {
+	// Crear el modelo base solo si no existe
+	const User =
+		mongoose.models.User || mongoose.model<IUser>('User', baseUserSchema);
 
-// Crear los discriminadores solo si no existen
-const Admin = mongoose.models.admin || User.discriminator('admin', adminSchema);
-const Sello = mongoose.models.sello || User.discriminator('sello', selloSchema);
-const Artista =
-	mongoose.models.artista || User.discriminator('artista', artistSchema);
-const Contributor =
-	mongoose.models.contributor ||
-	User.discriminator('contributor', contributorSchema);
-const Publisher =
-	mongoose.models.publisher ||
-	User.discriminator('publisher', publisherSchema, 'publisher');
+	// Crear los discriminadores solo si no existen
+	const Admin =
+		mongoose.models.admin || User.discriminator('admin', adminSchema);
+	const Sello =
+		mongoose.models.sello || User.discriminator('sello', selloSchema);
+	const Artista =
+		mongoose.models.artista || User.discriminator('artista', artistSchema);
+	const Contributor =
+		mongoose.models.contributor ||
+		User.discriminator('contributor', contributorSchema);
+	const Publisher =
+		mongoose.models.publisher ||
+		User.discriminator('publisher', publisherSchema, 'publisher');
+
+	return { User, Admin, Sello, Artista, Contributor, Publisher };
+}
+
+// Inicializar los modelos
+const { User, Admin, Sello, Artista, Contributor, Publisher } =
+	initializeModels();
 
 export { User, Admin, Sello, Artista, Contributor, Publisher };
 export default User;

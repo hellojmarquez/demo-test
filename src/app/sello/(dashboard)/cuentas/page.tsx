@@ -40,6 +40,7 @@ interface User {
 	assigned_artists?: string[];
 	createdAt?: string;
 	updatedAt?: string;
+
 	external_id?: string | number;
 	type: string;
 	[key: string]: any;

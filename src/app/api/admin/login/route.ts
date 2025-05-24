@@ -24,6 +24,65 @@ export async function POST(req: NextRequest) {
 				{ status: 404 }
 			);
 		}
+
+		// Verificar si el usuario está baneado
+		if (userDB.status === 'banned') {
+			const response = NextResponse.json(
+				{
+					error: 'banned',
+					message: 'Tu cuenta ha sido bloqueada',
+				},
+				{ status: 403 }
+			);
+
+			// Borrar todas las cookies excepto loginToken
+			const cookiesToDelete = [
+				'accessToken',
+				'next-auth.callback-url',
+				'next-auth.csrf-token',
+				'refreshToken',
+				'userId',
+			];
+
+			cookiesToDelete.forEach(cookieName => {
+				response.cookies.set({
+					name: cookieName,
+					value: '',
+					expires: new Date(0),
+					path: '/',
+				});
+			});
+
+			// Generar token con status banned
+			const token = await new SignJWT({
+				role: userDB.role,
+				email: userDB.email,
+				id: userDB._id,
+				status: 'banned',
+			})
+				.setProtectedHeader({ alg: 'HS256' })
+				.setIssuedAt()
+				.setExpirationTime('1h')
+				.sign(new TextEncoder().encode(process.env.JWT_SECRET));
+
+			// Establecer el loginToken con el status banned
+			response.cookies.set({
+				name: 'loginToken',
+				value: token,
+				path: '/',
+				maxAge: 60 * 60 * 24 * 7, // 7 días
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+				domain:
+					process.env.NODE_ENV === 'production'
+						? process.env.COOKIE_DOMAIN
+						: undefined,
+			});
+
+			return response;
+		}
+
 		const isValidPassword = await comparePassword(password, userDB.password);
 		if (isValidPassword) {
 			try {
@@ -31,6 +90,7 @@ export async function POST(req: NextRequest) {
 					role: userDB.role,
 					email: userDB.email,
 					id: userDB._id,
+					status: userDB.status,
 				})
 					.setProtectedHeader({ alg: 'HS256' })
 					.setIssuedAt()

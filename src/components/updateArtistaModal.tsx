@@ -1,6 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, ImageIcon, Upload, Save, XCircle } from 'lucide-react';
+import {
+	X,
+	ImageIcon,
+	Upload,
+	Save,
+	XCircle,
+	AlertTriangle,
+} from 'lucide-react';
+import Select from 'react-select';
 
 interface Artista {
 	_id: string;
@@ -14,6 +22,7 @@ interface Artista {
 	deezer_identifier?: string;
 	spotify_identifier?: string;
 	role: string;
+	status?: string;
 	[key: string]: any;
 }
 
@@ -24,6 +33,12 @@ interface UpdateArtistaModalProps {
 	onSave: (data: FormData | Artista) => Promise<void>;
 }
 
+const statusOptions = [
+	{ value: 'active', label: 'Activo' },
+	{ value: 'inactive', label: 'Inactivo' },
+	{ value: 'banned', label: 'Banneado' },
+];
+
 const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	artista,
 	isOpen,
@@ -33,6 +48,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	const [formData, setFormData] = useState<Artista>({
 		...artista,
 		external_id: artista.external_id || artista._id,
+		status: artista.status || 'active',
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(
@@ -255,6 +271,83 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 								className={inputStyles}
 								placeholder="Dejar en blanco para mantener la contraseña actual"
 							/>
+						</div>
+
+						<div className="mb-4">
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Estado
+							</label>
+							<Select
+								value={
+									statusOptions.find(
+										option => option.value === formData.status
+									) || null
+								}
+								onChange={selectedOption =>
+									setFormData(prev => ({
+										...prev,
+										status: selectedOption?.value || 'active',
+									}))
+								}
+								options={statusOptions}
+								className="basic-single"
+								classNamePrefix="select"
+								placeholder="Selecciona un estado"
+								isClearable={false}
+								styles={{
+									control: (base, state) => ({
+										...base,
+										border: 'none',
+										borderBottom: '2px solid #E5E7EB',
+										borderRadius: '0',
+										boxShadow: 'none',
+										backgroundColor: 'transparent',
+										'&:hover': {
+											borderBottom: '2px solid #4B5563',
+										},
+										'&:focus-within': {
+											borderBottom: '2px solid #4B5563',
+										},
+									}),
+									option: (base, state) => ({
+										...base,
+										backgroundColor: state.isSelected
+											? '#4B5563'
+											: state.isFocused
+											? '#E5E7EB'
+											: 'white',
+										color: state.isSelected ? 'white' : '#1F2937',
+										'&:hover': {
+											backgroundColor: state.isSelected ? '#4B5563' : '#E5E7EB',
+										},
+									}),
+									menu: base => ({
+										...base,
+										borderRadius: '0.375rem',
+										boxShadow:
+											'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+									}),
+									placeholder: base => ({
+										...base,
+										color: '#9CA3AF',
+									}),
+									singleValue: base => ({
+										...base,
+										color: '#1F2937',
+									}),
+								}}
+							/>
+							{formData.status === 'banned' && (
+								<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+									<AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+									<p className="text-sm text-red-700">
+										Si realiza esa acción este usuario{' '}
+										<span className="font-semibold">
+											no podrá acceder al sitio web
+										</span>
+									</p>
+								</div>
+							)}
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">

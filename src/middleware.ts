@@ -3,17 +3,22 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
+	// Solo procesar rutas que empiecen con /sello
+	if (!request.nextUrl.pathname.startsWith('/sello')) {
+		return NextResponse.next();
+	}
+
 	console.log('Middleware executing for path:', request.nextUrl.pathname);
 
-	// Rutas públicas que no requieren verificación
-	const publicRoutes = ['/sello/login', '/sello/banned'];
-	const isPublicRoute = publicRoutes.some(route =>
-		request.nextUrl.pathname.startsWith(route)
-	);
+	// Si es la ruta de login, permitir el acceso sin verificar el token
+	if (request.nextUrl.pathname === '/sello/login') {
+		console.log('Login route, allowing access');
+		return NextResponse.next();
+	}
 
-	// Si es una ruta pública, permitir el acceso
-	if (isPublicRoute) {
-		console.log('Public route, allowing access');
+	// Si es la ruta de banned, permitir el acceso
+	if (request.nextUrl.pathname === '/sello/banned') {
+		console.log('Banned route, allowing access');
 		return NextResponse.next();
 	}
 
@@ -48,16 +53,7 @@ export async function middleware(request: NextRequest) {
 	}
 }
 
-// Configurar el matcher para que el middleware se ejecute en todas las rutas excepto las estáticas
+// Configurar el matcher para que el middleware se ejecute solo en las rutas de sello
 export const config = {
-	matcher: [
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - api (API routes)
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 */
-		'/((?!api|_next/static|_next/image|favicon.ico).*)',
-	],
+	matcher: ['/sello/:path*'],
 };

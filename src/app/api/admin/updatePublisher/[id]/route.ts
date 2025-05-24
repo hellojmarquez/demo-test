@@ -34,7 +34,7 @@ export async function PUT(
 		}
 
 		const body = await req.json();
-		const { name, email, password } = body;
+		const { name, email, password, status } = body;
 
 		// Actualizar publisher en la API externa
 		const publisherReq = await fetch(
@@ -52,6 +52,7 @@ export async function PUT(
 		);
 
 		const publisherRes = await publisherReq.json();
+		console.log('Publisher actualizado en la API externa:', publisherRes);
 
 		// Conectar a la base de datos local
 		await dbConnect();
@@ -60,6 +61,7 @@ export async function PUT(
 		const updateData: any = {
 			name: publisherRes.name,
 			external_id: publisherRes.id,
+			status,
 			...(email && { email }), // Solo incluir email si se proporcionó uno nuevo
 		};
 

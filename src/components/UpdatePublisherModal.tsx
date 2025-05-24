@@ -3,7 +3,17 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, XCircle, User, Mail, Lock } from 'lucide-react';
+import {
+	X,
+	Save,
+	XCircle,
+	AlertTriangle,
+	User,
+	Mail,
+	UserRoundCheck,
+	Lock,
+} from 'lucide-react';
+import Select from 'react-select';
 
 interface UpdatePublisherModalProps {
 	publisher: {
@@ -15,10 +25,21 @@ interface UpdatePublisherModalProps {
 		status: string;
 		picture?: string;
 	};
-	onUpdate: () => void;
+	onUpdate: (data: {
+		name: string;
+		email: string;
+		status: string;
+		password?: string;
+	}) => void;
 	isOpen: boolean;
 	onClose: () => void;
 }
+
+const statusOptions = [
+	{ value: 'active', label: 'Activo' },
+	{ value: 'inactive', label: 'Inactivo' },
+	{ value: 'banned', label: 'Banneado' },
+];
 
 export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 	publisher,
@@ -33,11 +54,39 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 		name: publisher.name,
 		email: publisher.email || '',
 		password: '',
+		status: publisher.status,
 	});
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+
+	const customStyles = {
+		control: (base: any) => ({
+			...base,
+			border: 'none',
+			borderBottom: '2px solid #E5E7EB',
+			borderRadius: '0',
+			boxShadow: 'none',
+			backgroundColor: 'transparent',
+			'&:hover': {
+				borderBottom: '2px solid #4B5563',
+			},
+		}),
+		option: (base: any, state: { isSelected: boolean }) => ({
+			...base,
+			backgroundColor: state.isSelected ? '#E5E7EB' : 'white',
+			color: '#1F2937',
+			'&:hover': {
+				backgroundColor: '#F3F4F6',
+			},
+		}),
+		singleValue: (base: any) => ({
+			...base,
+			color: '#1F2937',
+		}),
+	};
 
 	useEffect(() => {
 		console.log('Publisher actualizado en useEffect:', publisher);
@@ -47,6 +96,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 			name: publisher.name,
 			email: publisher.email || '',
 			password: '',
+			status: publisher.status,
 		}));
 	}, [publisher]);
 
@@ -62,6 +112,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+		setError(null);
 
 		try {
 			if (!publisher.external_id) {
@@ -92,6 +143,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 					body: JSON.stringify({
 						name: formData.name.trim(),
 						email: formData.email.trim(),
+						status: formData.status,
 						...(formData.password && { password: formData.password }),
 					}),
 				}
@@ -104,11 +156,16 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 			}
 
 			toast.success('Publisher actualizado con éxito');
+			onUpdate({
+				name: formData.name.trim(),
+				email: formData.email.trim(),
+				status: formData.status,
+				...(formData.password && { password: formData.password }),
+			});
 			onClose();
-			onUpdate();
 		} catch (error) {
 			console.error('Error updating publisher:', error);
-			toast.error(
+			setError(
 				error instanceof Error
 					? error.message
 					: 'Error al actualizar el publisher'
@@ -149,6 +206,12 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 						</div>
 
 						<form onSubmit={handleSubmit} className="p-6">
+							{error && (
+								<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{error}
+								</div>
+							)}
+
 							<div className="space-y-4">
 								<div>
 									<label
@@ -167,6 +230,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 											onChange={handleChange}
 											className={`${inputStyles} pl-10`}
 											required
+											disabled={isLoading}
 										/>
 									</div>
 								</div>
@@ -188,6 +252,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 											onChange={handleChange}
 											className={`${inputStyles} pl-10`}
 											required
+											disabled={isLoading}
 										/>
 									</div>
 								</div>
@@ -197,7 +262,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 										htmlFor="password"
 										className="block text-sm font-medium text-gray-700 mb-1"
 									>
-										Nueva Contraseña (opcional)
+										Contraseña (opcional)
 									</label>
 									<div className="relative">
 										<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -209,8 +274,55 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 											onChange={handleChange}
 											className={`${inputStyles} pl-10`}
 											placeholder="Dejar en blanco para mantener la contraseña actual"
+											disabled={isLoading}
 										/>
 									</div>
+								</div>
+
+								<div>
+									<label
+										htmlFor="status"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
+										Estado
+									</label>
+									<div className="relative">
+										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+											<UserRoundCheck className="h-5 w-5 text-gray-400" />
+										</div>
+										<Select
+											id="status"
+											value={statusOptions.find(
+												option => option.value === formData.status
+											)}
+											onChange={option =>
+												setFormData(prev => ({
+													...prev,
+													status: option?.value as
+														| 'active'
+														| 'inactive'
+														| 'banned',
+												}))
+											}
+											options={statusOptions}
+											styles={customStyles}
+											isSearchable={false}
+											placeholder="Seleccionar estado"
+											isDisabled={isLoading}
+											className="pl-10"
+										/>
+									</div>
+									{formData.status === 'banned' && (
+										<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+											<AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+											<p className="text-sm text-red-700">
+												Si realiza esa acción este usuario{' '}
+												<span className="font-semibold">
+													no podrá acceder al sitio web
+												</span>
+											</p>
+										</div>
+									)}
 								</div>
 							</div>
 

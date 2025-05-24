@@ -281,7 +281,12 @@ export default function UsuariosPage() {
 		}
 	};
 
-	const handlePublisherUpdate = () => {
+	const handlePublisherUpdate = (updatedData: {
+		name: string;
+		email: string;
+		status: string;
+		password?: string;
+	}) => {
 		// Recargar la lista de usuarios después de actualizar un publisher
 		const fetchUsers = async () => {
 			const res = await fetch(

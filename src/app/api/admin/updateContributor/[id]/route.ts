@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import User from '@/models/UserModel';
+import { User } from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
 
@@ -100,7 +100,7 @@ export async function PUT(
 		// Llamar a la API externa con la estructura completa
 		try {
 			const externalApiRes = await fetch(
-				`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+				`${process.env.MOVEMUSIC_API}/contributors/${params.id}`,
 				{
 					method: 'PUT',
 					body: JSON.stringify(updateDataToApi),
@@ -120,32 +120,51 @@ export async function PUT(
 					statusText: externalApiRes.statusText,
 					body: errorText,
 				});
-				throw new Error(
-					`API responded with status ${externalApiRes.status}: ${errorText}`
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'Error en API externa',
+						details: {
+							status: externalApiRes.status,
+							message: errorText,
+						},
+					},
+					{ status: 400 }
 				);
 			}
-
-			// Actualizar el contribuidor usando external_id
-			const updatedContributor = await User.findOneAndUpdate(
-				{ external_id: id },
-				{ $set: updatedDataToDDBB },
-				{ new: true }
-			);
-
-			return NextResponse.json({
-				success: true,
-				message: 'Contribuidor actualizado exitosamente',
-			});
 		} catch (apiError: any) {
-			console.error('Error en llamada a API externa:', apiError);
+			console.error('Hubo un error, estamos trabajando para solucionarlo');
 			return NextResponse.json(
 				{
 					success: false,
-					message: `Error en API externa: ${apiError.message}`,
+					error: 'Error en API externa',
+					details: apiError.message,
 				},
 				{ status: 500 }
 			);
 		}
+		// Actualizar el contribuidor usando external_id
+		const updatedContributor = await User.findOneAndUpdate(
+			{ external_id: id },
+			{ $set: updatedDataToDDBB },
+			{ new: true }
+		);
+
+		if (!updatedContributor) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: 'No se pudo actualizar el contribuidor en la base de datos',
+				},
+				{ status: 500 }
+			);
+		}
+
+		return NextResponse.json({
+			success: true,
+			message: 'Contribuidor actualizado exitosamente',
+			contributor: updatedContributor,
+		});
 	} catch (error) {
 		console.error('Error updating contributor:', error);
 		return NextResponse.json(

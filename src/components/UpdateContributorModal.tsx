@@ -35,6 +35,7 @@ export function UpdateContributorModal({
 	const [status, setStatus] = useState(contributor.status);
 	const [password, setPassword] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -81,15 +82,37 @@ export function UpdateContributorModal({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+		setError(null);
 
 		try {
+			const res = await fetch(
+				`/api/admin/updateContributor/${contributor.external_id}`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						name,
+						email,
+						status,
+						password,
+					}),
+				}
+			);
+
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || 'Error al actualizar el contribuidor');
+			}
+
 			onUpdate({ name, email, status, password });
 			onClose();
-		} catch (error) {
-			console.error('Error updating contributor:', error);
-			toast.error(
-				error instanceof Error
-					? error.message
+		} catch (err) {
+			setError(
+				err instanceof Error
+					? err.message
 					: 'Error al actualizar el contribuidor'
 			);
 		} finally {
@@ -128,6 +151,12 @@ export function UpdateContributorModal({
 						</div>
 
 						<form onSubmit={handleSubmit} className="p-6">
+							{error && (
+								<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{error}
+								</div>
+							)}
+
 							<div className="space-y-4">
 								<div>
 									<label
@@ -144,6 +173,7 @@ export function UpdateContributorModal({
 										onChange={e => setName(e.target.value)}
 										className={inputStyles}
 										required
+										disabled={isLoading}
 									/>
 								</div>
 								<div>
@@ -161,6 +191,7 @@ export function UpdateContributorModal({
 										onChange={e => setEmail(e.target.value)}
 										className={inputStyles}
 										required
+										disabled={isLoading}
 									/>
 								</div>
 								<div>
@@ -178,6 +209,7 @@ export function UpdateContributorModal({
 										onChange={e => setPassword(e.target.value)}
 										className={inputStyles}
 										placeholder="Dejar en blanco para mantener la contraseña actual"
+										disabled={isLoading}
 									/>
 								</div>
 								<div>
@@ -201,6 +233,7 @@ export function UpdateContributorModal({
 										styles={customStyles}
 										isSearchable={false}
 										placeholder="Seleccionar estado"
+										isDisabled={isLoading}
 									/>
 									{status === 'banned' && (
 										<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
+import SelloArtistaContrato from '@/models/AsignacionModel';
 import { jwtVerify } from 'jose';
 import { paginationMiddleware } from '@/middleware/pagination';
 import { searchMiddleware } from '@/middleware/search';
@@ -17,11 +18,17 @@ export async function GET(req: NextRequest) {
 			);
 		}
 
-		// Verificar JWT
+		// Verificar JWT y obtener el payload
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+			verifiedPayload = payload;
+			console.log(
+				'Payload completo del token:',
+				JSON.stringify(payload, null, 2)
 			);
 		} catch (err) {
 			console.error('JWT verification failed', err);
@@ -35,31 +42,75 @@ export async function GET(req: NextRequest) {
 
 		// Aplicar middlewares
 		const { page, limit, skip } = paginationMiddleware(req);
-		const searchQuery = searchMiddleware(req, 'name'); // Buscar por nombre
+		const searchQuery = searchMiddleware(req, 'name');
 		const sortOptions: SortOptions = {
 			newest: { createdAt: -1 as const },
 			oldest: { createdAt: 1 as const },
 		};
 		const sort = sortMiddleware(req, sortOptions);
 
-		// Combinar la búsqueda con el filtro de roles
-		const query = {
-			...searchQuery,
-			role: { $nin: ['admin', 'sello'] },
-		};
+		let query = { ...searchQuery };
+		let total;
+		let users;
 
-		// Obtener el total de documentos que coinciden con la búsqueda
-		const total = await User.countDocuments(query);
+		// Si el usuario es un sello, filtrar por sus artistas asignados
+		if (verifiedPayload.role === 'sello') {
+			console.log('Usuario es un sello, buscando artistas asignados...');
+			console.log('ID del sello del token:', verifiedPayload.id);
+			console.log('Tipo de ID del sello:', typeof verifiedPayload.id);
 
-		// Obtener los usuarios paginados y filtrados
-		const users = await User.find(query)
-			.select({ password: 0 }) // Excluir el campo password
-			.sort(sort)
-			.skip(skip)
-			.limit(limit)
-			.lean();
+			// Obtener los IDs de los artistas asociados al sello
+			const contratos = await SelloArtistaContrato.find({
+				sello_id: verifiedPayload.id,
+				estado: 'activo',
+			}).select('artista_id');
 
-		return NextResponse.json({
+			console.log('Query de búsqueda de contratos:', {
+				sello_id: verifiedPayload.id,
+				estado: 'activo',
+			});
+			console.log('Contratos encontrados:', JSON.stringify(contratos, null, 2));
+			const artistaIds = contratos.map(contrato => contrato.artista_id);
+			console.log('IDs de artistas:', artistaIds);
+
+			// Combinar la búsqueda con el filtro de artistas
+			query = {
+				...searchQuery,
+				_id: { $in: artistaIds },
+				role: 'artista',
+			};
+			console.log('Query final para sello:', JSON.stringify(query, null, 2));
+
+			// Obtener el total de documentos que coinciden con la búsqueda
+			total = await User.countDocuments(query);
+			console.log('Total de artistas encontrados:', total);
+
+			// Obtener los usuarios paginados y filtrados
+			users = await User.find(query)
+				.select({ password: 0 })
+				.sort(sort)
+				.skip(skip)
+				.limit(limit)
+				.lean();
+			console.log('Artistas encontrados:', users);
+		} else {
+			console.log('Usuario no es un sello, usando lógica original');
+			// Para otros roles, mantener la lógica original
+			query = {
+				...searchQuery,
+				role: { $nin: ['admin', 'sello'] },
+			};
+
+			total = await User.countDocuments(query);
+			users = await User.find(query)
+				.select({ password: 0 })
+				.sort(sort)
+				.skip(skip)
+				.limit(limit)
+				.lean();
+		}
+
+		const response = {
 			success: true,
 			data: {
 				users,
@@ -70,7 +121,9 @@ export async function GET(req: NextRequest) {
 					totalPages: Math.ceil(total / limit),
 				},
 			},
-		});
+		};
+		console.log('Respuesta final del endpoint:', response);
+		return NextResponse.json(response);
 	} catch (error) {
 		console.error('Error fetching users:', error);
 		return NextResponse.json(

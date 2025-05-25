@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 			password: uuidv4(),
 			picture: '',
 			role: 'artista',
-			status: 'active',
+			status: 'activo',
 			permissions: ['artista'],
 			amazon_music_identifier,
 			apple_identifier,

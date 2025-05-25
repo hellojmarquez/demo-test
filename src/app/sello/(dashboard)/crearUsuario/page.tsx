@@ -91,7 +91,7 @@ export default function CrearUsuarioPage() {
 							picture: data.user.picture,
 							catalog_num: data.user.catalog_num || 0,
 							year: data.user.year || 0,
-							status: data.user.status || 'active',
+							status: data.user.status || 'activo',
 							contract_received: data.user.contract_received || false,
 							information_accepted: data.user.information_accepted || false,
 							label_approved: data.user.label_approved || false,

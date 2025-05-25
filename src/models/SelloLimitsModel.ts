@@ -6,7 +6,7 @@ export interface ISelloLimits extends Document {
 	extendedLimit: number;
 	startDate: Date;
 	endDate: Date;
-	status: 'active' | 'expired' | 'cancelled';
+	status: 'activo' | 'expired' | 'cancelled';
 	paymentDetails: {
 		amount: number;
 		paymentDate: Date;
@@ -44,8 +44,8 @@ const SelloLimitsSchema = new Schema<ISelloLimits>(
 		},
 		status: {
 			type: String,
-			enum: ['active', 'expired', 'cancelled'],
-			default: 'active',
+			enum: ['activo', 'expired', 'cancelled'],
+			default: 'activo',
 		},
 		paymentDetails: {
 			amount: {
@@ -77,7 +77,7 @@ SelloLimitsSchema.pre('save', async function (next) {
 	if (this.isNew || this.isModified('status')) {
 		const User = mongoose.model('User');
 		try {
-			if (this.status === 'active') {
+			if (this.status === 'activo') {
 				// Actualizar el límite del sello al límite extendido
 				await User.findByIdAndUpdate(this.sello_id, {
 					artistLimit: this.extendedLimit,

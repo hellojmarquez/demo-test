@@ -38,9 +38,9 @@ interface UpdateArtistaModalProps {
 }
 
 const statusOptions = [
-	{ value: 'active', label: 'Activo' },
-	{ value: 'inactive', label: 'Inactivo' },
-	{ value: 'banned', label: 'Banneado' },
+	{ value: 'activo', label: 'Activo' },
+	{ value: 'inactivo', label: 'Inactivo' },
+	{ value: 'banneado', label: 'Banneado' },
 ];
 
 const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
@@ -52,7 +52,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	const [formData, setFormData] = useState<Artista>({
 		...artista,
 		external_id: artista.external_id || artista._id,
-		status: artista.status || 'active',
+		status: artista.status || 'activo',
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -302,7 +302,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											onChange={selectedOption =>
 												setFormData(prev => ({
 													...prev,
-													status: selectedOption?.value || 'active',
+													status: selectedOption?.value || 'activo',
 												}))
 											}
 											options={statusOptions}
@@ -356,7 +356,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											className="pl-10"
 										/>
 									</div>
-									{formData.status === 'banned' && (
+									{formData.status === 'banneado' && (
 										<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
 											<AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
 											<p className="text-sm text-red-700">

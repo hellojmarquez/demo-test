@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 			password: hashedPassword,
 			picture: pictureBuffer,
 			role: 'artista',
-			status: 'active',
+			status: 'activo',
 			permissions: ['artista'],
 			amazon_music_identifier,
 			apple_identifier,

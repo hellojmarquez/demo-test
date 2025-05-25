@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Verificar si el usuario está baneado
-		if (userDB.status === 'banned') {
+		if (userDB.status === 'banneado') {
 			const response = NextResponse.json(
 				{
-					error: 'banned',
+					error: 'banneado',
 					message: 'Tu cuenta ha sido bloqueada',
 				},
 				{ status: 403 }
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 				role: userDB.role,
 				email: userDB.email,
 				id: userDB._id,
-				status: 'banned',
+				status: 'banneado',
 			})
 				.setProtectedHeader({ alg: 'HS256' })
 				.setIssuedAt()

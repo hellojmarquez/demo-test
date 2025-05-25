@@ -128,15 +128,22 @@ export default function UsuariosPage() {
 		}
 		// Verificar si el rol es "sello"
 		else if (user.role && user.role.toLowerCase() === 'sello') {
-			console.log('Es un sello, abriendo modal de sello');
+			console.log('Es un sello, datos completos:', {
+				...user,
+				email: user.email,
+				role: user.role,
+				external_id: user.external_id,
+			});
 			// Adaptar los datos del usuario al formato esperado por UpdateSelloModal
 			const adaptedSelloData = {
 				_id: user._id,
+				external_id: user.external_id || user._id, // Asegurarnos de tener un external_id
 				name: user.name,
+				email: user.email || '',
 				picture: user.picture || '',
 				catalog_num: user.catalog_num || 0,
 				year: user.year || 0,
-				status: user.status || 'active',
+				status: user.status || 'activo',
 				contract_received: user.contract_received || false,
 				information_accepted: user.information_accepted || false,
 				label_approved: user.label_approved || false,
@@ -373,29 +380,48 @@ export default function UsuariosPage() {
 		}
 	};
 
-	const handleSelloSave = async (updatedSello: any) => {
-		console.log('updatedSello: ', updatedSello);
+	const handleSelloSave = async (formData: FormData) => {
 		try {
-			const res = await fetch(`/api/admin/updateUser/${updatedSello._id}`, {
+			const data = JSON.parse(formData.get('data') as string);
+			console.log('Datos del sello a actualizar:', data);
+
+			// Determinar si hay una imagen para enviar
+			const hasImage = formData.has('picture');
+			const headers: HeadersInit = {};
+			let body: string | FormData;
+
+			if (hasImage) {
+				// Si hay imagen, enviar como FormData
+				body = formData;
+			} else {
+				// Si no hay imagen, enviar como JSON
+				headers['Content-Type'] = 'application/json';
+				body = JSON.stringify({
+					...data,
+					role: 'sello',
+				});
+			}
+
+			const res = await fetch(`/api/admin/updateSello/${data._id}`, {
 				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(updatedSello),
+				headers,
+				body,
 			});
-			const data = await res.json();
-			if (data.success) {
-				// Mantener los campos originales del usuario y actualizar con los nuevos datos
-				setUsers(
-					users.map(u => {
-						if (u._id === updatedSello._id) {
-							return {
-								...u, // Mantener todos los campos originales
-								...updatedSello, // Actualizar con los nuevos datos
-								role: 'sello', // Asegurar que el rol se mantenga como 'sello'
-							};
-						}
-						return u;
-					})
+
+			const responseData = await res.json();
+			if (responseData.success) {
+				// Recargar la lista de personas después de actualizar un sello
+				const res = await fetch(
+					`/api/admin/getAllUsers?page=${currentPage}${
+						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+					}&sort=${sortBy}`
 				);
+				const data = await res.json();
+				if (data.success) {
+					setUsers(data.data.users);
+					setTotalPages(data.data.pagination.totalPages);
+					setTotalItems(data.data.pagination.total);
+				}
 				setShowSelloModal(false);
 				setSelectedSello(null);
 			}
@@ -568,14 +594,14 @@ export default function UsuariosPage() {
 										<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 											<span
 												className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-													user.status === 'active'
+													user.status === 'activo'
 														? 'bg-green-100 text-green-800'
-														: user.status === 'inactive'
+														: user.status === 'inactivo'
 														? 'bg-gray-100 text-gray-400'
 														: 'bg-red-100 text-red-800'
 												}`}
 											>
-												{user.status || 'inactive'}
+												{user.status || 'inactivo'}
 											</span>
 										</td>
 										<td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -681,10 +707,10 @@ export default function UsuariosPage() {
 							name: selectedContributor.name,
 							email: selectedContributor.email,
 							status:
-								selectedContributor.status === 'inactive' ||
-								selectedContributor.status === 'banned'
+								selectedContributor.status === 'inactivo' ||
+								selectedContributor.status === 'banneado'
 									? selectedContributor.status
-									: 'active',
+									: 'activo',
 						}}
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}
@@ -709,7 +735,7 @@ export default function UsuariosPage() {
 								? Number(selectedPublisher.external_id)
 								: 0,
 							role: selectedPublisher.role,
-							status: selectedPublisher.status || 'active',
+							status: selectedPublisher.status || 'activo',
 							picture: selectedPublisher.picture,
 						}}
 						onUpdate={handlePublisherUpdate}

@@ -36,9 +36,9 @@ interface UpdatePublisherModalProps {
 }
 
 const statusOptions = [
-	{ value: 'active', label: 'Activo' },
-	{ value: 'inactive', label: 'Inactivo' },
-	{ value: 'banned', label: 'Banneado' },
+	{ value: 'activo', label: 'Activo' },
+	{ value: 'inactivo', label: 'Inactivo' },
+	{ value: 'banneado', label: 'Banneado' },
 ];
 
 export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
@@ -299,9 +299,9 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 												setFormData(prev => ({
 													...prev,
 													status: option?.value as
-														| 'active'
-														| 'inactive'
-														| 'banned',
+														| 'activo'
+														| 'inactivo'
+														| 'banneado',
 												}))
 											}
 											options={statusOptions}
@@ -312,7 +312,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 											className="pl-10"
 										/>
 									</div>
-									{formData.status === 'banned' && (
+									{formData.status === 'banneado' && (
 										<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
 											<AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
 											<p className="text-sm text-red-700">

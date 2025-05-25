@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Asignacion from '@/models/AsignacionModel';
+import SelloArtistaContrato from '@/models/AsignacionModel';
 import User from '@/models/UserModel';
 
 export async function GET(req: NextRequest) {
@@ -17,18 +17,18 @@ export async function GET(req: NextRequest) {
 			);
 		}
 
-		// Obtener todas las asignaciones activas del sello
-		const asignaciones = await Asignacion.find({
+		// Obtener todos los contratos activos del sello
+		const contratos = await SelloArtistaContrato.find({
 			sello_id,
 			estado: 'activo',
 		}).populate('artista_id', 'name picture');
 
 		return NextResponse.json({
 			success: true,
-			data: asignaciones,
+			data: contratos,
 		});
 	} catch (error) {
-		console.error('Error al obtener asignaciones:', error);
+		console.error('Error al obtener contratos:', error);
 		return NextResponse.json(
 			{ success: false, error: 'Error interno del servidor' },
 			{ status: 500 }

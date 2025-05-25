@@ -120,7 +120,7 @@ export default function UsuariosPage() {
 				picture: user.picture || '',
 				catalog_num: user.catalog_num || 0,
 				year: user.year || 0,
-				status: user.status || 'active',
+				status: user.status || 'activo',
 				contract_received: user.contract_received || false,
 				information_accepted: user.information_accepted || false,
 				label_approved: user.label_approved || false,
@@ -456,12 +456,12 @@ export default function UsuariosPage() {
 									<td className="px-6 py-4 whitespace-nowrap">
 										<span
 											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-												user.status === 'active'
+												user.status === 'activo'
 													? 'bg-green-100 text-green-800'
 													: 'bg-red-100 text-red-800'
 											}`}
 										>
-											{user.status || 'inactive'}
+											{user.status || 'inactivo'}
 										</span>
 									</td>
 									<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -557,10 +557,10 @@ export default function UsuariosPage() {
 							name: selectedContributor.name,
 							email: selectedContributor.email || '',
 							status:
-								selectedContributor.status === 'inactive' ||
-								selectedContributor.status === 'banned'
+								selectedContributor.status === 'inactivo' ||
+								selectedContributor.status === 'banneado'
 									? selectedContributor.status
-									: 'active',
+									: 'activo',
 						}}
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}
@@ -585,7 +585,7 @@ export default function UsuariosPage() {
 								? Number(selectedPublisher.external_id)
 								: 0,
 							role: selectedPublisher.role,
-							status: selectedPublisher.status || 'active',
+							status: selectedPublisher.status || 'activo',
 							picture: selectedPublisher.picture,
 						}}
 						onUpdate={handlePublisherUpdate}

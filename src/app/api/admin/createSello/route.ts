@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
 			email: !isSubaccount ? email.toLowerCase() : '',
 			password: hashedPassword,
 			role: 'sello',
-			status: 'active',
+			status: 'activo',
 			permissions: ['sello'],
 			picture: picture_url,
 			tipo: isSubaccount ? 'subcuenta' : 'principal',
@@ -238,7 +238,6 @@ export async function POST(request: NextRequest) {
 			{ status: 201 }
 		);
 	} catch (error: any) {
-
 		return NextResponse.json(
 			{
 				error: error.message || 'Error interno del servidor',

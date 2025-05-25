@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
 		);
 
 		// Verificar si el usuario está baneado
-		if (payload.status === 'banned') {
+		if (payload.status === 'banneado') {
 			console.log('User is banned, redirecting to banned page');
 			return NextResponse.redirect(new URL('/sello/banned', request.url));
 		}

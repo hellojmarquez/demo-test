@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 		// Verificar que no exista un límite extendido activo
 		const existingLimit = await SelloLimits.findOne({
 			sello_id,
-			status: 'active',
+			status: 'activo',
 		});
 
 		if (existingLimit) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 			extendedLimit,
 			startDate: startDate || new Date(),
 			endDate,
-			status: 'active',
+			status: 'activo',
 			paymentDetails,
 		});
 

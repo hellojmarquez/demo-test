@@ -26,7 +26,7 @@ const baseUserSchema = new mongoose.Schema(
 		},
 		status: {
 			type: String,
-			default: 'active',
+			default: 'activo',
 		},
 		tipo: {
 			type: String,

@@ -19,10 +19,11 @@ import { UpdatePublisherModal } from '@/components/UpdatePublisherModal';
 import { UpdateContributorModal } from '@/components/UpdateContributorModal';
 import UpdateArtistaModal from '@/components/updateArtistaModal';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
-import { Sello } from '@/types/sello';
 import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import SortSelect from '@/components/SortSelect';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'react-hot-toast';
 
 // Definir la interfaz Artista para que coincida con la del componente UpdateArtistaModal
 interface Artista {
@@ -64,6 +65,27 @@ interface Persona {
 	[key: string]: any;
 }
 
+interface SelloData {
+	_id: string;
+	name: string;
+	email: string;
+	password: string;
+	role: string;
+	picture?: string;
+	catalog_num: number;
+	year: number;
+	status: 'activo' | 'inactivo' | 'banneado';
+	contract_received: boolean;
+	information_accepted: boolean;
+	label_approved: boolean;
+	assigned_artists: any[];
+	createdAt: string;
+	updatedAt: string;
+	tipo: 'principal' | 'subcuenta';
+	parentId: string | null;
+	parentName: string | null;
+}
+
 const Personas = () => {
 	const [users, setUsers] = useState<Persona[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +117,7 @@ const Personas = () => {
 		sort: string = 'newest'
 	) => {
 		try {
+			console.log('Iniciando fetchUsers con:', { page, search, sort });
 			const response = await fetch(
 				`/api/admin/getAllPersonas?page=${page}${
 					search ? `&search=${encodeURIComponent(search)}` : ''
@@ -102,6 +125,7 @@ const Personas = () => {
 			);
 			if (response.ok) {
 				const data = await response.json();
+				console.log('Respuesta completa del servidor:', data);
 				if (data.success) {
 					console.log(
 						'Datos obtenidos de la API (completos):',
@@ -204,7 +228,7 @@ const Personas = () => {
 					email: persona.email,
 					role: persona.role,
 					external_id: persona.external_id,
-					status: persona.status || 'active',
+					status: persona.status || 'activo',
 					picture: persona.picture || '',
 				};
 
@@ -236,7 +260,11 @@ const Personas = () => {
 			}
 			// Verificar si el rol es "sello"
 			else if (persona.role && persona.role.toLowerCase() === 'sello') {
-				console.log('Es un sello, abriendo modal de sello');
+				console.log('Es un sello, datos completos:', {
+					...persona,
+					email: persona.email,
+					role: persona.role,
+				});
 				setSelectedSello(persona);
 				setShowSelloModal(true);
 			} else {
@@ -364,7 +392,7 @@ const Personas = () => {
 		}
 	};
 
-	const handleSelloUpdate = async (updatedSello: Sello) => {
+	const handleSelloUpdate = async (updatedSello: SelloData) => {
 		try {
 			// Asegurarse de que el sello tenga el rol 'sello'
 			const selloToSave = {
@@ -515,7 +543,7 @@ const Personas = () => {
 									<td className="px-4 sm:px-6 py-4 whitespace-nowrap">
 										<span
 											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-												persona.status === 'active'
+												persona.status === 'activo'
 													? 'bg-green-100 text-green-800'
 													: 'bg-red-100 text-red-800'
 											}`}
@@ -812,10 +840,10 @@ const Personas = () => {
 							name: selectedContributor.name,
 							email: selectedContributor.email || '',
 							status:
-								selectedContributor.status === 'inactive' ||
-								selectedContributor.status === 'banned'
+								selectedContributor.status === 'inactivo' ||
+								selectedContributor.status === 'banneado'
 									? selectedContributor.status
-									: 'active',
+									: 'activo',
 						}}
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}
@@ -846,38 +874,48 @@ const Personas = () => {
 
 			{showSelloModal && selectedSello && (
 				<>
-					{console.log('Renderizando modal de sello')}
+					{console.log(
+						'Datos del sello seleccionado antes de pasar al modal:',
+						{
+							selectedSello,
+							email: selectedSello.email,
+							role: selectedSello.role,
+						}
+					)}
 					<UpdateSelloModal
-						sello={{
-							_id: selectedSello._id,
-							name: selectedSello.name,
-							email: selectedSello.email || '',
-							password: selectedSello.password || '',
-							role: 'sello',
-							picture: selectedSello.picture || undefined,
-							catalog_num: selectedSello.catalog_num || 0,
-							year: selectedSello.year || 0,
-							status: (selectedSello.status || 'active') as
-								| 'active'
-								| 'inactive'
-								| 'banned',
-							contract_received: selectedSello.contract_received || false,
-							information_accepted: selectedSello.information_accepted || false,
-							label_approved: selectedSello.label_approved || false,
-							assigned_artists: selectedSello.assigned_artists || [],
-							createdAt: new Date().toISOString(),
-							updatedAt: new Date().toISOString(),
-							tipo: 'principal',
-							parentId: null,
-							parentName: null,
-						}}
+						sello={
+							{
+								_id: selectedSello._id,
+								name: selectedSello.name,
+								email: selectedSello.email || '',
+								password: selectedSello.password || '',
+								role: 'sello',
+								picture: selectedSello.picture || undefined,
+								catalog_num: selectedSello.catalog_num || 0,
+								year: selectedSello.year || 0,
+								status: (selectedSello.status || 'activo') as
+									| 'activo'
+									| 'inactivo'
+									| 'banneado',
+								contract_received: selectedSello.contract_received || false,
+								information_accepted:
+									selectedSello.information_accepted || false,
+								label_approved: selectedSello.label_approved || false,
+								assigned_artists: selectedSello.assigned_artists || [],
+								createdAt: new Date().toISOString(),
+								updatedAt: new Date().toISOString(),
+								tipo: 'principal',
+								parentId: null,
+								parentName: null,
+							} as SelloData
+						}
 						isOpen={showSelloModal}
 						onClose={() => {
 							console.log('Cerrando modal de sello');
 							setShowSelloModal(false);
 							setSelectedSello(null);
 						}}
-						onSave={async (formData: FormData) => {
+						onSave={async (formData: globalThis.FormData) => {
 							const data = JSON.parse(formData.get('data') as string);
 							await handleSelloUpdate(data);
 						}}

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 			password: hashedPassword,
 			picture: pictureBuffer,
 			role: 'admin',
-			status: 'active',
+			status: 'activo',
 			permissions: ['admin'],
 		});
 		console.log('newAdmin: ', newAdmin);

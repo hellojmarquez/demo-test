@@ -71,7 +71,7 @@ export async function PUT(
 			assigned_artists: data.assigned_artists || [],
 			tipo: data.tipo,
 		};
-		console.log('recibido: ', updateData);
+		console.log('recibido: ', data);
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
 			const uploadMediaReq = await fetch(
@@ -172,7 +172,6 @@ export async function PUT(
 			);
 		}
 
-		console.log('externalApiResJson: ', externalApiResJson);
 		const hashedPassword = await encryptPassword(data.password);
 		const dataToBBDD = {
 			...updateData,
@@ -190,7 +189,7 @@ export async function PUT(
 			new: true,
 			runValidators: true,
 		});
-		console.log('updatedSello en mongo: ', updatedSello);
+
 		if (!updatedSello) {
 			return NextResponse.json(
 				{ error: 'Error al actualizar el sello' },

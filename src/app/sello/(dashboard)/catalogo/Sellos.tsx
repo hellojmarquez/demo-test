@@ -405,12 +405,12 @@ export default function SellosPage() {
 												</span>
 												<span
 													className={`px-2 py-1 rounded-full text-xs font-medium ${
-														sello.status === 'active'
+														sello.status === 'activo'
 															? 'bg-green-100 text-green-800'
 															: 'bg-gray-100 text-gray-800'
 													}`}
 												>
-													{sello.status === 'active' ? 'Activo' : sello.status}
+													{sello.status === 'activo' ? 'Activo' : sello.status}
 												</span>
 											</p>
 										</div>

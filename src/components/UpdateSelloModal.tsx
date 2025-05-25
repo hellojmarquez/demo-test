@@ -45,7 +45,7 @@ interface AccountOption extends BaseOption {
 }
 
 interface StatusOption extends BaseOption {
-	value: 'active' | 'inactive' | 'banned';
+	value: 'activo' | 'inactivo' | 'banneado';
 }
 
 interface ParentAccountOption extends BaseOption {
@@ -68,13 +68,28 @@ interface ArtistOption extends BaseOption {
 	value: string;
 }
 
-interface SelloFormData extends Sello {
-	tipo: 'principal' | 'subcuenta';
-	parentId: string | null;
-	subaccounts: Array<{ _id: string; name: string }>;
+interface SelloFormData {
+	_id: string;
+	name: string;
 	email: string;
 	password: string;
-	exclusivity: 'exclusivo' | 'no_exclusivo';
+	role: string;
+	picture?: string;
+	catalog_num: number;
+	year: number;
+	status: 'activo' | 'inactivo' | 'banneado';
+	contract_received: boolean;
+	information_accepted: boolean;
+	label_approved: boolean;
+	assigned_artists: string[];
+	createdAt: string;
+	updatedAt: string;
+	tipo: string;
+	parentId: string | null;
+	parentName: string | null;
+	exclusivity: string;
+	fecha_inicio: string;
+	fecha_fin: string;
 }
 
 const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
@@ -84,6 +99,25 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	onSave,
 }) => {
 	const router = useRouter();
+	// Log para verificar los datos recibidos
+	useEffect(() => {
+		if (isOpen) {
+			console.log('Datos recibidos en UpdateSelloModal:', {
+				sello,
+				formData: {
+					...sello,
+					assigned_artists: sello.assigned_artists || [],
+					tipo: sello.tipo || 'principal',
+					parentId: sello.parentId || null,
+					subaccounts: sello.subaccounts || [],
+					email: sello.email || '',
+					password: sello.password || '',
+					exclusivity: sello.exclusivity || 'no_exclusivo',
+				},
+			});
+		}
+	}, [isOpen, sello]);
+
 	// Generate years array from 1900 to current year
 	const currentYear = new Date().getFullYear();
 	const years = Array.from(
@@ -150,9 +184,9 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const [currentLimit, setCurrentLimit] = useState<any>(null);
 
 	const statusOptions: StatusOption[] = [
-		{ value: 'active', label: 'Activo' },
-		{ value: 'inactive', label: 'Inactivo' },
-		{ value: 'banned', label: 'Baneado' },
+		{ value: 'activo', label: 'Activo' },
+		{ value: 'inactivo', label: 'Inactivo' },
+		{ value: 'banneado', label: 'Baneado' },
 	];
 
 	const tipoOptions: AccountOption[] = [
@@ -533,6 +567,11 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			return;
 		}
 
+		if (!newAsignacion.fecha_inicio) {
+			alert('Por favor selecciona una fecha de inicio');
+			return;
+		}
+
 		// Encontrar el artista seleccionado para mostrar su nombre
 		const artistaSeleccionado = availableArtists.find(
 			a => a._id === newAsignacion.artista_id
@@ -610,17 +649,34 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 			// Procesar el resto de la actualización del sello
 			const formDataToSend = new FormData();
-			formDataToSend.append('_id', formData._id);
+
+			// Preparar los datos del sello incluyendo las asignaciones
 			const dataToSend = {
-				...formData,
-				year: parseInt(formData.year.toString()) || 0,
+				_id: formData._id,
+				name: formData.name,
+				email: formData.email,
+				password: formData.password,
+				role: 'sello',
 				catalog_num: parseInt(formData.catalog_num.toString()) || 0,
-				external_id: formData.external_id
-					? parseInt(formData.external_id.toString())
-					: undefined,
+				year: parseInt(formData.year.toString()) || 0,
+				status: formData.status,
+				contract_received: formData.contract_received,
+				information_accepted: formData.information_accepted,
+				label_approved: formData.label_approved,
+				exclusivity: formData.exclusivity,
 				picture:
 					typeof formData.picture === 'string' ? formData.picture : undefined,
+				// Incluir las asignaciones de artistas
+				assigned_artists: newAsignaciones.map(asignacion => ({
+					artista_id: asignacion.artista_id._id,
+					fecha_inicio: asignacion.fecha_inicio,
+					fecha_fin: asignacion.fecha_fin,
+					tipo_contrato: asignacion.tipo_contrato,
+					porcentaje_distribucion: asignacion.porcentaje_distribucion,
+				})),
 			};
+
+			console.log('Datos a enviar:', dataToSend);
 			formDataToSend.append('data', JSON.stringify(dataToSend));
 
 			if (formData.picture instanceof File) {
@@ -695,7 +751,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			const data = await response.json();
 			if (data.success && data.data.length > 0) {
 				const activeLimit = data.data.find(
-					(limit: any) => limit.status === 'active'
+					(limit: any) => limit.status === 'activo'
 				);
 				setCurrentLimit(activeLimit);
 			}
@@ -806,6 +862,29 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 										<div>
 											<label
+												htmlFor="email"
+												className="block text-sm font-medium text-gray-700 mb-1"
+											>
+												Email
+											</label>
+											<div className="relative">
+												<Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+												<input
+													type="email"
+													id="email"
+													name="email"
+													value={formData.email}
+													onChange={handleChange}
+													className={inputStyles}
+													required
+												/>
+											</div>
+										</div>
+									</div>
+
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div>
+											<label
 												htmlFor="catalog_num"
 												className="block text-sm font-medium text-gray-700 mb-1"
 											>
@@ -825,9 +904,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 												/>
 											</div>
 										</div>
-									</div>
 
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div>
 											<label
 												htmlFor="tipo"
@@ -909,27 +986,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 												</div>
 											</div>
 										)}
-
-										<div>
-											<label
-												htmlFor="email"
-												className="block text-sm font-medium text-gray-700 mb-1"
-											>
-												Correo Electrónico
-											</label>
-											<div className="relative">
-												<Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-												<input
-													type="email"
-													id="email"
-													name="email"
-													value={formData.email}
-													onChange={handleChange}
-													className={inputStyles}
-													required
-												/>
-											</div>
-										</div>
 
 										<div>
 											<label
@@ -1271,6 +1327,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 															</div>
 														</div>
 													</div>
+
 													<div>
 														<label className="block text-sm font-medium text-gray-700 mb-1">
 															Tipo de Contrato
@@ -1311,38 +1368,47 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 															</div>
 														</div>
 													</div>
+
 													<div>
 														<label className="block text-sm font-medium text-gray-700 mb-1">
 															Fecha de Inicio
 														</label>
-														<input
-															type="date"
-															value={newAsignacion.fecha_inicio}
-															onChange={e =>
-																setNewAsignacion(prev => ({
-																	...prev,
-																	fecha_inicio: e.target.value,
-																}))
-															}
-															className={inputStyles}
-														/>
+														<div className="relative">
+															<Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+															<input
+																type="date"
+																value={newAsignacion.fecha_inicio}
+																onChange={e =>
+																	setNewAsignacion(prev => ({
+																		...prev,
+																		fecha_inicio: e.target.value,
+																	}))
+																}
+																className={inputStyles}
+															/>
+														</div>
 													</div>
+
 													<div>
 														<label className="block text-sm font-medium text-gray-700 mb-1">
 															Fecha de Fin
 														</label>
-														<input
-															type="date"
-															value={newAsignacion.fecha_fin}
-															onChange={e =>
-																setNewAsignacion(prev => ({
-																	...prev,
-																	fecha_fin: e.target.value,
-																}))
-															}
-															className={inputStyles}
-														/>
+														<div className="relative">
+															<Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+															<input
+																type="date"
+																value={newAsignacion.fecha_fin}
+																onChange={e =>
+																	setNewAsignacion(prev => ({
+																		...prev,
+																		fecha_fin: e.target.value,
+																	}))
+																}
+																className={inputStyles}
+															/>
+														</div>
 													</div>
+
 													<div>
 														<label className="block text-sm font-medium text-gray-700 mb-1">
 															Porcentaje de Distribución

@@ -1,9 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IAsignacion extends Document {
+export interface ISelloArtistaContrato extends Document {
 	sello_id: mongoose.Types.ObjectId;
 	artista_id: mongoose.Types.ObjectId;
-	fecha_asignacion: Date;
 	fecha_inicio: Date;
 	fecha_fin?: Date;
 	tipo_contrato: 'exclusivo' | 'no_exclusivo';
@@ -14,7 +13,7 @@ export interface IAsignacion extends Document {
 	updated_at: Date;
 }
 
-const AsignacionSchema = new Schema(
+const SelloArtistaContratoSchema = new Schema(
 	{
 		sello_id: {
 			type: Schema.Types.ObjectId,
@@ -27,11 +26,6 @@ const AsignacionSchema = new Schema(
 			ref: 'User',
 			required: true,
 			index: true,
-		},
-		fecha_asignacion: {
-			type: Date,
-			required: true,
-			default: Date.now,
 		},
 		fecha_inicio: {
 			type: Date,
@@ -70,25 +64,33 @@ const AsignacionSchema = new Schema(
 );
 
 // Índices compuestos para búsquedas eficientes
-AsignacionSchema.index({ sello_id: 1, estado: 1 });
-AsignacionSchema.index({ artista_id: 1, estado: 1 });
-AsignacionSchema.index({ sello_id: 1, artista_id: 1 }, { unique: true });
+SelloArtistaContratoSchema.index({ sello_id: 1, estado: 1 });
+SelloArtistaContratoSchema.index({ artista_id: 1, estado: 1 });
+SelloArtistaContratoSchema.index(
+	{ sello_id: 1, artista_id: 1 },
+	{ unique: true }
+);
 
 // Middleware para validar que no exista una asignación activa para el mismo artista
-AsignacionSchema.pre('save', async function (next) {
+SelloArtistaContratoSchema.pre('save', async function (next) {
 	if (this.isNew || this.isModified('estado')) {
-		const existingAsignacion = await mongoose.model('Asignacion').findOne({
-			artista_id: this.artista_id,
-			estado: 'activo',
-			_id: { $ne: this._id },
-		});
+		const existingContrato = await mongoose
+			.model('SelloArtistaContrato')
+			.findOne({
+				artista_id: this.artista_id,
+				estado: 'activo',
+				_id: { $ne: this._id },
+			});
 
-		if (existingAsignacion) {
-			throw new Error('El artista ya tiene una asignación activa');
+		if (existingContrato) {
+			throw new Error('El artista ya tiene un contrato activo con otro sello');
 		}
 	}
 	next();
 });
 
-export default mongoose.models.Asignacion ||
-	mongoose.model<IAsignacion>('Asignacion', AsignacionSchema);
+export default mongoose.models.SelloArtistaContrato ||
+	mongoose.model<ISelloArtistaContrato>(
+		'SelloArtistaContrato',
+		SelloArtistaContratoSchema
+	);

@@ -52,7 +52,7 @@ export async function PUT(
 		await dbConnect();
 
 		// Validar que el status sea uno de los valores permitidos
-		if (!['active', 'inactive', 'banned'].includes(status)) {
+		if (!['activo', 'inactivo', 'banneado'].includes(status)) {
 			return NextResponse.json({ error: 'Estado no válido' }, { status: 400 });
 		}
 

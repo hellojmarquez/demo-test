@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Asignacion from '@/models/AsignacionModel';
+import SelloArtistaContrato from '@/models/AsignacionModel';
 import User from '@/models/UserModel';
 
 export async function POST(request: NextRequest) {
@@ -16,6 +16,11 @@ export async function POST(request: NextRequest) {
 			tipo_contrato,
 			porcentaje_distribucion,
 		} = body;
+		console.log('contrato sello-artista: ', body);
+
+		// Convertir las fechas de string a Date
+		const fechaInicioDate = new Date(fecha_inicio);
+		const fechaFinDate = fecha_fin ? new Date(fecha_fin) : null;
 
 		// Verificar que el sello existe
 		const sello = await User.findOne({ _id: sello_id, role: 'sello' });
@@ -35,24 +40,24 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Verificar si el artista ya tiene una asignación activa
-		const asignacionExistente = await Asignacion.findOne({
+		// Verificar si el artista ya tiene un contrato activo
+		const contratoExistente = await SelloArtistaContrato.findOne({
 			artista_id,
 			estado: 'activo',
 		});
 
-		if (asignacionExistente) {
+		if (contratoExistente) {
 			return NextResponse.json(
 				{
 					success: false,
-					message: 'El artista ya tiene una asignación activa',
+					message: 'El artista ya tiene un contrato activo con otro sello',
 				},
 				{ status: 400 }
 			);
 		}
 
 		// Verificar el límite de artistas por sello
-		const artistasActivos = await Asignacion.countDocuments({
+		const artistasActivos = await SelloArtistaContrato.countDocuments({
 			sello_id,
 			estado: 'activo',
 		});
@@ -76,12 +81,12 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Crear la asignación
-		const asignacion = await Asignacion.create({
+		// Crear el contrato con las fechas convertidas
+		const contrato = await SelloArtistaContrato.create({
 			sello_id,
 			artista_id,
-			fecha_asignacion: fecha_inicio,
-			fecha_fin: fecha_fin || null,
+			fecha_inicio: fechaInicioDate,
+			fecha_fin: fechaFinDate,
 			tipo_contrato,
 			porcentaje_distribucion,
 			estado: 'activo',
@@ -89,11 +94,11 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
-			message: 'Asignación creada exitosamente',
-			data: asignacion,
+			message: 'Contrato creado exitosamente',
+			data: contrato,
 		});
 	} catch (error: any) {
-		console.error('Error creating asignacion:', error);
+		console.error('Error creating contrato:', error);
 		return NextResponse.json(
 			{ success: false, message: error.message },
 			{ status: 500 }

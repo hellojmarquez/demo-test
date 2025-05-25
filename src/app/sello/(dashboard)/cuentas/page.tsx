@@ -140,16 +140,22 @@ export default function UsuariosPage() {
 				external_id: user.external_id || user._id, // Asegurarnos de tener un external_id
 				name: user.name,
 				email: user.email || '',
+				password: user.password || '',
+				role: 'sello',
 				picture: user.picture || '',
 				catalog_num: user.catalog_num || 0,
 				year: user.year || 0,
-				status: user.status || 'activo',
+				status: (user.status || 'activo') as 'activo' | 'inactivo' | 'banneado',
 				contract_received: user.contract_received || false,
 				information_accepted: user.information_accepted || false,
 				label_approved: user.label_approved || false,
 				assigned_artists: user.assigned_artists || [],
 				createdAt: user.createdAt || new Date().toISOString(),
 				updatedAt: user.updatedAt || new Date().toISOString(),
+				tipo: 'principal',
+				parentId: null,
+				parentName: null,
+				primary_genre: user.primary_genre || '',
 			};
 			// Usar any para evitar problemas de tipo
 			setSelectedSello(adaptedSelloData as any);
@@ -399,6 +405,8 @@ export default function UsuariosPage() {
 				body = JSON.stringify({
 					...data,
 					role: 'sello',
+					external_id: data.external_id || data._id, // Asegurar que siempre tengamos un external_id
+					primary_genre: data.primary_genre || '', // Asegurar que siempre tengamos un primary_genre
 				});
 			}
 

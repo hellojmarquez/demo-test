@@ -64,6 +64,10 @@ const adminSchema = new mongoose.Schema({
 
 // Esquema específico para sellos
 const selloSchema = new mongoose.Schema({
+	external_id: {
+		type: Number,
+		required: true,
+	},
 	artistLimit: {
 		type: Number,
 		default: 3,
@@ -84,8 +88,13 @@ const selloSchema = new mongoose.Schema({
 		type: Number,
 		default: null,
 	},
+	primary_genre: {
+		type: String,
+		required: false,
+		select: true,
+	},
 	picture: {
-		type: mongoose.Schema.Types.Mixed,
+		type: String,
 		default: null,
 	},
 });

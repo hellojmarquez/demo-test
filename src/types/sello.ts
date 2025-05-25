@@ -1,5 +1,6 @@
 export interface Sello {
 	_id: string;
+	external_id: number;
 	name: string;
 	email: string;
 	password?: string;
@@ -24,4 +25,5 @@ export interface Sello {
 	}>;
 	fecha_inicio?: string;
 	fecha_fin?: string;
+	primary_genre: string;
 }

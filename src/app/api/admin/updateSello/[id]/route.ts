@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import User from '@/models/UserModel';
+import { User, Sello } from '@/models/UserModel';
 import { jwtVerify } from 'jose';
 import { encryptPassword } from '@/utils/auth';
 
@@ -33,7 +33,7 @@ export async function PUT(
 		}
 		const { id } = params;
 		await dbConnect();
-
+		console.log('id: ', id);
 		// Obtener el sello actual para comparar cambios
 		const currentSello = await User.findById(id);
 		if (!currentSello) {
@@ -45,6 +45,9 @@ export async function PUT(
 
 		let data: any;
 		let file: File | null = null;
+
+		let picture_url = '';
+		let picture_path = '';
 
 		// Determinar si la solicitud es FormData o JSON
 		const contentType = req.headers.get('content-type') || '';
@@ -62,18 +65,20 @@ export async function PUT(
 		}
 
 		// Preparar los datos para la actualización
-		const updateData: any = {
+		let updateData: any = {
 			name: data.name,
 			primary_genre: data.primary_genre,
 			year: parseInt(data.year),
 			catalog_num: parseInt(data.catalog_num),
 			status: data.status,
+			logo: '',
 			assigned_artists: data.assigned_artists || [],
-			tipo: data.tipo,
 		};
+
 		console.log('recibido: ', data);
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
+			console.log('Subiendo nueva imagen...');
 			const uploadMediaReq = await fetch(
 				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=label.logo`,
 				{
@@ -99,10 +104,12 @@ export async function PUT(
 				method: 'POST',
 				body: mediaFormData,
 			});
-			const picture_url = uploadResponse?.headers?.get('location') || '';
-			updateData.picture = picture_url;
+			picture_url = uploadResponse?.headers?.get('location') || '';
+			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
+			updateData.logo = picture_path;
+			console.log('Nueva URL de imagen generada:', picture_url);
+			console.log('Nueva ruta de imagen para API:', picture_path);
 		}
-
 		// Manejar cambios en las subcuentas
 		if (data.tipo === 'principal') {
 			// Obtener las subcuentas actuales y las nuevas
@@ -147,7 +154,7 @@ export async function PUT(
 			updateData.subaccounts = undefined; // Las subcuentas no pueden tener subcuentas
 		}
 		const externalApiRes = await fetch(
-			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+			`${process.env.MOVEMUSIC_API}/labels/${data.external_id}`,
 			{
 				method: 'PUT',
 				body: JSON.stringify(updateData),
@@ -160,7 +167,8 @@ export async function PUT(
 			}
 		);
 		const externalApiResJson = await externalApiRes.json();
-		if (!externalApiResJson.ok) {
+		if (!externalApiResJson.id) {
+			console.log('externalApiResJson: ', externalApiResJson);
 			return NextResponse.json(
 				{
 					success: false,
@@ -168,11 +176,12 @@ export async function PUT(
 						externalApiRes.statusText ||
 						'Ha habido un error, estamos trabajando en ello',
 				},
-				{ status: 500 }
+				{ status: 400 }
 			);
 		}
 
 		const hashedPassword = await encryptPassword(data.password);
+		delete updateData.logo;
 		const dataToBBDD = {
 			...updateData,
 			email: data.email,
@@ -183,13 +192,24 @@ export async function PUT(
 			parentName: data.parentName,
 			picture: data.picture,
 		};
+		file && (dataToBBDD.picture = picture_url);
+		console.log('datos a BD:', dataToBBDD);
 
 		// Actualizar el sello
-		const updatedSello = await User.findByIdAndUpdate(id, dataToBBDD, {
-			new: true,
-			runValidators: true,
-		});
-
+		const updatedSello = await Sello.findOneAndUpdate(
+			{ external_id: data.external_id },
+			{
+				$set: {
+					...dataToBBDD,
+					primary_genre: data.primary_genre,
+				},
+			},
+			{
+				new: true,
+				runValidators: true,
+			}
+		);
+		console.log('updatedSello: ', updatedSello);
 		if (!updatedSello) {
 			return NextResponse.json(
 				{ error: 'Error al actualizar el sello' },

@@ -21,6 +21,7 @@ import {
 	FileText,
 	Percent,
 	DollarSign,
+	Music,
 } from 'lucide-react';
 import { Sello } from '@/types/sello';
 import { toast } from 'react-hot-toast';
@@ -68,6 +69,11 @@ interface ArtistOption extends BaseOption {
 	value: string;
 }
 
+interface GenreOption extends BaseOption {
+	value: string;
+	label: string;
+}
+
 interface SelloFormData {
 	_id: string;
 	name: string;
@@ -90,6 +96,7 @@ interface SelloFormData {
 	exclusivity: string;
 	fecha_inicio: string;
 	fecha_fin: string;
+	primary_genre: string;
 	subaccounts?: Array<{
 		_id: string;
 		name: string;
@@ -117,20 +124,11 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 					email: sello.email || '',
 					password: sello.password || '',
 					exclusivity: sello.exclusivity || 'no_exclusivo',
+					primary_genre: sello.primary_genre || '',
 				},
 			});
 		}
 	}, [isOpen, sello]);
-
-	// Generate years array from 1900 to current year
-	const currentYear = new Date().getFullYear();
-	const years = Array.from(
-		{ length: currentYear - 1899 },
-		(_, i) => currentYear - i
-	).map(year => ({
-		value: year.toString(),
-		label: year.toString(),
-	}));
 
 	const [formData, setFormData] = useState<SelloFormData>(() => {
 		// Convertir el picture a File si es un objeto con base64
@@ -182,9 +180,26 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			exclusivity: sello.exclusivity || 'no_exclusivo',
 			fecha_inicio: sello.fecha_inicio || '',
 			fecha_fin: sello.fecha_fin || '',
+			primary_genre: sello.primary_genre || '',
 			subaccounts: sello.subaccounts || [],
 		};
 	});
+
+	// Mover el useEffect aquí, después de la declaración de formData
+	useEffect(() => {
+		console.log('primary_genre actualizado:', formData.primary_genre);
+	}, [formData.primary_genre]);
+
+	// Generate years array from 1900 to current year
+	const currentYear = new Date().getFullYear();
+	const years = Array.from(
+		{ length: currentYear - 1899 },
+		(_, i) => currentYear - i
+	).map(year => ({
+		value: year.toString(),
+		label: year.toString(),
+	}));
+
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
 		if (!sello.picture) return null;
@@ -229,6 +244,9 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		},
 	});
 	const [currentLimit, setCurrentLimit] = useState<any>(null);
+	const [genres, setGenres] = useState<Array<{ _id: string; name: string }>>(
+		[]
+	);
 
 	const statusOptions: StatusOption[] = [
 		{ value: 'activo', label: 'Activo' },
@@ -338,6 +356,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const exclusivitySelectStyles = createSelectStyles<ExclusivityOption>();
 	const yearSelectStyles = createSelectStyles<YearOption>();
 	const artistSelectStyles = createSelectStyles<ArtistOption>();
+	const genreSelectStyles = createSelectStyles<GenreOption>();
 
 	// Update the input styles to accommodate icons
 	const inputStyles =
@@ -457,6 +476,35 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			fetchArtists();
 		}
 	}, [isOpen]);
+
+	// Cargar géneros disponibles
+	useEffect(() => {
+		const fetchGenres = async () => {
+			try {
+				const response = await fetch('/api/admin/getAllGenres');
+				if (response.ok) {
+					const data = await response.json();
+					console.log('Géneros cargados:', data.data);
+					setGenres(data.data || []);
+
+					// Asegurarnos de que el género se establezca correctamente
+					if (sello.primary_genre) {
+						console.log('Género del sello:', sello.primary_genre);
+						setFormData(prev => ({
+							...prev,
+							primary_genre: sello.primary_genre,
+						}));
+					}
+				}
+			} catch (error) {
+				console.error('Error fetching genres:', error);
+			}
+		};
+
+		if (isOpen) {
+			fetchGenres();
+		}
+	}, [isOpen, sello.primary_genre]);
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -698,8 +746,32 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			const formDataToSend = new FormData();
 
 			// Preparar los datos del sello incluyendo las asignaciones
-			const dataToSend = {
-				_id: formData._id,
+			const dataToSend: {
+				_id: string;
+				external_id: number;
+				name: string;
+				email: string;
+				password: string;
+				role: string;
+				catalog_num: number;
+				year: number;
+				status: 'activo' | 'inactivo' | 'banneado';
+				contract_received: boolean;
+				information_accepted: boolean;
+				label_approved: boolean;
+				exclusivity: string;
+				primary_genre: string;
+				picture?: string;
+				assigned_artists: Array<{
+					artista_id: string;
+					fecha_inicio: string;
+					fecha_fin: string;
+					tipo_contrato: 'exclusivo' | 'no_exclusivo';
+					porcentaje_distribucion: number;
+				}>;
+			} = {
+				_id: sello._id,
+				external_id: sello.external_id,
 				name: formData.name,
 				email: formData.email,
 				password: formData.password,
@@ -711,8 +783,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				information_accepted: formData.information_accepted,
 				label_approved: formData.label_approved,
 				exclusivity: formData.exclusivity,
-				picture:
-					typeof formData.picture === 'string' ? formData.picture : undefined,
+				primary_genre: formData.primary_genre,
 				// Incluir las asignaciones de artistas
 				assigned_artists: newAsignaciones.map(asignacion => ({
 					artista_id: asignacion.artista_id._id,
@@ -726,8 +797,13 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			console.log('Datos a enviar:', dataToSend);
 			formDataToSend.append('data', JSON.stringify(dataToSend));
 
+			// Manejar la imagen
 			if (formData.picture instanceof File) {
 				formDataToSend.append('picture', formData.picture);
+			} else if (typeof formData.picture === 'string') {
+				// Si es una URL existente, incluirla en los datos
+				dataToSend.picture = formData.picture;
+				formDataToSend.set('data', JSON.stringify(dataToSend));
 			}
 
 			await onSave(formDataToSend);
@@ -1068,28 +1144,88 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 												<Calendar className="h-4 w-4 text-gray-400" />
 												<div className="flex-1">
 													<Select<YearOption>
-														id="year"
-														name="year"
-														value={{
-															value: formData.year.toString(),
-															label: formData.year.toString(),
-														}}
+														value={
+															formData.year
+																? {
+																		value: formData.year.toString(),
+																		label: formData.year.toString(),
+																  }
+																: null
+														}
 														onChange={(
 															selectedOption: SingleValue<YearOption>
 														) => {
 															if (selectedOption) {
-																handleChange({
-																	target: {
-																		name: 'year',
-																		value: selectedOption.value,
-																	},
-																} as any);
+																setFormData(prev => ({
+																	...prev,
+																	year: parseInt(selectedOption.value),
+																}));
 															}
 														}}
 														options={years}
+														placeholder="Seleccionar año"
+														isClearable
 														className="react-select-container"
 														classNamePrefix="react-select"
 														styles={yearSelectStyles}
+													/>
+												</div>
+											</div>
+										</div>
+
+										<div>
+											<label
+												htmlFor="primary_genre"
+												className="block text-sm font-medium text-gray-700 mb-1"
+											>
+												Género Principal
+											</label>
+											<div className="flex items-center gap-2">
+												<Music className="h-4 w-4 text-gray-400" />
+												<div className="flex-1">
+													<Select<GenreOption>
+														value={(() => {
+															// Si tenemos un género en formData y géneros cargados
+															if (formData.primary_genre && genres.length > 0) {
+																// Buscar el género que coincida exactamente con el nombre
+																const matchingGenre = genres.find(
+																	g =>
+																		g.name.toLowerCase() ===
+																		formData.primary_genre.toLowerCase()
+																);
+																if (matchingGenre) {
+																	return {
+																		value: matchingGenre.name,
+																		label: matchingGenre.name,
+																	};
+																}
+															}
+															return null;
+														})()}
+														onChange={(
+															selectedOption: SingleValue<GenreOption>
+														) => {
+															if (selectedOption) {
+																setFormData(prev => ({
+																	...prev,
+																	primary_genre: selectedOption.value,
+																}));
+															} else {
+																setFormData(prev => ({
+																	...prev,
+																	primary_genre: '',
+																}));
+															}
+														}}
+														options={genres.map(genre => ({
+															value: genre.name,
+															label: genre.name,
+														}))}
+														placeholder="Seleccionar género"
+														isClearable
+														className="react-select-container"
+														classNamePrefix="react-select"
+														styles={genreSelectStyles}
 													/>
 												</div>
 											</div>

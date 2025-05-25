@@ -24,6 +24,7 @@ import Pagination from '@/components/Pagination';
 import SortSelect from '@/components/SortSelect';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
+import { Sello } from '@/types/sello';
 
 // Definir la interfaz Artista para que coincida con la del componente UpdateArtistaModal
 interface Artista {
@@ -84,6 +85,7 @@ interface SelloData {
 	tipo: 'principal' | 'subcuenta';
 	parentId: string | null;
 	parentName: string | null;
+	primary_genre: string;
 }
 
 const Personas = () => {
@@ -886,6 +888,7 @@ const Personas = () => {
 						sello={
 							{
 								_id: selectedSello._id,
+								external_id: selectedSello.external_id,
 								name: selectedSello.name,
 								email: selectedSello.email || '',
 								password: selectedSello.password || '',
@@ -907,6 +910,7 @@ const Personas = () => {
 								tipo: 'principal',
 								parentId: null,
 								parentName: null,
+								primary_genre: selectedSello.primary_genre || '',
 							} as SelloData
 						}
 						isOpen={showSelloModal}

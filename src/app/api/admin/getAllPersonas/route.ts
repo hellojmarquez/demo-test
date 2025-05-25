@@ -73,20 +73,31 @@ export async function GET(req: NextRequest) {
 			const artistaIds = contratos.map(contrato => contrato.artista_id);
 			console.log('IDs de artistas:', artistaIds);
 
-			// Combinar la búsqueda con el filtro de artistas
-			query = {
-				...searchQuery,
-				_id: { $in: artistaIds },
-				role: 'artista',
+			// Construir la query base
+			const baseQuery = {
+				role: 'artista' as const,
 			};
-			console.log('Query final para sello:', JSON.stringify(query, null, 2));
+
+			// Agregar la búsqueda por nombre si existe
+			const finalQuery = {
+				...baseQuery,
+				...(searchQuery && Object.keys(searchQuery).length > 0
+					? searchQuery
+					: {}),
+				...(artistaIds.length > 0 ? { _id: { $in: artistaIds } } : {}),
+			};
+
+			console.log(
+				'Query final para sello:',
+				JSON.stringify(finalQuery, null, 2)
+			);
 
 			// Obtener el total de documentos que coinciden con la búsqueda
-			total = await User.countDocuments(query);
+			total = await User.countDocuments(finalQuery);
 			console.log('Total de artistas encontrados:', total);
 
 			// Obtener los usuarios paginados y filtrados
-			users = await User.find(query)
+			users = await User.find(finalQuery)
 				.select({ password: 0 })
 				.sort(sort)
 				.skip(skip)
@@ -96,13 +107,17 @@ export async function GET(req: NextRequest) {
 		} else {
 			console.log('Usuario no es un sello, usando lógica original');
 			// Para otros roles, mantener la lógica original
-			query = {
-				...searchQuery,
+			const baseQuery = {};
+			const finalQuery = {
+				...baseQuery,
+				...(searchQuery && Object.keys(searchQuery).length > 0
+					? searchQuery
+					: {}),
 				role: { $nin: ['admin', 'sello'] },
 			};
 
-			total = await User.countDocuments(query);
-			users = await User.find(query)
+			total = await User.countDocuments(finalQuery);
+			users = await User.find(finalQuery)
 				.select({ password: 0 })
 				.sort(sort)
 				.skip(skip)

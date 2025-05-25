@@ -74,7 +74,7 @@ interface SelloFormData {
 	email: string;
 	password: string;
 	role: string;
-	picture?: string;
+	picture?: string | File;
 	catalog_num: number;
 	year: number;
 	status: 'activo' | 'inactivo' | 'banneado';
@@ -90,6 +90,10 @@ interface SelloFormData {
 	exclusivity: string;
 	fecha_inicio: string;
 	fecha_fin: string;
+	subaccounts?: Array<{
+		_id: string;
+		name: string;
+	}>;
 }
 
 const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
@@ -128,15 +132,58 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		label: year.toString(),
 	}));
 
-	const [formData, setFormData] = useState<SelloFormData>({
-		...sello,
-		assigned_artists: sello.assigned_artists || [],
-		tipo: sello.tipo || 'principal',
-		parentId: sello.parentId || null,
-		subaccounts: sello.subaccounts || [],
-		email: sello.email || '',
-		password: sello.password || '',
-		exclusivity: sello.exclusivity || 'no_exclusivo',
+	const [formData, setFormData] = useState<SelloFormData>(() => {
+		// Convertir el picture a File si es un objeto con base64
+		let picture: string | File | undefined;
+		if (sello.picture) {
+			if (typeof sello.picture === 'string') {
+				picture = sello.picture;
+			} else if (
+				typeof sello.picture === 'object' &&
+				'base64' in sello.picture &&
+				typeof sello.picture.base64 === 'string'
+			) {
+				// Convertir base64 a File
+				const byteCharacters = atob(sello.picture.base64);
+				const byteArrays = [];
+				for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+					const slice = byteCharacters.slice(offset, offset + 512);
+					const byteNumbers = new Array(slice.length);
+					for (let i = 0; i < slice.length; i++) {
+						byteNumbers[i] = slice.charCodeAt(i);
+					}
+					const byteArray = new Uint8Array(byteNumbers);
+					byteArrays.push(byteArray);
+				}
+				const blob = new Blob(byteArrays, { type: 'image/jpeg' });
+				picture = new File([blob], 'sello-picture.jpg', { type: 'image/jpeg' });
+			}
+		}
+
+		return {
+			_id: sello._id,
+			name: sello.name,
+			email: sello.email || '',
+			password: sello.password || '',
+			role: sello.role,
+			picture,
+			catalog_num: sello.catalog_num || 0,
+			year: sello.year || new Date().getFullYear(),
+			status: sello.status || 'activo',
+			contract_received: sello.contract_received || false,
+			information_accepted: sello.information_accepted || false,
+			label_approved: sello.label_approved || false,
+			assigned_artists: sello.assigned_artists || [],
+			createdAt: sello.createdAt || new Date().toISOString(),
+			updatedAt: sello.updatedAt || new Date().toISOString(),
+			tipo: sello.tipo || 'principal',
+			parentId: sello.parentId || null,
+			parentName: sello.parentName || null,
+			exclusivity: sello.exclusivity || 'no_exclusivo',
+			fecha_inicio: sello.fecha_inicio || '',
+			fecha_fin: sello.fecha_fin || '',
+			subaccounts: sello.subaccounts || [],
+		};
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {

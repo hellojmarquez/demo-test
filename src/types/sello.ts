@@ -4,7 +4,7 @@ export interface Sello {
 	email: string;
 	password?: string;
 	role: string;
-	picture?: string;
+	picture?: string | { base64: string };
 	catalog_num?: number;
 	year?: number;
 	status?: 'activo' | 'inactivo' | 'banneado';
@@ -18,4 +18,10 @@ export interface Sello {
 	tipo?: 'principal' | 'subcuenta';
 	parentId?: string | null;
 	parentName?: string | null;
+	subaccounts?: Array<{
+		_id: string;
+		name: string;
+	}>;
+	fecha_inicio?: string;
+	fecha_fin?: string;
 }

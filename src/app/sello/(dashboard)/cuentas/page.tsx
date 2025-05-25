@@ -374,6 +374,7 @@ export default function UsuariosPage() {
 	};
 
 	const handleSelloSave = async (updatedSello: any) => {
+		console.log('updatedSello: ', updatedSello);
 		try {
 			const res = await fetch(`/api/admin/updateUser/${updatedSello._id}`, {
 				method: 'PUT',

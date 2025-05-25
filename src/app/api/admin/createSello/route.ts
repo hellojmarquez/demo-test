@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
 		const isSubaccount = formData.get('isSubaccount') === 'true';
 		const parentUserId = formData.get('parentUserId') as string;
 		const parentName = formData.get('parentName') as string;
-
+		let picture_url = '';
+		let picture_path = '';
 		// Validar campos requeridos
 		// if (!name || !primary_genre || !year || !catalog_num) {
 		// 	return NextResponse.json(
@@ -101,9 +102,6 @@ export async function POST(request: NextRequest) {
 			}
 		}
 
-		// Procesar la imagen si existe
-		let picture_url = '';
-		let picture_path = '';
 		if (picture) {
 			try {
 				const uploadPictureReq = await fetch(
@@ -172,9 +170,8 @@ export async function POST(request: NextRequest) {
 		let external_id = null;
 
 		const labelToApi = {
-			name,
 			logo: picture_path,
-			primary_genre,
+			name,
 			year: parseInt(year),
 			catalog_num: parseInt(catalog_num),
 		};
@@ -192,6 +189,9 @@ export async function POST(request: NextRequest) {
 
 		const createLabelRes = await createLabelReq.json();
 
+		if (!createLabelRes.id) {
+			return NextResponse.json({ success: false, error: createLabelRes });
+		}
 		external_id = createLabelRes.id;
 
 		// Encriptar contraseña solo si no es subcuenta
@@ -218,7 +218,6 @@ export async function POST(request: NextRequest) {
 			year: parseInt(year),
 			catalog_num: parseInt(catalog_num),
 		});
-		console.log('newUser: ', newUser);
 
 		await newUser.save();
 
@@ -228,7 +227,6 @@ export async function POST(request: NextRequest) {
 				$push: { subaccounts: newUser._id },
 			});
 		}
-		console.log('Guardado', newUser);
 
 		return NextResponse.json(
 			{
@@ -240,7 +238,7 @@ export async function POST(request: NextRequest) {
 			{ status: 201 }
 		);
 	} catch (error: any) {
-		console.error('Error al crear sello:', error);
+
 		return NextResponse.json(
 			{
 				error: error.message || 'Error interno del servidor',

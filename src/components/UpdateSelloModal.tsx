@@ -17,7 +17,6 @@ import {
 	Hash,
 	User,
 	Building,
-	CheckCircle,
 	UserRoundCheck,
 	FileText,
 	Percent,
@@ -348,6 +347,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		};
 
 		fetchAsignaciones();
+		fetchCurrentLimit();
 	}, [isOpen, sello._id]);
 
 	// Cargar artistas disponibles

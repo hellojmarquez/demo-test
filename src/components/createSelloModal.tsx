@@ -1,6 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
+import {
+	X,
+	Save,
+	Image as ImageIcon,
+	XCircle,
+	Upload,
+	Hash,
+} from 'lucide-react';
 import Select from 'react-select';
 
 interface CreateSelloModalProps {
@@ -36,19 +43,31 @@ interface ParentOption {
 	label: string;
 }
 
+interface SelloFormData {
+	name: string;
+	email: string;
+	password: string;
+	primary_genre: string;
+	year: string;
+	catalog_number: string;
+	picture: { base64: string } | undefined;
+	isSubaccount: boolean;
+	parentUserId: string;
+}
+
 function CreateSelloModal({
 	isOpen,
 	onClose,
 	onSave,
 }: CreateSelloModalProps): JSX.Element {
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<SelloFormData>({
 		name: '',
 		email: '',
 		password: '',
 		primary_genre: '',
 		year: new Date().getFullYear().toString(),
-		catalog_num: '',
-		picture: undefined as { base64: string } | undefined,
+		catalog_number: '',
+		picture: undefined,
 		isSubaccount: false,
 		parentUserId: '',
 	});
@@ -64,7 +83,7 @@ function CreateSelloModal({
 	);
 
 	const inputStyles =
-		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
+		'w-full pl-10 pr-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
 	const reactSelectStyles = {
 		control: (base: any) => ({
@@ -107,7 +126,7 @@ function CreateSelloModal({
 				const genresResponse = await fetch('/api/admin/getAllGenres');
 				if (genresResponse.ok) {
 					const genresData = await genresResponse.json();
-				
+
 					setGenres(genresData.data || []);
 				}
 			} catch (error) {
@@ -139,14 +158,12 @@ function CreateSelloModal({
 					[name]: value,
 				}));
 			}
-		} else if (name === 'catalog_num') {
+		} else if (name === 'catalog_number') {
 			// Solo permitir enteros positivos para el número de catálogo
-			const regex = /^\d*$/;
-
-			if (regex.test(value)) {
+			if (/^\d*$/.test(value)) {
 				setFormData(prev => ({
 					...prev,
-					[name]: value,
+					catalog_number: value,
 				}));
 			}
 		} else {
@@ -195,7 +212,9 @@ function CreateSelloModal({
 			);
 			formDataToSend.append(
 				'catalog_num',
-				formData.catalog_num ? parseInt(formData.catalog_num).toString() : ''
+				formData.catalog_number
+					? parseInt(formData.catalog_number).toString()
+					: ''
 			);
 			formDataToSend.append('isSubaccount', formData.isSubaccount.toString());
 			formDataToSend.append(
@@ -242,15 +261,30 @@ function CreateSelloModal({
 				body: formDataToSend,
 			});
 
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Error al crear el sello');
+			const data = await response.json();
+
+			if (!data.success) {
+				console.log('data: ', data);
+				let errorMessage = 'Error al crear el sello';
+
+				if (data.error) {
+					if (Array.isArray(data.error)) {
+						errorMessage = data.error.join(', ');
+					} else if (typeof data.error === 'object') {
+						errorMessage = JSON.stringify(data.error);
+					} else {
+						errorMessage = data.error;
+					}
+				}
+
+				setError(errorMessage);
+				return;
 			}
 
-			const data = await response.json();
 			await onSave(data.sello);
 			onClose();
 		} catch (err: any) {
+			console.error('Error al crear el sello:', err);
 			setError(err.message || 'Error al crear el sello');
 		} finally {
 			setIsSubmitting(false);
@@ -471,20 +505,24 @@ function CreateSelloModal({
 
 									<div>
 										<label
-											htmlFor="catalog_num"
+											htmlFor="catalog_number"
 											className="block text-sm font-medium text-gray-700 mb-1"
 										>
 											Número de Catálogo
 										</label>
-										<input
-											type="text"
-											id="catalog_num"
-											name="catalog_num"
-											value={formData.catalog_num}
-											onChange={handleInputChange}
-											className={inputStyles}
-											required
-										/>
+										<div className="relative">
+											<Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+											<input
+												type="text"
+												id="catalog_number"
+												name="catalog_number"
+												value={formData.catalog_number}
+												onChange={handleInputChange}
+												onPaste={e => e.preventDefault()}
+												className={inputStyles}
+												required
+											/>
+										</div>
 									</div>
 
 									<div className="flex items-center space-x-2">
@@ -548,33 +586,48 @@ function CreateSelloModal({
 								</div>
 							</div>
 
-							<div className="p-4 border-t border-gray-200 flex justify-end space-x-2 flex-shrink-0">
-								<button
-									type="button"
-									onClick={onClose}
-									disabled={isSubmitting}
-									className="px-3 py-1.5 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
-									<span className="group-hover:text-brand-dark">Cancelar</span>
-								</button>
-								<button
-									type="submit"
-									disabled={isSubmitting}
-									className="px-3 py-1.5 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									{isSubmitting ? (
-										<>
-											<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-											<span>Creando...</span>
-										</>
-									) : (
-										<>
-											<Save className="h-4 w-4 group-hover:text-brand-dark" />
-											<span className="group-hover:text-brand-dark">Crear</span>
-										</>
-									)}
-								</button>
+							<div className="p-4 border-t border-gray-200 flex flex-col space-y-4 flex-shrink-0">
+								{error && (
+									<div
+										className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative"
+										role="alert"
+									>
+										<strong className="font-bold">Error: </strong>
+										<span className="block sm:inline">{error}</span>
+									</div>
+								)}
+								<div className="flex justify-end space-x-2">
+									<button
+										type="button"
+										onClick={onClose}
+										disabled={isSubmitting}
+										className="px-3 py-1.5 rounded-md text-brand-light flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<XCircle className="h-4 w-4 group-hover:text-brand-dark" />
+										<span className="group-hover:text-brand-dark">
+											Cancelar
+										</span>
+									</button>
+									<button
+										type="submit"
+										disabled={isSubmitting}
+										className="px-3 py-1.5 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										{isSubmitting ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												<span>Creando...</span>
+											</>
+										) : (
+											<>
+												<Save className="h-4 w-4 group-hover:text-brand-dark" />
+												<span className="group-hover:text-brand-dark">
+													Crear
+												</span>
+											</>
+										)}
+									</button>
+								</div>
 							</div>
 						</form>
 					</motion.div>

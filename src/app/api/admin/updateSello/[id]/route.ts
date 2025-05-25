@@ -2,15 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
 import { jwtVerify } from 'jose';
-
-import { ObjectId } from 'mongodb';
+import { encryptPassword } from '@/utils/auth';
 
 export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		const { id } = params;
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
@@ -33,7 +31,7 @@ export async function PUT(
 				{ status: 401 }
 			);
 		}
-
+		const { id } = params;
 		await dbConnect();
 
 		// Obtener el sello actual para comparar cambios
@@ -148,13 +146,51 @@ export async function PUT(
 			updateData.parentName = data.parentName;
 			updateData.subaccounts = undefined; // Las subcuentas no pueden tener subcuentas
 		}
+		const externalApiRes = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
+			{
+				method: 'PUT',
+				body: JSON.stringify(updateData),
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const externalApiResJson = await externalApiRes.json();
+		if (!externalApiResJson.ok) {
+			return NextResponse.json(
+				{
+					success: false,
+					error:
+						externalApiRes.statusText ||
+						'Ha habido un error, estamos trabajando en ello',
+				},
+				{ status: 500 }
+			);
+		}
+
+		console.log('externalApiResJson: ', externalApiResJson);
+		const hashedPassword = await encryptPassword(data.password);
+		const dataToBBDD = {
+			...updateData,
+			email: data.email,
+			password: hashedPassword,
+			subaccounts: data.subaccounts,
+			tipo: data.tipo,
+			parentId: data.parentId,
+			parentName: data.parentName,
+			picture: data.picture,
+		};
 
 		// Actualizar el sello
-		const updatedSello = await User.findByIdAndUpdate(id, updateData, {
+		const updatedSello = await User.findByIdAndUpdate(id, dataToBBDD, {
 			new: true,
 			runValidators: true,
 		});
-
+		console.log('updatedSello en mongo: ', updatedSello);
 		if (!updatedSello) {
 			return NextResponse.json(
 				{ error: 'Error al actualizar el sello' },

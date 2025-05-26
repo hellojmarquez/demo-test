@@ -179,6 +179,21 @@ export default function DashboardLayout({
 											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 										</Link>
 									)}
+									{isAdmin && (
+										<Link
+											href="/sello/logs"
+											className={`flex items-center p-2 transition-colors relative group ${
+												isActive('/sello/contabilidad')
+													? 'text-white border-b-2'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<Calculator size={18} className="mr-2" />
+											<span>Logs</span>
+											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+										</Link>
+									)}
 									<Link
 										href="#!"
 										className={`flex items-center p-2 transition-colors relative group ${

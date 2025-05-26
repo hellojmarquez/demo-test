@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
 				email: userDB.email,
 				id: userDB._id,
 				status: 'banneado',
+				name: userDB.name,
 			})
 				.setProtectedHeader({ alg: 'HS256' })
 				.setIssuedAt()
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
 					email: userDB.email,
 					id: userDB._id,
 					status: userDB.status,
+					name: userDB.name,
 				})
 					.setProtectedHeader({ alg: 'HS256' })
 					.setIssuedAt()

@@ -4,6 +4,8 @@ import Release from '@/models/ReleaseModel';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { createLog } from '@/lib/logger';
+
 export async function POST(req: NextRequest) {
 	console.log('Create release request received');
 
@@ -16,14 +18,21 @@ export async function POST(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-		console.log('moveMusicAccessToken', moveMusicAccessToken);
-		console.log('token', token);
+
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
+			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
+			console.log('Datos del usuario:', {
+				id: payload.id,
+				name: payload.name,
+				role: payload.role,
+			});
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -213,6 +222,26 @@ export async function POST(req: NextRequest) {
 		console.log('releaseToSave: ', releaseToSave);
 		const savedRelease = await Release.create(releaseToSave);
 		console.log('savedRelease: ', savedRelease);
+
+		try {
+			// Crear el log
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'RELEASE' as const,
+				entityId: savedRelease._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Release creado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
+			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
+
 		return NextResponse.json({
 			success: true,
 		});

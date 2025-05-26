@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-import dbConnect from '@/lib/dbConnect';
 import Log from '@/models/LogModel';
-import { validateAdmin } from '@/middleware/validateAdmin';
-import { getTokenBack } from '@/utils/tokenBack';
-import { verifyToken } from '@/utils/jwt';
-import User from '@/models/UserModel';
+import dbConnect from '@/lib/dbConnect';
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
 	try {
-		const token = req.cookies.get('loginToken')?.value;
+		// Verificar el token JWT
+		const token = request.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
 				{ success: false, error: 'Not authenticated' },
@@ -18,13 +15,11 @@ export async function GET(req: NextRequest) {
 		}
 
 		// Verificar JWT
-		let verifiedPayload;
 		try {
-			const { payload } = await jwtVerify(
+			const { payload: verifiedPayload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
-			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -32,11 +27,14 @@ export async function GET(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-
-		await dbConnect();
+		const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+		const { payload } = await jwtVerify(token, secret);
+		if (!payload) {
+			return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+		}
 
 		// Obtener parámetros de la URL
-		const { searchParams } = new URL(req.url);
+		const { searchParams } = new URL(request.url);
 		const page = parseInt(searchParams.get('page') || '1');
 		const limit = parseInt(searchParams.get('limit') || '10');
 		const action = searchParams.get('action');
@@ -44,6 +42,8 @@ export async function GET(req: NextRequest) {
 		const search = searchParams.get('search');
 		const startDate = searchParams.get('startDate');
 		const endDate = searchParams.get('endDate');
+
+		await dbConnect();
 
 		// Construir el query
 		const query: any = {};
@@ -77,12 +77,13 @@ export async function GET(req: NextRequest) {
 		const total = await Log.countDocuments(query);
 
 		// Obtener los logs con paginación
+		console.log('query', query);
 		const logs = await Log.find(query)
 			.sort({ createdAt: -1 })
 			.skip((page - 1) * limit)
 			.limit(limit)
 			.lean();
-
+		console.log('logs', logs);
 		return NextResponse.json({
 			logs,
 			pagination: {
@@ -98,45 +99,5 @@ export async function GET(req: NextRequest) {
 			{ error: 'Error al obtener los logs' },
 			{ status: 500 }
 		);
-	}
-}
-
-export async function POST(req: NextRequest) {
-	try {
-		await dbConnect();
-
-		const token = await getTokenBack(req);
-		if (!token) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
-
-		const session = verifyToken(token);
-		if (!session) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
-
-		const user = session.user;
-
-		const me = await User.findById(user._id, { password: 0 });
-		if (!me) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
-
-		const body = await req.json();
-		const { message, level = 'info', metadata = {} } = body;
-
-		const newLog = new Log({
-			message,
-			level,
-			metadata,
-			user: user._id,
-		});
-
-		await newLog.save();
-
-		console.log('New log:', newLog);
-		return NextResponse.json(newLog, { status: 201 });
-	} catch (error: any) {
-		return NextResponse.json({ error: error.message }, { status: 400 });
 	}
 }

@@ -1,9 +1,10 @@
 // app/api/admin/updateRelease/[id]/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import Release from '@/models/ReleaseModel';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/dbConnect';
 import SingleTrack from '@/models/SingleTrack';
 import { jwtVerify } from 'jose';
+import { createLog } from '@/lib/logger';
 
 export async function PUT(
 	req: NextRequest,
@@ -20,11 +21,13 @@ export async function PUT(
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -32,6 +35,9 @@ export async function PUT(
 				{ status: 401 }
 			);
 		}
+
+		await dbConnect();
+
 		const release = await Release.findOne({ external_id: params.id });
 		if (!release) {
 			return NextResponse.json(

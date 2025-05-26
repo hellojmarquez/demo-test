@@ -482,7 +482,7 @@ export default function UsuariosPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-6 sm:px-6 md:px-8">
+		<div className="min-h-screen bg-white px-4 py-6 sm:px-6 md:px-8">
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
@@ -508,18 +508,10 @@ export default function UsuariosPage() {
 						<SearchInput
 							value={searchQuery}
 							onChange={setSearchQuery}
-							className="w-full sm:w-64"
+							className=""
 							placeholder="Buscar por nombre..."
 						/>
-						<SortSelect
-							value={sortBy}
-							onChange={setSortBy}
-							options={[
-								{ value: 'newest', label: 'Más recientes' },
-								{ value: 'oldest', label: 'Más antiguos' },
-							]}
-							className="w-full sm:w-48"
-						/>
+
 						<RoleFilter
 							value={selectedRole}
 							onChange={option => {
@@ -528,6 +520,15 @@ export default function UsuariosPage() {
 								// fetchUsers();
 							}}
 							className="w-48"
+						/>
+						<SortSelect
+							value={sortBy}
+							onChange={setSortBy}
+							options={[
+								{ value: 'newest', label: 'Más recientes' },
+								{ value: 'oldest', label: 'Más antiguos' },
+							]}
+							className="md:ml-8"
 						/>
 						<Link
 							href="/sello/crearUsuario"

@@ -4,6 +4,7 @@ export const revalidate = 0;
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Release from '@/models/ReleaseModel';
+import User from '@/models/UserModel';
 import { jwtVerify } from 'jose';
 import { paginationMiddleware } from '@/middleware/pagination';
 import { searchMiddleware } from '@/middleware/search';
@@ -22,11 +23,15 @@ export async function GET(req: NextRequest) {
 		}
 
 		// Verificar JWT
+		let userRole;
+		let userId;
 		try {
 			const { payload: verifiedPayload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			userRole = verifiedPayload.role;
+			userId = verifiedPayload.id;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -50,11 +55,32 @@ export async function GET(req: NextRequest) {
 		};
 		const sort = sortMiddleware(req, sortOptions);
 
+		// Si el usuario es un sello, buscar su external_id y filtrar los releases
+		let finalQuery = { ...searchQuery };
+		if (userRole === 'sello') {
+			const sello = await User.findById(userId);
+			if (!sello) {
+				return NextResponse.json(
+					{ success: false, error: 'Sello no encontrado' },
+					{ status: 404 }
+				);
+			}
+			finalQuery = {
+				...searchQuery,
+				label: sello.external_id,
+			};
+		} else if (userRole !== 'admin') {
+			return NextResponse.json(
+				{ success: false, error: 'No autorizado' },
+				{ status: 403 }
+			);
+		}
+
 		// Obtener el total de documentos que coinciden con la búsqueda
-		const total = await Release.countDocuments(searchQuery);
+		const total = await Release.countDocuments(finalQuery);
 
 		// Obtener los releases paginados, filtrados y ordenados
-		const releases = await Release.find(searchQuery)
+		const releases = await Release.find(finalQuery)
 			.sort(sort)
 			.skip(skip)
 			.limit(limit)

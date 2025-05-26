@@ -350,15 +350,14 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				// Fetch labels
 				const labelsRes = await fetch('/api/admin/getAllSellos');
 				const labelsData = await labelsRes.json();
-				if (labelsData.success && Array.isArray(labelsData.data)) {
-					setLabelsData(labelsData.data);
-					setLabels(
-						labelsData.data.map((label: any) => ({
-							value: label.external_id,
-							label: label.name,
-						}))
-					);
-				}
+				console;
+				setLabelsData(labelsData.data.sellos);
+				setLabels(
+					labelsData.data.sellos.map((label: any) => ({
+						value: label.external_id,
+						label: label.name,
+					}))
+				);
 
 				// Si hay un género seleccionado, cargar sus subgéneros
 				if (safeFormData.genre) {

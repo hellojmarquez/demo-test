@@ -17,7 +17,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	return (
-		<div className={`relative ${className}`}>
+		<div className={`relative ${className} `}>
 			<div
 				className={`relative overflow-hidden transition-all duration-300 ease-in-out ${
 					isExpanded ? 'w-full' : 'w-0'

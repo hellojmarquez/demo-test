@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
 			return NextResponse.json(
-				{ message: 'El email ya está registrado' },
+				{ success: false, error: 'El email ya está registrado' },
+
 				{ status: 400 }
 			);
 		}
@@ -123,7 +124,16 @@ export async function POST(req: NextRequest) {
 		});
 
 		const artistaRes = await artistaReq.json();
-
+		if (!artistaRes.id) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: artistaRes || 'Error al crear el artista',
+				},
+				{ status: 400 }
+			);
+		}
+		console.log('ARTISTA RES', artistaRes);
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			external_id: artistaRes.id,
@@ -143,7 +153,7 @@ export async function POST(req: NextRequest) {
 			parentName: isSubaccount ? parentName : null,
 			tipo: tipo || 'principal',
 		});
-
+		console.log('NEW ARTIST', newArtist);
 		// Si es una subcuenta, actualizar el usuario padre
 		if (isSubaccount && parentUserId) {
 			await User.findByIdAndUpdate(parentUserId, {

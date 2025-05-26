@@ -3,11 +3,13 @@ import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer, { Transporter } from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { createLog } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
 	console.log('INVITAR USUARIOS received');
 
 	try {
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
@@ -30,6 +32,7 @@ export async function POST(req: NextRequest) {
 			);
 		} catch (err) {
 			console.error('JWT verification failed', err);
+
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
@@ -46,7 +49,64 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
+		console.log('PAYLOAD!!!!: ', verifiedPayload);
 
+		if (role === 'artista') {
+			const data = {
+				name: name,
+				email: email,
+				password: password,
+				role: 'artista',
+				status: 'activo',
+				tipo: 'principal',
+				amazon_music_identifier: '',
+				apple_identifier: '',
+				deezer_identifier: '',
+				spotify_identifier: '',
+				picture: '',
+			};
+
+			// Crear FormData y agregar los campos
+			const formData = new FormData();
+			Object.entries(data).forEach(([key, value]) => {
+				formData.append(key, value);
+			});
+
+			const artistResponse = await fetch(
+				`${req.nextUrl.origin}/api/admin/createArtist`,
+				{
+					method: 'POST',
+					headers: {
+						Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+					},
+					body: formData,
+				}
+			);
+			const artistData = await artistResponse.json();
+			console.log('ARTIST DATA', artistData);
+			if (!artistData.success) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: artistData || 'Error al crear el artista',
+					},
+					{ status: 400 }
+				);
+			}
+			let userDataId = artistData.artist._id;
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'USER' as const,
+				entityId: userDataId.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Usuario invitado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
+			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+			await createLog(logData);
+		}
 		// Configurar el transporter de Nodemailer con Brevo
 		const transporter: Transporter = nodemailer.createTransport({
 			host: process.env.BREVO_SMTP_HOST,
@@ -73,6 +133,7 @@ export async function POST(req: NextRequest) {
 			console.log('Conexión SMTP verificada correctamente');
 		} catch (error) {
 			console.error('Error al verificar la conexión SMTP:', error);
+
 			return NextResponse.json(
 				{
 					success: false,
@@ -136,6 +197,7 @@ export async function POST(req: NextRequest) {
 		});
 	} catch (error) {
 		console.error('Error al invitar usuario:', error);
+
 		return NextResponse.json(
 			{ success: false, error: 'Error al procesar la invitación' },
 			{ status: 500 }

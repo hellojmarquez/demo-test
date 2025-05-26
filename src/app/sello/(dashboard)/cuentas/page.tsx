@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
+import RoleFilter, { RoleOption } from '@/components/RoleFilter';
 
 interface User {
 	_id: string;
@@ -74,6 +75,7 @@ export default function UsuariosPage() {
 	const [totalItems, setTotalItems] = useState(0);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('newest');
+	const [selectedRole, setSelectedRole] = useState<RoleOption | null>(null);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -86,7 +88,16 @@ export default function UsuariosPage() {
 				);
 				const data = await res.json();
 				if (data.success) {
-					setUsers(data.data.users);
+					let filteredUsers = data.data.users;
+
+					// Aplicar filtro de rol si está seleccionado
+					if (selectedRole && selectedRole.value !== 'todos') {
+						filteredUsers = data.data.users.filter(
+							(user: any) => user.role === selectedRole.value
+						);
+					}
+
+					setUsers(filteredUsers);
 
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
@@ -98,7 +109,7 @@ export default function UsuariosPage() {
 			}
 		};
 		fetchUsers();
-	}, [currentPage, searchQuery, sortBy]);
+	}, [currentPage, searchQuery, sortBy, selectedRole]);
 
 	if (loading) {
 		return (
@@ -508,6 +519,15 @@ export default function UsuariosPage() {
 								{ value: 'oldest', label: 'Más antiguos' },
 							]}
 							className="w-full sm:w-48"
+						/>
+						<RoleFilter
+							value={selectedRole}
+							onChange={option => {
+								setSelectedRole(option);
+								// Opcional: recargar los usuarios cuando cambie el filtro
+								// fetchUsers();
+							}}
+							className="w-48"
 						/>
 						<Link
 							href="/sello/crearUsuario"

@@ -71,7 +71,7 @@ export async function PUT(
 			year: parseInt(data.year),
 			catalog_num: parseInt(data.catalog_num),
 			status: data.status,
-			logo: '',
+			logo: decodeURIComponent(new URL(data.picture).pathname.slice(1)),
 			assigned_artists: data.assigned_artists || [],
 		};
 
@@ -180,12 +180,14 @@ export async function PUT(
 			);
 		}
 
-		const hashedPassword = await encryptPassword(data.password);
+		if (data.password) {
+			data.password = await encryptPassword(data.password);
+		}
 		delete updateData.logo;
 		const dataToBBDD = {
 			...updateData,
 			email: data.email,
-			password: hashedPassword,
+			password: data.password,
 			subaccounts: data.subaccounts,
 			tipo: data.tipo,
 			parentId: data.parentId,

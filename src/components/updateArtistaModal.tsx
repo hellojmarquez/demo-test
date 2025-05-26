@@ -20,7 +20,7 @@ interface Artista {
 	name: string;
 	email: string;
 	password?: string;
-	picture?: string;
+	picture?: string | File;
 	amazon_music_identifier?: string;
 	apple_identifier?: string;
 	deezer_identifier?: string;
@@ -56,13 +56,19 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [imagePreview, setImagePreview] = useState<string | null>(
-		artista.picture
-			? artista.picture.startsWith('data:')
-				? artista.picture
-				: `data:image/jpeg;base64,${artista.picture}`
-			: null
-	);
+	const [imagePreview, setImagePreview] = useState<string | null>(() => {
+		if (!artista.picture) return null;
+		if (typeof artista.picture === 'string') {
+			if (artista.picture.startsWith('data:')) {
+				return artista.picture;
+			}
+			if (artista.picture.startsWith('http')) {
+				return artista.picture;
+			}
+			return `data:image/jpeg;base64,${artista.picture}`;
+		}
+		return null;
+	});
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleChange = (
@@ -89,14 +95,14 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
+			setFormData(prev => ({
+				...prev,
+				picture: file,
+			}));
+
 			const reader = new FileReader();
 			reader.onloadend = () => {
-				const base64String = reader.result as string;
-				setImagePreview(base64String);
-				setFormData({
-					...formData,
-					picture: base64String.split(',')[1], // Extraer solo la parte base64 sin el prefijo data:image/...
-				});
+				setImagePreview(reader.result as string);
 			};
 			reader.readAsDataURL(file);
 		}
@@ -108,55 +114,47 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 		setError(null);
 
 		try {
-			if (formData.picture && formData.picture !== artista.picture) {
-				const formDataToSend = new FormData();
+			const formDataToSend = new FormData();
 
-				formDataToSend.append('name', formData.name);
-				formDataToSend.append('email', formData.email);
-				formDataToSend.append('role', 'artista');
-				formDataToSend.append('_id', formData._id);
-				formDataToSend.append(
-					'external_id',
-					formData.external_id?.toString() || ''
-				);
+			formDataToSend.append('name', formData.name);
+			formDataToSend.append('email', formData.email);
+			formDataToSend.append('role', 'artista');
+			formDataToSend.append('_id', formData._id);
+			formDataToSend.append(
+				'external_id',
+				formData.external_id?.toString() || ''
+			);
+			formDataToSend.append('status', formData.status || 'activo');
 
-				if (formData.password) {
-					formDataToSend.append('password', formData.password);
-				}
-
-				formDataToSend.append(
-					'amazon_music_identifier',
-					formData.amazon_music_identifier || ''
-				);
-				formDataToSend.append(
-					'apple_identifier',
-					formData.apple_identifier || ''
-				);
-				formDataToSend.append(
-					'deezer_identifier',
-					formData.deezer_identifier || ''
-				);
-				formDataToSend.append(
-					'spotify_identifier',
-					formData.spotify_identifier || ''
-				);
-
-				const response = await fetch(formData.picture);
-				const blob = await response.blob();
-				const file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
-				formDataToSend.append('picture', file);
-				console.log('formDataToSend', formDataToSend);
-				await onSave(formDataToSend);
-			} else {
-				const updatedFormData = {
-					...formData,
-					amazon_music_identifier: formData.amazon_music_identifier || '',
-					apple_identifier: formData.apple_identifier || '',
-					deezer_identifier: formData.deezer_identifier || '',
-					spotify_identifier: formData.spotify_identifier || '',
-				};
-				await onSave(updatedFormData);
+			if (formData.password) {
+				formDataToSend.append('password', formData.password);
 			}
+
+			formDataToSend.append(
+				'amazon_music_identifier',
+				formData.amazon_music_identifier || ''
+			);
+			formDataToSend.append(
+				'apple_identifier',
+				formData.apple_identifier || ''
+			);
+			formDataToSend.append(
+				'deezer_identifier',
+				formData.deezer_identifier || ''
+			);
+			formDataToSend.append(
+				'spotify_identifier',
+				formData.spotify_identifier || ''
+			);
+
+			if (formData.picture instanceof File) {
+				formDataToSend.append('picture', formData.picture);
+			} else if (typeof formData.picture === 'string') {
+				formDataToSend.append('picture', formData.picture);
+			}
+
+			await onSave(formDataToSend);
+			onClose();
 		} catch (error) {
 			console.error('Error saving artista:', error);
 			setError(
@@ -210,6 +208,47 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 							)}
 
 							<div className="space-y-4">
+								<div className="space-y-4">
+									<label className="block text-sm font-medium text-gray-700">
+										Foto del Artista
+									</label>
+									<div className="flex items-center gap-4">
+										<div className="w-32 h-32 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+											{imagePreview ? (
+												<img
+													src={imagePreview}
+													alt="Preview"
+													className="w-full h-full object-cover"
+												/>
+											) : (
+												<div className="text-center">
+													<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
+													<span className="mt-1 block text-xs text-gray-500">
+														Sin imagen
+													</span>
+												</div>
+											)}
+										</div>
+										<div>
+											<input
+												type="file"
+												ref={fileInputRef}
+												onChange={handleImageChange}
+												accept="image/*"
+												className="hidden"
+											/>
+											<button
+												type="button"
+												onClick={() => fileInputRef.current?.click()}
+												className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+											>
+												<Upload className="h-4 w-4 mr-2" />
+												Cambiar imagen
+											</button>
+										</div>
+									</div>
+								</div>
+
 								<div>
 									<label
 										htmlFor="name"

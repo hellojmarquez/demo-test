@@ -1126,7 +1126,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 													value={formData.password}
 													onChange={handleChange}
 													className={inputStyles}
-													required
 												/>
 											</div>
 										</div>

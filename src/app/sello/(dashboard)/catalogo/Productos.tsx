@@ -20,17 +20,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import CreateInitRelease from '@/components/CreateInitRelease';
-import { toast } from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
-
-interface PictureObject {
-	picture: string;
-}
 
 interface Release {
 	_id: string;

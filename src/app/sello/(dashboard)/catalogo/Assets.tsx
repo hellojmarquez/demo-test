@@ -1,51 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
 	ChevronDown,
 	ChevronUp,
 	Music,
 	Pencil,
 	Calendar,
-	Globe,
-	Tag,
 	Users,
 	Disc,
-	Youtube,
 	CheckCircle,
-	XCircle,
 	Trash2,
 	Hash,
 	Languages,
-	Archive,
-	Barcode,
 	Clock,
-	Mic,
-	Volume2,
 	FileMusic,
 	Copyright,
 	Share2,
-	Headphones,
-	Plus,
-	Search,
-	BriefcaseBusiness,
 } from 'lucide-react';
 import UpdateTrackModal from '@/components/UpdateTrackModal';
-import CreateTrackModal from '@/components/CreateTrackModal';
 import Pagination from '@/components/Pagination';
 import { Track } from '@/types/track';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
-
-interface Artist {
-	name: string;
-}
-
-interface Contributor {
-	id: number;
-	contributor: number;
-	role: number;
-	order: number;
-}
 
 interface Release {
 	_id: string;

@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
 			);
 			userRole = verifiedPayload.role;
 			userId = verifiedPayload.id;
+			console.log('User role:', userRole, 'User ID:', userId);
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -55,8 +56,10 @@ export async function GET(req: NextRequest) {
 		};
 		const sort = sortMiddleware(req, sortOptions);
 
-		// Si el usuario es un sello, buscar su external_id y filtrar los releases
+		// Construir la query base
 		let finalQuery = { ...searchQuery };
+
+		// Filtrar según el rol del usuario
 		if (userRole === 'sello') {
 			const sello = await User.findById(userId);
 			if (!sello) {
@@ -69,6 +72,41 @@ export async function GET(req: NextRequest) {
 				...searchQuery,
 				label: sello.external_id,
 			};
+			console.log('Query para sello:', finalQuery);
+		} else if (userRole === 'artista') {
+			const artista = await User.findById(userId);
+			if (!artista) {
+				return NextResponse.json(
+					{ success: false, error: 'Artista no encontrado' },
+					{ status: 404 }
+				);
+			}
+			console.log('External ID del artista:', artista.external_id);
+
+			finalQuery = {
+				...searchQuery,
+				artists: {
+					$elemMatch: {
+						artist: artista.external_id,
+					},
+				},
+			};
+			console.log('Query para artista:', finalQuery);
+		} else if (userRole === 'publisher') {
+			const publisher = await User.findById(userId);
+			if (!publisher) {
+				return NextResponse.json(
+					{ success: false, error: 'Publisher no encontrado' },
+					{ status: 404 }
+				);
+			}
+			console.log('External ID del publisher:', publisher.external_id);
+
+			finalQuery = {
+				...searchQuery,
+				publisher: publisher.external_id,
+			};
+			console.log('Query para publisher:', finalQuery);
 		} else if (userRole !== 'admin') {
 			return NextResponse.json(
 				{ success: false, error: 'No autorizado' },
@@ -78,6 +116,7 @@ export async function GET(req: NextRequest) {
 
 		// Obtener el total de documentos que coinciden con la búsqueda
 		const total = await Release.countDocuments(finalQuery);
+		console.log('Total de releases encontrados:', total);
 
 		// Obtener los releases paginados, filtrados y ordenados
 		const releases = await Release.find(finalQuery)

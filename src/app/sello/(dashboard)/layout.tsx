@@ -108,7 +108,7 @@ export default function DashboardLayout({
 							</button>
 
 							{/* Desktop Navigation */}
-							<nav className="hidden md:block">
+							<nav className="hidden  md:flex md:justify-between md:w-full">
 								<div className="flex items-center space-x-4">
 									<Link
 										href="/sello"
@@ -192,14 +192,14 @@ export default function DashboardLayout({
 										<span>Configuración</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
-									<button
-										onClick={handleLogout}
-										className="flex items-center p-2 text-white hover:text-gray-200 transition-colors"
-									>
-										<LogOut size={18} className="mr-2" />
-										<span>Cerrar Sesión</span>
-									</button>
 								</div>
+								<button
+									onClick={handleLogout}
+									className="flex items-center p-2 text-white hover:text-gray-200 transition-colors"
+								>
+									<LogOut size={18} className="mr-2" />
+									<span>Cerrar Sesión</span>
+								</button>
 							</nav>
 
 							{/* Mobile Navigation */}

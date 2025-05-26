@@ -15,9 +15,17 @@ export default function Catalogo() {
 	const { user } = useAuth();
 
 	// Filtrar los items del menú basado en el rol del usuario
-	const menuItems = ['PRODUCTOS', 'ASSETS', 'PERSONAS'];
-	if (user?.role?.toLowerCase() !== 'sello') {
-		menuItems.push('SELLOS');
+	const menuItems = ['PRODUCTOS', 'ASSETS'];
+
+	// Solo agregar PERSONAS y SELLOS si no es publisher ni contributor
+	if (
+		user?.role?.toLowerCase() !== 'publisher' &&
+		user?.role?.toLowerCase() !== 'contributor'
+	) {
+		menuItems.push('PERSONAS');
+		if (user?.role?.toLowerCase() !== 'sello') {
+			menuItems.push('SELLOS');
+		}
 	}
 
 	const renderComponent = () => {
@@ -27,12 +35,23 @@ export default function Catalogo() {
 			case 'ASSETS':
 				return <Assets />;
 			case 'SELLOS':
-				// Si el usuario es un sello, redirigir a productos
-				if (user?.role?.toLowerCase() === 'sello') {
+				// Si el usuario es un sello, publisher o contributor, redirigir a productos
+				if (
+					user?.role?.toLowerCase() === 'sello' ||
+					user?.role?.toLowerCase() === 'publisher' ||
+					user?.role?.toLowerCase() === 'contributor'
+				) {
 					return <Productos />;
 				}
 				return <Sellos />;
 			case 'PERSONAS':
+				// Si el usuario es publisher o contributor, redirigir a productos
+				if (
+					user?.role?.toLowerCase() === 'publisher' ||
+					user?.role?.toLowerCase() === 'contributor'
+				) {
+					return <Productos />;
+				}
 				return <Personas />;
 			default:
 				return <Productos />;

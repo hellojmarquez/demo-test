@@ -26,21 +26,7 @@ import SortSelect from '@/components/SortSelect';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { Sello } from '@/types/sello';
-
-// Definir la interfaz Artista para que coincida con la del componente UpdateArtistaModal
-interface Artista {
-	_id: string;
-	external_id?: string | number;
-	name: string;
-	email: string;
-	password?: string;
-	picture?: string;
-	amazon_music_identifier?: string;
-	apple_identifier?: string;
-	deezer_identifier?: string;
-	spotify_identifier?: string;
-	[key: string]: any;
-}
+import { Artista } from '@/types/artista';
 
 interface Persona {
 	_id: string;
@@ -69,6 +55,7 @@ interface Persona {
 
 interface SelloData {
 	_id: string;
+	external_id?: string | number;
 	name: string;
 	email: string;
 	password: string;
@@ -889,7 +876,9 @@ const Personas = () => {
 						sello={
 							{
 								_id: selectedSello._id,
-								external_id: selectedSello.external_id,
+								external_id: selectedSello.external_id
+									? Number(selectedSello.external_id)
+									: 0,
 								name: selectedSello.name,
 								email: selectedSello.email || '',
 								password: selectedSello.password || '',
@@ -912,7 +901,7 @@ const Personas = () => {
 								parentId: null,
 								parentName: null,
 								primary_genre: selectedSello.primary_genre || '',
-							} as SelloData
+							} as Sello
 						}
 						isOpen={showSelloModal}
 						onClose={() => {

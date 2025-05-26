@@ -1,11 +1,38 @@
 export const dynamic = 'force-dynamic';
+import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
 	console.log('get contributor roles received');
 
 	try {
-		// Obtener el token
+		const token = req.cookies.get('loginToken')?.value;
+		if (!token) {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT y obtener el payload
+		let verifiedPayload;
+		try {
+			const { payload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+			verifiedPayload = payload;
+			console.log(
+				'Payload completo del token:',
+				JSON.stringify(payload, null, 2)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
 		const tokenRes = await fetch(
 			`${process.env.MOVEMUSIC_API}/auth/obtain-token/`,
 			{

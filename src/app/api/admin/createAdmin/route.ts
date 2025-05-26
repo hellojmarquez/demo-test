@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Admin } from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
+import { jwtVerify } from 'jose';
 
 export async function POST(request: NextRequest) {
 	console.log('create admin request received');
@@ -11,6 +12,20 @@ export async function POST(request: NextRequest) {
 		if (!token) {
 			return NextResponse.json(
 				{ success: false, error: 'Not authenticated' },
+				{ status: 401 }
+			);
+		}
+
+		// Verificar JWT
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				token,
+				new TextEncoder().encode(process.env.JWT_SECRET)
+			);
+		} catch (err) {
+			console.error('JWT verification failed', err);
+			return NextResponse.json(
+				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
 			);
 		}

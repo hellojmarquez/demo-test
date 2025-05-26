@@ -8,6 +8,9 @@ import {
 	X,
 	AlertTriangle,
 	CheckCircle,
+	Mail,
+	KeyRound,
+	Copy,
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +25,7 @@ import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
 import RoleFilter, { RoleOption } from '@/components/RoleFilter';
+import Select from 'react-select';
 
 interface User {
 	_id: string;
@@ -46,6 +50,92 @@ interface User {
 	type: string;
 	[key: string]: any;
 }
+
+const roleOptions = [
+	{ value: 'admin', label: 'Admin' },
+	{ value: 'artista', label: 'Artista' },
+	{ value: 'contributor', label: 'Contributor' },
+	{ value: 'sello', label: 'Sello' },
+	{ value: 'publisher', label: 'Publisher' },
+];
+
+const selectStyles = {
+	control: (base: any, state: any) => ({
+		...base,
+		backgroundColor: 'transparent',
+		border: 'none',
+		borderBottom: '2px solid #E5E7EB',
+		borderRadius: '0',
+		boxShadow: 'none',
+		minHeight: '38px',
+		'&:hover': {
+			borderBottom: '2px solid #4B5563',
+		},
+		'&:focus-within': {
+			borderBottom: '2px solid #4B5563',
+			boxShadow: 'none',
+		},
+	}),
+	option: (base: any, state: any) => ({
+		...base,
+		backgroundColor: state.isSelected
+			? '#4B5563'
+			: state.isFocused
+			? '#F3F4F6'
+			: 'white',
+		color: state.isSelected ? 'white' : '#1F2937',
+		cursor: 'pointer',
+		'&:hover': {
+			backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+		},
+	}),
+	menu: (base: any) => ({
+		...base,
+		zIndex: 9999,
+		backgroundColor: 'white',
+		borderRadius: '0.375rem',
+		boxShadow:
+			'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+	}),
+	menuList: (base: any) => ({
+		...base,
+		padding: '0.5rem 0',
+	}),
+	indicatorSeparator: () => ({
+		display: 'none',
+	}),
+	dropdownIndicator: (base: any) => ({
+		...base,
+		color: '#9CA3AF',
+		'&:hover': {
+			color: '#4B5563',
+		},
+	}),
+	clearIndicator: (base: any) => ({
+		...base,
+		color: '#9CA3AF',
+		'&:hover': {
+			color: '#4B5563',
+		},
+	}),
+	valueContainer: (base: any) => ({
+		...base,
+		padding: '0 0.5rem',
+	}),
+	input: (base: any) => ({
+		...base,
+		margin: 0,
+		padding: 0,
+	}),
+	placeholder: (base: any) => ({
+		...base,
+		color: '#9CA3AF',
+	}),
+	singleValue: (base: any) => ({
+		...base,
+		color: '#1F2937',
+	}),
+};
 
 export default function UsuariosPage() {
 	const [users, setUsers] = useState<User[]>([]);
@@ -76,6 +166,8 @@ export default function UsuariosPage() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('newest');
 	const [selectedRole, setSelectedRole] = useState<RoleOption | null>(null);
+	const [showInviteModal, setShowInviteModal] = useState(false);
+	const [showCopied, setShowCopied] = useState(false);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -481,6 +573,242 @@ export default function UsuariosPage() {
 		}
 	};
 
+	const InviteUserModal = () => {
+		const [selectedRole, setSelectedRole] = useState<RoleOption | null>(null);
+		const [password, setPassword] = useState<string>('');
+		const [showCopied, setShowCopied] = useState(false);
+		const [name, setName] = useState('');
+		const [email, setEmail] = useState('');
+		const [isLoading, setIsLoading] = useState(false);
+		const [error, setError] = useState<string | null>(null);
+
+		const generatePassword = () => {
+			const length = 12;
+			const charset =
+				'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+			let newPassword = '';
+			for (let i = 0; i < length; i++) {
+				newPassword += charset.charAt(
+					Math.floor(Math.random() * charset.length)
+				);
+			}
+			setPassword(newPassword);
+		};
+
+		const copyToClipboard = async () => {
+			if (password) {
+				try {
+					await navigator.clipboard.writeText(password);
+					setShowCopied(true);
+					setTimeout(() => setShowCopied(false), 2000);
+				} catch (err) {
+					console.error('Error al copiar al portapapeles:', err);
+				}
+			}
+		};
+
+		const handleSubmit = async (e: React.FormEvent) => {
+			e.preventDefault();
+			setError(null);
+			setIsLoading(true);
+
+			try {
+				const response = await fetch('/api/admin/InviteUsuario', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						name,
+						email,
+						password,
+						role: selectedRole?.value,
+					}),
+				});
+
+				const data = await response.json();
+
+				if (!response.ok) {
+					throw new Error(data.message || 'Error al invitar usuario');
+				}
+				console.log('data', data);
+				// Éxito
+				toast.success('El usuario ha sido invitado');
+				setShowInviteModal(false);
+				// Limpiar el formulario
+				setName('');
+				setEmail('');
+				setPassword('');
+				setSelectedRole(null);
+			} catch (err) {
+				setError(
+					err instanceof Error ? err.message : 'Error al invitar usuario'
+				);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		return (
+			<AnimatePresence>
+				{showInviteModal && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							className="bg-white rounded-lg p-6 w-full max-w-2xl"
+						>
+							<div className="flex justify-between items-center mb-4">
+								<h2 className="text-xl font-semibold text-gray-800">
+									Invitar Usuario
+								</h2>
+								<button
+									onClick={() => setShowInviteModal(false)}
+									className="text-gray-500 hover:text-gray-700"
+								>
+									<X size={24} />
+								</button>
+							</div>
+							<p className="text-sm text-gray-600 mb-6">
+								Los datos de acceso serán enviados al correo electrónico
+								proporcionado. El usuario podrá acceder al sistema con estas
+								credenciales.
+							</p>
+							<form className="space-y-4" onSubmit={handleSubmit}>
+								<div>
+									<label
+										htmlFor="name"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
+										Nombre
+									</label>
+									<input
+										type="text"
+										id="name"
+										value={name}
+										onChange={e => setName(e.target.value)}
+										className="w-full pl-4 pr-4 pt-4 pb-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+										placeholder="Ingrese nombre y apellido"
+									/>
+								</div>
+								<div className="grid grid-cols-2 gap-4">
+									<div>
+										<label
+											htmlFor="email"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
+											Email
+										</label>
+										<input
+											type="email"
+											id="email"
+											value={email}
+											onChange={e => setEmail(e.target.value)}
+											className="w-full pl-4 pr-4 pt-4 pb-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+											placeholder="Ingrese el email"
+										/>
+									</div>
+									<div>
+										<label
+											htmlFor="password"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
+											Contraseña
+										</label>
+										<div className="relative">
+											<input
+												type="password"
+												id="password"
+												value={password}
+												onChange={e => setPassword(e.target.value)}
+												className="w-full pl-4 pr-32 pt-4 pb-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+												placeholder="Ingrese la contraseña"
+											/>
+											<div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+												<button
+													type="button"
+													onClick={generatePassword}
+													className="px-2 py-1 text-sm text-brand-light hover:text-brand-dark transition-colors flex items-center gap-1"
+												>
+													<span className="text-xs">Generar</span>
+												</button>
+												<button
+													type="button"
+													onClick={copyToClipboard}
+													className="px-2 py-1 text-sm text-brand-light hover:text-brand-dark transition-colors flex items-center gap-1"
+													title="Copiar contraseña"
+												>
+													{showCopied ? (
+														<>
+															<CheckCircle size={16} />
+															<span className="text-xs">Copiado</span>
+														</>
+													) : (
+														<>
+															<Copy size={16} />
+														</>
+													)}
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Rol
+									</label>
+									<Select
+										options={roleOptions}
+										value={selectedRole}
+										onChange={setSelectedRole}
+										styles={selectStyles}
+										placeholder="Seleccione un rol"
+										className="w-full"
+									/>
+								</div>
+								{error && (
+									<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+										{error}
+									</div>
+								)}
+								<div className="flex justify-end space-x-3 mt-6">
+									<button
+										type="button"
+										onClick={() => setShowInviteModal(false)}
+										className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+										disabled={isLoading}
+									>
+										Cancelar
+									</button>
+									<button
+										type="submit"
+										className="px-4 py-2 text-sm font-medium text-white bg-brand-light rounded-md hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										disabled={isLoading}
+									>
+										{isLoading ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												<span>Enviando...</span>
+											</>
+										) : (
+											'Invitar'
+										)}
+									</button>
+								</div>
+							</form>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		);
+	};
+
 	return (
 		<div className="min-h-screen bg-white px-4 py-6 sm:px-6 md:px-8">
 			{showSuccessMessage && (
@@ -530,6 +858,18 @@ export default function UsuariosPage() {
 							]}
 							className="md:ml-8"
 						/>
+						<motion.button
+							whileHover={{ scale: 1.05 }}
+							whileTap={{ scale: 0.95 }}
+							onClick={() => setShowInviteModal(true)}
+							className="p-2.5 flex items-center text-brand-light rounded-lg transition-colors group hover:bg-gray-100"
+						>
+							<Mail
+								className="mr-2 text-brand-light hover:text-brand-dark"
+								size={18}
+							/>
+							Invitar
+						</motion.button>
 						<Link
 							href="/sello/crearUsuario"
 							className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium bg-white text-brand-light hover:text-white hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
@@ -854,6 +1194,8 @@ export default function UsuariosPage() {
 					</motion.div>
 				)}
 			</AnimatePresence>
+
+			<InviteUserModal />
 		</div>
 	);
 }

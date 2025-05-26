@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SingleTrack from '@/models/SingleTrack';
-import { Binary } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 export async function POST(req: NextRequest) {

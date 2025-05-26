@@ -1,11 +1,10 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
-import SelloArtistaContrato from '@/models/AsignacionModel';
-import User from '@/models/UserModel';
 import { jwtVerify } from 'jose';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
+	console.log('INVITAR USUARIOS received');
+
 	try {
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
@@ -34,31 +33,16 @@ export async function GET(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-		await dbConnect();
-		const { searchParams } = new URL(req.url);
-		const sello_id = searchParams.get('sello_id');
 
-		if (!sello_id) {
-			return NextResponse.json(
-				{ success: false, error: 'ID del sello no proporcionado' },
-				{ status: 400 }
-			);
-		}
-
-		// Obtener todos los contratos activos del sello
-		const contratos = await SelloArtistaContrato.find({
-			sello_id,
-			estado: 'activo',
-		}).populate('artista_id', 'name picture');
-
+		const body = await req.json();
+		console.log('body recibido', body);
 		return NextResponse.json({
 			success: true,
-			data: contratos,
 		});
 	} catch (error) {
-		console.error('Error al obtener contratos:', error);
+		console.error('Error fetching contributor roles:', error);
 		return NextResponse.json(
-			{ success: false, error: 'Error interno del servidor' },
+			{ success: false, error: 'Internal Server Error' },
 			{ status: 500 }
 		);
 	}

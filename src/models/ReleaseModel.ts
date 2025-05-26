@@ -34,7 +34,7 @@ const releaseSchema = new Schema(
 		backcatalog: { type: Boolean, required: false },
 		youtube_declaration: { type: Boolean, required: false },
 		dolby_atmos: { type: Boolean, required: false },
-		artists: { type: [Schema.Types.Mixed], required: false },
+		artists: [artistSchema],
 		tracks: { type: [trackSchema], required: false },
 		countries: { type: [String], required: false },
 		name: { type: String, required: true },
@@ -64,7 +64,11 @@ const releaseSchema = new Schema(
 	{ timestamps: true }
 );
 
-// ✅ Aquí está la corrección
+// Índices para búsquedas eficientes
+releaseSchema.index({ 'artists.artist': 1 });
+releaseSchema.index({ name: 1 });
+releaseSchema.index({ external_id: 1 });
+
 const Release =
 	mongoose.models.Release || mongoose.model('Release', releaseSchema);
 

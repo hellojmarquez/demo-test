@@ -9,15 +9,14 @@ import {
 	Tag,
 	Users,
 	Disc,
-	Youtube,
 	Trash2,
 	CheckCircle,
 	XCircle,
 	Hash,
 	Languages,
 	Archive,
-	Barcode,
 	Plus,
+	BriefcaseBusiness,
 } from 'lucide-react';
 import Link from 'next/link';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
@@ -46,6 +45,7 @@ interface Release {
 	generate_ean: boolean;
 	kind: string;
 	label: string;
+	label_name: string;
 	language: string;
 	name: string;
 	picture: string | null;
@@ -457,8 +457,8 @@ const Productos: React.FC = () => {
 												</motion.button>
 											</div>
 											<div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
-												<Tag className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />
-												<span>{release.label}</span>
+												<BriefcaseBusiness className="h-3 w-3 sm:h-4 sm:w-4 text-brand-light" />
+												<span>{release.label_name}</span>
 											</div>
 											<div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
 												<Calendar className="h-3 w-3 sm:h-4 sm:w-4" />

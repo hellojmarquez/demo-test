@@ -12,6 +12,7 @@ import {
 	Clock,
 	Music,
 	Building2,
+	BriefcaseBusiness,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UpdateUserModal from '@/components/updateUserModal';
@@ -628,7 +629,7 @@ const Personas = () => {
 															{persona.external_id && (
 																<p className="flex items-start gap-2">
 																	<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																		<Tag className="h-4 w-4 text-brand-light" />{' '}
+																		<BriefcaseBusiness className="h-4 w-4 text-brand-light" />{' '}
 																		External ID:
 																	</span>
 																	<span className="text-gray-600 text-sm break-all">
@@ -709,7 +710,7 @@ const Personas = () => {
 																	{persona.catalog_num && (
 																		<p className="flex items-start gap-2">
 																			<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																				<Tag className="h-4 w-4 text-brand-light" />{' '}
+																				<BriefcaseBusiness className="h-4 w-4 text-brand-light" />{' '}
 																				Catálogo:
 																			</span>
 																			<span className="text-gray-600 text-sm">

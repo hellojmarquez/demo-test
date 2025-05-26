@@ -7,12 +7,18 @@ import Sellos from './Sellos';
 import Personas from './Personas';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-const menuItems = ['PRODUCTOS', 'ASSETS', 'SELLOS', 'PERSONAS'];
+import { useAuth } from '@/context/AuthContext';
 
 export default function Catalogo() {
 	const [selected, setSelected] = useState('PRODUCTOS');
 	const pathname = usePathname();
+	const { user } = useAuth();
+
+	// Filtrar los items del menú basado en el rol del usuario
+	const menuItems = ['PRODUCTOS', 'ASSETS', 'PERSONAS'];
+	if (user?.role?.toLowerCase() !== 'sello') {
+		menuItems.push('SELLOS');
+	}
 
 	const renderComponent = () => {
 		switch (selected) {
@@ -21,6 +27,10 @@ export default function Catalogo() {
 			case 'ASSETS':
 				return <Assets />;
 			case 'SELLOS':
+				// Si el usuario es un sello, redirigir a productos
+				if (user?.role?.toLowerCase() === 'sello') {
+					return <Productos />;
+				}
 				return <Sellos />;
 			case 'PERSONAS':
 				return <Personas />;

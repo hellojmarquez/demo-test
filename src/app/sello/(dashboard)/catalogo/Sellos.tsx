@@ -14,6 +14,7 @@ import {
 	Image as ImageIcon,
 	Clock,
 	UserPlus,
+	BriefcaseBusiness,
 } from 'lucide-react';
 import UpdateSelloModal from '@/components/UpdateSelloModal';
 import { Sello } from '@/types/sello';
@@ -52,11 +53,9 @@ export default function SellosPage() {
 				);
 				const data = await res.json();
 				if (data.success) {
-					console.log(data.data.sellos);
 					setSellos(data.data.sellos as Sello[]);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
-					console.log('data.data: ', data.data);
 				}
 			} catch (error) {
 				console.error('Error fetching sellos:', error);
@@ -328,7 +327,8 @@ export default function SellosPage() {
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Tag className="h-4 w-4 text-brand-light" /> Catálogo:
+													<BriefcaseBusiness className="h-4 w-4 text-brand-light" />{' '}
+													Catálogo:
 												</span>
 												<span className="text-gray-600">
 													{sello.catalog_num}
@@ -401,7 +401,8 @@ export default function SellosPage() {
 											</p>
 											<p className="flex items-center gap-2">
 												<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-													<Tag className="h-4 w-4 text-brand-light" /> Estado:
+													<BriefcaseBusiness className="h-4 w-4 text-brand-light" />{' '}
+													Estado:
 												</span>
 												<span
 													className={`px-2 py-1 rounded-full text-xs font-medium ${

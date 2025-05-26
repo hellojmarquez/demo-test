@@ -27,6 +27,7 @@ import {
 	Headphones,
 	Plus,
 	Search,
+	BriefcaseBusiness,
 } from 'lucide-react';
 import UpdateTrackModal from '@/components/UpdateTrackModal';
 import CreateTrackModal from '@/components/CreateTrackModal';

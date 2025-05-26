@@ -170,9 +170,9 @@ export async function PUT(
 				{ status: 400 }
 			);
 		}
-		console.log('UPDATESINGLE RECIBIDO', trackData);
+		console.log('UPDATESINGLE RECIBIDO', trackData.external_id);
 		const trackToApi = await fetch(
-			`${process.env.MOVEMUSIC_API}/tracks/${trackId}`,
+			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
 			{
 				method: 'PUT',
 				body: JSON.stringify(trackData),
@@ -200,7 +200,7 @@ export async function PUT(
 			trackData,
 			{ new: true }
 		);
-
+		console.log('TRACK ACTUALIZADO EN DB', updatedTrack);
 		return NextResponse.json({
 			success: true,
 			track: {

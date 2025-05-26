@@ -89,9 +89,10 @@ export async function PUT(
 		// Procesar los nuevos tracks
 		if (releaseData.newTracks && releaseData.newTracks.length > 0) {
 			for (const track of releaseData.newTracks) {
+				console.log('-------NUEVO TRACK RECIBIDO---------');
 				// Buscar el archivo en el FormData usando el nombre del recurso
 				const trackFile = formData.get(`track_${track.resource}`);
-
+				console.log('TRACK FILE', track);
 				const trackData = {
 					name: track.title,
 					mix_name: track.mixName || '',

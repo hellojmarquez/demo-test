@@ -11,7 +11,7 @@ export interface Contributor {
 }
 
 export interface ContributorData {
-	contributor: number;
+	external_id: number;
 	name: string;
 }
 
@@ -37,6 +37,9 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 		field: string,
 		value: string | number
 	) => {
+		console.log('handleContributorChange - Input:', { field, value, index });
+		console.log('Current contributors:', contributors);
+
 		const newContributors = [...contributors];
 		if (!newContributors[index]) {
 			newContributors[index] = {
@@ -50,14 +53,16 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 
 		if (field === 'contributor') {
 			const selectedContributor = contributorData.find(
-				c => c.contributor === Number(value)
+				c => c.external_id === value
 			);
+			console.log('Selected contributor:', selectedContributor);
 			if (selectedContributor) {
 				newContributors[index] = {
 					...newContributors[index],
-					contributor: selectedContributor.contributor,
+					contributor: selectedContributor.external_id,
 					name: selectedContributor.name,
 				};
+				console.log('Updated contributor data:', newContributors[index]);
 			}
 		} else if (field === 'role') {
 			const selectedRole = roles.find(r => r.id === Number(value));
@@ -75,6 +80,16 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 			};
 		}
 
+		// Asegurarse de que todos los campos requeridos estén presentes
+		newContributors[index] = {
+			contributor: newContributors[index].contributor || 0,
+			name: newContributors[index].name || '',
+			role: newContributors[index].role || 0,
+			role_name: newContributors[index].role_name || '',
+			order: newContributors[index].order || index,
+		};
+
+		console.log('Final contributor data:', newContributors[index]);
 		onContributorsChange(newContributors);
 	};
 
@@ -83,23 +98,32 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 			<Select
 				value={null}
 				onChange={selectedOption => {
+					console.log('Select onChange - selectedOption:', selectedOption);
 					if (selectedOption) {
-						onContributorsChange([
-							...contributors,
-							{
-								contributor: selectedOption.value,
-								name: selectedOption.label,
+						const selectedContributor = contributorData.find(
+							c => c.external_id === selectedOption.value
+						);
+						console.log('Found contributor:', selectedContributor);
+						if (selectedContributor) {
+							const newContributor = {
+								contributor: selectedContributor.external_id,
+								name: selectedContributor.name,
 								role: 0,
 								role_name: '',
 								order: contributors.length,
-							},
-						]);
+							};
+							console.log('New contributor to add:', newContributor);
+							onContributorsChange([...contributors, newContributor]);
+						}
 					}
 				}}
-				options={contributorData.map(c => ({
-					value: c.contributor,
-					label: c.name,
-				}))}
+				options={contributorData.map(c => {
+					console.log('Mapping contributor data:', c);
+					return {
+						value: c.external_id,
+						label: c.name,
+					};
+				})}
 				placeholder={
 					<div className="flex items-center gap-2">
 						<Plus className="w-4 h-4" />

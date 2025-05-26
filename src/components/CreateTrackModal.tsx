@@ -34,12 +34,20 @@ interface Contributor {
 	name: string;
 	role: string;
 	role_name: string;
+	external_id: number;
 }
 
 interface Publisher {
 	external_id: number;
 	name: string;
 	role: string;
+}
+
+interface TrackPublisher {
+	publisher: number;
+	author: string;
+	order: number;
+	name: string;
 }
 
 interface Role {
@@ -127,6 +135,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<Contributor[]>([]);
 	const [publishers, setPublishers] = useState<Publisher[]>([]);
+	const [trackPublishers, setTrackPublishers] = useState<TrackPublisher[]>([]);
 	const [roles, setRoles] = useState<Role[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -187,7 +196,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 				const contributorRes = await fetch('/api/admin/getAllContributor');
 				const contributorData = await contributorRes.json();
+				console.log('CONTRIBUTOR DATA RES', contributorData);
 				if (contributorData.success) {
+					console.log('CONTRIBUTOR DATA', contributorData);
 					setContributors(contributorData.data);
 				}
 				const publisherRes = await fetch('/api/admin/getAllPublishers');
@@ -315,7 +326,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				...track,
 				publishers: [
 					...(track?.publishers || []),
-					{ publisher: 0, author: '', order: (track?.publishers || []).length },
+					{
+						publisher: 0,
+						author: '',
+						order: (track?.publishers || []).length,
+						name: '',
+					},
 				],
 			});
 		}
@@ -387,9 +403,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			if (!newContributors[index]) {
 				newContributors[index] = {
 					contributor: 0,
-					name: '',
-					role: 0,
 					order: 0,
+					role: 0,
+					name: '',
 					role_name: '',
 				};
 			}
@@ -431,7 +447,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		if (onTrackChange) {
 			const newPublishers = [...(track?.publishers || [])];
 			if (!newPublishers[index]) {
-				newPublishers[index] = { publisher: 0, author: '', order: 0 };
+				newPublishers[index] = { publisher: 0, author: '', order: 0, name: '' };
 			}
 
 			if (field === 'publisher') {
@@ -446,6 +462,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							...newPublishers[index],
 							publisher: selectedPublisher.external_id,
 							author: selectedPublisher.name || '',
+							name: selectedPublisher.name || '',
 						};
 					}
 				}
@@ -1183,7 +1200,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							contributors={track?.contributors || []}
 							contributorData={
 								contributors?.map(c => ({
-									contributor: c.contributor,
+									external_id: c.external_id,
 									name: c.name,
 								})) || []
 							}

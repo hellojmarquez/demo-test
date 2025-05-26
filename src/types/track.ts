@@ -39,6 +39,7 @@ export interface Track {
 		publisher: number;
 		author: string;
 		order: number;
+		name: string;
 	}>;
 	release?: string | null;
 	resource?: File | string | null;

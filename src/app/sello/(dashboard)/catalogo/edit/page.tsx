@@ -213,6 +213,8 @@ export default function EditPage() {
 							generate_isrc: trackData.generate_isrc || true,
 							artists: originalArtists,
 							newArtists: newArtists,
+							publishers: trackData.publishers || [],
+							contributors: trackData.contributors || [],
 						},
 					],
 				}));
@@ -243,6 +245,8 @@ export default function EditPage() {
 					: undefined,
 				artists: originalArtists,
 				newArtists: newArtists,
+				publishers: trackData.publishers || [],
+				contributors: trackData.contributors || [],
 			};
 
 			// Actualizar el track en editedTracks con toda la información modificada
@@ -364,7 +368,21 @@ export default function EditPage() {
 				toast.success('Release actualizado correctamente');
 				await mutateRelease();
 			} else {
-				toast.error(data.message || 'Error al actualizar el release');
+				let errorMessage = 'Error al actualizar el release';
+
+				if (typeof data === 'string') {
+					errorMessage = data;
+				} else if (data && typeof data === 'object') {
+					if (Array.isArray(data.error)) {
+						errorMessage = data.error.join('\n');
+					} else if (data.error) {
+						errorMessage = data.error;
+					} else if (data.message) {
+						errorMessage = data.message;
+					}
+				}
+
+				toast.error(errorMessage);
 			}
 		} catch (error) {
 			console.error('Error updating release:', error);
@@ -505,6 +523,8 @@ export default function EditPage() {
 												track_length: updatedTrack.track_length || '',
 												generate_isrc: updatedTrack.generate_isrc || false,
 												artists: updatedTrack.artists || [],
+												publishers: updatedTrack.publishers || [],
+												contributors: updatedTrack.contributors || [],
 											},
 										],
 									}));
@@ -530,6 +550,8 @@ export default function EditPage() {
 													label_share: trackData.label_share
 														? Number(trackData.label_share)
 														: undefined,
+													publishers: trackData.publishers || [],
+													contributors: trackData.contributors || [],
 												};
 
 												return [...filteredTracks, completeTrack];
@@ -564,6 +586,8 @@ export default function EditPage() {
 													track_length: trackData.track_length || '',
 													generate_isrc: trackData.generate_isrc || false,
 													artists: trackData.artists || [],
+													publishers: trackData.publishers || [],
+													contributors: trackData.contributors || [],
 												},
 											],
 										}));

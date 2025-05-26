@@ -152,6 +152,18 @@ export async function POST(req: NextRequest) {
 
 		const trackRes = await trackReq.json();
 		console.log('TRACK CREADO EN API', trackRes);
+		if (!trackRes.id) {
+			return NextResponse.json(
+				{
+					success: false,
+					error:
+						trackRes ||
+						'Ha habido un error, estamos trabajando para arreglarlo',
+				},
+				{ status: 400 }
+			);
+		}
+
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;

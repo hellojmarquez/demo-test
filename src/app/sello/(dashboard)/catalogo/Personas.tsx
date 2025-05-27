@@ -7,11 +7,9 @@ import {
 	ChevronDown,
 	ChevronUp,
 	Hash,
-	Tag,
 	Calendar,
 	Clock,
 	Music,
-	Building2,
 	BriefcaseBusiness,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,31 +25,43 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { Sello } from '@/types/sello';
 import { Artista } from '@/types/artista';
+import { Publisher } from '@/types/publisher';
+import { Contributor } from '@/types/contributor';
 
-interface Persona {
+// Tipo base para todas las personas
+interface BasePersona {
 	_id: string;
 	name: string;
 	email: string;
 	picture?: string;
-	role: string;
-	status: string;
-	external_id?: string | number;
+	role: 'artista' | 'sello' | 'publisher' | 'contributor' | 'admin';
+	status: 'activo' | 'inactivo' | 'banneado';
+	external_id?: number;
+	isMainAccount: boolean;
+	lastLogin?: string;
+	createdAt: string;
+	updatedAt: string;
+	password?: string;
+}
+
+// Tipo que puede ser cualquiera de los roles
+type Persona = BasePersona & {
+	// Campos específicos de Artista
 	amazon_music_identifier?: string;
 	apple_identifier?: string;
 	deezer_identifier?: string;
 	spotify_identifier?: string;
+
+	// Campos específicos de Sello
+	artistLimit?: number;
+	hasExtendedLimit?: boolean;
+	limitExpirationDate?: string;
 	catalog_num?: number;
 	year?: number;
-	contract_received?: boolean;
-	information_accepted?: boolean;
-	label_approved?: boolean;
-	assigned_artists?: string[];
-	createdAt?: string;
-	updatedAt?: string;
-	parentName?: string;
 	primary_genre?: string;
-	[key: string]: any;
-}
+	label_approved?: boolean;
+	exclusivity?: 'exclusivo' | 'no_exclusivo';
+};
 
 interface SelloData {
 	_id: string;
@@ -70,9 +80,6 @@ interface SelloData {
 	assigned_artists: any[];
 	createdAt: string;
 	updatedAt: string;
-	tipo: 'principal' | 'subcuenta';
-	parentId: string | null;
-	parentName: string | null;
 	primary_genre: string;
 }
 
@@ -224,7 +231,7 @@ const Personas = () => {
 
 				console.log('Es un publisher, datos completos:', publisherData);
 				console.log('Email del publisher:', publisherData.email);
-				setSelectedPublisher(publisherData);
+				setSelectedPublisher(publisherData as Persona);
 				setShowPublisherModal(true);
 			}
 			// Verificar si el rol es "contributor"
@@ -245,7 +252,7 @@ const Personas = () => {
 					...persona,
 					external_id: persona.external_id || persona._id,
 				};
-				setSelectedArtista(artista);
+				setSelectedArtista(artista as Persona);
 				setShowArtistaModal(true);
 			}
 			// Verificar si el rol es "sello"
@@ -753,17 +760,6 @@ const Personas = () => {
 																	</span>
 																</p>
 															)}
-															{persona.parentName && (
-																<p className="flex items-start gap-2">
-																	<span className="font-medium text-gray-700 min-w-[80px] sm:min-w-[100px] flex items-center gap-1 text-sm">
-																		<Building2 className="h-4 w-4 text-brand-light" />{' '}
-																		Cuenta Principal:
-																	</span>
-																	<span className="text-gray-600 text-sm">
-																		{persona.parentName}
-																	</span>
-																</p>
-															)}
 														</div>
 													</div>
 												</motion.div>
@@ -846,21 +842,47 @@ const Personas = () => {
 				</>
 			)}
 
-			{showArtistaModal && selectedArtista && (
-				<>
-					{console.log('Renderizando modal de artista')}
-					<UpdateArtistaModal
-						artista={selectedArtista}
-						isOpen={!!selectedArtista}
-						onClose={() => {
-							setSelectedArtista(null);
-						}}
-						onSave={async (data: FormData | Artista) => {
-							await handleArtistaUpdate(data);
-						}}
-					/>
-				</>
-			)}
+			{showArtistaModal &&
+				selectedArtista &&
+				selectedArtista.role === 'artista' && (
+					<>
+						{console.log('Renderizando modal de artista')}
+						<UpdateArtistaModal
+							artista={
+								{
+									_id: selectedArtista._id,
+									name: selectedArtista.name,
+									email: selectedArtista.email,
+									role: 'artista',
+									status:
+										selectedArtista.status === 'banneado'
+											? 'inactivo'
+											: (selectedArtista.status as
+													| 'activo'
+													| 'inactivo'
+													| 'banneado'),
+									external_id: selectedArtista.external_id,
+									picture: selectedArtista.picture,
+									isMainAccount: selectedArtista.isMainAccount,
+									createdAt: new Date(selectedArtista.createdAt),
+									updatedAt: new Date(selectedArtista.updatedAt),
+									amazon_music_identifier:
+										selectedArtista.amazon_music_identifier,
+									apple_identifier: selectedArtista.apple_identifier,
+									deezer_identifier: selectedArtista.deezer_identifier,
+									spotify_identifier: selectedArtista.spotify_identifier,
+								} as Artista
+							}
+							isOpen={!!selectedArtista}
+							onClose={() => {
+								setSelectedArtista(null);
+							}}
+							onSave={async (data: FormData | Artista) => {
+								await handleArtistaUpdate(data);
+							}}
+						/>
+					</>
+				)}
 
 			{showSelloModal && selectedSello && (
 				<>
@@ -876,31 +898,26 @@ const Personas = () => {
 						sello={
 							{
 								_id: selectedSello._id,
-								external_id: selectedSello.external_id
-									? Number(selectedSello.external_id)
-									: 0,
+								external_id: Number(selectedSello.external_id) || 0,
 								name: selectedSello.name,
 								email: selectedSello.email || '',
 								password: selectedSello.password || '',
 								role: 'sello',
 								picture: selectedSello.picture || undefined,
-								catalog_num: selectedSello.catalog_num || 0,
-								year: selectedSello.year || 0,
 								status: (selectedSello.status || 'activo') as
 									| 'activo'
 									| 'inactivo'
 									| 'banneado',
-								contract_received: selectedSello.contract_received || false,
-								information_accepted:
-									selectedSello.information_accepted || false,
-								label_approved: selectedSello.label_approved || false,
-								assigned_artists: selectedSello.assigned_artists || [],
-								createdAt: new Date().toISOString(),
-								updatedAt: new Date().toISOString(),
-								tipo: 'principal',
-								parentId: null,
-								parentName: null,
+								isMainAccount: selectedSello.isMainAccount || false,
+								artistLimit: selectedSello.artistLimit || 0,
+								hasExtendedLimit: selectedSello.hasExtendedLimit || false,
+								catalog_num: selectedSello.catalog_num || 0,
+								year: selectedSello.year || 0,
 								primary_genre: selectedSello.primary_genre || '',
+
+								label_approved: selectedSello.label_approved || false,
+								createdAt: new Date(selectedSello.createdAt),
+								updatedAt: new Date(selectedSello.updatedAt),
 							} as Sello
 						}
 						isOpen={showSelloModal}

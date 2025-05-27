@@ -35,7 +35,8 @@ export async function PUT(
 		await dbConnect();
 		console.log('id: ', id);
 		// Obtener el sello actual para comparar cambios
-		const currentSello = await User.findById(id);
+		const currentSello = await User.findOne({ external_id: id });
+		console.log('currentSello: ', currentSello);
 		if (!currentSello) {
 			return NextResponse.json(
 				{ error: 'Sello no encontrado' },
@@ -57,11 +58,6 @@ export async function PUT(
 			data = JSON.parse(formData.get('data') as string);
 		} else if (contentType.includes('application/json')) {
 			data = await req.json();
-		} else {
-			return NextResponse.json(
-				{ error: 'Content-Type no soportado' },
-				{ status: 400 }
-			);
 		}
 
 		// Preparar los datos para la actualización
@@ -71,8 +67,7 @@ export async function PUT(
 			year: parseInt(data.year),
 			catalog_num: parseInt(data.catalog_num),
 			status: data.status,
-			logo: decodeURIComponent(new URL(data.picture).pathname.slice(1)),
-			assigned_artists: data.assigned_artists || [],
+			logo: '',
 		};
 
 		console.log('recibido: ', data);
@@ -107,52 +102,15 @@ export async function PUT(
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
 			updateData.logo = picture_path;
-			console.log('Nueva URL de imagen generada:', picture_url);
-			console.log('Nueva ruta de imagen para API:', picture_path);
 		}
-		// Manejar cambios en las subcuentas
-		if (data.tipo === 'principal') {
-			// Obtener las subcuentas actuales y las nuevas
-			const currentSubaccounts = currentSello.subaccounts || [];
-			const newSubaccounts = data.subaccounts || [];
-
-			// Encontrar subcuentas removidas
-			const removedSubaccounts = currentSubaccounts.filter(
-				(sub: string) =>
-					!newSubaccounts.some((newSub: { _id: string }) => newSub._id === sub)
+		if (picture_path.length > 0) {
+			updateData.logo = picture_path;
+		} else {
+			updateData.logo = decodeURIComponent(
+				new URL(currentSello.picture).pathname.slice(1)
 			);
-
-			// Encontrar subcuentas agregadas
-			const addedSubaccounts = newSubaccounts.filter(
-				(newSub: { _id: string }) => !currentSubaccounts.includes(newSub._id)
-			);
-
-			// Actualizar las subcuentas removidas
-			for (const subId of removedSubaccounts) {
-				await User.findByIdAndUpdate(subId, {
-					parentId: null,
-					parentName: null,
-				});
-			}
-
-			// Actualizar las subcuentas agregadas
-			for (const sub of addedSubaccounts) {
-				await User.findByIdAndUpdate(sub._id, {
-					parentId: id,
-					parentName: data.name,
-				});
-			}
-
-			// Actualizar el array de subcuentas
-			updateData.subaccounts = newSubaccounts.map(
-				(sub: { _id: string }) => sub._id
-			);
-		} else if (data.tipo === 'subcuenta') {
-			// Si es una subcuenta, actualizar parentId y parentName
-			updateData.parentId = data.parentId;
-			updateData.parentName = data.parentName;
-			updateData.subaccounts = undefined; // Las subcuentas no pueden tener subcuentas
 		}
+
 		const externalApiRes = await fetch(
 			`${process.env.MOVEMUSIC_API}/labels/${data.external_id}`,
 			{
@@ -166,7 +124,10 @@ export async function PUT(
 				},
 			}
 		);
+		console.log('externalApiRes ok: ', externalApiRes.ok);
 		const externalApiResJson = await externalApiRes.json();
+		console.log('externalApiResJson status: ', externalApiResJson.status);
+		console.log('externalApiResJson id: ', externalApiResJson.id);
 		if (!externalApiResJson.id) {
 			console.log('externalApiResJson: ', externalApiResJson);
 			return NextResponse.json(
@@ -186,13 +147,11 @@ export async function PUT(
 		delete updateData.logo;
 		const dataToBBDD = {
 			...updateData,
+			isMainAccount: true,
 			email: data.email,
 			password: data.password,
-			subaccounts: data.subaccounts,
-			tipo: data.tipo,
-			parentId: data.parentId,
-			parentName: data.parentName,
-			picture: data.picture,
+
+			picture: picture_path.length > 0 ? picture_path : currentSello.picture,
 		};
 		file && (dataToBBDD.picture = picture_url);
 		console.log('datos a BD:', dataToBBDD);

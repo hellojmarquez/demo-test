@@ -36,7 +36,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 }) => {
 	const [formData, setFormData] = useState<Artista>({
 		...artista,
-		external_id: artista.external_id || artista._id,
+		external_id: artista.external_id,
 		status: artista.status || 'activo',
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -326,7 +326,10 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											onChange={selectedOption =>
 												setFormData(prev => ({
 													...prev,
-													status: selectedOption?.value || 'activo',
+													status: (selectedOption?.value || 'activo') as
+														| 'activo'
+														| 'inactivo'
+														| 'banneado',
 												}))
 											}
 											options={statusOptions}

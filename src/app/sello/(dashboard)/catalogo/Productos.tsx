@@ -147,54 +147,6 @@ const Productos: React.FC = () => {
 		router.push(`/sello/catalogo/edit?releaseId=${release._id}`);
 	};
 
-	const handleSaveEdit = async (updatedRelease: ReleaseForModal) => {
-		try {
-			// Convert the picture object back to string for the API
-			const releaseToSend: ReleaseForAPI = {
-				...updatedRelease,
-				picture: updatedRelease.picture || null,
-			};
-
-			const response = await fetch(
-				`/api/admin/updateRelease/${updatedRelease._id}`,
-				{
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify(releaseToSend),
-				}
-			);
-
-			if (response.ok) {
-				// Convert the picture back to string for the local state
-				const updatedReleaseForState: Release = {
-					...updatedRelease,
-					picture: updatedRelease.picture || null,
-				};
-
-				setReleases(prev =>
-					prev.map(release =>
-						release._id === updatedRelease._id
-							? updatedReleaseForState
-							: release
-					)
-				);
-				setIsEditModalOpen(false);
-				setSelectedRelease(null);
-				setShowSuccessMessage(true);
-				setSuccessMessageType('create');
-				setTimeout(() => {
-					setShowSuccessMessage(false);
-					setSuccessMessageType(null);
-				}, 3000);
-			} else {
-				console.error('Error updating release');
-			}
-		} catch (error) {
-			console.error('Error updating release:', error);
-		}
-	};
 
 	const handleDelete = async (e: React.MouseEvent, release: Release) => {
 		e.preventDefault();

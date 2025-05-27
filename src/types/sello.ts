@@ -4,26 +4,23 @@ export interface Sello {
 	name: string;
 	email: string;
 	password?: string;
-	role: string;
-	picture?: string | { base64: string };
+	role: 'sello';
+	picture?: string;
+	status: 'activo' | 'inactivo' | 'pendiente';
+	isMainAccount: boolean;
+	lastLogin?: Date;
+	createdAt: Date;
+	updatedAt: Date;
+
+	// Campos específicos de sello
+	artistLimit: number;
+	hasExtendedLimit: boolean;
+	limitExpirationDate?: Date;
 	catalog_num?: number;
 	year?: number;
-	status?: 'activo' | 'inactivo' | 'banneado';
+	primary_genre?: string;
 	contract_received?: boolean;
 	information_accepted?: boolean;
 	label_approved?: boolean;
-	assigned_artists?: string[];
-	createdAt?: string;
-	updatedAt?: string;
 	exclusivity?: 'exclusivo' | 'no_exclusivo';
-	tipo?: 'principal' | 'subcuenta';
-	parentId?: string | null;
-	parentName?: string | null;
-	subaccounts?: Array<{
-		_id: string;
-		name: string;
-	}>;
-	fecha_inicio?: string;
-	fecha_fin?: string;
-	primary_genre: string;
 }

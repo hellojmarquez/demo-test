@@ -49,14 +49,6 @@ interface StatusOption extends BaseOption {
 	value: 'activo' | 'inactivo' | 'banneado';
 }
 
-interface ParentAccountOption extends BaseOption {
-	value: string;
-}
-
-interface SubaccountOption extends BaseOption {
-	value: string;
-}
-
 interface ExclusivityOption extends BaseOption {
 	value: 'exclusivo' | 'no_exclusivo';
 }
@@ -84,23 +76,10 @@ interface SelloFormData {
 	catalog_num: number;
 	year: number;
 	status: 'activo' | 'inactivo' | 'banneado';
-	contract_received: boolean;
-	information_accepted: boolean;
-	label_approved: boolean;
-	assigned_artists: string[];
 	createdAt: string;
 	updatedAt: string;
-	tipo: string;
-	parentId: string | null;
-	parentName: string | null;
-	exclusivity: string;
-	fecha_inicio: string;
-	fecha_fin: string;
+	exclusivity: 'exclusivo' | 'no_exclusivo';
 	primary_genre: string;
-	subaccounts?: Array<{
-		_id: string;
-		name: string;
-	}>;
 }
 
 const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
@@ -117,10 +96,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				sello,
 				formData: {
 					...sello,
-					assigned_artists: sello.assigned_artists || [],
-					tipo: sello.tipo || 'principal',
-					parentId: sello.parentId || null,
-					subaccounts: sello.subaccounts || [],
 					email: sello.email || '',
 					password: sello.password || '',
 					exclusivity: sello.exclusivity || 'no_exclusivo',
@@ -131,58 +106,34 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	}, [isOpen, sello]);
 
 	const [formData, setFormData] = useState<SelloFormData>(() => {
-		// Convertir el picture a File si es un objeto con base64
-		let picture: string | File | undefined;
-		if (sello.picture) {
-			if (typeof sello.picture === 'string') {
-				picture = sello.picture;
-			} else if (
-				typeof sello.picture === 'object' &&
-				'base64' in sello.picture &&
-				typeof sello.picture.base64 === 'string'
-			) {
-				// Convertir base64 a File
-				const byteCharacters = atob(sello.picture.base64);
-				const byteArrays = [];
-				for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-					const slice = byteCharacters.slice(offset, offset + 512);
-					const byteNumbers = new Array(slice.length);
-					for (let i = 0; i < slice.length; i++) {
-						byteNumbers[i] = slice.charCodeAt(i);
-					}
-					const byteArray = new Uint8Array(byteNumbers);
-					byteArrays.push(byteArray);
-				}
-				const blob = new Blob(byteArrays, { type: 'image/jpeg' });
-				picture = new File([blob], 'sello-picture.jpg', { type: 'image/jpeg' });
-			}
-		}
-
 		return {
 			_id: sello._id,
 			name: sello.name,
 			email: sello.email || '',
 			password: sello.password || '',
 			role: sello.role,
-			picture,
+			picture: sello.picture,
 			catalog_num: sello.catalog_num || 0,
 			year: sello.year || new Date().getFullYear(),
-			status: sello.status || 'activo',
-			contract_received: sello.contract_received || false,
-			information_accepted: sello.information_accepted || false,
-			label_approved: sello.label_approved || false,
-			assigned_artists: sello.assigned_artists || [],
-			createdAt: sello.createdAt || new Date().toISOString(),
-			updatedAt: sello.updatedAt || new Date().toISOString(),
-			tipo: sello.tipo || 'principal',
-			parentId: sello.parentId || null,
-			parentName: sello.parentName || null,
-			exclusivity: sello.exclusivity || 'no_exclusivo',
-			fecha_inicio: sello.fecha_inicio || '',
-			fecha_fin: sello.fecha_fin || '',
+			status:
+				(sello.status === 'pendiente' ? 'activo' : sello.status) || 'activo',
+			createdAt:
+				sello.createdAt instanceof Date
+					? sello.createdAt.toISOString()
+					: sello.createdAt || new Date().toISOString(),
+			updatedAt:
+				sello.updatedAt instanceof Date
+					? sello.updatedAt.toISOString()
+					: sello.updatedAt || new Date().toISOString(),
+			exclusivity:
+				(sello.exclusivity as 'exclusivo' | 'no_exclusivo') || 'no_exclusivo',
 			primary_genre: sello.primary_genre || '',
-			subaccounts: sello.subaccounts || [],
 		};
+	});
+
+	const [imagePreview, setImagePreview] = useState<string | null>(() => {
+		if (!sello.picture) return null;
+		return typeof sello.picture === 'string' ? sello.picture : null;
 	});
 
 	// Mover el useEffect aquí, después de la declaración de formData
@@ -201,23 +152,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	}));
 
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [imagePreview, setImagePreview] = useState<string | null>(() => {
-		if (!sello.picture) return null;
-		if (typeof sello.picture === 'string') return sello.picture;
-		if ('base64' in sello.picture) return sello.picture.base64;
-		return null;
-	});
-	const [parentAccounts, setParentAccounts] = useState<
-		Array<{ _id: string; name: string }>
-	>([]);
-	const [availableSubaccounts, setAvailableSubaccounts] = useState<
-		Array<{ _id: string; name: string }>
-	>([]);
-	const [selectedSubaccount, setSelectedSubaccount] = useState<string>('');
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const [removedSubaccounts, setRemovedSubaccounts] = useState<
-		Array<{ _id: string; name: string }>
-	>([]);
+
 	const [asignaciones, setAsignaciones] = useState<Array<any>>([]);
 	const [loadingAsignaciones, setLoadingAsignaciones] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -351,8 +287,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 	const statusSelectStyles = createSelectStyles<StatusOption>();
 	const accountSelectStyles = createSelectStyles<AccountOption>();
-	const parentAccountSelectStyles = createSelectStyles<ParentAccountOption>();
-	const subaccountSelectStyles = createSelectStyles<SubaccountOption>();
+
 	const exclusivitySelectStyles = createSelectStyles<ExclusivityOption>();
 	const yearSelectStyles = createSelectStyles<YearOption>();
 	const artistSelectStyles = createSelectStyles<ArtistOption>();
@@ -367,62 +302,13 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	// Add a custom select wrapper style
 	const selectWrapperStyles = 'relative';
 
-	// Obtener la lista de cuentas principales y subcuentas disponibles
-	useEffect(() => {
-		const fetchAccounts = async () => {
-			try {
-				const response = await fetch('/api/admin/getAllUsers');
-				if (response.ok) {
-					const data = await response.json();
-
-					// Filtrar solo las cuentas principales
-					const mainAccounts = data.users
-						.filter((user: any) => user.tipo === 'principal')
-						.map((user: any) => ({
-							_id: user._id,
-							name: user.name,
-						}));
-					setParentAccounts(mainAccounts);
-
-					// Filtrar subcuentas disponibles
-					const subaccounts = data.users
-						.filter((user: any) => {
-							return (
-								user.tipo === 'subcuenta' &&
-								!user.parentId &&
-								user._id !== sello._id
-							);
-						})
-						.map((user: any) => ({
-							_id: user._id,
-							name: user.name,
-						}));
-
-					setAvailableSubaccounts(subaccounts);
-				}
-			} catch (error) {
-				console.error('Error fetching accounts:', error);
-			}
-		};
-
-		if (isOpen) {
-			fetchAccounts();
-		}
-	}, [isOpen, sello._id]);
-
 	// Actualizar la previsualización cuando cambia el sello seleccionado
 	useEffect(() => {
 		if (!sello.picture) {
 			setImagePreview(null);
 			return;
 		}
-		if (typeof sello.picture === 'string') {
-			setImagePreview(sello.picture);
-		} else if ('base64' in sello.picture) {
-			setImagePreview(sello.picture.base64);
-		} else {
-			setImagePreview(null);
-		}
+		setImagePreview(typeof sello.picture === 'string' ? sello.picture : null);
 	}, [sello]);
 
 	// Cargar asignaciones cuando se abre el modal
@@ -492,7 +378,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 						console.log('Género del sello:', sello.primary_genre);
 						setFormData(prev => ({
 							...prev,
-							primary_genre: sello.primary_genre,
+							primary_genre: sello.primary_genre || '',
 						}));
 					}
 				}
@@ -520,65 +406,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 					...formData,
 					[name]: value === '' ? 0 : parseInt(value),
 				});
-			}
-		} else if (name === 'parentId') {
-			// Cuando cambia el parentId, actualizar también el parentName
-			const selectedParent = parentAccounts.find(
-				account => account._id === value
-			);
-			setFormData({
-				...formData,
-				parentId: value,
-				parentName: selectedParent?.name || null,
-			});
-		} else if (name === 'tipo') {
-			// Cuando cambia el tipo de cuenta
-			if (value === 'subcuenta') {
-				// Si cambia a subcuenta, limpiar las subcuentas propias
-				setFormData(prev => ({
-					...prev,
-					tipo: 'subcuenta' as const,
-					subaccounts: [],
-					// Si ya tiene un parentId, mantenerlo
-					parentId: prev.parentId || null,
-					parentName: prev.parentName || null,
-				}));
-			} else {
-				// Si cambia a principal, limpiar parentId y parentName
-				setFormData(prev => ({
-					...prev,
-					tipo: 'principal' as const,
-					parentId: null,
-					parentName: null,
-					subaccounts: prev.subaccounts || [],
-				}));
-
-				// Actualizar las subcuentas disponibles
-				const fetchAvailableSubaccounts = async () => {
-					try {
-						const response = await fetch('/api/admin/getAllUsers');
-						if (response.ok) {
-							const data = await response.json();
-
-							const subaccounts = data.users
-								.filter(
-									(user: any) =>
-										user.tipo === 'subcuenta' &&
-										!user.parentId &&
-										user._id !== sello._id
-								)
-								.map((user: any) => ({
-									_id: user._id,
-									name: user.name,
-								}));
-
-							setAvailableSubaccounts(subaccounts);
-						}
-					} catch (error) {
-						console.error('Error fetching available subaccounts:', error);
-					}
-				};
-				fetchAvailableSubaccounts();
 			}
 		} else {
 			setFormData({
@@ -634,26 +461,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				[name]: value,
 			});
 		}
-	};
-
-	const handleRemoveSubaccount = (subaccountId: string) => {
-		const subaccount = formData.subaccounts?.find(
-			sub => sub._id === subaccountId
-		);
-		if (!subaccount) return;
-
-		// Agregar la subcuenta a la lista de removidas
-		setRemovedSubaccounts(prev => [...prev, subaccount]);
-
-		// Actualizar el estado local
-		setFormData(prev => ({
-			...prev,
-			subaccounts:
-				prev.subaccounts?.filter(sub => sub._id !== subaccountId) || [],
-		}));
-
-		// Agregar la subcuenta de vuelta a las disponibles
-		setAvailableSubaccounts(prev => [...prev, subaccount]);
 	};
 
 	const handleAsignarArtista = () => {
@@ -745,31 +552,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			// Procesar el resto de la actualización del sello
 			const formDataToSend = new FormData();
 
-			// Preparar los datos del sello incluyendo las asignaciones
-			const dataToSend: {
-				_id: string;
-				external_id: number;
-				name: string;
-				email: string;
-				password: string;
-				role: string;
-				catalog_num: number;
-				year: number;
-				status: 'activo' | 'inactivo' | 'banneado';
-				contract_received: boolean;
-				information_accepted: boolean;
-				label_approved: boolean;
-				exclusivity: string;
-				primary_genre: string;
-				picture?: string;
-				assigned_artists: Array<{
-					artista_id: string;
-					fecha_inicio: string;
-					fecha_fin: string;
-					tipo_contrato: 'exclusivo' | 'no_exclusivo';
-					porcentaje_distribucion: number;
-				}>;
-			} = {
+			// Preparar los datos del sello
+			const dataToSend = {
 				_id: sello._id,
 				external_id: sello.external_id,
 				name: formData.name,
@@ -779,9 +563,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				catalog_num: parseInt(formData.catalog_num.toString()) || 0,
 				year: parseInt(formData.year.toString()) || 0,
 				status: formData.status,
-				contract_received: formData.contract_received,
-				information_accepted: formData.information_accepted,
-				label_approved: formData.label_approved,
 				exclusivity: formData.exclusivity,
 				primary_genre: formData.primary_genre,
 				// Incluir las asignaciones de artistas
@@ -794,16 +575,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				})),
 			};
 
-			console.log('Datos a enviar:', dataToSend);
+			// Agregar los datos al FormData
 			formDataToSend.append('data', JSON.stringify(dataToSend));
 
-			// Manejar la imagen
+			// Si la imagen es un File, agregarla al FormData
 			if (formData.picture instanceof File) {
 				formDataToSend.append('picture', formData.picture);
-			} else if (typeof formData.picture === 'string') {
-				// Si es una URL existente, incluirla en los datos
-				dataToSend.picture = formData.picture;
-				formDataToSend.set('data', JSON.stringify(dataToSend));
 			}
 
 			await onSave(formDataToSend);
@@ -827,7 +604,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			// Limpiar los estados de asignaciones
 			setNewAsignaciones([]);
 			setRemovedAsignaciones([]);
-			setRemovedSubaccounts([]);
 			setExtendedLimit({
 				limit: 0,
 				endDate: '',
@@ -844,26 +620,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		} finally {
 			setIsSubmitting(false);
 		}
-	};
-
-	const handleAddSubaccount = () => {
-		if (!selectedSubaccount) return;
-
-		const subaccount = availableSubaccounts.find(
-			sub => sub._id === selectedSubaccount
-		);
-		if (!subaccount) return;
-
-		setFormData(prev => ({
-			...prev,
-			subaccounts: [...(prev.subaccounts || []), subaccount],
-		}));
-
-		// Remover la subcuenta de las disponibles
-		setAvailableSubaccounts(prev =>
-			prev.filter(sub => sub._id !== selectedSubaccount)
-		);
-		setSelectedSubaccount('');
 	};
 
 	const fetchCurrentLimit = async () => {
@@ -1037,78 +793,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											</label>
 											<div className="flex items-center gap-2">
 												<Building className="h-5 w-5 text-gray-400" />
-												<div className="flex-1">
-													<Select<AccountOption>
-														id="tipo"
-														value={tipoOptions.find(
-															option => option.value === formData.tipo
-														)}
-														onChange={(option: SingleValue<AccountOption>) => {
-															if (option) {
-																setFormData(prev => ({
-																	...prev,
-																	tipo: option.value,
-																}));
-															}
-														}}
-														options={tipoOptions}
-														placeholder="Seleccionar tipo de cuenta"
-														styles={accountSelectStyles}
-													/>
-												</div>
 											</div>
 										</div>
-
-										{formData.tipo === 'subcuenta' && (
-											<div className="flex items-center gap-2">
-												<Building className="h-5 w-5 text-gray-400" />
-												<div className="flex-1">
-													<label
-														htmlFor="parentId"
-														className="block text-sm font-medium text-gray-700 mb-1"
-													>
-														Cuenta Principal
-													</label>
-													<Select<ParentAccountOption>
-														id="parentId"
-														value={
-															formData.parentId
-																? {
-																		value: formData.parentId,
-																		label:
-																			parentAccounts.find(
-																				account =>
-																					account._id === formData.parentId
-																			)?.name || '',
-																  }
-																: undefined
-														}
-														onChange={(
-															option: SingleValue<ParentAccountOption>
-														) => {
-															if (option) {
-																setFormData(prev => ({
-																	...prev,
-																	parentId: option.value,
-																}));
-															} else {
-																setFormData(prev => ({
-																	...prev,
-																	parentId: null,
-																}));
-															}
-														}}
-														options={parentAccounts.map(account => ({
-															value: account._id,
-															label: account.name,
-														}))}
-														placeholder="Seleccionar cuenta principal"
-														isClearable
-														styles={parentAccountSelectStyles}
-													/>
-												</div>
-											</div>
-										)}
 
 										<div>
 											<label
@@ -1262,96 +948,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 										</div>
 									</div>
 								</div>
-
-								{/* Subaccounts Section */}
-								{formData.tipo === 'principal' && (
-									<div className="border-t border-gray-200 pt-6">
-										<h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-											<Users className="h-5 w-5 text-brand-light" />
-											Gestión de Subcuentas
-										</h3>
-
-										<div className="space-y-4">
-											{/* Current Subaccounts */}
-											<div className="bg-gray-50 rounded-lg p-4">
-												<h4 className="text-sm font-medium text-gray-700 mb-3">
-													Subcuentas Asignadas
-												</h4>
-												<div className="space-y-2">
-													{formData.subaccounts?.map(subaccount => (
-														<div
-															key={subaccount._id}
-															className="flex items-center justify-between p-2 bg-white rounded-md shadow-sm"
-														>
-															<span className="text-gray-700">
-																{subaccount.name}
-															</span>
-															<button
-																type="button"
-																onClick={() =>
-																	handleRemoveSubaccount(subaccount._id)
-																}
-																className="p-1 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50"
-															>
-																<Trash2 className="h-4 w-4" />
-															</button>
-														</div>
-													))}
-													{(!formData.subaccounts ||
-														formData.subaccounts.length === 0) && (
-														<p className="text-sm text-gray-500 italic">
-															No hay subcuentas asignadas
-														</p>
-													)}
-												</div>
-											</div>
-
-											{/* Add New Subaccount */}
-											<div className="flex gap-2">
-												<div className="flex-1">
-													<Select<SubaccountOption>
-														value={
-															selectedSubaccount
-																? {
-																		value: selectedSubaccount,
-																		label:
-																			availableSubaccounts.find(
-																				sub => sub._id === selectedSubaccount
-																			)?.name || '',
-																  }
-																: undefined
-														}
-														onChange={(
-															option: SingleValue<SubaccountOption>
-														) => {
-															if (option) {
-																setSelectedSubaccount(option.value);
-															} else {
-																setSelectedSubaccount('');
-															}
-														}}
-														options={availableSubaccounts.map(subaccount => ({
-															value: subaccount._id,
-															label: subaccount.name,
-														}))}
-														placeholder="Seleccionar subcuenta"
-														isClearable
-														styles={subaccountSelectStyles}
-													/>
-												</div>
-												<button
-													type="button"
-													onClick={handleAddSubaccount}
-													disabled={!selectedSubaccount}
-													className="px-3 py-2 bg-brand-light text-white rounded-md hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-												>
-													<Plus className="h-4 w-4" />
-													Agregar
-												</button>
-											</div>
-										</div>
-									</div>
-								)}
 
 								{/* Artists Section */}
 								<div className="border-t border-gray-200 pt-6">

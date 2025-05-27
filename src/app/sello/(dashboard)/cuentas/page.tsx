@@ -26,6 +26,7 @@ import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
 import RoleFilter, { RoleOption } from '@/components/RoleFilter';
 import Select from 'react-select';
+import { Artista } from '@/types/artista';
 
 interface User {
 	_id: string;
@@ -446,6 +447,9 @@ export default function UsuariosPage() {
 					updatedArtist.external_id ||
 					selectedArtist?.external_id ||
 					updatedArtist._id,
+				isMainAccount: updatedArtist.isMainAccount || false,
+				createdAt: new Date(updatedArtist.createdAt),
+				updatedAt: new Date(updatedArtist.updatedAt),
 			};
 
 			console.log('Updating artista with data:', {
@@ -529,7 +533,7 @@ export default function UsuariosPage() {
 				});
 			}
 
-			const res = await fetch(`/api/admin/updateSello/${data._id}`, {
+			const res = await fetch(`/api/admin/updateSello/${data.external_id}`, {
 				method: 'PUT',
 				headers,
 				body,
@@ -1105,7 +1109,27 @@ export default function UsuariosPage() {
 				<>
 					{console.log('Renderizando modal de artista')}
 					<UpdateArtistaModal
-						artista={selectedArtist}
+						artista={{
+							_id: selectedArtist._id,
+							name: selectedArtist.name,
+							email: selectedArtist.email,
+							role: 'artista',
+							status: (selectedArtist.status || 'activo') as
+								| 'activo'
+								| 'inactivo'
+								| 'banneado',
+							external_id: selectedArtist.external_id
+								? Number(selectedArtist.external_id)
+								: undefined,
+							picture: selectedArtist.picture,
+							isMainAccount: selectedArtist.isMainAccount || false,
+							createdAt: new Date(),
+							updatedAt: new Date(),
+							amazon_music_identifier: selectedArtist.amazon_music_identifier,
+							apple_identifier: selectedArtist.apple_identifier,
+							deezer_identifier: selectedArtist.deezer_identifier,
+							spotify_identifier: selectedArtist.spotify_identifier,
+						}}
 						isOpen={showArtistModal}
 						onClose={() => {
 							console.log('Cerrando modal de artista');

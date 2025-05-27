@@ -101,16 +101,6 @@ export default function SellosPage() {
 		}
 	};
 
-	// Función auxiliar para obtener la URL de la imagen
-	const getImageUrl = (
-		picture: string | File | { base64: string } | undefined
-	): string => {
-		if (!picture) return '/suitcase.png';
-		if (typeof picture === 'string') return picture;
-		if ('base64' in picture) return picture.base64;
-		return '/suitcase.png';
-	};
-
 	const handleDelete = async (e: React.MouseEvent, sello: Sello) => {
 		e.stopPropagation();
 
@@ -233,8 +223,6 @@ export default function SellosPage() {
 										src={
 											typeof sello.picture === 'string'
 												? sello.picture
-												: 'base64' in sello.picture
-												? sello.picture.base64
 												: '/suitcase.png'
 										}
 										alt={sello.name}
@@ -257,12 +245,6 @@ export default function SellosPage() {
 										<Calendar className="h-3 w-3" />
 										<span>Año: {sello.year}</span>
 									</div>
-									{sello.tipo === 'subcuenta' && sello.parentName && (
-										<div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-											<Users className="h-3 w-3" />
-											<span>Sub-cuenta de: {sello.parentName}</span>
-										</div>
-									)}
 								</div>
 							</div>
 							<div className="flex items-center">
@@ -340,46 +322,6 @@ export default function SellosPage() {
 												</span>
 												<span className="text-gray-600">{sello.year}</span>
 											</p>
-											{sello.tipo === 'subcuenta' && sello.parentName && (
-												<p className="flex items-center gap-2">
-													<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-														<Users className="h-4 w-4 text-brand-light" />{' '}
-														Cuenta Principal:
-													</span>
-													<span className="text-gray-600">
-														{sello.parentName}
-													</span>
-												</p>
-											)}
-											{sello.tipo === 'principal' &&
-												sello.subaccounts &&
-												sello.subaccounts.length > 0 && (
-													<div className="space-y-2">
-														<p className="flex items-center gap-2">
-															<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1">
-																<Users className="h-4 w-4 text-brand-light" />{' '}
-																Sub-cuentas:
-															</span>
-															<span className="text-gray-600">
-																{sello.subaccounts.length}
-															</span>
-														</p>
-														<div className="pl-5 space-y-1">
-															{Array.isArray(sello.subaccounts) &&
-																sello.subaccounts.map(subaccount => (
-																	<div
-																		key={subaccount._id}
-																		className="flex items-center gap-2"
-																	>
-																		<span className="text-gray-500">•</span>
-																		<span className="text-gray-600">
-																			{subaccount.name}
-																		</span>
-																	</div>
-																))}
-														</div>
-													</div>
-												)}
 										</div>
 										<div className="space-y-3">
 											<p className="flex items-center gap-2">
@@ -387,7 +329,7 @@ export default function SellosPage() {
 													<Clock className="h-4 w-4 text-brand-light" /> Creado:
 												</span>
 												<span className="text-gray-600">
-													{formatDate(sello.createdAt || '')}
+													{formatDate(sello.createdAt.toString())}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">
@@ -396,7 +338,7 @@ export default function SellosPage() {
 													Actualizado:
 												</span>
 												<span className="text-gray-600">
-													{formatDate(sello.updatedAt || '')}
+													{formatDate(sello.updatedAt.toString())}
 												</span>
 											</p>
 											<p className="flex items-center gap-2">

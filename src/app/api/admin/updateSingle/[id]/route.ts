@@ -170,6 +170,7 @@ export async function PUT(
 				{ status: 400 }
 			);
 		}
+		
 		console.log('UPDATESINGLE RECIBIDO', trackData.external_id);
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,

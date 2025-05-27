@@ -16,7 +16,7 @@ const baseUserSchema = new mongoose.Schema(
 		password: {
 			type: String,
 			required: function (this: any) {
-				return this.tipo === 'principal';
+				return this.isMainAccount === true;
 			},
 		},
 		role: {
@@ -26,17 +26,25 @@ const baseUserSchema = new mongoose.Schema(
 		},
 		status: {
 			type: String,
+			enum: ['activo', 'inactivo', 'banneado'],
 			default: 'activo',
 		},
-		tipo: {
-			type: String,
-			enum: ['principal', 'subcuenta'],
-			default: 'principal',
+		isMainAccount: {
+			type: Boolean,
+			default: true,
 			required: true,
 		},
 		external_id: {
 			type: Number,
 			required: false,
+		},
+		picture: {
+			type: String,
+			default: null,
+		},
+		lastLogin: {
+			type: Date,
+			default: null,
 		},
 		createdAt: {
 			type: Date,
@@ -47,18 +55,40 @@ const baseUserSchema = new mongoose.Schema(
 			default: Date.now,
 		},
 	},
-	{ discriminatorKey: 'role' }
+	{
+		timestamps: true,
+		discriminatorKey: 'role',
+	}
 );
+
+// Índices para mejorar el rendimiento de las consultas
+baseUserSchema.index({ email: 1 });
+baseUserSchema.index({ isMainAccount: 1 });
+baseUserSchema.index({ status: 1 });
+
+// Método para encontrar todas las subcuentas de un usuario
+baseUserSchema.statics.findSubAccounts = function (mainAccountId: string) {
+	return this.find({
+		mainAccountId,
+		isMainAccount: false,
+		status: 'activo',
+	});
+};
+
+// Método para encontrar la cuenta principal de una subcuenta
+baseUserSchema.statics.findMainAccount = function (subAccountId: string) {
+	return this.findOne({
+		_id: subAccountId,
+		isMainAccount: false,
+		status: 'activo',
+	}).populate('mainAccountId');
+};
 
 // Esquema específico para administradores
 const adminSchema = new mongoose.Schema({
 	permissions: {
 		type: Array,
 		default: ['admin'],
-	},
-	picture: {
-		type: String,
-		default: null,
 	},
 });
 
@@ -93,10 +123,6 @@ const selloSchema = new mongoose.Schema({
 		required: false,
 		select: true,
 	},
-	picture: {
-		type: String,
-		default: null,
-	},
 });
 
 // Esquema específico para artistas
@@ -117,10 +143,6 @@ const artistSchema = new mongoose.Schema({
 		type: String,
 		default: '',
 	},
-	picture: {
-		type: String,
-		default: '',
-	},
 });
 
 // Esquema específico para contribuidores
@@ -130,10 +152,7 @@ const contributorSchema = new mongoose.Schema({
 
 // Esquema específico para publishers
 const publisherSchema = new mongoose.Schema({
-	picture: {
-		type: mongoose.Schema.Types.Mixed,
-		default: null,
-	},
+	// No fields needed, inherits all from baseUserSchema
 });
 
 // Función para inicializar los modelos
@@ -154,7 +173,7 @@ function initializeModels() {
 		User.discriminator('contributor', contributorSchema);
 	const Publisher =
 		mongoose.models.publisher ||
-		User.discriminator('publisher', publisherSchema, 'publisher');
+		User.discriminator('publisher', publisherSchema);
 
 	return { User, Admin, Sello, Artista, Contributor, Publisher };
 }

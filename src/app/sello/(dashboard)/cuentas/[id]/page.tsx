@@ -501,7 +501,20 @@ export default function UsuariosPage() {
 				<>
 					{console.log('Renderizando modal de artista')}
 					<UpdateArtistaModal
-						artista={selectedArtist}
+						artista={{
+							...selectedArtist,
+							isMainAccount: selectedArtist.isMainAccount || false,
+							role: 'artista',
+							status: (selectedArtist.status || 'activo') as
+								| 'activo'
+								| 'inactivo'
+								| 'banneado',
+							external_id: selectedArtist.external_id
+								? Number(selectedArtist.external_id)
+								: undefined,
+							createdAt: new Date(selectedArtist.createdAt || new Date()),
+							updatedAt: new Date(selectedArtist.updatedAt || new Date()),
+						}}
 						isOpen={showArtistModal}
 						onClose={() => {
 							console.log('Cerrando modal de artista');

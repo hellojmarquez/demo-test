@@ -247,15 +247,31 @@ const Productos: React.FC = () => {
 		setShowSuccessMessage(true);
 		setSuccessMessageType('create');
 
-		// Actualizar la lista de productos
 		try {
-			const res = await fetch('/api/admin/getAllReleases');
+			// Forzar revalidación de la página
+			router.refresh();
+
+			// Actualizar la lista de productos con los parámetros actuales
+			const res = await fetch(
+				`/api/admin/getAllReleases?page=${currentPage}${
+					searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+				}&sort=${sortBy}`,
+				{
+					cache: 'no-store',
+					headers: {
+						'Cache-Control': 'no-cache',
+					},
+				}
+			);
 			const response = await res.json();
 			if (response.success) {
-				setReleases(response.data);
+				setReleases(response.data.releases);
+				setTotalPages(response.data.pagination.totalPages);
+				setTotalItems(response.data.pagination.total);
 			}
 		} catch (error) {
 			console.error('Error fetching releases:', error);
+			// Mostrar mensaje de error si es necesario
 		}
 
 		setTimeout(() => {

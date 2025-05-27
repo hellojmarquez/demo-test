@@ -629,7 +629,13 @@ export default function UsuariosPage() {
 				const data = await response.json();
 
 				if (!response.ok) {
-					throw new Error(data.message || 'Error al invitar usuario');
+					// Si el error es un objeto que contiene arrays
+					if (typeof data.error === 'object' && data.error !== null) {
+						const errorMessages = Object.values(data.error).flat();
+						throw new Error(errorMessages.join('\n'));
+					}
+					// Si es un string, mostrar el mensaje directamente
+					throw new Error(data.error || 'Error al invitar usuario');
 				}
 				console.log('data', data);
 				// Éxito
@@ -641,9 +647,17 @@ export default function UsuariosPage() {
 				setPassword('');
 				setSelectedRole(null);
 			} catch (err) {
-				setError(
-					err instanceof Error ? err.message : 'Error al invitar usuario'
-				);
+				const errorMessage =
+					err instanceof Error ? err.message : 'Error al invitar usuario';
+				// Si el mensaje contiene saltos de línea (array de errores), mostrar cada error en un toast separado
+				if (errorMessage.includes('\n')) {
+					errorMessage.split('\n').forEach(msg => {
+						toast.error(msg);
+					});
+				} else {
+					toast.error(errorMessage);
+				}
+				setError(errorMessage);
 			} finally {
 				setIsLoading(false);
 			}

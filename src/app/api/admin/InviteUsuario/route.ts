@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('PAYLOAD!!!!: ', verifiedPayload);
+		console.log('PAYLOAD!!!!: ', body);
 
 		if (role === 'artista') {
 			const data = {
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const apiRes = await apiReq.json();
-			console.log('ARTIST DATA', apiRes);
+
 			if (!apiRes.success) {
 				return NextResponse.json(
 					{
@@ -161,6 +161,35 @@ export async function POST(req: NextRequest) {
 						error: apiRes || 'Error al crear el artista',
 					},
 					{ status: 400 }
+				);
+			}
+		}
+		if (role === 'contributor') {
+			const data = {
+				name: name,
+				email: email,
+				password: password,
+			};
+			const apiReq = await fetch(
+				`${req.nextUrl.origin}/api/admin/createContributor`,
+				{
+					method: 'POST',
+					headers: {
+						Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+					},
+					body: JSON.stringify(data),
+				}
+			);
+			const apiRes = await apiReq.json();
+
+			if (!apiRes.success) {
+				console.log('apiRes error', apiRes.error);
+				return NextResponse.json(
+					{
+						success: false,
+						error: apiRes.error || 'Error al crear el artista',
+					},
+					{ status: 402 }
 				);
 			}
 		}

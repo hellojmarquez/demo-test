@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
-
+import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
 	console.log('crear contributors received');
 
@@ -19,11 +19,19 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
+			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
+			console.log('Datos del usuario:', {
+				id: payload.id,
+				name: payload.name,
+				role: payload.role,
+			});
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -77,15 +85,12 @@ export async function POST(req: NextRequest) {
 		);
 
 		const contributorRes = await contributorReq.json();
-
-		// Verificar si la respuesta contiene un error
-		if (Array.isArray(contributorRes.name)) {
+		console.log('contributor en api', contributorRes);
+		if (!contributorRes.id) {
 			return NextResponse.json(
 				{
 					success: false,
-					error:
-						contributorRes.name[0] ||
-						'Error al crear el contribuidor en MoveMusic',
+					error: contributorRes,
 				},
 				{ status: 400 }
 			);
@@ -102,13 +107,42 @@ export async function POST(req: NextRequest) {
 			password: hashedPassword,
 			role: 'contributor',
 		});
-
 		await contributor.save();
 
-		return NextResponse.json({
-			success: true,
-			contributor: contributor,
-		});
+		if (!contributor.external_id) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: contributorRes || 'Error al crear el contributor',
+				},
+				{ status: 401 }
+			);
+		}
+		try {
+			// Crear el log
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'USER' as const,
+				entityId: contributor._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `contributor creado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
+			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
+		return NextResponse.json(
+			{
+				success: true,
+				contributor: contributor,
+			},
+			{ status: 201 }
+		);
 	} catch (error) {
 		console.error('Error creating contributor:', error);
 		return NextResponse.json(

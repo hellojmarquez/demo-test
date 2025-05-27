@@ -3,7 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import { Admin } from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
-
+import { createLog } from '@/lib/logger';
 export async function POST(request: NextRequest) {
 	console.log('create admin request received');
 
@@ -17,11 +17,19 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
+			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
+			console.log('Datos del usuario:', {
+				id: payload.id,
+				name: payload.name,
+				role: payload.role,
+			});
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -73,7 +81,24 @@ export async function POST(request: NextRequest) {
 				{ status: 400 }
 			);
 		}
-
+		try {
+			// Crear el log
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'USER' as const,
+				entityId: newAdmin._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Admin creado: ${name}`,
+				ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+			};
+			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json(
 			{
 				success: true,

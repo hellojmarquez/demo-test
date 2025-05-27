@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
-import { Settings, LogOut, User } from 'lucide-react';
+import { Settings, LogOut, User, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AccountSwitchButton() {
@@ -94,7 +94,7 @@ export default function AccountSwitchButton() {
 		<div className="relative" ref={dropdownRef}>
 			<button
 				onClick={() => setIsOpen(!isOpen)}
-				className="text-sm hover:bg-gray-50/10 text-white px-2 py-1 rounded-full transition flex items-center space-x-2"
+				className="text-sm bg-gray-50/10 hover:bg-gray-50/20 text-white p-2 rounded-full transition flex items-center space-x-2"
 			>
 				<div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
 					{imageSrc ? (
@@ -111,6 +111,12 @@ export default function AccountSwitchButton() {
 				<span className="truncate max-w-[120px] font-medium">
 					{displayAccount.name}
 				</span>
+				<ChevronDown
+					size={16}
+					className={`transition-transform duration-200 ${
+						isOpen ? 'rotate-180' : ''
+					}`}
+				/>
 			</button>
 
 			{isOpen && (

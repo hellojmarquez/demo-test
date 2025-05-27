@@ -37,9 +37,9 @@ export async function DELETE(request: NextRequest) {
 				{ status: 401 }
 			);
 		}
-
 		const { searchParams } = new URL(request.url);
 		const releaseId = searchParams.get('releaseId');
+		console.log('releaseId', releaseId);
 
 		if (!releaseId) {
 			return NextResponse.json(
@@ -61,6 +61,12 @@ export async function DELETE(request: NextRequest) {
 
 		// Eliminar el release
 		await Release.findByIdAndDelete(releaseId);
+		if (!releaseToDelete) {
+			return NextResponse.json(
+				{ error: 'Release no se ha podido borrar' },
+				{ status: 404 }
+			);
+		}
 
 		// Crear el log
 		await createLog({
@@ -76,7 +82,7 @@ export async function DELETE(request: NextRequest) {
 
 		return NextResponse.json({ message: 'Release eliminado correctamente' });
 	} catch (error) {
-		console.error('Error al eliminar release:', error);
+		console.error('Error al eliminar release:');
 		return NextResponse.json(
 			{ error: 'Error al eliminar el release' },
 			{ status: 500 }

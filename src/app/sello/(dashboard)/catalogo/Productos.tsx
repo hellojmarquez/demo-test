@@ -17,10 +17,12 @@ import {
 	Archive,
 	Plus,
 	BriefcaseBusiness,
+	AlertTriangle,
+	X,
 } from 'lucide-react';
 import Link from 'next/link';
 import UpdateReleaseModal from '@/components/UpdateReleaseModal';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import CreateInitRelease from '@/components/CreateInitRelease';
 import Pagination from '@/components/Pagination';
@@ -29,6 +31,7 @@ import SortSelect from '@/components/SortSelect';
 
 interface Release {
 	_id: string;
+	external_id: string;
 	__v: number;
 	artists: any[];
 	auto_detect_language: boolean;
@@ -97,6 +100,9 @@ const Productos: React.FC = () => {
 	const [publishers, setPublishers] = useState<
 		{ value: string; label: string }[]
 	>([]);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
+	const [releaseToDelete, setReleaseToDelete] = useState<Release | null>(null);
+	const [deleteError, setDeleteError] = useState<string | null>(null);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -193,34 +199,41 @@ const Productos: React.FC = () => {
 	const handleDelete = async (e: React.MouseEvent, release: Release) => {
 		e.preventDefault();
 		e.stopPropagation();
+		setReleaseToDelete(release);
+		setShowDeleteModal(true);
+	};
 
-		if (!confirm(`¿Estás seguro de que deseas eliminar "${release.name}"?`)) {
-			return;
-		}
+	const handleConfirmDelete = async () => {
+		if (!releaseToDelete) return;
 
-		setIsDeleting(release._id);
+		setIsDeleting(releaseToDelete.external_id);
+		setDeleteError(null);
 
 		try {
-			const response = await fetch(`/api/admin/deleteRelease/${release._id}`, {
-				method: 'DELETE',
-			});
+			const response = await fetch(
+				`/api/admin/deleteRelease/${releaseToDelete.external_id}`,
+				{
+					method: 'DELETE',
+				}
+			);
 
 			const data = await response.json();
 
 			if (response.ok) {
-				setReleases(prev => prev.filter(r => r._id !== release._id));
+				setReleases(prev => prev.filter(r => r._id !== releaseToDelete._id));
 				setShowSuccessMessage(true);
 				setSuccessMessageType('delete');
 				setTimeout(() => {
 					setShowSuccessMessage(false);
 					setSuccessMessageType(null);
 				}, 3000);
+				setShowDeleteModal(false);
 			} else {
-				alert(data.message || 'Error al eliminar el producto');
+				setDeleteError(data.message || 'Error al eliminar el producto');
 			}
 		} catch (error) {
 			console.error('Error deleting release:', error);
-			alert('Error al eliminar el producto');
+			setDeleteError('Error al eliminar el producto');
 		} finally {
 			setIsDeleting(null);
 		}
@@ -625,6 +638,86 @@ const Productos: React.FC = () => {
 				onPageChange={setCurrentPage}
 				className="mt-4"
 			/>
+			<AnimatePresence>
+				{showDeleteModal && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+						onClick={() => !isDeleting && setShowDeleteModal(false)}
+					>
+						<motion.div
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+							className="bg-white rounded-xl shadow-xl w-full max-w-md"
+							onClick={e => e.stopPropagation()}
+						>
+							<div className="p-6 border-b border-gray-200 flex justify-between items-center">
+								<h2 className="text-xl font-semibold text-gray-800">
+									Confirmar Eliminación
+								</h2>
+								<button
+									onClick={() => !isDeleting && setShowDeleteModal(false)}
+									className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+									disabled={isDeleting}
+								>
+									<X size={20} className="text-gray-500" />
+								</button>
+							</div>
+
+							<div className="p-6">
+								<div className="flex items-center gap-3 mb-4">
+									<AlertTriangle className="h-6 w-6 text-red-500" />
+									<p className="text-gray-700">
+										¿Estás seguro de que deseas eliminar el release{' '}
+										<span className="font-semibold">
+											{releaseToDelete?.name}
+										</span>
+										?
+									</p>
+								</div>
+								<p className="text-sm text-gray-500 mb-6">
+									Esta acción no se puede deshacer. Todos los datos asociados a
+									este release serán eliminados permanentemente.
+								</p>
+
+								{deleteError && (
+									<div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+										{deleteError}
+									</div>
+								)}
+
+								<div className="flex justify-end space-x-3">
+									<button
+										onClick={() => !isDeleting && setShowDeleteModal(false)}
+										className="px-4 py-2 rounded-md text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										disabled={isDeleting}
+									>
+										Cancelar
+									</button>
+									<button
+										onClick={handleConfirmDelete}
+										className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+										disabled={isDeleting}
+									>
+										{isDeleting ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												<span>Eliminando...</span>
+											</>
+										) : (
+											'Eliminar'
+										)}
+									</button>
+								</div>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 };

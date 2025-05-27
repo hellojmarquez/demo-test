@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
 	Pencil,
 	Trash2,
@@ -168,6 +168,12 @@ export default function UsuariosPage() {
 	const [selectedRole, setSelectedRole] = useState<RoleOption | null>(null);
 	const [showInviteModal, setShowInviteModal] = useState(false);
 	const [showCopied, setShowCopied] = useState(false);
+	const [name, setName] = useState('');
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
+	const catalogNumRef = useRef<HTMLInputElement>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -202,6 +208,16 @@ export default function UsuariosPage() {
 		};
 		fetchUsers();
 	}, [currentPage, searchQuery, sortBy, selectedRole]);
+
+	useEffect(() => {
+		console.log('selectedRole changed:', selectedRole);
+		console.log('selectedRole value:', selectedRole?.value);
+	}, [selectedRole]);
+
+	const handleRoleChange = (option: RoleOption | null) => {
+		console.log('handleRoleChange called with:', option);
+		setSelectedRole(option);
+	};
 
 	if (loading) {
 		return (
@@ -581,6 +597,17 @@ export default function UsuariosPage() {
 		const [email, setEmail] = useState('');
 		const [isLoading, setIsLoading] = useState(false);
 		const [error, setError] = useState<string | null>(null);
+		const catalogNumRef = useRef<HTMLInputElement>(null);
+
+		useEffect(() => {
+			console.log('Modal selectedRole changed:', selectedRole);
+			console.log('Modal selectedRole value:', selectedRole?.value);
+		}, [selectedRole]);
+
+		const handleRoleChange = (option: RoleOption | null) => {
+			console.log('Modal handleRoleChange called with:', option);
+			setSelectedRole(option);
+		};
 
 		const generatePassword = () => {
 			const length = 12;
@@ -611,45 +638,64 @@ export default function UsuariosPage() {
 			e.preventDefault();
 			setError(null);
 			setIsLoading(true);
-
+			console.log('selectedRole', selectedRole?.value);
 			try {
-				const response = await fetch('/api/admin/InviteUsuario', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
+				let response;
+				let data;
+
+				if (selectedRole?.value === 'sello') {
+					const data = {
+						name,
+						email,
+						password,
+						role: 'sello',
+						catalog_num: catalogNumRef.current?.value,
+					};
+
+					response = await fetch('/api/admin/InviteUsuario', {
+						method: 'POST',
+						body: JSON.stringify(data),
+					});
+				} else {
+					const requestBody: any = {
 						name,
 						email,
 						password,
 						role: selectedRole?.value,
-					}),
-				});
+					};
 
-				const data = await response.json();
+					response = await fetch('/api/admin/InviteUsuario', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(requestBody),
+					});
+				}
+
+				data = await response.json();
 
 				if (!response.ok) {
-					// Si el error es un objeto que contiene arrays
 					if (typeof data.error === 'object' && data.error !== null) {
 						const errorMessages = Object.values(data.error).flat();
 						throw new Error(errorMessages.join('\n'));
 					}
-					// Si es un string, mostrar el mensaje directamente
 					throw new Error(data.error || 'Error al invitar usuario');
 				}
+
 				console.log('data', data);
-				// Éxito
 				toast.success('El usuario ha sido invitado');
 				setShowInviteModal(false);
-				// Limpiar el formulario
 				setName('');
 				setEmail('');
 				setPassword('');
 				setSelectedRole(null);
+				if (catalogNumRef.current) {
+					catalogNumRef.current.value = '';
+				}
 			} catch (err) {
 				const errorMessage =
 					err instanceof Error ? err.message : 'Error al invitar usuario';
-				// Si el mensaje contiene saltos de línea (array de errores), mostrar cada error en un toast separado
 				if (errorMessage.includes('\n')) {
 					errorMessage.split('\n').forEach(msg => {
 						toast.error(msg);
@@ -780,11 +826,36 @@ export default function UsuariosPage() {
 									<Select
 										options={roleOptions}
 										value={selectedRole}
-										onChange={setSelectedRole}
+										onChange={handleRoleChange}
 										styles={selectStyles}
 										placeholder="Seleccione un rol"
 										className="w-full"
 									/>
+								</div>
+								<div
+									style={{
+										display: selectedRole?.value === 'sello' ? 'block' : 'none',
+										height: selectedRole?.value === 'sello' ? 'auto' : '0',
+										overflow: 'hidden',
+									}}
+								>
+									<div>
+										<label
+											htmlFor="catalogNum"
+											className="block text-sm font-medium text-gray-700 mb-1"
+										>
+											Número de Catálogo (entre -32,768 y 32,767)
+										</label>
+										<input
+											type="number"
+											id="catalogNum"
+											ref={catalogNumRef}
+											className="w-full pl-4 pr-4 pt-4 pb-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+											placeholder="Ingrese el número de catálogo"
+											min="-32768"
+											max="32767"
+										/>
+									</div>
 								</div>
 								{error && (
 									<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">

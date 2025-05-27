@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
+import { createLog } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
 	try {
@@ -18,11 +19,19 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
+			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
+			console.log('Datos del usuario:', {
+				id: payload.id,
+				name: payload.name,
+				role: payload.role,
+			});
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -44,6 +53,7 @@ export async function POST(request: NextRequest) {
 		const formData = await request.formData();
 		const name = formData.get('name') as string;
 		const email = formData.get('email') as string;
+		const linkLogo = formData.get('logo') as string;
 		const password = formData.get('password') as string;
 		const primary_genre = formData.get('primary_genre') as string;
 		const year = formData.get('year') as string;
@@ -52,6 +62,10 @@ export async function POST(request: NextRequest) {
 		const isSubaccount = formData.get('isSubaccount') === 'true';
 		const parentUserId = formData.get('parentUserId') as string;
 		const parentName = formData.get('parentName') as string;
+		let logo = '';
+		if (linkLogo) {
+			logo = decodeURIComponent(new URL(linkLogo).pathname.slice(1));
+		}
 		let picture_url = '';
 		let picture_path = '';
 		// Validar campos requeridos
@@ -102,7 +116,7 @@ export async function POST(request: NextRequest) {
 			}
 		}
 
-		if (picture) {
+		if (picture && picture instanceof File) {
 			try {
 				const uploadPictureReq = await fetch(
 					`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=image/jpeg&upload_type=label.logo`,
@@ -170,7 +184,7 @@ export async function POST(request: NextRequest) {
 		let external_id = null;
 
 		const labelToApi = {
-			logo: picture_path,
+			logo: picture_path.length > 0 ? picture_path : logo,
 			name,
 			year: parseInt(year),
 			catalog_num: parseInt(catalog_num),
@@ -188,7 +202,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		const createLabelRes = await createLabelReq.json();
-
+		console.log('createLabelRes', createLabelRes);
 		if (!createLabelRes.id) {
 			return NextResponse.json({ success: false, error: createLabelRes });
 		}
@@ -208,7 +222,7 @@ export async function POST(request: NextRequest) {
 			role: 'sello',
 			status: 'activo',
 			permissions: ['sello'],
-			picture: picture_url,
+			picture: picture_path.length > 0 ? picture_path : linkLogo,
 			tipo: isSubaccount ? 'subcuenta' : 'principal',
 			parentId: isSubaccount ? parentUserId : null,
 			parentName: isSubaccount ? parentName : null,
@@ -220,6 +234,16 @@ export async function POST(request: NextRequest) {
 		});
 
 		await newUser.save();
+		console.log('newUser', newUser);
+		if (!newUser.external_id) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: newUser || 'Error al crear el sello',
+				},
+				{ status: 400 }
+			);
+		}
 
 		// Si es subcuenta, actualizar el array de subcuentas del usuario padre
 		if (isSubaccount && parentUserId) {
@@ -227,7 +251,24 @@ export async function POST(request: NextRequest) {
 				$push: { subaccounts: newUser._id },
 			});
 		}
-
+		try {
+			// Crear el log
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'USER' as const,
+				entityId: newUser._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Sello creado: ${name}`,
+				ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+			};
+			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json(
 			{
 				success: true,

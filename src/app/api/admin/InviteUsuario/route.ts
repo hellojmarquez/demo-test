@@ -40,8 +40,11 @@ export async function POST(req: NextRequest) {
 		}
 
 		const body = await req.json();
-		const { name, email, password, role } = body;
-
+		const { name, email, password, role, catalog_num } = body;
+		if (catalog_num) {
+			console.log('catalogNum', catalog_num);
+		}
+		console.log('body', body);
 		// Validar datos requeridos
 		if (!name || !email || !password || !role) {
 			return NextResponse.json(
@@ -178,6 +181,42 @@ export async function POST(req: NextRequest) {
 						Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
 					},
 					body: JSON.stringify(data),
+				}
+			);
+			const apiRes = await apiReq.json();
+
+			if (!apiRes.success) {
+				console.log('apiRes error', apiRes.error);
+				return NextResponse.json(
+					{
+						success: false,
+						error: apiRes.error || 'Error al crear el artista',
+					},
+					{ status: 402 }
+				);
+			}
+		}
+		if (role === 'sello') {
+			const formData = new FormData();
+			formData.append('name', name);
+			formData.append('email', email);
+			formData.append('password', password);
+			formData.append('primary_genre', 'Dance');
+			formData.append('year', '2025');
+			formData.append('catalog_num', catalog_num);
+			formData.append(
+				'logo',
+				'https://stagingmovemusic.s3.amazonaws.com/media%2Flabel%2Flogo%2F20f9dc16334b4d2bb3dc5a17f71716d1_de-perro.jpg'
+			);
+
+			const apiReq = await fetch(
+				`${req.nextUrl.origin}/api/admin/createSello`,
+				{
+					method: 'POST',
+					headers: {
+						Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+					},
+					body: formData,
 				}
 			);
 			const apiRes = await apiReq.json();

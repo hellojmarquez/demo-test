@@ -136,6 +136,34 @@ export async function POST(req: NextRequest) {
 				);
 			}
 		}
+		if (role === 'publisher') {
+			const data = {
+				name: name,
+				email: email,
+				password: password,
+			};
+			const apiReq = await fetch(
+				`${req.nextUrl.origin}/api/admin/createPublisher`,
+				{
+					method: 'POST',
+					headers: {
+						Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+					},
+					body: JSON.stringify(data),
+				}
+			);
+			const apiRes = await apiReq.json();
+			console.log('ARTIST DATA', apiRes);
+			if (!apiRes.success) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: apiRes || 'Error al crear el artista',
+					},
+					{ status: 400 }
+				);
+			}
+		}
 		// Configurar el transporter de Nodemailer con Brevo
 		const transporter: Transporter = nodemailer.createTransport({
 			host: process.env.BREVO_SMTP_HOST,

@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
+import { createLog } from '@/lib/logger';
+
 export async function POST(req: NextRequest) {
 	console.log('create publisher received');
 
@@ -18,11 +20,19 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
+			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
+			console.log('Datos del usuario:', {
+				id: payload.id,
+				name: payload.name,
+				role: payload.role,
+			});
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -59,11 +69,21 @@ export async function POST(req: NextRequest) {
 		);
 
 		const publisherRes = await publisherReq.json();
+		if (!publisherRes.id) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: publisherRes || 'Error al crear el publisher',
+				},
+				{ status: 400 }
+			);
+		}
 
 		// Conectar a la base de datos local
 		await dbConnect();
 		const hashedPassword = await encryptPassword(password);
 		// Crear y guardar el publisher en la base de datos local
+
 		const publisher = new User({
 			external_id: publisherRes.id,
 			name,
@@ -73,7 +93,24 @@ export async function POST(req: NextRequest) {
 		});
 
 		await publisher.save();
-
+		try {
+			// Crear el log
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'USER' as const,
+				entityId: publisher._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Publisher creado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
+			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json({
 			success: true,
 		});

@@ -170,6 +170,15 @@ export async function POST(req: NextRequest) {
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
 		console.log('createTrack MONGO', createTrack);
+		if (!createTrack.external_id) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: 'Error al crear el track en la base de datos',
+				},
+				{ status: 400 }
+			);
+		}
 		return NextResponse.json({
 			success: true,
 			track: trackData,

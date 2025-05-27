@@ -14,6 +14,8 @@ export type Account = {
 	type: 'admin' | 'sello' | 'subcuenta' | 'artista';
 	role: string;
 	email: string;
+	image?: string;
+	picture?: string;
 };
 
 export type User = {
@@ -22,6 +24,7 @@ export type User = {
 	role: string;
 	email: string;
 	accounts: Account[];
+	picture?: string;
 };
 
 type AuthContextType = {
@@ -55,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				setShowAccountSelector(true);
 			}
 		}
+		console.log('user en auth provider', user);
 		setLoading(false);
 	}, []);
 

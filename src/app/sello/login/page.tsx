@@ -72,6 +72,7 @@ export default function SelloLogin() {
 					email: userDB.email,
 					role: userDB.role,
 					accounts: [...subAccounts],
+					picture: userDB.picture,
 				};
 
 				login(userData);

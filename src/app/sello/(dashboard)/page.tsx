@@ -84,14 +84,6 @@ export default function SelloHome() {
 				<h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">
 					Dashboard Overview
 				</h1>
-				<div className="bg-white shadow-sm rounded-full px-4 py-2 flex items-center space-x-2">
-					<div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold">
-						{userData.name?.charAt(0) || 'U'}
-					</div>
-					<span className="font-medium text-gray-700 hidden md:inline">
-						{userData.name || 'User'}
-					</span>
-				</div>
 			</motion.div>
 
 			<section className="space-y-4">

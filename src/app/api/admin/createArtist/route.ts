@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 			try {
 				const arrayBuffer = await picture.arrayBuffer();
 				pictureBuffer = Buffer.from(arrayBuffer);
-				console.log('Image converted to buffer successfully');
+			
 			} catch (error) {
 				console.error('Error converting image to buffer:', error);
 				return NextResponse.json(
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('ARTISTA RES', artistaRes);
+		
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			external_id: artistaRes.id,
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 			parentName: isSubaccount ? parentName : null,
 			tipo: tipo || 'principal',
 		});
-		console.log('NEW ARTIST', newArtist);
+
 		// Si es una subcuenta, actualizar el usuario padre
 		if (isSubaccount && parentUserId) {
 			await User.findByIdAndUpdate(parentUserId, {

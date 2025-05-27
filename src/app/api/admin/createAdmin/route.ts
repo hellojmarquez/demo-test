@@ -24,12 +24,7 @@ export async function POST(request: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
-			console.log('Datos del usuario:', {
-				id: payload.id,
-				name: payload.name,
-				role: payload.role,
-			});
+		
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -58,7 +53,7 @@ export async function POST(request: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log(name, email, password);
+	
 		// Hashear la contraseña
 		// const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -93,7 +88,7 @@ export async function POST(request: NextRequest) {
 				details: `Admin creado: ${name}`,
 				ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
 			};
-			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+		
 			await createLog(logData);
 		} catch (logError) {
 			console.error('Error al crear el log:', logError);

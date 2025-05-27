@@ -21,14 +21,14 @@ export const useSocket = (ticketId: string) => {
 
 		// Unirse a la sala del ticket
 		if (ticketId) {
-			console.log('Uniéndose al ticket:', ticketId);
+		
 			socketRef.current.emit('join-ticket', ticketId);
 		}
 
 		// Limpiar al desmontar
 		return () => {
 			if (socketRef.current && ticketId) {
-				console.log('Dejando el ticket:', ticketId);
+			
 				socketRef.current.emit('leave-ticket', ticketId);
 			}
 		};
@@ -36,7 +36,7 @@ export const useSocket = (ticketId: string) => {
 
 	const sendMessage = (message: any) => {
 		if (socketRef.current && ticketId) {
-			console.log('Enviando mensaje:', { ticketId, message });
+		
 			socketRef.current.emit('new-message', {
 				ticketId,
 				message,
@@ -46,9 +46,9 @@ export const useSocket = (ticketId: string) => {
 
 	const onMessage = (callback: (message: any) => void) => {
 		if (socketRef.current) {
-			console.log('Configurando listener de mensajes');
+		
 			socketRef.current.on('message-received', message => {
-				console.log('Mensaje recibido:', message);
+				
 				callback(message);
 			});
 		}
@@ -56,7 +56,7 @@ export const useSocket = (ticketId: string) => {
 
 	const updateTicket = (ticket: any) => {
 		if (socketRef.current && ticketId) {
-			console.log('Emitiendo actualización de ticket:', { ticketId, ticket });
+		
 			// Aseguramos que el ticket tenga el ID correcto
 			const ticketToEmit = {
 				...ticket,
@@ -71,9 +71,9 @@ export const useSocket = (ticketId: string) => {
 
 	const onTicketUpdate = (callback: (ticket: any) => void) => {
 		if (socketRef.current) {
-			console.log('Configurando listener de actualizaciones de ticket');
+		
 			socketRef.current.on('ticket-updated', ticket => {
-				console.log('Ticket actualizado recibido:', ticket);
+			
 				callback(ticket);
 			});
 		}
@@ -81,11 +81,9 @@ export const useSocket = (ticketId: string) => {
 
 	const onTicketsUpdate = (callback: (ticket: any) => void) => {
 		if (socketRef.current) {
-			console.log(
-				'Configurando listener de actualizaciones globales de tickets'
-			);
+		
 			socketRef.current.on('tickets-updated', ticket => {
-				console.log('Actualización global de ticket recibida:', ticket);
+			
 				callback(ticket);
 			});
 		}

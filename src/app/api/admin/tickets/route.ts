@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 	try {
 		console.log('GET /api/admin/tickets - Iniciando petición');
 		const token = req.cookies.get('loginToken')?.value;
-		console.log('Token presente:', !!token);
+		
 
 		if (!token) {
 			console.log('Error: No hay token de autenticación');

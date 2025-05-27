@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
 	const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 	const token = req.cookies.get('loginToken')?.value;
-	console.log('token: ', token);
+	
 	if (!token) {
 		return NextResponse.json(
 			{ success: false, error: 'Not authenticated' },
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 		await dbConnect();
 
 		const artist = await req.json();
-		console.log('artist', artist);
+		
 		// Extraer los campos del FormData
 		const order = artist.order || 0;
 		const kind = artist.kind;
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 		});
 
 		const artistaRes = await artistaReq.json();
-		console.log('artistaRes: ', artistaRes);
+	
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			external_id: artistaRes.id,
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 			parentName: null,
 			tipo: 'principal',
 		});
-		console.log('newArtist: ', newArtist);
+	
 		return NextResponse.json({
 			success: true,
 			artist: {

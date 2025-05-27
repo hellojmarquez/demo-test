@@ -27,7 +27,7 @@ export async function createLog(params: LogParams) {
 		};
 
 		const log = await Log.create(logData);
-		console.log('Log creado exitosamente:', log._id);
+	
 		return log;
 	} catch (error) {
 		console.error('Error al crear log:', error);

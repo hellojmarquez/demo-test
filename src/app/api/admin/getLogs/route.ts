@@ -78,13 +78,13 @@ export async function GET(request: NextRequest) {
 		const total = await Log.countDocuments(query);
 
 		// Obtener los logs con paginación
-		console.log('query', query);
+	
 		const logs = await Log.find(query)
 			.sort({ createdAt: -1 })
 			.skip((page - 1) * limit)
 			.limit(limit)
 			.lean();
-		console.log('logs', logs);
+	
 		return NextResponse.json({
 			logs,
 			pagination: {

@@ -51,25 +51,6 @@ export default function DashboardLayout({
 
 	const isAdmin = user?.role === 'admin';
 
-	const handleLogout = async () => {
-		try {
-			const response = await fetch('/api/auth/logout', {
-				method: 'POST',
-			});
-
-			if (response.ok) {
-				// Limpiar localStorage
-				localStorage.removeItem('user');
-				localStorage.removeItem('nextauth.message');
-
-				// Redirigir al login
-				router.push('/sello/login');
-			}
-		} catch (error) {
-			console.error('Error during logout:', error);
-		}
-	};
-
 	if (loading) {
 		return (
 			<div className="flex justify-center items-center h-screen">
@@ -195,27 +176,10 @@ export default function DashboardLayout({
 											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 										</Link>
 									)}
-									<Link
-										href="#!"
-										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/admin/config')
-												? 'text-white border-b-2'
-												: 'text-white'
-										}`}
-										onClick={() => setMobileMenuOpen(false)}
-									>
-										<Settings size={18} className="mr-2" />
-										<span>Configuración</span>
-										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</Link>
 								</div>
-								<button
-									onClick={handleLogout}
-									className="flex items-center p-2 text-white hover:text-gray-200 transition-colors"
-								>
-									<LogOut size={18} className="mr-2" />
-									<span>Cerrar Sesión</span>
-								</button>
+								<div className="flex items-center space-x-4">
+									<AccountSwitchButton />
+								</div>
 							</nav>
 
 							{/* Mobile Navigation */}
@@ -311,13 +275,6 @@ export default function DashboardLayout({
 											<Settings size={18} className="mr-2" />
 											<span>Configuración</span>
 										</Link>
-										<button
-											onClick={handleLogout}
-											className="flex items-center p-3 text-white hover:bg-brand-dark/80 transition-colors"
-										>
-											<LogOut size={18} className="mr-2" />
-											<span>Cerrar Sesión</span>
-										</button>
 									</div>
 								</div>
 							</nav>

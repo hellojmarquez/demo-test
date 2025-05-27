@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 		await dbConnect();
 
 		const { name, email, password, picture } = await request.json();
-		console.log(name, email, password);
+
 		// Validar campos requeridos
 		if (!name || !email || !password) {
 			return NextResponse.json(
@@ -55,25 +55,28 @@ export async function POST(request: NextRequest) {
 		// const hashedPassword = await bcrypt.hash(password, 10);
 
 		// Convertir la imagen base64 a Buffer si existe
-		let pictureBuffer = null;
-		if (picture?.base64) {
-			pictureBuffer = Buffer.from(picture.base64, 'base64');
-		}
+
 		const hashedPassword = await encryptPassword(password);
 		// Crear el nuevo administrador usando el discriminador Admin
 		const newAdmin = await Admin.create({
 			name,
 			email,
 			password: hashedPassword,
-			picture: pictureBuffer,
+			picture: picture.base64,
 			role: 'admin',
 			status: 'activo',
 			permissions: ['admin'],
 		});
-		console.log('newAdmin: ', newAdmin);
-		console.log(newAdmin);
+		if (!newAdmin) {
+			return NextResponse.json(
+				{ error: newAdmin || 'Error al crear el administrador' },
+				{ status: 400 }
+			);
+		}
+
 		return NextResponse.json(
 			{
+				success: true,
 				message: 'Administrador creado exitosamente',
 			},
 			{ status: 201 }

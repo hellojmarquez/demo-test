@@ -107,6 +107,35 @@ export async function POST(req: NextRequest) {
 			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
 			await createLog(logData);
 		}
+		if (role === 'admin') {
+			const data = {
+				name: name,
+				email: email,
+				password: password,
+				picture: '',
+			};
+			const apiReq = await fetch(
+				`${req.nextUrl.origin}/api/admin/createAdmin`,
+				{
+					method: 'POST',
+					headers: {
+						Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+					},
+					body: JSON.stringify(data),
+				}
+			);
+			const apiRes = await apiReq.json();
+			console.log('ARTIST DATA', apiRes);
+			if (!apiRes.success) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: apiRes || 'Error al crear el artista',
+					},
+					{ status: 400 }
+				);
+			}
+		}
 		// Configurar el transporter de Nodemailer con Brevo
 		const transporter: Transporter = nodemailer.createTransport({
 			host: process.env.BREVO_SMTP_HOST,

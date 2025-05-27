@@ -50,25 +50,19 @@ export async function DELETE(request: NextRequest) {
 
 		await dbConnect();
 
-		// Obtener información del release antes de eliminarlo
-		const releaseToDelete = await Release.findById(releaseId);
-		if (!releaseToDelete) {
+		// Buscar y eliminar el release por external_id
+		const deletedRelease = await Release.findOneAndDelete({
+			external_id: releaseId,
+		});
+
+		if (!deletedRelease) {
 			return NextResponse.json(
-				{ error: 'Release no encontrado' },
+				{ success: false, error: 'Release no encontrado' },
 				{ status: 404 }
 			);
 		}
 
-		// Eliminar el release
-		await Release.findByIdAndDelete(releaseId);
-		if (!releaseToDelete) {
-			return NextResponse.json(
-				{ error: 'Release no se ha podido borrar' },
-				{ status: 404 }
-			);
-		}
-
-		// Crear el log
+		// Crear log de la eliminación
 		await createLog({
 			action: 'DELETE',
 			entity: 'RELEASE',
@@ -76,11 +70,11 @@ export async function DELETE(request: NextRequest) {
 			userId: verifiedPayload.id as string,
 			userName: verifiedPayload.name as string,
 			userRole: verifiedPayload.role as string,
-			details: `Release eliminado: ${releaseToDelete.name}`,
+			details: `Release eliminado: ${deletedRelease.title} (${deletedRelease.id})`,
 			ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
 		});
 
-		return NextResponse.json({ message: 'Release eliminado correctamente' });
+		return NextResponse.json({ success: true });
 	} catch (error) {
 		console.error('Error al eliminar release:');
 		return NextResponse.json(

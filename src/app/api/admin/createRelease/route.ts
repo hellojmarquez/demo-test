@@ -205,6 +205,12 @@ export async function POST(req: NextRequest) {
 			body: JSON.stringify(releaseToApiData),
 		});
 		const apiRes = await releaseToApi.json();
+		if (!apiRes.id) {
+			return NextResponse.json(
+				{ success: false, error: apiRes || 'Error al crear el release' },
+				{ status: 500 }
+			);
+		}
 		console.log('apiRes', apiRes);
 		await dbConnect();
 

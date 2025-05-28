@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SingleTrack from '@/models/SingleTrack';
 import { jwtVerify } from 'jose';
+import { createLog } from '@/lib/logger';
 
 export async function PUT(
 	req: NextRequest,
@@ -20,11 +21,13 @@ export async function PUT(
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -32,6 +35,7 @@ export async function PUT(
 				{ status: 401 }
 			);
 		}
+
 		await dbConnect();
 		const trackId = params.id;
 		console.log('trackId recibido', trackId);
@@ -170,7 +174,7 @@ export async function PUT(
 				{ status: 400 }
 			);
 		}
-		
+
 		console.log('UPDATESINGLE RECIBIDO', trackData.external_id);
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
@@ -201,7 +205,24 @@ export async function PUT(
 			trackData,
 			{ new: true }
 		);
-		console.log('TRACK ACTUALIZADO EN DB', updatedTrack);
+		try {
+			// Crear el log
+			const logData = {
+				action: 'UPDATE' as const,
+				entity: 'PRODUCT' as const,
+				entityId: updatedTrack._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Track actualizado: ${updatedTrack.name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
+
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json({
 			success: true,
 			track: {

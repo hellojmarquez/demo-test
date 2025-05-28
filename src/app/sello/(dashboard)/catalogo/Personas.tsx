@@ -163,42 +163,6 @@ const Personas = () => {
 		}
 	};
 
-	const handleSave = async (persona: Persona) => {
-		try {
-			const res = await fetch(`/api/admin/updateUser/${persona._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(persona),
-			});
-			if (res.ok) {
-				// Actualizar la lista después de editar
-				fetchUsers(currentPage, searchQuery, sortBy);
-			}
-		} catch (error) {
-			console.error('Error updating persona:', error);
-		}
-	};
-
-	const handleCreate = async (persona: Persona) => {
-		try {
-			const res = await fetch('/api/admin/createUser', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(persona),
-			});
-			if (res.ok) {
-				// Actualizar la lista después de crear
-				fetchUsers(currentPage, searchQuery, sortBy);
-			}
-		} catch (error) {
-			console.error('Error creating persona:', error);
-		}
-	};
-
 	const handleEdit = (e: React.MouseEvent, persona: Persona) => {
 		try {
 			e.preventDefault();
@@ -397,7 +361,7 @@ const Personas = () => {
 				role: 'sello',
 			};
 
-			const res = await fetch(`/api/admin/updateUser/${selloToSave._id}`, {
+			const res = await fetch(`/api/admin/updateSello/${selloToSave._id}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(selloToSave),

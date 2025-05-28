@@ -3,13 +3,13 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import { v4 as uuidv4 } from 'uuid';
 import { jwtVerify } from 'jose';
-
+import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
 	console.log('create ARTISTA DEESDE RELEASE request received');
 
 	const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 	const token = req.cookies.get('loginToken')?.value;
-	
+
 	if (!token) {
 		return NextResponse.json(
 			{ success: false, error: 'Not authenticated' },
@@ -17,12 +17,13 @@ export async function POST(req: NextRequest) {
 		);
 	}
 	try {
-		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 		await dbConnect();
 
 		const artist = await req.json();
-		
+
 		// Extraer los campos del FormData
 		const order = artist.order || 0;
 		const kind = artist.kind;
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
 		});
 
 		const artistaRes = await artistaReq.json();
-	
+
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			external_id: artistaRes.id,
@@ -109,7 +110,30 @@ export async function POST(req: NextRequest) {
 			parentName: null,
 			tipo: 'principal',
 		});
-	
+		if (!newArtist.external_id) {
+			return NextResponse.json(
+				{ success: false, error: 'Error al crear el artista' },
+				{ status: 400 }
+			);
+		}
+		try {
+			// Crear el log
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'USER' as const,
+				entityId: newArtist._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Artista creado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
+
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json({
 			success: true,
 			artist: {

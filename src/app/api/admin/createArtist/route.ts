@@ -57,8 +57,6 @@ export async function POST(req: NextRequest) {
 		const deezer_identifier = formData.get('deezer_identifier') as string;
 		const spotify_identifier = formData.get('spotify_identifier') as string;
 		const picture = formData.get('picture') as File;
-		const isSubaccount = formData.get('isSubaccount') === 'true';
-		const parentUserId = formData.get('parentUserId') as string;
 
 		// Función para convertir File a base64
 		const fileToBase64 = async (file: File): Promise<string> => {
@@ -74,7 +72,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-
+		await dbConnect();
 		// Verificar si el email ya existe
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
@@ -129,7 +127,7 @@ export async function POST(req: NextRequest) {
 		if (picture) {
 			pictureBase64 = await fileToBase64(picture);
 		}
-		await dbConnect();
+
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			external_id: artistaRes.id,

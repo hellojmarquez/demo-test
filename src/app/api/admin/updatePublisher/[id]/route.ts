@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
+import { createLog } from '@/lib/logger';
 
 export async function PUT(
 	req: NextRequest,
@@ -20,11 +21,13 @@ export async function PUT(
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -84,16 +87,24 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
+		try {
+			// Crear el log
+			const logData = {
+				action: 'UPDATE' as const,
+				entity: 'USER' as const,
+				entityId: updatedPublisher._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Publisher actualizado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
 
-		console.log('Publisher actualizado en la base de datos:', {
-			_id: updatedPublisher._id,
-			name: updatedPublisher.name,
-			email: updatedPublisher.email,
-			external_id: updatedPublisher.external_id,
-			role: updatedPublisher.role,
-			updatedAt: updatedPublisher.updatedAt,
-		});
-
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json({
 			success: true,
 			publisher: updatedPublisher,

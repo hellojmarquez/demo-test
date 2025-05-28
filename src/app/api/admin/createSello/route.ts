@@ -76,44 +76,13 @@ export async function POST(request: NextRequest) {
 		// 	);
 		// }
 
-		// Validar campos específicos para cuenta principal
-		if (!isSubaccount) {
-			// if (!email || !password) {
-			// 	return NextResponse.json(
-			// 		{
-			// 			error: 'Email y contraseña son requeridos para cuentas principales',
-			// 		},
-			// 		{ status: 400 }
-			// 	);
-			// }
-
-			// Validar que el email no exista
-			const existingUser = await User.findOne({ email: email.toLowerCase() });
-			if (existingUser) {
-				return NextResponse.json(
-					{ error: 'El email ya está registrado' },
-					{ status: 400 }
-				);
-			}
-		}
-
-		// Si es subcuenta, validar el usuario padre
-		let parentUser = null;
-		if (isSubaccount) {
-			if (!parentUserId) {
-				return NextResponse.json(
-					{ error: 'Usuario padre es requerido para subcuentas' },
-					{ status: 400 }
-				);
-			}
-
-			parentUser = await User.findById(parentUserId);
-			if (!parentUser) {
-				return NextResponse.json(
-					{ error: 'Usuario padre no encontrado' },
-					{ status: 404 }
-				);
-			}
+		// Validar que el email no exista
+		const existingUser = await User.findOne({ email: email.toLowerCase() });
+		if (existingUser) {
+			return NextResponse.json(
+				{ error: 'El email ya está registrado' },
+				{ status: 400 }
+			);
 		}
 
 		if (picture && picture instanceof File) {
@@ -245,12 +214,6 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Si es subcuenta, actualizar el array de subcuentas del usuario padre
-		if (isSubaccount && parentUserId) {
-			await User.findByIdAndUpdate(parentUserId, {
-				$push: { subaccounts: newUser._id },
-			});
-		}
 		try {
 			// Crear el log
 			const logData = {

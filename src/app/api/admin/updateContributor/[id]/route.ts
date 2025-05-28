@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
+import { createLog } from '@/lib/logger';
 
 interface UpdateData {
 	name: string;
@@ -27,11 +28,13 @@ export async function PUT(
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -114,22 +117,12 @@ export async function PUT(
 			);
 
 			if (!externalApiRes.ok) {
-				const errorText = await externalApiRes.text();
-				console.error('API Error Response:', {
-					status: externalApiRes.status,
-					statusText: externalApiRes.statusText,
-					body: errorText,
-				});
 				return NextResponse.json(
 					{
 						success: false,
-						error: 'Error en API externa',
-						details: {
-							status: externalApiRes.status,
-							message: errorText,
-						},
+						error: externalApiRes.statusText || 'Error en API externa',
 					},
-					{ status: 400 }
+					{ status: externalApiRes.status }
 				);
 			}
 		} catch (apiError: any) {
@@ -137,8 +130,7 @@ export async function PUT(
 			return NextResponse.json(
 				{
 					success: false,
-					error: 'Error en API externa',
-					details: apiError.message,
+					error: apiError.message || 'Error en API externa',
 				},
 				{ status: 500 }
 			);
@@ -159,7 +151,24 @@ export async function PUT(
 				{ status: 500 }
 			);
 		}
+		try {
+			// Crear el log
+			const logData = {
+				action: 'UPDATE' as const,
+				entity: 'USER' as const,
+				entityId: updatedContributor._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Contributopr actualizado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
 
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json({
 			success: true,
 			message: 'Contribuidor actualizado exitosamente',

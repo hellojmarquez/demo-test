@@ -40,16 +40,11 @@ export async function GET(req: NextRequest) {
 		}
 
 		const isAdmin = payload.role === 'admin';
-		console.log('Es admin:', isAdmin);
-
-		console.log('Conectando a la base de datos...');
+	
 		await dbConnect();
-		console.log('Conexión a la base de datos exitosa');
-
+	
 		const userId = req.cookies.get('userId')?.value;
-		console.log('UserId:', userId);
 
-		console.log('Buscando tickets...');
 		const tickets = isAdmin
 			? await Ticket.find({
 					$or: [
@@ -64,7 +59,7 @@ export async function GET(req: NextRequest) {
 					],
 			  }).sort({ createdAt: -1 })
 			: await Ticket.find({ userId }).sort({ createdAt: -1 });
-		console.log('Tickets encontrados:', tickets.length);
+	
 
 		return NextResponse.json(tickets);
 	} catch (error) {

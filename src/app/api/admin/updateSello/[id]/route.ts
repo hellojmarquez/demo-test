@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import { User, Sello } from '@/models/UserModel';
 import { jwtVerify } from 'jose';
 import { encryptPassword } from '@/utils/auth';
+import { createLog } from '@/lib/logger';
 
 export async function PUT(
 	req: NextRequest,
@@ -19,11 +20,13 @@ export async function PUT(
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -31,6 +34,7 @@ export async function PUT(
 				{ status: 401 }
 			);
 		}
+
 		const { id } = params;
 		await dbConnect();
 		console.log('id: ', id);
@@ -177,7 +181,24 @@ export async function PUT(
 				{ status: 500 }
 			);
 		}
+		try {
+			// Crear el log
+			const logData = {
+				action: 'UPDATE' as const,
+				entity: 'USER' as const,
+				entityId: updatedSello._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Sello actualizado: ${updatedSello.name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
 
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json({
 			success: true,
 			data: updatedSello,

@@ -121,29 +121,7 @@ export default function CrearUsuarioPage() {
 		}));
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		try {
-			const response = await fetch('/api/admin/createUser', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(formData),
-			});
 
-			if (response.ok) {
-				toast.success('Usuario creado exitosamente');
-				router.push('/sello/dashboard');
-			} else {
-				const data = await response.json();
-				toast.error(data.message || 'Error al crear el usuario');
-			}
-		} catch (error) {
-			console.error('Error creating user:', error);
-			toast.error('Error al crear el usuario');
-		}
-	};
 
 	// Fetch parent accounts when tipo changes to 'subcuenta'
 	useEffect(() => {

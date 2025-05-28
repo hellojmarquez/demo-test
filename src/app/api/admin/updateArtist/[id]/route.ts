@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Artista } from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
+import { createLog } from '@/lib/logger';
 
 interface UpdateArtistBody {
 	name: string;
@@ -73,11 +74,11 @@ export async function PUT(
 			}
 
 			// Procesar la imagen si existe
-			const picture = formData.get('picture') as File | null;
+			const picture = formData.get('picture') as string | null;
 			if (picture) {
-				const arrayBuffer = await picture.arrayBuffer();
-				const base64String = Buffer.from(arrayBuffer).toString('base64');
-				body.picture = base64String;
+				console.log('picture', picture);
+
+				body.picture = picture;
 			}
 			console.log('bod formdata', body);
 		} else {
@@ -122,14 +123,12 @@ export async function PUT(
 				body: JSON.stringify(artistToApi),
 			}
 		);
-		const apiRes = await artistReq.json();
-
 		if (!artistReq.ok) {
-			const errorData = await artistReq.json();
 			return NextResponse.json(
 				{
 					success: false,
-					error: errorData.message || 'Failed to update artist in external API',
+					error:
+						artistReq.statusText || 'Failed to update artist in external API',
 				},
 				{ status: artistReq.status }
 			);
@@ -137,7 +136,6 @@ export async function PUT(
 
 		// Conectar a la base de datos local
 		await dbConnect();
-		console.log('body to send', body);
 
 		// Preparar el objeto de actualización
 		const updateData = {
@@ -162,16 +160,24 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
+		try {
+			// Crear el log
+			const logData = {
+				action: 'UPDATE' as const,
+				entity: 'USER' as const,
+				entityId: updatedArtist._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Artista actualizado: ${updateData.name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
 
-		console.log('Artista actualizado en la base de datos:', {
-			_id: updatedArtist._id,
-			name: updatedArtist.name,
-			email: updatedArtist.email,
-			picture: updatedArtist.picture ? 'Imagen presente' : 'Sin imagen',
-			external_id: updatedArtist.external_id,
-			role: updatedArtist.role,
-		});
-
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
+		}
 		return NextResponse.json({
 			success: true,
 			artist: updatedArtist,

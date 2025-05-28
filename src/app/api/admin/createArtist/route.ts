@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
+import { createLog } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
 	console.log('create artist request received');
@@ -18,11 +19,13 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -30,8 +33,6 @@ export async function POST(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-
-		await dbConnect();
 
 		// Verificar si es FormData
 		const contentType = req.headers.get('content-type');
@@ -55,11 +56,16 @@ export async function POST(req: NextRequest) {
 		const apple_identifier = formData.get('apple_identifier') as string;
 		const deezer_identifier = formData.get('deezer_identifier') as string;
 		const spotify_identifier = formData.get('spotify_identifier') as string;
-		const picture = formData.get('picture') as File | null;
+		const picture = formData.get('picture') as File;
 		const isSubaccount = formData.get('isSubaccount') === 'true';
 		const parentUserId = formData.get('parentUserId') as string;
-		const parentName = formData.get('parentName') as string;
-		const tipo = formData.get('tipo') as string;
+
+		// Función para convertir File a base64
+		const fileToBase64 = async (file: File): Promise<string> => {
+			const buffer = await file.arrayBuffer();
+			const base64 = Buffer.from(buffer).toString('base64');
+			return base64;
+		};
 
 		// Validar campos requeridos
 		if (!name || !email || !password) {
@@ -77,22 +83,6 @@ export async function POST(req: NextRequest) {
 
 				{ status: 400 }
 			);
-		}
-
-		// Procesar la imagen si existe
-		let pictureBuffer = null;
-		if (picture) {
-			try {
-				const arrayBuffer = await picture.arrayBuffer();
-				pictureBuffer = Buffer.from(arrayBuffer);
-			
-			} catch (error) {
-				console.error('Error converting image to buffer:', error);
-				return NextResponse.json(
-					{ message: 'Error al procesar la imagen' },
-					{ status: 400 }
-				);
-			}
 		}
 
 		name = name
@@ -122,25 +112,31 @@ export async function POST(req: NextRequest) {
 			},
 			body: JSON.stringify(artistToApi),
 		});
-
-		const artistaRes = await artistaReq.json();
-		if (!artistaRes.id) {
+		if (!artistaReq.ok) {
 			return NextResponse.json(
 				{
 					success: false,
-					error: artistaRes || 'Error al crear el artista',
+					error: artistaReq.statusText || 'Error al crear el artista',
 				},
-				{ status: 400 }
+				{ status: artistaReq.status }
 			);
 		}
-		
+
+		const artistaRes = await artistaReq.json();
+
+		// Convertir la imagen a base64 si existe
+		let pictureBase64 = '';
+		if (picture) {
+			pictureBase64 = await fileToBase64(picture);
+		}
+		await dbConnect();
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			external_id: artistaRes.id,
 			name,
 			email,
 			password: hashedPassword,
-			picture: pictureBuffer,
+			picture: pictureBase64,
 			role: 'artista',
 			status: 'activo',
 			permissions: ['artista'],
@@ -148,17 +144,25 @@ export async function POST(req: NextRequest) {
 			apple_identifier,
 			deezer_identifier,
 			spotify_identifier,
-			isSubaccount,
-			parentId: isSubaccount ? parentUserId : null,
-			parentName: isSubaccount ? parentName : null,
-			tipo: tipo || 'principal',
 		});
 
-		// Si es una subcuenta, actualizar el usuario padre
-		if (isSubaccount && parentUserId) {
-			await User.findByIdAndUpdate(parentUserId, {
-				$push: { subaccounts: newArtist._id },
-			});
+		try {
+			// Crear el log
+			const logData = {
+				action: 'CREATE' as const,
+				entity: 'USER' as const,
+				entityId: newArtist._id.toString(),
+				userId: verifiedPayload.id as string,
+				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+				userRole: verifiedPayload.role as string,
+				details: `Artista creado: ${name}`,
+				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+			};
+
+			await createLog(logData);
+		} catch (logError) {
+			console.error('Error al crear el log:', logError);
+			// No interrumpimos el flujo si falla el log
 		}
 
 		return NextResponse.json({

@@ -80,14 +80,18 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
-			setFormData(prev => ({
-				...prev,
-				picture: file,
-			}));
-
 			const reader = new FileReader();
 			reader.onloadend = () => {
-				setImagePreview(reader.result as string);
+				const base64String = reader.result as string;
+				// Mantener el prefijo data:image/jpeg;base64, para la vista previa
+				setImagePreview(base64String);
+
+				// Para enviar a la API, usar solo la parte base64 sin el prefijo
+				const base64Data = base64String.split(',')[1];
+				setFormData(prev => ({
+					...prev,
+					picture: base64Data,
+				}));
 			};
 			reader.readAsDataURL(file);
 		}

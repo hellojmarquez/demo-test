@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-		
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -53,11 +52,8 @@ export async function POST(request: NextRequest) {
 				{ status: 400 }
 			);
 		}
-	
+		console.log('picture', picture);
 		// Hashear la contraseña
-		// const hashedPassword = await bcrypt.hash(password, 10);
-
-		// Convertir la imagen base64 a Buffer si existe
 
 		const hashedPassword = await encryptPassword(password);
 		// Crear el nuevo administrador usando el discriminador Admin
@@ -65,7 +61,7 @@ export async function POST(request: NextRequest) {
 			name,
 			email,
 			password: hashedPassword,
-			picture: picture.base64,
+			picture: picture ? picture.base64 : '',
 			role: 'admin',
 			status: 'activo',
 			permissions: ['admin'],
@@ -88,7 +84,7 @@ export async function POST(request: NextRequest) {
 				details: `Admin creado: ${name}`,
 				ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
 			};
-		
+
 			await createLog(logData);
 		} catch (logError) {
 			console.error('Error al crear el log:', logError);

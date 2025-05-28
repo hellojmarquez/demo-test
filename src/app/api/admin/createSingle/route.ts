@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
 
 				if (file) {
 					console.log('CREANDO TRAck');
+					console.log('FILE', file);
 					const uploadTrackReq = await fetch(
 						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
 						{
@@ -63,6 +64,8 @@ export async function POST(req: NextRequest) {
 					// Extraer la URL y los campos del objeto firmado
 					const { url: signedUrl, fields: trackFields } =
 						uploadTrackRes.signed_url;
+					console.log('SIGNED URL', signedUrl);
+
 					// Crear un objeto FormData y agregar los campos y el archivo
 					const trackFormData = new FormData();
 					Object.entries(trackFields).forEach(([key, value]) => {
@@ -83,8 +86,8 @@ export async function POST(req: NextRequest) {
 						method: 'POST',
 						body: trackFormData,
 					});
-
-					picture_url = uploadResponse?.headers?.get('location') || '';
+					console.log('UPLOAD RESPONSE', uploadResponse);
+					picture_url = uploadResponse.headers?.get('location') || '';
 					picture_path = decodeURIComponent(
 						new URL(picture_url).pathname.slice(1)
 					);
@@ -99,7 +102,7 @@ export async function POST(req: NextRequest) {
 								success: false,
 								error: 'Error al subir el archivo de audio a S3',
 							},
-							{ status: 500 }
+							{ status: 401 }
 						);
 					}
 				}
@@ -112,8 +115,10 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('TRACK RECIBIDO EN CREATE SINGLE', trackData);
+
 		trackData.resource = picture_path;
+		console.log('url', picture_url);
+		console.log('path', picture_path);
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 
 		// Asegurar que publishers tenga la estructura correcta
@@ -137,7 +142,7 @@ export async function POST(req: NextRequest) {
 		} else {
 			dataToapi.contributors = [];
 		}
-
+		console.log('DATA TO API', dataToapi);
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {
@@ -148,21 +153,22 @@ export async function POST(req: NextRequest) {
 			},
 			body: JSON.stringify(dataToapi),
 		});
-
-		const trackRes = await trackReq.json();
-		console.log('TRACK CREADO EN API', trackRes);
-		if (!trackRes.id) {
+		console.log('TRACK REQUEST ok', trackReq.ok);
+		if (!trackReq.ok) {
 			return NextResponse.json(
 				{
 					success: false,
 					error:
-						trackRes ||
+						trackReq.statusText ||
 						'Ha habido un error, estamos trabajando para arreglarlo',
 				},
 				{ status: 400 }
 			);
 		}
+		console.log('TRACK REQUEST', trackReq);
+		const trackRes = await trackReq.json();
 
+		console.log('TRACK CREADO EN MOVEMUSIC API', trackRes);
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;

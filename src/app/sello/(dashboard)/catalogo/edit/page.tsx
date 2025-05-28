@@ -521,7 +521,7 @@ export default function EditPage() {
 												explicit_content:
 													updatedTrack.explicit_content || false,
 												track_length: updatedTrack.track_length || '',
-												generate_isrc: updatedTrack.generate_isrc || false,
+												generate_isrc: true,
 												artists: updatedTrack.artists || [],
 												publishers: updatedTrack.publishers || [],
 												contributors: updatedTrack.contributors || [],

@@ -27,12 +27,6 @@ export async function POST(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
-			console.log('Datos del usuario:', {
-				id: payload.id,
-				name: payload.name,
-				role: payload.role,
-			});
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -70,7 +64,7 @@ export async function POST(req: NextRequest) {
 		const publisher = formData.get('publisher') as string;
 
 		const publisher_name = formData.get('publisher_name') as string;
-		console.log('Publisher data:', { publisher, publisher_name });
+
 		const publisher_year = formData.get('publisher_year') as string;
 		const copyright_holder = formData.get('copyright_holder') as string;
 
@@ -103,7 +97,7 @@ export async function POST(req: NextRequest) {
 			name,
 			label,
 			kind,
-			language,
+			language: 'ES',
 			countries,
 			tracks: [],
 			dolby_atmos,
@@ -142,7 +136,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const uploadArtworkRes = await uploadArtworkReq.json();
-			console.log('uploadArtworkRes', uploadArtworkRes);
+
 			// Extraer la URL y los campos del objeto firmado
 			const { url: signedUrl, fields: resFields } = uploadArtworkRes.signed_url;
 			// Crear un objeto FormData y agregar los campos y el archivo
@@ -204,14 +198,18 @@ export async function POST(req: NextRequest) {
 			},
 			body: JSON.stringify(releaseToApiData),
 		});
-		const apiRes = await releaseToApi.json();
-		if (!apiRes.id) {
+		if (!releaseToApi.ok) {
 			return NextResponse.json(
-				{ success: false, error: apiRes || 'Error al crear el release' },
+				{
+					success: false,
+					error: releaseToApi.statusText || 'Error al crear el release',
+				},
 				{ status: 500 }
 			);
 		}
-		console.log('apiRes', apiRes);
+		const apiRes = await releaseToApi.json();
+
+		console.log('RESPUESTA DE API', apiRes);
 		await dbConnect();
 
 		// Guardar en la base de datos
@@ -225,9 +223,8 @@ export async function POST(req: NextRequest) {
 			artists,
 			publisher_name,
 		};
-		console.log('releaseToSave: ', releaseToSave);
+
 		const savedRelease = await Release.create(releaseToSave);
-		console.log('savedRelease: ', savedRelease);
 
 		try {
 			// Crear el log
@@ -241,7 +238,7 @@ export async function POST(req: NextRequest) {
 				details: `Release creado: ${name}`,
 				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
 			};
-			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+
 			await createLog(logData);
 		} catch (logError) {
 			console.error('Error al crear el log:', logError);

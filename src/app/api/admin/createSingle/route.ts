@@ -168,10 +168,9 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('TRACK REQUEST', trackReq);
+
 		const trackRes = await trackReq.json();
 
-		console.log('TRACK CREADO EN MOVEMUSIC API', trackRes);
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;

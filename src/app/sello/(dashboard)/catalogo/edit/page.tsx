@@ -91,8 +91,6 @@ export default function EditPage() {
 	);
 	const [genres, setGenres] = useState<GenreData[]>([]);
 	const [formData, setFormData] = useState<Release>({
-		_id: '',
-
 		name: '',
 		picture: '',
 		external_id: 0,
@@ -285,15 +283,6 @@ export default function EditPage() {
 					resource: track.resource,
 					external_id: track.external_id ? Number(track.external_id) : 0,
 				})),
-				editedTracks: editedTracks,
-				newTracks:
-					updatedRelease.newTracks?.map(track => ({
-						...track,
-						resource:
-							track.resource instanceof File
-								? track.resource.name
-								: track.resource,
-					})) || [],
 			};
 
 			// Si la imagen es un archivo, agrégala como 'picture'
@@ -493,70 +482,13 @@ export default function EditPage() {
 							track={selectedTrack || undefined}
 							onTrackChange={(updatedTrack: Partial<Track>) => {
 								// Actualizar el track seleccionado
-								setSelectedTrack(updatedTrack as Track);
-								setEditedTrackData(updatedTrack);
-
 								// Si es un track nuevo (sin external_id), actualizarlo en newTracks
-								if (!updatedTrack.external_id) {
-									setFormData(prev => ({
-										...prev,
-										newTracks: [
-											{
-												title: updatedTrack.name || '',
-												mixName: updatedTrack.mix_name || '',
-												order: updatedTrack.order || 0,
-												resource:
-													updatedTrack.resource instanceof File
-														? updatedTrack.resource
-														: '',
-												dolby_atmos_resource:
-													updatedTrack.dolby_atmos_resource || '',
-												ISRC: updatedTrack.ISRC || '',
-												DA_ISRC: updatedTrack.DA_ISRC || '',
-												genre: updatedTrack.genre || 0,
-												genre_name: updatedTrack.genre_name || '',
-												subgenre: updatedTrack.subgenre || 0,
-												subgenre_name: updatedTrack.subgenre_name || '',
-												album_only: updatedTrack.album_only || false,
-												explicit_content:
-													updatedTrack.explicit_content || false,
-												track_length: updatedTrack.track_length || '',
-												generate_isrc: true,
-												artists: updatedTrack.artists || [],
-												publishers: updatedTrack.publishers || [],
-												contributors: updatedTrack.contributors || [],
-											},
-										],
-									}));
-								}
 							}}
 							onSave={async trackData => {
 								try {
 									if (selectedTrack) {
 										// Si estamos editando un track existente
 										const trackExternalId = Number(selectedTrack.external_id);
-
-										// Solo agregar a editedTracks si el track tiene un external_id válido
-										if (trackExternalId && !isNaN(trackExternalId)) {
-											setEditedTracks(prev => {
-												const filteredTracks = prev.filter(
-													t => t.external_id !== trackExternalId
-												);
-
-												const completeTrack: EditedTrack = {
-													...selectedTrack,
-													...trackData,
-													external_id: trackExternalId,
-													label_share: trackData.label_share
-														? Number(trackData.label_share)
-														: undefined,
-													publishers: trackData.publishers || [],
-													contributors: trackData.contributors || [],
-												};
-
-												return [...filteredTracks, completeTrack];
-											});
-										}
 
 										await handleTrackSave(trackData);
 										setEditedTrackData(trackData);

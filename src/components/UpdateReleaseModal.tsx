@@ -170,6 +170,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		percentage: number;
 	} | null>(null);
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [isUploadingTracks, setIsUploadingTracks] = useState(false);
+	const [uploadError, setUploadError] = useState('');
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
@@ -237,43 +239,43 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	};
 
 	// Add default values for formData
-	const safeFormData = formData || {
-		_id: '',
-		name: '',
-		picture: '' as string | File,
-		external_id: 0,
-		auto_detect_language: false,
-		generate_ean: false,
-		backcatalog: false,
-		youtube_declaration: false,
-		dolby_atmos: false,
-		artists: [],
-		tracks: [],
-		countries: [],
-		catalogue_number: '',
-		kind: '',
-		label: 0,
-		label_name: '',
-		language: '',
-		release_version: '',
-		publisher: 0,
-		publisher_name: '',
-		publisher_year: '',
-		copyright_holder: '',
-		copyright_holder_year: '',
-		genre: 0,
-		genre_name: '',
-		subgenre: 0,
-		subgenre_name: '',
-		artwork: '',
-		is_new_release: 0,
-		official_date: '',
-		original_date: '',
-		exclusive_shop: 0,
-		territory: '',
-		ean: '',
-		createdAt: new Date().toISOString(),
-		updatedAt: new Date().toISOString(),
+	const safeFormData = {
+		name: formData?.name || '',
+		picture: formData?.picture || ('' as string | File),
+		external_id: formData?.external_id || 0,
+		auto_detect_language: formData?.auto_detect_language || false,
+		generate_ean: formData?.generate_ean || false,
+		backcatalog: formData?.backcatalog || false,
+		youtube_declaration: formData?.youtube_declaration || false,
+		dolby_atmos: formData?.dolby_atmos || false,
+		artists: formData?.artists || [],
+		newArtists: formData?.newArtists || [],
+		tracks: formData?.tracks || [],
+		countries: formData?.countries || [],
+		catalogue_number: formData?.catalogue_number || '',
+		kind: formData?.kind || '',
+		label: formData?.label || 0,
+		label_name: formData?.label_name || '',
+		language: formData?.language || '',
+		release_version: formData?.release_version || '',
+		publisher: formData?.publisher || 0,
+		publisher_name: formData?.publisher_name || '',
+		publisher_year: formData?.publisher_year || '',
+		copyright_holder: formData?.copyright_holder || '',
+		copyright_holder_year: formData?.copyright_holder_year || '',
+		genre: formData?.genre || 0,
+		genre_name: formData?.genre_name || '',
+		subgenre: formData?.subgenre || 0,
+		subgenre_name: formData?.subgenre_name || '',
+		artwork: formData?.artwork || '',
+		is_new_release: formData?.is_new_release || 0,
+		official_date: formData?.official_date || '',
+		original_date: formData?.original_date || '',
+		exclusive_shop: formData?.exclusive_shop || 0,
+		territory: formData?.territory || '',
+		ean: formData?.ean || '',
+		createdAt: formData?.createdAt || new Date().toISOString(),
+		updatedAt: formData?.updatedAt || new Date().toISOString(),
 	};
 
 	// Add default values for release
@@ -407,7 +409,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		setFormData((prev: Release) => ({
 			...prev,
 			[name]:
-				type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+				type === 'checkbox'
+					? (e.target as HTMLInputElement).checked
+					: value || '',
 		}));
 	};
 
@@ -539,6 +543,75 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			setIsLoading(false);
 		}
 	};
+
+	const fetchReleaseData = async () => {
+		try {
+			const response = await fetch(
+				`/api/admin/getReleaseById/${release.external_id}`
+			);
+			if (!response.ok) {
+				throw new Error('Error al obtener los datos del release');
+			}
+			const data = await response.json();
+			setFormData(data);
+		} catch (err) {
+			console.error('Error al obtener los datos del release:', err);
+		}
+	};
+
+	const handleTracksReady = async (tracks: { file: File; data: any }[]) => {
+		// Cerrar el modal de UploadTrackToRelease inmediatamente
+		setIsUploadModalOpen(false);
+
+		// Iniciar la carga en segundo plano
+		setIsUploadingTracks(true);
+		setUploadProgress({
+			total: tracks.length,
+			loaded: 0,
+			percentage: 0,
+		});
+		setUploadError('');
+
+		try {
+			for (let i = 0; i < tracks.length; i++) {
+				const track = tracks[i];
+				const formData = new FormData();
+				track.data.release = null;
+				formData.append('file', track.file);
+				formData.append('data', JSON.stringify(track.data));
+
+				const response = await fetch('/api/admin/createSingle', {
+					method: 'POST',
+					body: formData,
+				});
+
+				if (!response.ok) {
+					throw new Error(`Error al subir el track ${i + 1}`);
+				}
+
+				// Actualizar el progreso
+				setUploadProgress({
+					total: tracks.length,
+					loaded: i + 1,
+					percentage: ((i + 1) / tracks.length) * 100,
+				});
+			}
+
+			// Refrescar los datos del release después de subir todos los tracks
+			await fetchReleaseData();
+
+			// Limpiar los estados después de completar exitosamente
+			setIsUploadingTracks(false);
+			setUploadProgress(null);
+			setUploadError('');
+		} catch (err: any) {
+			console.error('Error al subir tracks:', err);
+			setUploadError(err.message || 'Error al subir los tracks');
+			setIsUploadingTracks(false);
+			setUploadProgress(null);
+		}
+	};
+
 	return (
 		<div className="container mx-auto md:px-4 py-8">
 			<audio ref={audioRef} />
@@ -878,84 +951,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						{(!safeRelease.tracks || safeRelease.tracks.length === 0) && (
 							<div className="text-sm text-gray-500 p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
 								No hay tracks agregados
-							</div>
-						)}
-
-						{/* Mostrar tracks pendientes de subir */}
-						{safeFormData.newTracks && safeFormData.newTracks.length > 0 && (
-							<div className="mt-6">
-								<h4 className="text-sm font-medium text-gray-700 mb-3 px-1">
-									Tracks pendientes de subir
-								</h4>
-								{safeFormData.newTracks.map((track, index) => {
-									const releaseTrack: ReleaseTrack = {
-										title: track.title,
-										mix_name: track.mixName,
-										resource: track.resource,
-										dolby_atmos_resource: track.dolby_atmos_resource,
-										ISRC: track.ISRC,
-										DA_ISRC: track.DA_ISRC,
-										genre: track.genre,
-										genre_name: track.genre_name,
-										subgenre: track.subgenre,
-										subgenre_name: track.subgenre_name,
-										album_only: track.album_only,
-										explicit_content: track.explicit_content,
-										track_length: track.track_length,
-										generate_isrc: track.generate_isrc,
-										artists: track.artists,
-										order: track.order,
-									};
-
-									return (
-										<div
-											key={`pending-${index}`}
-											className="flex items-center gap-4 group hover:bg-gray-50/50 transition-all duration-200 rounded-xl p-4 border-2 border-brand-light/20 bg-brand-light/5"
-										>
-											<div className="flex flex-col items-center gap-2">
-												<button
-													onClick={() => handleEditTrack(releaseTrack)}
-													className="p-2 text-gray-400 hover:text-brand-dark opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
-												>
-													<Pencil size={18} />
-												</button>
-											</div>
-											<div className="flex-1">
-												<div className="flex items-center gap-3">
-													<div className="text-base font-medium text-gray-900">
-														{track.title || 'Track sin nombre'}
-													</div>
-													{track.mixName && (
-														<span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-															{track.mixName}
-														</span>
-													)}
-												</div>
-												<div className="mt-2 flex items-center gap-2">
-													<span className="text-xs px-2 py-0.5 bg-brand-light/20 text-brand-dark rounded-full">
-														Pendiente de subir
-													</span>
-												</div>
-											</div>
-											<div className="flex items-center gap-2">
-												<button
-													onClick={() => {
-														setFormData((prev: Release) => ({
-															...prev,
-															newTracks:
-																prev.newTracks?.filter(
-																	(_, i: number) => i !== index
-																) || [],
-														}));
-													}}
-													className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
-												>
-													<Trash2 size={18} />
-												</button>
-											</div>
-										</div>
-									);
-								})}
 							</div>
 						)}
 
@@ -1643,42 +1638,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			{isUploadModalOpen && (
 				<UploadTrackToRelease
 					isOpen={isUploadModalOpen}
-					releaseId={safeRelease._id}
+					releaseId={safeRelease.external_id || 0}
 					onClose={() => setIsUploadModalOpen(false)}
-					onTrackUploaded={track => {
-						// Agregar el nuevo track al array newTracks
-						const newTrack = {
-							title: track.name || '',
-							mixName: track.mix_name || '',
-							order:
-								(safeFormData.newTracks?.length || 0) +
-								(safeFormData.tracks?.length || 0),
-							resource: track.resource instanceof File ? track.resource : '', // Ensure we keep the File object if it exists
-							dolby_atmos_resource: track.dolby_atmos_resource || '',
-							ISRC: track.ISRC || '',
-							DA_ISRC: track.DA_ISRC || '',
-							genre: track.genre || 0,
-							genre_name: track.genre_name || '',
-							subgenre: track.subgenre || 0,
-							subgenre_name: track.subgenre_name || '',
-							album_only: track.album_only || false,
-							explicit_content: track.explicit_content || false,
-							track_length: track.track_length || '',
-							generate_isrc: track.generate_isrc || false,
-							artists: track.artists || [],
-							publishers: track.publishers || [],
-							contributors: track.contributors || [],
-							copyright_holder: track.copyright_holder || '',
-							copyright_holder_year: track.copyright_holder_year || '',
-						};
-
-						setFormData((prev: Release) => ({
-							...prev,
-							newTracks: [...(prev.newTracks || []), newTrack],
-						}));
-
-						setIsUploadModalOpen(false);
-					}}
+					onTracksReady={handleTracksReady}
 				/>
 			)}
 			{isCreateArtistModalOpen && (

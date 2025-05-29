@@ -18,7 +18,6 @@ export interface NewArtist {
 }
 
 export interface Release {
-	_id: string;
 	name: string;
 	picture?: string | File;
 	external_id?: number;

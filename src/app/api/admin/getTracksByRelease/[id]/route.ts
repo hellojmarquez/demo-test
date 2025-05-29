@@ -43,7 +43,7 @@ export async function GET(
 		}
 
 		// Obtener el release para obtener su external_id
-		const release = await Release.findById(releaseId);
+		const release = await Release.findOne({ external_id: releaseId });
 
 		if (!release) {
 			return NextResponse.json(

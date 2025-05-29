@@ -5,9 +5,10 @@ import { Track } from '@/types/track';
 
 interface UploadTrackToReleaseProps {
 	isOpen: boolean;
+	releaseId: number;
 	onClose: () => void;
-	releaseId: string;
-	onTrackUploaded: (track: Track) => void;
+
+	onTracksReady: (tracks: { file: File; data: any }[]) => void;
 }
 
 interface AssetRow {
@@ -21,13 +22,12 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	isOpen,
 	onClose,
 	releaseId,
-	onTrackUploaded,
+	onTracksReady,
 }) => {
 	const router = useRouter();
 	const [assets, setAssets] = useState<AssetRow[]>([]);
 	const [error, setError] = useState('');
 	const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
-	const [isLoading, setIsLoading] = useState(false);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -83,93 +83,80 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setIsLoading(true);
 		setError('');
 
-		try {
-			// Validar que al menos un asset tenga título y archivo
-			const validAssets = assets.filter(asset => asset.title && asset.file);
-			if (validAssets.length === 0) {
-				setError('Por favor agrega al menos un asset con título y archivo');
-				return;
-			}
+		// Validar que al menos un asset tenga título y archivo
+		const validAssets = assets.filter(asset => asset.title && asset.file);
 
-			// Procesar cada asset y crear un objeto track
-			for (const asset of validAssets) {
-				const track = {
-					order: 0,
-					name: asset.title,
-					mix_name: asset.mixName,
-					resource: asset.file,
-					release: releaseId,
-					language: 'ES',
-					vocals: 'ES',
-					artists: [
-						{
-							artist: 1541,
-							kind: 'main',
-							order: 5,
-							name: 'Jhon Doe',
-						},
-					],
-					publishers: [
-						{
-							order: 3,
-							publisher: 194,
-							name: 'ISLA SOUNDS',
-							author: 'Juan Cisneros',
-						},
-					],
-					contributors: [
-						{
-							order: 3,
-							contributor: 1019,
-							role: 2,
-						},
-					],
-					label_share: '50',
-					copyright_holder: 'ISLA SOUNDS',
-					copyright_holder_year: '2025',
-					generate_isrc: true,
-
-					dolby_atmos_resource: '',
-					DA_ISRC: '',
-					genre: 3,
-					genre_name: 'Alternative',
-					subgenre: 90,
-					subgenre_name: 'Alternative',
-					album_only: false,
-					explicit_content: false,
-					track_lenght: '00:03:00',
-					sample_start: '00:00:00',
-					status: 'Borrador',
-				};
-
-				console.log('Track antes de onTrackUploaded:', track);
-
-				// Llamar a onTrackUploaded con el track creado
-				onTrackUploaded({
-					...track,
-					contributors: track.contributors.map(contributor => ({
-						...contributor,
-						name: 'Jhon Doe', // Using the same name as the artist for now
-						role_name: 'Producer',
-					})),
-				});
-			}
-
-			// Limpiar el formulario
-			setAssets([]);
-			setError('');
-
-			// Cerrar el modal
-			onClose();
-		} catch (err: any) {
-			console.error('Error al procesar tracks:', err);
-			setError(err.message || 'Error al procesar los tracks');
-		} finally {
-			setIsLoading(false);
+		if (validAssets.length === 0) {
+			setError('Por favor agrega al menos un asset con título y archivo');
+			return;
 		}
+
+		// Preparar los tracks para enviar al padre
+		const tracksToUpload = validAssets.map(asset => {
+			const track = {
+				order: 0,
+				name: asset.title,
+				mix_name: asset.mixName,
+				release: releaseId,
+				language: 'ES',
+				vocals: 'ZXX',
+				artists: [
+					{
+						artist: 1541,
+						kind: 'main',
+						order: 5,
+						name: 'Jhon Doe',
+					},
+				],
+				publishers: [
+					{
+						order: 3,
+						publisher: 194,
+						name: 'ISLA SOUNDS',
+						author: 'Juan Cisneros',
+					},
+				],
+				contributors: [
+					{
+						order: 3,
+						contributor: 1019,
+						name: 'Jhon Doe',
+						role: 2,
+						role_name: 'Composer',
+					},
+				],
+				label_share: '50',
+				copyright_holder: 'ISLA SOUNDS',
+				copyright_holder_year: '2025',
+				generate_isrc: true,
+				dolby_atmos_resource: '',
+				DA_ISRC: '',
+				genre: 3,
+				genre_name: 'Alternative',
+				subgenre: 90,
+				subgenre_name: 'Alternative',
+				album_only: false,
+				explicit_content: false,
+				track_lenght: '00:03:00',
+				sample_start: '00:00:00',
+				status: 'Borrador',
+			};
+
+			return {
+				file: asset.file as File,
+				data: track,
+			};
+		});
+
+		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
+		onTracksReady(tracksToUpload);
+		onClose();
+
+		// Limpiar el formulario
+		setAssets([]);
+		setError('');
 	};
 
 	const handleFileButtonClick = (id: number) => {
@@ -312,10 +299,9 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 						<button
 							type="button"
 							onClick={handleSubmit}
-							disabled={isLoading}
-							className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
+							className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md"
 						>
-							{isLoading ? 'Subiendo...' : 'Crear Assets'}
+							Crear Assets
 						</button>
 					</div>
 				</div>

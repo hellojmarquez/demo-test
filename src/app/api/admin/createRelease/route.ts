@@ -164,23 +164,26 @@ export async function POST(req: NextRequest) {
 			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
 
 			if (!uploadResponse.ok) {
-				console.error(
-					'Error al subir el archivo de audio a S3:',
-					await uploadResponse.text()
-				);
+				console.log('COVER TO S3', uploadResponse);
+				console.error('Error al subir el archivo de audio a S3:');
 				return NextResponse.json(
 					{
 						success: false,
-						error: 'Error al subir el archivo de audio a S3',
+						error:
+							uploadResponse.statusText ||
+							'Error al subir el archivo de audio a S3',
 					},
-					{ status: 500 }
+					{ status: uploadResponse.status || 400 }
 				);
 			}
 		}
-
+		console.log('picture_url', picture_url);
+		const artwork_data = {
+			full_size: picture_url,
+		};
 		const releaseToApiData = {
 			...newRelease,
-			artwork: picture_path,
+			artwork: artwork_data,
 			artists: artists.map((artist: any) => ({
 				order: artist.order,
 				artist: artist.artist,
@@ -198,18 +201,18 @@ export async function POST(req: NextRequest) {
 			},
 			body: JSON.stringify(releaseToApiData),
 		});
-		if (!releaseToApi.ok) {
+
+		const apiRes = await releaseToApi.json();
+		console.log('API RES', apiRes);
+		if (!apiRes.id) {
 			return NextResponse.json(
 				{
 					success: false,
-					error: releaseToApi.statusText || 'Error al crear el release',
+					error: apiRes || 'Error al crear el release',
 				},
-				{ status: 500 }
+				{ status: 400 }
 			);
 		}
-		const apiRes = await releaseToApi.json();
-
-		console.log('RESPUESTA DE API', apiRes);
 		await dbConnect();
 
 		// Guardar en la base de datos

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
 	X,
@@ -11,9 +11,19 @@ import {
 	Mail,
 	UserRoundCheck,
 	Lock,
+	Plus,
+	Edit,
+	Trash2,
 } from 'lucide-react';
 import Select from 'react-select';
 import { Artista } from '@/types/artista';
+
+interface User {
+	_id: string;
+	name: string;
+	email: string;
+	role: string;
+}
 
 interface UpdateArtistaModalProps {
 	artista: Artista;
@@ -41,6 +51,10 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [users, setUsers] = useState<User[]>([]);
+	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+	const [subAccounts, setSubAccounts] = useState<User[]>([]);
+	const [mainAccount, setMainAccount] = useState<User | null>(null);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
 		if (!artista.picture) return null;
 		if (typeof artista.picture === 'string') {
@@ -55,6 +69,30 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 		return null;
 	});
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	// Obtener usuarios al abrir el modal
+	useEffect(() => {
+		if (isOpen) {
+			fetchUsers();
+		}
+	}, [isOpen]);
+
+	const fetchUsers = async () => {
+		try {
+			setIsLoadingUsers(true);
+			const response = await fetch('/api/admin/getAllUsers');
+			if (!response.ok) {
+				throw new Error('Error al obtener usuarios');
+			}
+			const data = await response.json();
+			setUsers(data.data.users);
+		} catch (error) {
+			console.error('Error fetching users:', error);
+			setError('Error al cargar los usuarios');
+		} finally {
+			setIsLoadingUsers(false);
+		}
+	};
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -83,10 +121,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				const base64String = reader.result as string;
-				// Mantener el prefijo data:image/jpeg;base64, para la vista previa
 				setImagePreview(base64String);
-
-				// Para enviar a la API, usar solo la parte base64 sin el prefijo
 				const base64Data = base64String.split(',')[1];
 				setFormData(prev => ({
 					...prev,
@@ -104,7 +139,6 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 
 		try {
 			const formDataToSend = new FormData();
-
 			formDataToSend.append('name', formData.name);
 			formDataToSend.append('email', formData.email);
 			formDataToSend.append('role', 'artista');
@@ -246,9 +280,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 										Nombre
 									</label>
 									<div className="relative">
-										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-											<User className="h-5 w-5 text-gray-400" />
-										</div>
+										<User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
 										<input
 											type="text"
 											id="name"
@@ -258,7 +290,6 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											className={`${inputStyles} pl-10`}
 											required
 											disabled={isSubmitting}
-											placeholder="Nombre del artista"
 										/>
 									</div>
 								</div>
@@ -270,9 +301,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 										Email
 									</label>
 									<div className="relative">
-										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-											<Mail className="h-5 w-5 text-gray-400" />
-										</div>
+										<Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
 										<input
 											type="email"
 											id="email"
@@ -282,7 +311,6 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											className={`${inputStyles} pl-10`}
 											required
 											disabled={isSubmitting}
-											placeholder="correo@ejemplo.com"
 										/>
 									</div>
 								</div>
@@ -294,9 +322,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 										Contraseña
 									</label>
 									<div className="relative">
-										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-											<Lock className="h-5 w-5 text-gray-400" />
-										</div>
+										<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
 										<input
 											type="password"
 											id="password"
@@ -351,6 +377,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 													'&:focus-within': {
 														borderBottom: '2px solid #4B5563',
 													},
+													minHeight: '38px',
 												}),
 												option: (base, state) => ({
 													...base,
@@ -371,6 +398,12 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 													borderRadius: '0.375rem',
 													boxShadow:
 														'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+													width: '100%',
+													marginTop: '4px',
+												}),
+												menuList: base => ({
+													...base,
+													padding: '4px 0',
 												}),
 												placeholder: base => ({
 													...base,
@@ -398,6 +431,191 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											</p>
 										</div>
 									)}
+								</div>
+
+								{/* Sección de Gestión de Cuentas */}
+								<div className="border-t border-gray-200 pt-4 mt-4">
+									<h3 className="text-sm font-medium text-gray-900 mb-4">
+										Gestión de Cuentas
+									</h3>
+									{/* Si es subcuenta */}
+									<div>
+										<div className="flex items-center space-x-2 mb-3">
+											<h4 className="text-sm font-medium text-gray-700">
+												{mainAccount ? 'Pertenece a:' : 'Cuenta Principal'}
+											</h4>
+										</div>
+										<div className="bg-gray-50 rounded-lg p-4">
+											<div className="relative">
+												<Select
+													value={
+														mainAccount
+															? {
+																	value: mainAccount._id,
+																	label: (
+																		<div>
+																			<div className="font-medium">
+																				{mainAccount.name}
+																			</div>
+																			<div className="text-xs text-gray-500">
+																				{mainAccount.email} • {mainAccount.role}
+																			</div>
+																		</div>
+																	),
+															  }
+															: null
+													}
+													onChange={selectedOption => {
+														if (selectedOption) {
+															const selectedUser = users.find(
+																user => user._id === selectedOption.value
+															);
+															setMainAccount(selectedUser || null);
+														} else {
+															setMainAccount(null);
+														}
+													}}
+													options={users.map(user => ({
+														value: user._id,
+														label: (
+															<div>
+																<div className="font-medium">{user.name}</div>
+																<div className="text-xs text-gray-500">
+																	{user.email} • {user.role}
+																</div>
+															</div>
+														),
+													}))}
+													isClearable
+													placeholder="Seleccionar cuenta principal"
+													styles={{
+														control: (base, state) => ({
+															...base,
+															border: 'none',
+															borderBottom: '2px solid #E5E7EB',
+															borderRadius: '0',
+															boxShadow: 'none',
+															backgroundColor: 'transparent',
+															'&:hover': {
+																borderBottom: '2px solid #4B5563',
+															},
+															'&:focus-within': {
+																borderBottom: '2px solid #4B5563',
+															},
+															minHeight: '38px',
+														}),
+														option: (base, state) => ({
+															...base,
+															backgroundColor: state.isSelected
+																? '#4B5563'
+																: state.isFocused
+																? '#E5E7EB'
+																: 'white',
+															color: state.isSelected ? 'white' : '#1F2937',
+															'&:hover': {
+																backgroundColor: state.isSelected
+																	? '#4B5563'
+																	: '#E5E7EB',
+															},
+															padding: '0',
+														}),
+														menu: base => ({
+															...base,
+															borderRadius: '0.375rem',
+															boxShadow:
+																'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+															width: '100%',
+															marginTop: '4px',
+														}),
+														menuList: base => ({
+															...base,
+															padding: '4px 0',
+														}),
+														placeholder: base => ({
+															...base,
+															color: '#9CA3AF',
+														}),
+														singleValue: base => ({
+															...base,
+															color: '#1F2937',
+														}),
+													}}
+													className=""
+												/>
+											</div>
+										</div>
+									</div>
+									{/* Información de Relaciones */}
+									<div className="space-y-6">
+										{/* Si es cuenta principal */}
+										<div>
+											<div className="flex items-center justify-between mb-3">
+												<h4 className="text-sm font-medium text-gray-700">
+													Subcuentas asociadas
+												</h4>
+												<button
+													type="button"
+													className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-brand-dark bg-brand-light hover:bg-brand-dark hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
+												>
+													<Plus className="h-4 w-4 mr-1" />
+													Agregar subcuenta
+												</button>
+											</div>
+
+											{/* Lista de subcuentas */}
+											<div className="bg-gray-50 rounded-lg p-4">
+												{isLoadingUsers ? (
+													<div className="text-center py-4">
+														<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-dark mx-auto"></div>
+														<p className="text-sm text-gray-500 mt-2">
+															Cargando usuarios...
+														</p>
+													</div>
+												) : subAccounts.length > 0 ? (
+													<div className="space-y-3">
+														{subAccounts.map(subAccount => (
+															<div
+																key={subAccount._id}
+																className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+															>
+																<div className="flex items-center space-x-3">
+																	<User className="h-5 w-5 text-gray-400" />
+																	<div>
+																		<p className="text-sm font-medium text-gray-900">
+																			{subAccount.name}
+																		</p>
+																		<p className="text-xs text-gray-500">
+																			{subAccount.email}
+																		</p>
+																	</div>
+																</div>
+																<div className="flex items-center space-x-2">
+																	<button
+																		type="button"
+																		className="p-1 text-gray-400 hover:text-gray-500"
+																	>
+																		<Edit className="h-4 w-4" />
+																	</button>
+																	<button
+																		type="button"
+																		className="p-1 text-gray-400 hover:text-red-500"
+																	>
+																		<Trash2 className="h-4 w-4" />
+																	</button>
+																</div>
+															</div>
+														))}
+													</div>
+												) : (
+													<div className="text-center py-4">
+														<p className="text-sm text-gray-500">
+															No hay subcuentas asociadas
+														</p>
+													</div>
+												)}
+											</div>
+										</div>
+									</div>
 								</div>
 							</div>
 

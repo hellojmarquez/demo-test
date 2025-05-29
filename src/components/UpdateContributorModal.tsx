@@ -3,8 +3,18 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, XCircle, AlertTriangle } from 'lucide-react';
+import {
+	X,
+	Save,
+	XCircle,
+	AlertTriangle,
+	User,
+	Mail,
+	Lock,
+	UserRoundCheck,
+} from 'lucide-react';
 import Select from 'react-select';
+import Image from 'next/image';
 
 interface UpdateContributorModalProps {
 	contributor: {
@@ -165,16 +175,19 @@ export function UpdateContributorModal({
 									>
 										Nombre
 									</label>
-									<input
-										type="text"
-										id="name"
-										name="name"
-										value={name}
-										onChange={e => setName(e.target.value)}
-										className={inputStyles}
-										required
-										disabled={isLoading}
-									/>
+									<div className="relative">
+										<User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+										<input
+											type="text"
+											id="name"
+											name="name"
+											value={name}
+											onChange={e => setName(e.target.value)}
+											className={`${inputStyles} pl-10`}
+											required
+											disabled={isLoading}
+										/>
+									</div>
 								</div>
 								<div>
 									<label
@@ -183,16 +196,19 @@ export function UpdateContributorModal({
 									>
 										Email
 									</label>
-									<input
-										type="email"
-										id="email"
-										name="email"
-										value={email}
-										onChange={e => setEmail(e.target.value)}
-										className={inputStyles}
-										required
-										disabled={isLoading}
-									/>
+									<div className="relative">
+										<Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+										<input
+											type="email"
+											id="email"
+											name="email"
+											value={email}
+											onChange={e => setEmail(e.target.value)}
+											className={`${inputStyles} pl-10`}
+											required
+											disabled={isLoading}
+										/>
+									</div>
 								</div>
 								<div>
 									<label
@@ -201,16 +217,19 @@ export function UpdateContributorModal({
 									>
 										Contraseña
 									</label>
-									<input
-										type="password"
-										id="password"
-										name="password"
-										value={password}
-										onChange={e => setPassword(e.target.value)}
-										className={inputStyles}
-										placeholder="Dejar en blanco para mantener la contraseña actual"
-										disabled={isLoading}
-									/>
+									<div className="relative">
+										<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+										<input
+											type="password"
+											id="password"
+											name="password"
+											value={password}
+											onChange={e => setPassword(e.target.value)}
+											className={`${inputStyles} pl-10`}
+											placeholder="Dejar en blanco para mantener la contraseña actual"
+											disabled={isLoading}
+										/>
+									</div>
 								</div>
 								<div>
 									<label
@@ -219,22 +238,28 @@ export function UpdateContributorModal({
 									>
 										Estado
 									</label>
-									<Select
-										id="status"
-										value={statusOptions.find(
-											option => option.value === status
-										)}
-										onChange={option =>
-											setStatus(
-												option?.value as 'activo' | 'inactivo' | 'banneado'
-											)
-										}
-										options={statusOptions}
-										styles={customStyles}
-										isSearchable={false}
-										placeholder="Seleccionar estado"
-										isDisabled={isLoading}
-									/>
+									<div className="relative">
+										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+											<UserRoundCheck className="h-5 w-5 text-gray-400" />
+										</div>
+										<Select
+											id="status"
+											value={statusOptions.find(
+												option => option.value === status
+											)}
+											onChange={option =>
+												setStatus(
+													option?.value as 'activo' | 'inactivo' | 'banneado'
+												)
+											}
+											options={statusOptions}
+											styles={customStyles}
+											isSearchable={false}
+											placeholder="Seleccionar estado"
+											isDisabled={isLoading}
+											className="pl-10"
+										/>
+									</div>
 									{status === 'banneado' && (
 										<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
 											<AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />

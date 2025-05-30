@@ -120,16 +120,6 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 		}
 	};
 
-	// Función para manejar la selección de cuenta principal
-	const handleMainAccountChange = (selectedOption: any) => {
-		setSelectedMainAccount(selectedOption);
-	};
-
-	// Función para manejar la selección de subcuentas
-	const handleSubAccountsChange = (selectedOptions: any) => {
-		setSelectedSubAccounts(selectedOptions || []);
-	};
-
 	const handleChange = (
 		e: React.ChangeEvent<
 			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement

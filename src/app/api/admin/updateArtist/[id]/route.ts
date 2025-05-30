@@ -109,7 +109,7 @@ export async function PUT(
 			}
 			console.log('bod json', body);
 		}
-
+		console.log('artist body', body);
 		// Validar datos requeridos
 		if (!body.name || !body.email) {
 			return NextResponse.json(
@@ -179,7 +179,7 @@ export async function PUT(
 			);
 		}
 		delete body.picture;
-		console.log('BODY DATA', body);
+
 		// Manejar las relaciones de cuentas
 		try {
 			// Si hay subcuentas, procesarlas

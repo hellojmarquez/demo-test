@@ -604,6 +604,10 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		}
 	};
 
+	const handleSubAccountsChange = (selectedOptions: any) => {
+		setSelectedSubAccounts(selectedOptions || []);
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
@@ -1443,9 +1447,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											isMulti
 											options={users}
 											value={selectedSubAccounts}
-											onChange={newValue =>
-												setSelectedSubAccounts(newValue as User[])
-											}
+											onChange={handleSubAccountsChange}
 											formatOptionLabel={(option: any) => (
 												<div className="flex flex-col">
 													<span className="font-medium">{option.name}</span>

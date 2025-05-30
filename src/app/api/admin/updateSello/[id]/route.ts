@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { User, Sello } from '@/models/UserModel';
-import AccountRelationshipModel from '@/models/AccountRelationshipModel';
 import { jwtVerify } from 'jose';
 import { encryptPassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
+import AccountRelationship from '@/models/AccountRelationshipModel';
+interface SubAccount {
+	subAccountId: string;
+	status: string;
+	role: string;
+}
 
 export async function PUT(
 	req: NextRequest,
@@ -41,7 +46,7 @@ export async function PUT(
 		console.log('id: ', id);
 		// Obtener el sello actual para comparar cambios
 		const currentSello = await User.findOne({ external_id: id });
-		console.log('currentSello: ', currentSello);
+
 		if (!currentSello) {
 			return NextResponse.json(
 				{ error: 'Sello no encontrado' },
@@ -86,8 +91,8 @@ export async function PUT(
 				{ status: 400 }
 			);
 		}
+		console.log('DATA: ', data);
 
-		console.log('UPDATE SELLO: ', data);
 		// Preparar los datos para la actualización
 		let updateData: any = {
 			name: data.name,
@@ -97,7 +102,7 @@ export async function PUT(
 			status: data.status,
 			logo: '',
 		};
-		console.log('FILE: ', file);
+
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
 			console.log('Subiendo nueva imagen...');
@@ -151,10 +156,9 @@ export async function PUT(
 				},
 			}
 		);
-		console.log('externalApiRes ok: ', externalApiRes.ok);
+
 		const externalApiResJson = await externalApiRes.json();
-		console.log('externalApiResJson status: ', externalApiResJson.status);
-		console.log('externalApiResJson id: ', externalApiResJson.id);
+
 		if (!externalApiResJson.id) {
 			console.log('externalApiResJson: ', externalApiResJson);
 			return NextResponse.json(
@@ -181,7 +185,6 @@ export async function PUT(
 			picture: picture_path.length > 0 ? picture_path : currentSello.picture,
 		};
 		file && (dataToBBDD.picture = picture_url);
-		console.log('datos a BD:', dataToBBDD);
 
 		// Actualizar el sello
 		const updatedSello = await Sello.findOneAndUpdate(
@@ -197,7 +200,7 @@ export async function PUT(
 				runValidators: true,
 			}
 		);
-		console.log('updatedSello: ', updatedSello);
+
 		if (!updatedSello) {
 			return NextResponse.json(
 				{ error: 'Error al actualizar el sello' },
@@ -207,29 +210,46 @@ export async function PUT(
 
 		// Manejar las relaciones de cuentas
 		try {
-			// Eliminar relaciones existentes
-			await AccountRelationshipModel.deleteMany({
-				mainAccountId: updatedSello._id,
-			});
+			// Si hay subcuentas, procesarlas
+			if (data.subAccounts) {
+				const subAccounts = JSON.parse(data.subAccounts) as SubAccount[];
 
-			// Crear nuevas relaciones si hay subcuentas seleccionadas
-			if (data.subAccounts && data.subAccounts.length > 0) {
-				const subAccountsData = JSON.parse(data.subAccounts);
-				const relationships = subAccountsData.map((subAccount: any) => ({
+				// Obtener las relaciones existentes
+				const existingRelationships = await AccountRelationship.find({
 					mainAccountId: updatedSello._id,
-					subAccountId: subAccount.subAccountId,
-					role: subAccount.role,
-					status: subAccount.status || 'activo',
-				}));
+				});
 
-				await AccountRelationshipModel.insertMany(relationships);
+				// Crear un mapa de las relaciones existentes para facilitar la búsqueda
+				const existingMap = new Map(
+					existingRelationships.map(rel => [rel.subAccountId.toString(), rel])
+				);
+
+				// Crear un mapa de las nuevas relaciones
+				const newMap = new Map(subAccounts.map(sub => [sub.subAccountId, sub]));
+
+				// Eliminar relaciones que ya no existen
+				Array.from(existingMap.entries()).forEach(([subAccountId, rel]) => {
+					if (!newMap.has(subAccountId)) {
+						AccountRelationship.findByIdAndDelete(rel._id);
+					}
+				});
+
+				// Crear o actualizar relaciones nuevas
+				Array.from(newMap.entries()).forEach(([subAccountId, subAccount]) => {
+					if (!existingMap.has(subAccountId)) {
+						// Crear nueva relación
+						AccountRelationship.create({
+							mainAccountId: updatedSello._id,
+							subAccountId: subAccount.subAccountId,
+							role: subAccount.role,
+							status: 'activo',
+						});
+					}
+				});
 			}
 		} catch (relationshipError) {
-			console.error(
-				'Error al manejar las relaciones de cuentas:',
-				relationshipError
-			);
-			// No interrumpimos el flujo si falla la gestión de relaciones
+			console.error('Error al manejar las relaciones:', relationshipError);
+			// No interrumpimos el flujo si falla el manejo de relaciones
 		}
 
 		try {

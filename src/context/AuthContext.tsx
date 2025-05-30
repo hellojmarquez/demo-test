@@ -11,7 +11,7 @@ import {
 export type Account = {
 	id: string;
 	name: string;
-	type: 'admin' | 'sello' | 'subcuenta' | 'artista';
+	type: 'principal' | 'subcuenta';
 	role: string;
 	email: string;
 	image?: string;
@@ -50,12 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	useEffect(() => {
 		const storedUser = localStorage.getItem('user');
+		const storedCurrentAccount = localStorage.getItem('currentAccount');
+
 		if (storedUser) {
 			const parsedUser = JSON.parse(storedUser);
 			setUser(parsedUser);
-			setOriginalUser(parsedUser); // Guardar los datos originales
-			// Si el usuario tiene cuentas, seleccionar la primera por defecto
-			if (parsedUser.accounts && parsedUser.accounts.length > 0) {
+			setOriginalUser(parsedUser);
+
+			// Si hay una cuenta guardada, usarla
+			if (storedCurrentAccount) {
+				const parsedAccount = JSON.parse(storedCurrentAccount);
+				setCurrentAccount(parsedAccount);
+			} else if (parsedUser.accounts && parsedUser.accounts.length > 0) {
+				// Si no hay cuenta guardada, usar la primera
 				setCurrentAccount(parsedUser.accounts[0]);
 			}
 		}
@@ -76,8 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const selectAccount = (account: Account) => {
 		setCurrentAccount(account);
 
-		// Actualizar el user en localStorage con los datos de la cuenta seleccionada
-		if (originalUser) {
+		// Guardar la cuenta seleccionada en localStorage
+		localStorage.setItem('currentAccount', JSON.stringify(account));
+
+		// Solo actualizar el user en localStorage si es la cuenta principal
+		if (originalUser && account.type === 'principal') {
 			const updatedUser = {
 				...originalUser,
 				role: account.role,
@@ -87,6 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			};
 			localStorage.setItem('user', JSON.stringify(updatedUser));
 			setUser(updatedUser);
+		} else {
+			// Para subcuentas, solo actualizar el estado
+			setUser({
+				...originalUser!,
+				role: account.role,
+				name: account.name,
+				email: account.email,
+				picture: account.picture,
+			});
 		}
 
 		setShowAccountSelector(false);
@@ -97,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setOriginalUser(null);
 		setCurrentAccount(null);
 		localStorage.removeItem('user');
+		localStorage.removeItem('currentAccount');
 	};
 
 	return (

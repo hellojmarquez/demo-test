@@ -17,7 +17,7 @@ interface Account {
 	id: string;
 	name: string;
 	role: string;
-	type: 'admin' | 'sello' | 'subcuenta' | 'artista';
+	type: 'principal' | 'subcuenta';
 	email: string;
 	status?: string;
 	picture?: string;
@@ -61,7 +61,7 @@ export default function AccountSelector() {
 		id: originalUser._id,
 		name: originalUser.name,
 		role: originalUser.role,
-		type: 'sello',
+		type: 'principal',
 		email: originalUser.email,
 		picture: originalUser.picture || undefined,
 	};

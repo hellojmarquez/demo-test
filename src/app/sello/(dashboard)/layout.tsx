@@ -70,12 +70,12 @@ export default function DashboardLayout({
 	return (
 		<>
 			<AccountSelector />
-			<div className="min-h-screen ">
+			<div className="min-h-screen flex flex-col items-center bg-white ">
 				{/* Header with Navigation */}
-				<header className="bg-white shadow">
-					<div className="max-w-7xl mx-auto">
+				<header className="bg-brand-dark w-full shadow">
+					<div className="max-w-[1290px] mx-auto">
 						{/* Top Bar */}
-						<div className="flex bg-brand-dark justify-between md:justify-start px-6 items-center md:space-x-10 py-4">
+						<div className="flex  justify-between md:justify-start px-6 items-center md:space-x-10 py-4">
 							<div className="flex items-center">
 								<img src="/logo_white.png" alt="Isla Sounds" className="h-3" />
 							</div>
@@ -294,9 +294,9 @@ export default function DashboardLayout({
 
 				{/* Main Content */}
 				<main
-					className={`${inter.className} bg-white text-gray-900 min-h-screen  md:p-8`}
+					className={`${inter.className} w-[1290px] max-w-full text-gray-900 min-h-screen py-8`}
 				>
-					<div className="max-w-7xl mx-auto">{children}</div>
+					<div className="mx-auto">{children}</div>
 				</main>
 			</div>
 		</>

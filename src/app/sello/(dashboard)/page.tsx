@@ -74,7 +74,7 @@ export default function SelloHome() {
 	}
 
 	return (
-		<div className="p-6 space-y-8 max-w-7xl mx-auto">
+		<div className="p-6 space-y-8 min-w-full mx-auto">
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}

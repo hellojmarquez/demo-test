@@ -92,7 +92,7 @@ export default function Logs() {
 	};
 
 	return (
-		<div className="min-h-screen px-4 py-6 sm:px-6 md:px-8">
+		<div className="min-h-screen px-4 py-6 sm:px-6 md:px-6">
 			<div className="max-w-7xl mx-auto space-y-6">
 				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
 					<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">

@@ -903,7 +903,7 @@ export default function UsuariosPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-white px-4 py-6 sm:px-6 md:px-8">
+		<div className="min-h-screen w-full bg-white px-4 py- sm:px-6 md:px-8">
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}

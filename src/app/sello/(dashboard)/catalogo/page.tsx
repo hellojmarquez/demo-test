@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function Catalogo() {
 	const [selected, setSelected] = useState('PRODUCTOS');
-	const pathname = usePathname();
+
 	const { user } = useAuth();
 
 	// Filtrar los items del menú basado en el rol del usuario

@@ -29,6 +29,7 @@ export type User = {
 
 type AuthContextType = {
 	user: User | null;
+	originalUser: User | null; // Datos originales del usuario
 	loading: boolean;
 	currentAccount: Account | null;
 	login: (userData: User) => void;
@@ -42,28 +43,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<User | null>(null);
+	const [originalUser, setOriginalUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
 	const [showAccountSelector, setShowAccountSelector] = useState(false);
 
 	useEffect(() => {
 		const storedUser = localStorage.getItem('user');
-		const storedAccount = localStorage.getItem('currentAccount');
 		if (storedUser) {
 			const parsedUser = JSON.parse(storedUser);
 			setUser(parsedUser);
-			if (storedAccount) {
-				setCurrentAccount(JSON.parse(storedAccount));
-			} else if (parsedUser.accounts && parsedUser.accounts.length > 0) {
-				setShowAccountSelector(true);
+			setOriginalUser(parsedUser); // Guardar los datos originales
+			// Si el usuario tiene cuentas, seleccionar la primera por defecto
+			if (parsedUser.accounts && parsedUser.accounts.length > 0) {
+				setCurrentAccount(parsedUser.accounts[0]);
 			}
 		}
-		console.log('user en auth provider', user);
 		setLoading(false);
 	}, []);
 
 	const login = (userData: User) => {
 		setUser(userData);
+		setOriginalUser(userData); // Guardar los datos originales
 		localStorage.setItem('user', JSON.stringify(userData));
 		if (userData.accounts && userData.accounts.length > 1) {
 			setShowAccountSelector(true);
@@ -74,21 +75,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const selectAccount = (account: Account) => {
 		setCurrentAccount(account);
-		localStorage.setItem('currentAccount', JSON.stringify(account));
+
+		// Actualizar el user en localStorage con los datos de la cuenta seleccionada
+		if (originalUser) {
+			const updatedUser = {
+				...originalUser,
+				role: account.role,
+				name: account.name,
+				email: account.email,
+				picture: account.picture,
+			};
+			localStorage.setItem('user', JSON.stringify(updatedUser));
+			setUser(updatedUser);
+		}
+
 		setShowAccountSelector(false);
 	};
 
 	const logout = () => {
 		setUser(null);
+		setOriginalUser(null);
 		setCurrentAccount(null);
 		localStorage.removeItem('user');
-		localStorage.removeItem('currentAccount');
 	};
 
 	return (
 		<AuthContext.Provider
 			value={{
 				user,
+				originalUser,
 				loading,
 				currentAccount,
 				login,

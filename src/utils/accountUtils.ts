@@ -32,7 +32,7 @@ export async function createSubAccount(
 			subAccountId: subAccount._id,
 			role,
 			permissions,
-			status: 'active',
+			status: 'activo',
 		});
 
 		return subAccount;
@@ -55,7 +55,7 @@ export async function switchAccount(userId: string, targetAccountId: string) {
 				{ mainAccountId: userId, subAccountId: targetAccountId },
 				{ mainAccountId: targetAccountId, subAccountId: userId },
 			],
-			status: 'active',
+			status: 'activo',
 		});
 
 		if (!relationship) {
@@ -89,7 +89,7 @@ export async function validateAccountPermissions(
 		const relationship = await AccountRelationship.findOne({
 			mainAccountId,
 			subAccountId,
-			status: 'active',
+			status: 'activo',
 		});
 
 		if (!relationship) {
@@ -117,7 +117,7 @@ export async function getSubAccounts(mainAccountId: string) {
 	try {
 		const relationships = await AccountRelationship.find({
 			mainAccountId,
-			status: 'active',
+			status: 'activo',
 		}).populate('subAccountId');
 
 		return relationships.map(rel => ({
@@ -137,7 +137,7 @@ export async function getMainAccounts(subAccountId: string) {
 	try {
 		const relationships = await AccountRelationship.find({
 			subAccountId,
-			status: 'active',
+			status: 'activo',
 		}).populate('mainAccountId');
 
 		return relationships.map(rel => ({
@@ -162,7 +162,7 @@ export async function updateAccountPermissions(
 		const relationship = await AccountRelationship.findOne({
 			mainAccountId,
 			subAccountId,
-			status: 'active',
+			status: 'activo',
 		});
 
 		if (!relationship) {
@@ -189,7 +189,7 @@ export async function deactivateAccountRelationship(
 		const relationship = await AccountRelationship.findOne({
 			mainAccountId,
 			subAccountId,
-			status: 'active',
+			status: 'activo',
 		});
 
 		if (!relationship) {

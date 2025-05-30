@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 		const relationships = subAccounts.map(subAccount => ({
 			mainAccount: mainAccountId,
 			subAccount: subAccount.subAccountId,
-			status: 'active',
+			status: 'activo',
 		}));
 
 		// Insertar todas las relaciones

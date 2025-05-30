@@ -15,7 +15,7 @@ const accountRelationshipSchema = new mongoose.Schema(
 		},
 		role: {
 			type: String,
-			enum: ['artist', 'label', 'publisher', 'contributor'],
+			enum: ['artista', 'sello', 'publisher', 'contributor'],
 			required: true,
 		},
 		status: {

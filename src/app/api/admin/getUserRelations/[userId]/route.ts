@@ -44,7 +44,7 @@ export async function GET(
 		// Buscar relaciones donde el usuario es cuenta principal
 		const subAccountsRelations = await AccountRelationship.find({
 			mainAccountId: userId,
-		}).populate('subAccountId', 'name email role');
+		}).populate('subAccountId', 'name email role picture');
 		console.log('SUBACCOUNTS RELATIONS', subAccountsRelations);
 		// Formatear la respuesta
 		const mainAccount = mainAccountRelation
@@ -53,6 +53,7 @@ export async function GET(
 					name: mainAccountRelation.mainAccountId.name,
 					email: mainAccountRelation.mainAccountId.email,
 					role: mainAccountRelation.mainAccountId.role,
+					picture: mainAccountRelation.mainAccountId.picture,
 			  }
 			: null;
 
@@ -62,6 +63,7 @@ export async function GET(
 			email: relation.subAccountId.email,
 			role: relation.role,
 			status: relation.status,
+			picture: relation.subAccountId.picture,
 		}));
 
 		return NextResponse.json({

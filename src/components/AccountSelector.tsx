@@ -2,6 +2,7 @@
 'use client';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
 interface SubAccount {
 	_id: string;
@@ -9,6 +10,7 @@ interface SubAccount {
 	email: string;
 	role: string;
 	status: string;
+	picture?: string;
 }
 
 interface Account {
@@ -18,10 +20,16 @@ interface Account {
 	type: 'admin' | 'sello' | 'subcuenta' | 'artista';
 	email: string;
 	status?: string;
+	picture?: string;
 }
 
 export default function AccountSelector() {
-	const { originalUser, selectAccount, showAccountSelector } = useAuth();
+	const {
+		originalUser,
+		selectAccount,
+		showAccountSelector,
+		setShowAccountSelector,
+	} = useAuth();
 	const [subAccounts, setSubAccounts] = useState<SubAccount[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
@@ -55,6 +63,7 @@ export default function AccountSelector() {
 		role: originalUser.role,
 		type: 'sello',
 		email: originalUser.email,
+		picture: originalUser.picture || undefined,
 	};
 
 	// Combinar cuenta principal con las subcuentas
@@ -67,12 +76,19 @@ export default function AccountSelector() {
 			type: 'subcuenta' as const,
 			email: account.email,
 			status: account.status,
+			picture: account.picture || undefined,
 		})),
 	];
 
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+			<div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full relative">
+				<button
+					onClick={() => setShowAccountSelector(false)}
+					className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+				>
+					<X size={20} />
+				</button>
 				<h2 className="text-xl font-bold mb-4">Selecciona una cuenta</h2>
 				{isLoading ? (
 					<div className="text-center py-4">

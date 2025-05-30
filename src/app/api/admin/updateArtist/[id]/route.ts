@@ -3,8 +3,15 @@ import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Artista } from '@/models/UserModel';
+import AccountRelationship from '@/models/AccountRelationshipModel';
 import { encryptPassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
+
+interface SubAccount {
+	subAccountId: string;
+	status: string;
+	role: string;
+}
 
 interface UpdateArtistBody {
 	name: string;
@@ -16,6 +23,7 @@ interface UpdateArtistBody {
 	spotify_identifier?: string;
 	role: string;
 	picture?: string;
+	subAccounts?: SubAccount[];
 }
 
 export async function PUT(
@@ -54,6 +62,8 @@ export async function PUT(
 		if (contentType?.includes('multipart/form-data')) {
 			const formData = await req.formData();
 			const password = formData.get('password') as string;
+			const subAccounts = formData.get('subAccounts') as string;
+			console.log('Subcuentas recibidas en FormData:', subAccounts);
 
 			body = {
 				name: formData.get('name') as string,
@@ -67,6 +77,16 @@ export async function PUT(
 				role: 'artista',
 			};
 
+			// Procesar subcuentas si existen
+			if (subAccounts) {
+				try {
+					body.subAccounts = JSON.parse(subAccounts);
+					console.log('Subcuentas parseadas:', body.subAccounts);
+				} catch (error) {
+					console.error('Error al parsear subcuentas:', error);
+				}
+			}
+
 			// Solo encriptar password si se proporcionó uno
 			if (password) {
 				const encryptedPassword = await encryptPassword(password);
@@ -77,10 +97,8 @@ export async function PUT(
 			const picture = formData.get('picture') as string | null;
 			if (picture) {
 				console.log('picture', picture);
-
 				body.picture = picture;
 			}
-			console.log('bod formdata', body);
 		} else {
 			body = await req.json();
 			body.role = 'artista';
@@ -123,12 +141,12 @@ export async function PUT(
 				body: JSON.stringify(artistToApi),
 			}
 		);
-		if (!artistReq.ok) {
+		const artistRes = await artistReq.json();
+		if (!artistRes.id) {
 			return NextResponse.json(
 				{
 					success: false,
-					error:
-						artistReq.statusText || 'Failed to update artist in external API',
+					error: artistRes || 'Failed to update artist in external API',
 				},
 				{ status: artistReq.status }
 			);
@@ -156,10 +174,42 @@ export async function PUT(
 
 		if (!updatedArtist) {
 			return NextResponse.json(
-				{ success: false, error: 'Artist not found' },
+				{ success: false, error: 'Artista no encontrado' },
 				{ status: 404 }
 			);
 		}
+		delete body.picture;
+		console.log('BODY DATA', body);
+		// Manejar las relaciones de cuentas
+		try {
+			// Si hay subcuentas, procesarlas
+			if (body.subAccounts) {
+				const subAccounts = body.subAccounts as SubAccount[];
+
+				// Eliminar relaciones existentes para este mainAccount
+				await AccountRelationship.deleteMany({
+					mainAccount: updatedArtist._id,
+				});
+
+				// Crear nuevas relaciones
+				if (subAccounts.length > 0) {
+					const relationships = subAccounts.map(subAccount => ({
+						mainAccountId: updatedArtist._id,
+						subAccountId: subAccount.subAccountId,
+						role: subAccount.role,
+						status: 'activo',
+					}));
+
+					// Insertar todas las relaciones
+					await AccountRelationship.insertMany(relationships);
+					console.log('RELACIONES CREADAS', relationships);
+				}
+			}
+		} catch (relationshipError) {
+			console.error('Error al manejar las relaciones:', relationshipError);
+			// No interrumpimos el flujo si falla el manejo de relaciones
+		}
+
 		try {
 			// Crear el log
 			const logData = {

@@ -452,12 +452,6 @@ export default function UsuariosPage() {
 				updatedAt: new Date(updatedArtist.updatedAt),
 			};
 
-			console.log('Updating artista with data:', {
-				external_id: artistToSave.external_id,
-				_id: artistToSave._id,
-				original_external_id: selectedArtist?.external_id,
-			});
-
 			// Verificar que tenemos un external_id válido
 			if (!artistToSave.external_id) {
 				throw new Error('No se encontró el external_id del artista');

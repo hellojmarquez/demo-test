@@ -53,8 +53,13 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [users, setUsers] = useState<User[]>([]);
 	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-	const [subAccounts, setSubAccounts] = useState<User[]>([]);
 	const [mainAccount, setMainAccount] = useState<User | null>(null);
+	const [isLoadingRelations, setIsLoadingRelations] = useState(false);
+	const [selectedMainAccount, setSelectedMainAccount] = useState<User | null>(
+		null
+	);
+	const [selectedSubAccounts, setSelectedSubAccounts] = useState<User[]>([]);
+	const [existingRelationships, setExistingRelationships] = useState<any[]>([]);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
 		if (!artista.picture) return null;
 		if (typeof artista.picture === 'string') {
@@ -74,17 +79,19 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	useEffect(() => {
 		if (isOpen) {
 			fetchUsers();
+			fetchExistingRelationships();
 		}
 	}, [isOpen]);
 
 	const fetchUsers = async () => {
 		try {
 			setIsLoadingUsers(true);
-			const response = await fetch('/api/admin/getAllUsers');
+			const response = await fetch('/api/admin/getAllUsers?all=true');
 			if (!response.ok) {
 				throw new Error('Error al obtener usuarios');
 			}
 			const data = await response.json();
+
 			setUsers(data.data.users);
 		} catch (error) {
 			console.error('Error fetching users:', error);
@@ -92,6 +99,33 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 		} finally {
 			setIsLoadingUsers(false);
 		}
+	};
+
+	// Función para obtener las relaciones existentes
+	const fetchExistingRelationships = async () => {
+		try {
+			const response = await fetch(
+				`/api/admin/getUserRelations/${artista._id}`
+			);
+
+			if (!response.ok) throw new Error('Error al obtener relaciones');
+			const data = await response.json();
+			console.log('Datos recibidos de la API:', data);
+			// Usar la estructura correcta de la respuesta
+			setExistingRelationships(data.data.subAccounts || []);
+		} catch (error) {
+			console.error('Error al obtener relaciones:', error);
+		}
+	};
+
+	// Función para manejar la selección de cuenta principal
+	const handleMainAccountChange = (selectedOption: any) => {
+		setSelectedMainAccount(selectedOption);
+	};
+
+	// Función para manejar la selección de subcuentas
+	const handleSubAccountsChange = (selectedOptions: any) => {
+		setSelectedSubAccounts(selectedOptions || []);
 	};
 
 	const handleChange = (
@@ -145,8 +179,9 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 			formDataToSend.append('_id', formData._id);
 			formDataToSend.append(
 				'external_id',
-				formData.external_id?.toString() || ''
+				artista.external_id?.toString() || ''
 			);
+
 			formDataToSend.append('status', formData.status || 'activo');
 
 			if (formData.password) {
@@ -174,6 +209,23 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 				formDataToSend.append('picture', formData.picture);
 			} else if (typeof formData.picture === 'string') {
 				formDataToSend.append('picture', formData.picture);
+			}
+
+			// Agregar datos de relaciones con información adicional
+			if (selectedMainAccount) {
+				formDataToSend.append('mainAccountId', selectedMainAccount._id);
+				formDataToSend.append('relationshipStatus', 'activo'); // Estado por defecto de la relación
+			}
+
+			// Para las subcuentas, enviamos un array de objetos con la información completa de la relación
+			if (selectedSubAccounts.length > 0) {
+				const subAccountsData = selectedSubAccounts.map(account => ({
+					subAccountId: account._id,
+					status: 'activo', // Estado por defecto de la relación
+					role: account.role, // Incluimos el rol para referencia
+				}));
+				console.log('Subcuentas a enviar:', subAccountsData);
+				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
 			}
 
 			await onSave(formDataToSend);
@@ -434,187 +486,139 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 								</div>
 
 								{/* Sección de Gestión de Cuentas */}
-								<div className="border-t border-gray-200 pt-4 mt-4">
-									<h3 className="text-sm font-medium text-gray-900 mb-4">
+								<div className="space-y-4">
+									<h3 className="text-lg font-medium text-gray-900">
 										Gestión de Cuentas
 									</h3>
-									{/* Si es subcuenta */}
-									<div>
-										<div className="flex items-center space-x-2 mb-3">
-											<h4 className="text-sm font-medium text-gray-700">
-												{mainAccount ? 'Pertenece a:' : 'Cuenta Principal'}
-											</h4>
-										</div>
-										<div className="bg-gray-50 rounded-lg p-4">
-											<div className="relative">
-												<Select
-													value={
-														mainAccount
-															? {
-																	value: mainAccount._id,
-																	label: (
-																		<div>
-																			<div className="font-medium">
-																				{mainAccount.name}
-																			</div>
-																			<div className="text-xs text-gray-500">
-																				{mainAccount.email} • {mainAccount.role}
-																			</div>
-																		</div>
-																	),
-															  }
-															: null
-													}
-													onChange={selectedOption => {
-														if (selectedOption) {
-															const selectedUser = users.find(
-																user => user._id === selectedOption.value
-															);
-															setMainAccount(selectedUser || null);
-														} else {
-															setMainAccount(null);
-														}
-													}}
-													options={users.map(user => ({
-														value: user._id,
-														label: (
-															<div>
-																<div className="font-medium">{user.name}</div>
-																<div className="text-xs text-gray-500">
-																	{user.email} • {user.role}
-																</div>
-															</div>
-														),
-													}))}
-													isClearable
-													placeholder="Seleccionar cuenta principal"
-													styles={{
-														control: (base, state) => ({
-															...base,
-															border: 'none',
-															borderBottom: '2px solid #E5E7EB',
-															borderRadius: '0',
-															boxShadow: 'none',
-															backgroundColor: 'transparent',
-															'&:hover': {
-																borderBottom: '2px solid #4B5563',
-															},
-															'&:focus-within': {
-																borderBottom: '2px solid #4B5563',
-															},
-															minHeight: '38px',
-														}),
-														option: (base, state) => ({
-															...base,
-															backgroundColor: state.isSelected
-																? '#4B5563'
-																: state.isFocused
-																? '#E5E7EB'
-																: 'white',
-															color: state.isSelected ? 'white' : '#1F2937',
-															'&:hover': {
-																backgroundColor: state.isSelected
-																	? '#4B5563'
-																	: '#E5E7EB',
-															},
-															padding: '0',
-														}),
-														menu: base => ({
-															...base,
-															borderRadius: '0.375rem',
-															boxShadow:
-																'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-															width: '100%',
-															marginTop: '4px',
-														}),
-														menuList: base => ({
-															...base,
-															padding: '4px 0',
-														}),
-														placeholder: base => ({
-															...base,
-															color: '#9CA3AF',
-														}),
-														singleValue: base => ({
-															...base,
-															color: '#1F2937',
-														}),
-													}}
-													className=""
-												/>
-											</div>
-										</div>
-									</div>
-									{/* Información de Relaciones */}
-									<div className="space-y-6">
-										{/* Si es cuenta principal */}
-										<div>
-											<div className="flex items-center justify-between mb-3">
-												<h4 className="text-sm font-medium text-gray-700">
-													Subcuentas asociadas
-												</h4>
-												<button
-													type="button"
-													className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-brand-dark bg-brand-light hover:bg-brand-dark hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-												>
-													<Plus className="h-4 w-4 mr-1" />
-													Agregar subcuenta
-												</button>
-											</div>
 
-											{/* Lista de subcuentas */}
-											<div className="bg-gray-50 rounded-lg p-4">
-												{isLoadingUsers ? (
-													<div className="text-center py-4">
-														<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-dark mx-auto"></div>
-														<p className="text-sm text-gray-500 mt-2">
-															Cargando usuarios...
-														</p>
-													</div>
-												) : subAccounts.length > 0 ? (
-													<div className="space-y-3">
-														{subAccounts.map(subAccount => (
-															<div
-																key={subAccount._id}
-																className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
-															>
-																<div className="flex items-center space-x-3">
-																	<User className="h-5 w-5 text-gray-400" />
-																	<div>
-																		<p className="text-sm font-medium text-gray-900">
-																			{subAccount.name}
-																		</p>
-																		<p className="text-xs text-gray-500">
-																			{subAccount.email}
-																		</p>
-																	</div>
-																</div>
-																<div className="flex items-center space-x-2">
-																	<button
-																		type="button"
-																		className="p-1 text-gray-400 hover:text-gray-500"
-																	>
-																		<Edit className="h-4 w-4" />
-																	</button>
-																	<button
-																		type="button"
-																		className="p-1 text-gray-400 hover:text-red-500"
-																	>
-																		<Trash2 className="h-4 w-4" />
-																	</button>
-																</div>
+									{/* Subcuentas Existentes */}
+									{existingRelationships.length > 0 ? (
+										<div className="mt-4">
+											<h4 className="font-medium text-gray-700 mb-2">
+												Subcuentas Asociadas
+											</h4>
+											<div className="space-y-2">
+												{existingRelationships.map(rel => {
+													console.log('Renderizando relación:', rel);
+													return (
+														<div
+															key={rel._id}
+															className="bg-gray-50 p-3 rounded-lg flex items-center justify-between"
+														>
+															<div>
+																<p className="text-sm text-gray-600">
+																	{rel.name}
+																</p>
+																<p className="text-xs text-gray-500">
+																	{rel.email}
+																</p>
 															</div>
-														))}
-													</div>
-												) : (
-													<div className="text-center py-4">
-														<p className="text-sm text-gray-500">
-															No hay subcuentas asociadas
-														</p>
-													</div>
-												)}
+															<div className="flex items-center space-x-2">
+																<span className="px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+																	{rel.role}
+																</span>
+															</div>
+														</div>
+													);
+												})}
 											</div>
 										</div>
+									) : (
+										<div className="mt-4 text-center text-gray-500">
+											No hay subcuentas asociadas
+										</div>
+									)}
+
+									{/* Selector de Subcuentas */}
+									<div className="mt-4">
+										<h4 className="font-medium text-gray-700 mb-2">
+											Agregar Subcuentas
+										</h4>
+										<Select
+											isMulti
+											options={users}
+											value={selectedSubAccounts}
+											onChange={newValue =>
+												setSelectedSubAccounts(newValue as User[])
+											}
+											formatOptionLabel={(option: any) => (
+												<div className="flex flex-col">
+													<span className="font-medium">{option.name}</span>
+													<span className="text-sm text-gray-500">
+														{option.email}
+													</span>
+												</div>
+											)}
+											placeholder="Seleccionar subcuentas..."
+											className="basic-multi-select"
+											classNamePrefix="select"
+											styles={{
+												control: (base, state) => ({
+													...base,
+													border: 'none',
+													borderBottom: '2px solid #E5E7EB',
+													borderRadius: '0',
+													boxShadow: 'none',
+													backgroundColor: 'transparent',
+													'&:hover': {
+														borderBottom: '2px solid #4B5563',
+													},
+													'&:focus-within': {
+														borderBottom: '2px solid #4B5563',
+													},
+													minHeight: '38px',
+												}),
+												option: (base, state) => ({
+													...base,
+													backgroundColor: state.isSelected
+														? '#4B5563'
+														: state.isFocused
+														? '#E5E7EB'
+														: 'white',
+													color: state.isSelected ? 'white' : '#1F2937',
+													'&:hover': {
+														backgroundColor: state.isSelected
+															? '#4B5563'
+															: '#E5E7EB',
+													},
+													padding: '8px 12px',
+												}),
+												menu: base => ({
+													...base,
+													borderRadius: '0.375rem',
+													boxShadow:
+														'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+													width: '100%',
+													marginTop: '4px',
+												}),
+												menuList: base => ({
+													...base,
+													padding: '4px 0',
+												}),
+												placeholder: base => ({
+													...base,
+													color: '#9CA3AF',
+												}),
+												multiValue: base => ({
+													...base,
+													backgroundColor: '#E5E7EB',
+													borderRadius: '0.375rem',
+												}),
+												multiValueLabel: base => ({
+													...base,
+													color: '#1F2937',
+													padding: '2px 6px',
+												}),
+												multiValueRemove: base => ({
+													...base,
+													color: '#6B7280',
+													'&:hover': {
+														backgroundColor: '#D1D5DB',
+														color: '#1F2937',
+													},
+												}),
+											}}
+										/>
 									</div>
 								</div>
 							</div>

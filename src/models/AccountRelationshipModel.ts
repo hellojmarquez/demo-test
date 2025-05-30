@@ -20,8 +20,8 @@ const accountRelationshipSchema = new mongoose.Schema(
 		},
 		status: {
 			type: String,
-			enum: ['active', 'inactive', 'pending'],
-			default: 'active',
+			enum: ['activo', 'inactivo'],
+			default: 'activo',
 		},
 		permissions: {
 			type: [String],
@@ -52,7 +52,7 @@ accountRelationshipSchema.index({ status: 1 });
 accountRelationshipSchema.statics.findSubAccounts = function (
 	mainAccountId: string
 ) {
-	return this.find({ mainAccountId, status: 'active' }).populate(
+	return this.find({ mainAccountId, status: 'activo' }).populate(
 		'subAccountId'
 	);
 };
@@ -61,7 +61,7 @@ accountRelationshipSchema.statics.findSubAccounts = function (
 accountRelationshipSchema.statics.findMainAccounts = function (
 	subAccountId: string
 ) {
-	return this.find({ subAccountId, status: 'active' }).populate(
+	return this.find({ subAccountId, status: 'activo' }).populate(
 		'mainAccountId'
 	);
 };
@@ -74,7 +74,7 @@ accountRelationshipSchema.statics.hasActiveRelationship = function (
 	return this.findOne({
 		mainAccountId,
 		subAccountId,
-		status: 'active',
+		status: 'activo',
 	});
 };
 

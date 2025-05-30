@@ -37,17 +37,20 @@ export async function GET(req: NextRequest) {
 		// Conectar a la base de datos
 		await dbConnect();
 
-		// Aplicar middleware de paginación (por defecto: página 1, 10 items por página)
-		const { page, limit, skip } = paginationMiddleware(req);
+		// Verificar si se solicita todos los usuarios
+		const searchParams = req.nextUrl.searchParams;
+		const getAll = searchParams.get('all') === 'true';
+
+		// Aplicar middleware de paginación solo si no se solicitan todos los usuarios
+		const { page, limit, skip } = getAll
+			? { page: 1, limit: 0, skip: 0 }
+			: paginationMiddleware(req);
 
 		// Aplicar middleware de búsqueda
 		// Busca por nombre usando una expresión regular case-insensitive
 		const searchQuery = searchMiddleware(req, 'name');
 		console.log('Search query:', searchQuery); // Para debugging
 
-		// Configurar opciones de ordenamiento
-		// newest: ordena por fecha de creación descendente (más recientes primero)
-		// oldest: ordena por fecha de creación ascendente (más antiguos primero)
 		const sortOptions: SortOptions = {
 			newest: { createdAt: -1 as const },
 			oldest: { createdAt: 1 as const },
@@ -58,20 +61,18 @@ export async function GET(req: NextRequest) {
 		// Construir la consulta final combinando búsqueda y filtros adicionales
 		const finalQuery = {
 			...searchQuery,
-			// Aquí puedes agregar filtros adicionales si es necesario
-			// Por ejemplo, filtrar por rol, estado, etc.
 		};
 
 		// Obtener el total de documentos que coinciden con la búsqueda
 		const total = await User.countDocuments(finalQuery);
 		console.log('Total documents:', total); // Para debugging
 
-		// Obtener los usuarios paginados, filtrados y ordenados
+		// Obtener los usuarios con o sin paginación según el parámetro all
 		const users = await User.find(finalQuery)
-			.sort(sort) // Aplicar ordenamiento
-			.skip(skip)
-			.limit(limit)
-			.select('-password') // Excluir el campo password por seguridad
+			.sort(sort)
+			.skip(getAll ? 0 : skip)
+			.limit(getAll ? 0 : limit)
+			.select('-password')
 			.lean();
 
 		// Devolver respuesta con datos y metadatos de paginación
@@ -80,12 +81,14 @@ export async function GET(req: NextRequest) {
 				success: true,
 				data: {
 					users,
-					pagination: {
-						total, // Total de documentos
-						page, // Página actual
-						limit, // Items por página
-						totalPages: Math.ceil(total / limit), // Total de páginas
-					},
+					pagination: getAll
+						? null
+						: {
+								total,
+								page,
+								limit,
+								totalPages: Math.ceil(total / limit),
+						  },
 				},
 			},
 			{

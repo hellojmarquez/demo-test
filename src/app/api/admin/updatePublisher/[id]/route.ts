@@ -55,7 +55,6 @@ export async function PUT(
 		);
 
 		const publisherRes = await publisherReq.json();
-		console.log('Publisher actualizado en la API externa:', publisherRes);
 
 		// Conectar a la base de datos local
 		await dbConnect();

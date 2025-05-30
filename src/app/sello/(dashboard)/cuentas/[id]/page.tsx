@@ -93,15 +93,12 @@ export default function UsuariosPage() {
 	}
 
 	const handleEdit = (user: User) => {
-		console.log('Rol del usuario:', user.role);
-
 		// Verificar si el rol es "artist" o "artista" (ignorando mayúsculas/minúsculas)
 		if (
 			user.role &&
 			(user.role.toLowerCase() === 'artist' ||
 				user.role.toLowerCase() === 'artista')
 		) {
-			console.log('Es un artista, abriendo modal de artista');
 			// Asegurarse de que el artista tenga el external_id
 			const artista = {
 				...user,
@@ -112,7 +109,6 @@ export default function UsuariosPage() {
 		}
 		// Verificar si el rol es "sello"
 		else if (user.role && user.role.toLowerCase() === 'sello') {
-			console.log('Es un sello, abriendo modal de sello');
 			// Adaptar los datos del usuario al formato esperado por UpdateSelloModal
 			const adaptedSelloData = {
 				_id: user._id,
@@ -134,13 +130,11 @@ export default function UsuariosPage() {
 		}
 		// Verificar si el rol es "admin"
 		else if (user.role && user.role.toLowerCase() === 'admin') {
-			console.log('Es un administrador, abriendo modal de admin');
 			setSelectedAdmin(user);
 			setShowAdminModal(true);
 		}
 		// Verificar si el rol es "contributor"
 		else if (user.role && user.role.toLowerCase() === 'contributor') {
-			console.log('Es un contribuidor, abriendo modal de contribuidor');
 			setSelectedContributor(user);
 			setShowContributorModal(true);
 		}
@@ -150,9 +144,6 @@ export default function UsuariosPage() {
 			setSelectedPublisher(user);
 			setShowPublisherModal(true);
 		} else {
-			console.log(
-				'No es un artista, sello, admin, contribuidor ni publisher, usando edición normal'
-			);
 			setEditingUserId(user._id);
 			setEditedUser({ ...user });
 		}
@@ -499,7 +490,6 @@ export default function UsuariosPage() {
 
 			{showArtistModal && selectedArtist && (
 				<>
-					{console.log('Renderizando modal de artista')}
 					<UpdateArtistaModal
 						artista={{
 							...selectedArtist,
@@ -517,7 +507,6 @@ export default function UsuariosPage() {
 						}}
 						isOpen={showArtistModal}
 						onClose={() => {
-							console.log('Cerrando modal de artista');
 							setShowArtistModal(false);
 							setSelectedArtist(null);
 						}}
@@ -528,12 +517,10 @@ export default function UsuariosPage() {
 
 			{showSelloModal && selectedSello && (
 				<>
-					{console.log('Renderizando modal de sello')}
 					<UpdateSelloModal
 						sello={selectedSello as any}
 						isOpen={showSelloModal}
 						onClose={() => {
-							console.log('Cerrando modal de sello');
 							setShowSelloModal(false);
 							setSelectedSello(null);
 						}}
@@ -544,12 +531,10 @@ export default function UsuariosPage() {
 
 			{showAdminModal && selectedAdmin && (
 				<>
-					{console.log('Renderizando modal de admin')}
 					<UpdateAdminModal
 						admin={selectedAdmin}
 						isOpen={showAdminModal}
 						onClose={() => {
-							console.log('Cerrando modal de admin');
 							setShowAdminModal(false);
 							setSelectedAdmin(null);
 						}}
@@ -560,7 +545,6 @@ export default function UsuariosPage() {
 
 			{showContributorModal && selectedContributor && (
 				<>
-					{console.log('Renderizando modal de contribuidor')}
 					<UpdateContributorModal
 						contributor={{
 							id: selectedContributor._id,
@@ -578,7 +562,6 @@ export default function UsuariosPage() {
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}
 						onClose={() => {
-							console.log('Cerrando modal de contribuidor');
 							setShowContributorModal(false);
 							setSelectedContributor(null);
 						}}
@@ -588,7 +571,6 @@ export default function UsuariosPage() {
 
 			{showPublisherModal && selectedPublisher && (
 				<>
-					{console.log('Renderizando modal de publisher')}
 					<UpdatePublisherModal
 						publisher={{
 							_id: selectedPublisher._id,

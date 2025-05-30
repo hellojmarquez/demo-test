@@ -48,8 +48,6 @@ export async function POST(req: NextRequest) {
 				trackData = JSON.parse(data);
 
 				if (file) {
-					console.log('CREANDO TRAck');
-					console.log('FILE', file);
 					const uploadTrackReq = await fetch(
 						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
 						{
@@ -67,7 +65,6 @@ export async function POST(req: NextRequest) {
 					// Extraer la URL y los campos del objeto firmado
 					const { url: signedUrl, fields: trackFields } =
 						uploadTrackRes.signed_url;
-					console.log('SIGNED URL', signedUrl);
 
 					// Crear un objeto FormData y agregar los campos y el archivo
 					const trackFormData = new FormData();
@@ -89,7 +86,7 @@ export async function POST(req: NextRequest) {
 						method: 'POST',
 						body: trackFormData,
 					});
-					console.log('UPLOAD RESPONSE', uploadResponse);
+				
 					picture_url = uploadResponse.headers?.get('location') || '';
 					picture_path = decodeURIComponent(
 						new URL(picture_url).pathname.slice(1)
@@ -120,8 +117,6 @@ export async function POST(req: NextRequest) {
 		}
 
 		trackData.resource = picture_path;
-		console.log('url', picture_url);
-		console.log('path', picture_path);
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 
 		// Asegurar que publishers tenga la estructura correcta
@@ -145,7 +140,7 @@ export async function POST(req: NextRequest) {
 		} else {
 			dataToapi.contributors = [];
 		}
-		console.log('DATA TO API', dataToapi);
+	
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {
@@ -156,7 +151,7 @@ export async function POST(req: NextRequest) {
 			},
 			body: JSON.stringify(dataToapi),
 		});
-		console.log('TRACK REQUEST ok', trackReq.ok);
+		
 		if (!trackReq.ok) {
 			return NextResponse.json(
 				{
@@ -174,10 +169,10 @@ export async function POST(req: NextRequest) {
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;
-		console.log('TRACK DATA PARA CREAR EN BBDD', trackData);
+	
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
-		console.log('createTrack MONGO', createTrack);
+		
 		if (!createTrack.external_id) {
 			return NextResponse.json(
 				{

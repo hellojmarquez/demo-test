@@ -43,7 +43,6 @@ export async function PUT(
 
 		const { id } = params;
 		await dbConnect();
-		console.log('id: ', id);
 		// Obtener el sello actual para comparar cambios
 		const currentSello = await User.findOne({ external_id: id });
 
@@ -91,7 +90,6 @@ export async function PUT(
 				{ status: 400 }
 			);
 		}
-		console.log('DATA: ', data);
 
 		// Preparar los datos para la actualización
 		let updateData: any = {
@@ -105,7 +103,7 @@ export async function PUT(
 
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
-			console.log('Subiendo nueva imagen...');
+
 			const uploadMediaReq = await fetch(
 				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=label.logo`,
 				{

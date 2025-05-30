@@ -26,10 +26,7 @@ export async function POST(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-			console.log(
-				'Payload completo del token:',
-				JSON.stringify(payload, null, 2)
-			);
+
 		} catch (err) {
 			console.error('JWT verification failed', err);
 
@@ -41,10 +38,7 @@ export async function POST(req: NextRequest) {
 
 		const body = await req.json();
 		const { name, email, password, role, catalog_num } = body;
-		if (catalog_num) {
-			console.log('catalogNum', catalog_num);
-		}
-		console.log('body', body);
+
 		// Validar datos requeridos
 		if (!name || !email || !password || !role) {
 			return NextResponse.json(
@@ -52,7 +46,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('PAYLOAD!!!!: ', body);
+
 
 		if (role === 'artista') {
 			const data = {
@@ -86,7 +80,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const artistData = await artistResponse.json();
-			console.log('ARTIST DATA', artistData);
+		
 			if (!artistData.success) {
 				return NextResponse.json(
 					{
@@ -107,7 +101,7 @@ export async function POST(req: NextRequest) {
 				details: `Usuario invitado: ${name}`,
 				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
 			};
-			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+		
 			await createLog(logData);
 		}
 		if (role === 'admin') {
@@ -128,7 +122,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const apiRes = await apiReq.json();
-			console.log('ARTIST DATA', apiRes);
+		
 			if (!apiRes.success) {
 				return NextResponse.json(
 					{
@@ -186,7 +180,7 @@ export async function POST(req: NextRequest) {
 			const apiRes = await apiReq.json();
 
 			if (!apiRes.success) {
-				console.log('apiRes error', apiRes.error);
+			
 				return NextResponse.json(
 					{
 						success: false,
@@ -222,7 +216,7 @@ export async function POST(req: NextRequest) {
 			const apiRes = await apiReq.json();
 
 			if (!apiRes.success) {
-				console.log('apiRes error', apiRes.error);
+			
 				return NextResponse.json(
 					{
 						success: false,
@@ -255,7 +249,7 @@ export async function POST(req: NextRequest) {
 		// Verificar la conexión antes de enviar
 		try {
 			await transporter.verify();
-			console.log('Conexión SMTP verificada correctamente');
+
 		} catch (error) {
 			console.error('Error al verificar la conexión SMTP:', error);
 
@@ -314,7 +308,6 @@ export async function POST(req: NextRequest) {
 			html: emailContent,
 		});
 
-		console.log('Email enviado:', info.messageId);
 
 		return NextResponse.json({
 			success: true,

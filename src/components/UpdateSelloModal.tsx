@@ -150,11 +150,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		return typeof sello.picture === 'string' ? sello.picture : null;
 	});
 
-	// Mover el useEffect aquí, después de la declaración de formData
-	useEffect(() => {
-		console.log('primary_genre actualizado:', formData.primary_genre);
-	}, [formData.primary_genre]);
-
 	// Funciones para la gestión de cuentas
 	const fetchUsers = async () => {
 		try {
@@ -439,7 +434,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 							name: user.name,
 						}));
 					setAvailableArtists(artists);
-					console.log('artists: ', data.data);
 				}
 			} catch (error) {
 				console.error('Error fetching artists:', error);
@@ -458,12 +452,10 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				const response = await fetch('/api/admin/getAllGenres');
 				if (response.ok) {
 					const data = await response.json();
-					console.log('Géneros cargados:', data.data);
 					setGenres(data.data || []);
 
 					// Asegurarnos de que el género se establezca correctamente
 					if (sello.primary_genre) {
-						console.log('Género del sello:', sello.primary_genre);
 						setFormData(prev => ({
 							...prev,
 							primary_genre: sello.primary_genre || '',

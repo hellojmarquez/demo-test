@@ -63,7 +63,6 @@ export async function PUT(
 			const formData = await req.formData();
 			const password = formData.get('password') as string;
 			const subAccounts = formData.get('subAccounts') as string;
-			console.log('Subcuentas recibidas en FormData:', subAccounts);
 
 			body = {
 				name: formData.get('name') as string,
@@ -81,7 +80,6 @@ export async function PUT(
 			if (subAccounts) {
 				try {
 					body.subAccounts = JSON.parse(subAccounts);
-					console.log('Subcuentas parseadas:', body.subAccounts);
 				} catch (error) {
 					console.error('Error al parsear subcuentas:', error);
 				}
@@ -96,7 +94,6 @@ export async function PUT(
 			// Procesar la imagen si existe
 			const picture = formData.get('picture') as string | null;
 			if (picture) {
-				console.log('picture', picture);
 				body.picture = picture;
 			}
 		} else {
@@ -107,9 +104,9 @@ export async function PUT(
 			if (body.password) {
 				body.password = await encryptPassword(body.password);
 			}
-			console.log('bod json', body);
+		
 		}
-		console.log('artist body', body);
+	
 		// Validar datos requeridos
 		if (!body.name || !body.email) {
 			return NextResponse.json(
@@ -202,7 +199,7 @@ export async function PUT(
 
 					// Insertar todas las relaciones
 					await AccountRelationship.insertMany(relationships);
-					console.log('RELACIONES CREADAS', relationships);
+				
 				}
 			}
 		} catch (relationshipError) {

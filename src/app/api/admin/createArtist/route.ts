@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
 			);
 			verifiedPayload = payload;
 		} catch (err) {
-			console.error('JWT verification failed', err);
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
@@ -168,7 +167,6 @@ export async function POST(req: NextRequest) {
 			artist: newArtist,
 		});
 	} catch (error) {
-		console.error('Error creating artist:', error);
 		return NextResponse.json(
 			{ success: false, error: 'Internal Server Error' },
 			{ status: 500 }

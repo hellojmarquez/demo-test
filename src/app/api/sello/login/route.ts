@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 					}),
 				})
 					.then(res => res.json())
-					.then(r => console.log(r));
+					.then(r => r);
 
 				const token = await new SignJWT({
 					role: userDB.role || 'admin',

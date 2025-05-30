@@ -49,14 +49,12 @@ export async function GET(req: NextRequest) {
 		// Aplicar middleware de búsqueda
 		// Busca por nombre usando una expresión regular case-insensitive
 		const searchQuery = searchMiddleware(req, 'name');
-		console.log('Search query:', searchQuery); // Para debugging
 
 		const sortOptions: SortOptions = {
 			newest: { createdAt: -1 as const },
 			oldest: { createdAt: 1 as const },
 		};
 		const sort = sortMiddleware(req, sortOptions);
-		console.log('Sort options:', sort); // Para debugging
 
 		// Construir la consulta final combinando búsqueda y filtros adicionales
 		const finalQuery = {
@@ -65,7 +63,6 @@ export async function GET(req: NextRequest) {
 
 		// Obtener el total de documentos que coinciden con la búsqueda
 		const total = await User.countDocuments(finalQuery);
-		console.log('Total documents:', total); // Para debugging
 
 		// Obtener los usuarios con o sin paginación según el parámetro all
 		const users = await User.find(finalQuery)

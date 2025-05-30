@@ -125,7 +125,6 @@ const Productos: React.FC = () => {
 					setReleases(data.data.releases as Release[]);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
-					console.log('data.data: ', data.data);
 				}
 			} catch (error) {
 				console.error('Error fetching releases:', error);
@@ -245,8 +244,6 @@ const Productos: React.FC = () => {
 				publishersRes.json(),
 			]);
 
-			console.log('Publishers response:', publishersData);
-
 			if (artistsData.success) {
 				setArtists(
 					artistsData.data.map((artist: any) => ({
@@ -266,7 +263,6 @@ const Productos: React.FC = () => {
 			}
 
 			if (publishersData.success) {
-				console.log('Setting publishers:', publishersData.data);
 				setPublishers(
 					publishersData.data.map((publisher: any) => ({
 						value: publisher._id,

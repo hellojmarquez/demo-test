@@ -26,12 +26,7 @@ export async function POST(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
-			console.log('Datos del usuario:', {
-				id: payload.id,
-				name: payload.name,
-				role: payload.role,
-			});
+		
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -85,7 +80,7 @@ export async function POST(req: NextRequest) {
 		);
 
 		const contributorRes = await contributorReq.json();
-		console.log('contributor en api', contributorRes);
+
 		if (!contributorRes.id) {
 			return NextResponse.json(
 				{
@@ -130,7 +125,7 @@ export async function POST(req: NextRequest) {
 				details: `contributor creado: ${name}`,
 				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
 			};
-			console.log('Log data a guardar:', JSON.stringify(logData, null, 2));
+		
 			await createLog(logData);
 		} catch (logError) {
 			console.error('Error al crear el log:', logError);

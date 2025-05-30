@@ -95,10 +95,9 @@ export async function PUT(
 		// Procesar los nuevos tracks
 		if (releaseData.newTracks && releaseData.newTracks.length > 0) {
 			for (const track of releaseData.newTracks) {
-				console.log('-------NUEVO TRACK RECIBIDO---------');
 				// Buscar el archivo en el FormData usando el nombre del recurso
 				const trackFile = formData.get(`track_${track.resource}`);
-				console.log('TRACK FILE', track);
+
 				const trackData = {
 					name: track.title,
 					mix_name: track.mixName || '',
@@ -171,7 +170,6 @@ export async function PUT(
 		// Procesar los edited tracks
 		if (releaseData.editedTracks && releaseData.editedTracks.length > 0) {
 			for (const track of releaseData.editedTracks) {
-				console.log('TRACK TO EDIT', track);
 				try {
 					const trackFormData = new FormData();
 
@@ -463,11 +461,7 @@ export async function PUT(
 
 			if (!externalApiRes.ok) {
 				const errorText = await externalApiRes.text();
-				console.error('API Error Response:', {
-					status: externalApiRes.status,
-					statusText: externalApiRes.statusText,
-					body: errorText,
-				});
+
 				throw new Error(
 					`API responded with status ${externalApiRes.status}: ${errorText}`
 				);

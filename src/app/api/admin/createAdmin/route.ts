@@ -5,7 +5,6 @@ import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
 import { createLog } from '@/lib/logger';
 export async function POST(request: NextRequest) {
-	console.log('create admin request received');
 
 	try {
 		const token = request.cookies.get('loginToken')?.value;
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest) {
 			);
 			verifiedPayload = payload;
 		} catch (err) {
-			console.error('JWT verification failed', err);
+		
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
@@ -52,9 +51,8 @@ export async function POST(request: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('picture', picture);
-		// Hashear la contraseña
 
+		// Hashear la contraseña
 		const hashedPassword = await encryptPassword(password);
 		// Crear el nuevo administrador usando el discriminador Admin
 		const newAdmin = await Admin.create({
@@ -98,7 +96,6 @@ export async function POST(request: NextRequest) {
 			{ status: 201 }
 		);
 	} catch (error: any) {
-		console.error('Error creating admin:', error);
 		return NextResponse.json(
 			{
 				error: error.message || 'Internal Server Error',

@@ -114,7 +114,6 @@ const Personas = () => {
 		sort: string = 'newest'
 	) => {
 		try {
-			console.log('Iniciando fetchUsers con:', { page, search, sort });
 			const response = await fetch(
 				`/api/admin/getAllPersonas?page=${page}${
 					search ? `&search=${encodeURIComponent(search)}` : ''
@@ -122,12 +121,7 @@ const Personas = () => {
 			);
 			if (response.ok) {
 				const data = await response.json();
-				console.log('Respuesta completa del servidor:', data);
 				if (data.success) {
-					console.log(
-						'Datos obtenidos de la API (completos):',
-						data.data.users
-					);
 					setUsers(data.data.users);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
@@ -136,7 +130,6 @@ const Personas = () => {
 			}
 			setIsLoading(false);
 		} catch (error) {
-			console.error('Error fetching users:', error);
 			setIsLoading(false);
 		}
 	};
@@ -170,14 +163,12 @@ const Personas = () => {
 
 			if (persona.role && persona.role.toLowerCase() === 'publisher') {
 				if (!persona.external_id) {
-					console.error('No se encontró el external_id del publisher');
 					alert('Error: No se encontró el ID del publisher');
 					return;
 				}
 
 				// Asegurarnos de que el email esté presente
 				if (!persona.email) {
-					console.error('No se encontró el email del publisher');
 					alert('Error: No se encontró el email del publisher');
 					return;
 				}
@@ -193,14 +184,11 @@ const Personas = () => {
 					picture: persona.picture || '',
 				};
 
-				console.log('Es un publisher, datos completos:', publisherData);
-				console.log('Email del publisher:', publisherData.email);
 				setSelectedPublisher(publisherData as Persona);
 				setShowPublisherModal(true);
 			}
 			// Verificar si el rol es "contributor"
 			else if (persona.role && persona.role.toLowerCase() === 'contributor') {
-				console.log('Es un contribuidor, abriendo modal de contribuidor');
 				setSelectedContributor(persona);
 				setShowContributorModal(true);
 			}
@@ -210,7 +198,6 @@ const Personas = () => {
 				(persona.role.toLowerCase() === 'artist' ||
 					persona.role.toLowerCase() === 'artista')
 			) {
-				console.log('Es un artista, abriendo modal de artista');
 				// Asegurarse de que el artista tenga el external_id
 				const artista = {
 					...persona,
@@ -221,11 +208,6 @@ const Personas = () => {
 			}
 			// Verificar si el rol es "sello"
 			else if (persona.role && persona.role.toLowerCase() === 'sello') {
-				console.log('Es un sello, datos completos:', {
-					...persona,
-					email: persona.email,
-					role: persona.role,
-				});
 				setSelectedSello(persona);
 				setShowSelloModal(true);
 			} else {
@@ -281,24 +263,12 @@ const Personas = () => {
 			if (isFormData) {
 				// Si es FormData, no establecer Content-Type (el navegador lo hará automáticamente)
 				body = data;
-				console.log('Enviando FormData:', {
-					name: data.get('name'),
-					email: data.get('email'),
-					external_id: data.get('external_id'),
-					hasPicture: data.has('picture'),
-				});
 			} else {
 				// Si es JSON, establecer Content-Type y convertir a string
 				headers['Content-Type'] = 'application/json';
 				body = JSON.stringify({
 					...data,
 					role: 'artista',
-				});
-				console.log('Enviando JSON:', {
-					name: data.name,
-					email: data.email,
-					external_id: data.external_id,
-					hasPicture: !!data.picture,
 				});
 			}
 
@@ -323,19 +293,6 @@ const Personas = () => {
 			}
 
 			const responseData = await res.json();
-			console.log('Respuesta del servidor:', {
-				success: responseData.success,
-				artist: {
-					_id: responseData.artist._id,
-					name: responseData.artist.name,
-					email: responseData.artist.email,
-					picture: responseData.artist.picture
-						? 'Imagen presente'
-						: 'Sin imagen',
-					external_id: responseData.artist.external_id,
-					role: responseData.artist.role,
-				},
-			});
 
 			if (responseData.success) {
 				// Recargar la lista de personas después de actualizar un artista
@@ -518,10 +475,8 @@ const Personas = () => {
 												whileHover={{ scale: 1.05 }}
 												whileTap={{ scale: 0.95 }}
 												onClick={e => {
-													console.log('Botón de editar clickeado');
 													e.preventDefault();
 													e.stopPropagation();
-													console.log('Click en botón de editar:', persona);
 													try {
 														handleEdit(e, persona);
 													} catch (error) {
@@ -761,16 +716,11 @@ const Personas = () => {
 
 			{showPublisherModal && selectedPublisher && (
 				<>
-					{console.log(
-						'Renderizando modal de publisher con datos:',
-						selectedPublisher
-					)}
 					<UpdatePublisherModal
 						publisher={selectedPublisher}
 						onUpdate={handlePublisherUpdate}
 						isOpen={showPublisherModal}
 						onClose={() => {
-							console.log('Cerrando modal de publisher');
 							setShowPublisherModal(false);
 							setSelectedPublisher(null);
 						}}
@@ -780,7 +730,6 @@ const Personas = () => {
 
 			{showContributorModal && selectedContributor && (
 				<>
-					{console.log('Renderizando modal de contribuidor')}
 					<UpdateContributorModal
 						contributor={{
 							id: selectedContributor._id,
@@ -798,7 +747,6 @@ const Personas = () => {
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}
 						onClose={() => {
-							console.log('Cerrando modal de contribuidor');
 							setShowContributorModal(false);
 							setSelectedContributor(null);
 						}}
@@ -810,7 +758,6 @@ const Personas = () => {
 				selectedArtista &&
 				selectedArtista.role === 'artista' && (
 					<>
-						{console.log('Renderizando modal de artista')}
 						<UpdateArtistaModal
 							artista={
 								{
@@ -850,14 +797,6 @@ const Personas = () => {
 
 			{showSelloModal && selectedSello && (
 				<>
-					{console.log(
-						'Datos del sello seleccionado antes de pasar al modal:',
-						{
-							selectedSello,
-							email: selectedSello.email,
-							role: selectedSello.role,
-						}
-					)}
 					<UpdateSelloModal
 						sello={
 							{
@@ -886,7 +825,6 @@ const Personas = () => {
 						}
 						isOpen={showSelloModal}
 						onClose={() => {
-							console.log('Cerrando modal de sello');
 							setShowSelloModal(false);
 							setSelectedSello(null);
 						}}

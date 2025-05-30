@@ -7,7 +7,6 @@ import { jwtVerify } from 'jose';
 export async function POST(request: NextRequest) {
 	try {
 		const token = request.cookies.get('loginToken')?.value;
-		console.log('token: ', token);
 		if (!token) {
 			return NextResponse.json(
 				{ success: false, error: 'Not authenticated' },

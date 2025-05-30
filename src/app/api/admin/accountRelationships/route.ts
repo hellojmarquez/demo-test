@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 		} catch (err) {
-			console.error('JWT verification failed', err);
+		
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 			message: 'Relaciones creadas exitosamente',
 		});
 	} catch (error) {
-		console.error('Error in accountRelationships:', error);
+	
 		return NextResponse.json(
 			{ success: false, error: 'Error al crear las relaciones' },
 			{ status: 500 }
@@ -86,7 +86,7 @@ export async function DELETE(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 		} catch (err) {
-			console.error('JWT verification failed', err);
+		
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
@@ -126,7 +126,7 @@ export async function DELETE(req: NextRequest) {
 			deletedCount: result.deletedCount,
 		});
 	} catch (error) {
-		console.error('Error in accountRelationships:', error);
+	
 		return NextResponse.json(
 			{ success: false, error: 'Error al eliminar la relación' },
 			{ status: 500 }

@@ -18,12 +18,9 @@ async function verifyToken(token: string) {
 // GET - Obtener todos los tickets
 export async function GET(req: NextRequest) {
 	try {
-		console.log('GET /api/admin/tickets - Iniciando petición');
 		const token = req.cookies.get('loginToken')?.value;
-		
 
 		if (!token) {
-			console.log('Error: No hay token de autenticación');
 			return NextResponse.json(
 				{ success: false, error: 'No autorizado' },
 				{ status: 401 }
@@ -40,9 +37,9 @@ export async function GET(req: NextRequest) {
 		}
 
 		const isAdmin = payload.role === 'admin';
-	
+
 		await dbConnect();
-	
+
 		const userId = req.cookies.get('userId')?.value;
 
 		const tickets = isAdmin
@@ -59,7 +56,6 @@ export async function GET(req: NextRequest) {
 					],
 			  }).sort({ createdAt: -1 })
 			: await Ticket.find({ userId }).sort({ createdAt: -1 });
-	
 
 		return NextResponse.json(tickets);
 	} catch (error) {
@@ -74,9 +70,7 @@ export async function GET(req: NextRequest) {
 // POST - Crear un nuevo ticket
 export async function POST(req: NextRequest) {
 	try {
-		console.log('POST /api/admin/tickets - Iniciando petición');
 		const token = req.cookies.get('loginToken')?.value;
-		console.log('Token presente:', !!token);
 
 		if (!token) {
 			console.log('Error: No hay token de autenticación');
@@ -95,9 +89,8 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		console.log('Obteniendo datos del body...');
 		const body = await req.json();
-		console.log('Datos recibidos:', body);
+
 		const { title, description, priority, assignedTo } = body;
 
 		if (!title || !description || !assignedTo) {
@@ -112,12 +105,9 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		console.log('Conectando a la base de datos...');
 		await dbConnect();
-		console.log('Conexión a la base de datos exitosa');
 
 		const userId = req.cookies.get('userId')?.value;
-		console.log('UserId:', userId);
 
 		if (!userId) {
 			console.log('Error: No hay userId en las cookies');
@@ -127,7 +117,6 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		console.log('Creando nuevo ticket...');
 		const ticketData = {
 			title,
 			description,
@@ -137,18 +126,11 @@ export async function POST(req: NextRequest) {
 			assignedTo, // Guardamos el ID del usuario asignado
 			createdBy: payload.email, // Guardamos el email del creador
 		};
-		console.log('Datos del ticket a crear:', ticketData);
 
 		const ticket = await Ticket.create(ticketData);
-		console.log('Ticket creado exitosamente:', ticket);
 
 		return NextResponse.json(ticket);
 	} catch (error) {
-		console.error('Error detallado al crear ticket:', error);
-		if (error instanceof Error) {
-			console.error('Mensaje de error:', error.message);
-			console.error('Stack trace:', error.stack);
-		}
 		return NextResponse.json(
 			{ success: false, error: 'Error interno del servidor' },
 			{ status: 500 }
@@ -159,9 +141,7 @@ export async function POST(req: NextRequest) {
 // PUT - Actualizar un ticket
 export async function PUT(req: NextRequest) {
 	try {
-		console.log('PUT /api/admin/tickets - Iniciando petición');
 		const token = req.cookies.get('loginToken')?.value;
-		console.log('Token presente:', !!token);
 
 		if (!token) {
 			console.log('Error: No hay token de autenticación');
@@ -181,14 +161,9 @@ export async function PUT(req: NextRequest) {
 		}
 
 		const isAdmin = payload.role === 'admin';
-		console.log('Es admin:', isAdmin);
-
-		console.log('Obteniendo datos del body...');
 		const body = await req.json();
-		console.log('Datos recibidos:', body);
 		const { status } = body;
 		const ticketId = req.url.split('/').pop();
-		console.log('TicketId:', ticketId);
 
 		if (!ticketId || !status) {
 			console.log('Error: Faltan campos requeridos', { ticketId, status });
@@ -198,12 +173,9 @@ export async function PUT(req: NextRequest) {
 			);
 		}
 
-		console.log('Conectando a la base de datos...');
 		await dbConnect();
-		console.log('Conexión a la base de datos exitosa');
 
 		const userId = req.cookies.get('userId')?.value;
-		console.log('UserId:', userId);
 
 		if (!userId) {
 			console.log('Error: No hay userId en las cookies');
@@ -213,9 +185,7 @@ export async function PUT(req: NextRequest) {
 			);
 		}
 
-		console.log('Buscando ticket...');
 		const ticket = await Ticket.findById(ticketId);
-		console.log('Ticket encontrado:', ticket);
 
 		if (!ticket) {
 			console.log('Error: Ticket no encontrado');
@@ -233,7 +203,6 @@ export async function PUT(req: NextRequest) {
 			);
 		}
 
-		console.log('Actualizando ticket...');
 		const updatedTicket = await Ticket.findByIdAndUpdate(
 			ticketId,
 			{
@@ -243,15 +212,9 @@ export async function PUT(req: NextRequest) {
 			},
 			{ new: true }
 		);
-		console.log('Ticket actualizado:', updatedTicket);
 
 		return NextResponse.json(updatedTicket);
 	} catch (error) {
-		console.error('Error detallado al actualizar ticket:', error);
-		if (error instanceof Error) {
-			console.error('Mensaje de error:', error.message);
-			console.error('Stack trace:', error.stack);
-		}
 		return NextResponse.json(
 			{ success: false, error: 'Error interno del servidor' },
 			{ status: 500 }

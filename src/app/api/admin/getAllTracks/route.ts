@@ -31,7 +31,6 @@ export async function GET(req: NextRequest) {
 			);
 			userRole = verifiedPayload.role as string;
 			userId = verifiedPayload.id as string;
-			console.log('User role:', userRole, 'User ID:', userId);
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -55,11 +54,9 @@ export async function GET(req: NextRequest) {
 		let total = 0;
 
 		if (userRole === 'sello') {
-			console.log('Filtering tracks for sello:', userId);
 			// Si es un sello, primero obtenemos sus releases
 			const releases = await Release.find({ label: userId }).select('_id');
 			const releaseIds = releases.map(release => release._id);
-			console.log('Found releases for sello:', releaseIds);
 
 			// Construimos el query para tracks que pertenecen a esos releases
 			query = {
@@ -69,9 +66,7 @@ export async function GET(req: NextRequest) {
 
 			// Contamos los tracks que coinciden
 			total = await SingleTrack.countDocuments(query);
-			console.log('Found tracks count:', total);
 		} else if (userRole === 'publisher') {
-			console.log('Filtering tracks for publisher:', userId);
 			// Si es un publisher, obtenemos su external_id
 			const publisher = await User.findById(userId);
 			if (!publisher) {
@@ -80,7 +75,6 @@ export async function GET(req: NextRequest) {
 					{ status: 404 }
 				);
 			}
-			console.log('Publisher external_id:', publisher.external_id);
 
 			// Construimos el query para tracks donde el publisher participa
 			query = {
@@ -94,7 +88,6 @@ export async function GET(req: NextRequest) {
 
 			// Contamos los tracks que coinciden
 			total = await SingleTrack.countDocuments(query);
-			console.log('Found tracks count for publisher:', total);
 		} else {
 			// Para admin, mostramos todos los tracks
 			query = searchQuery;

@@ -14,7 +14,6 @@ let io: SocketIOServer | null = null;
 
 export const initSocket = (res: NextApiResponseWithSocket) => {
 	if (!res.socket.server.io) {
-		console.log('Inicializando Socket.IO...');
 		io = new SocketIOServer(res.socket.server, {
 			path: '/api/socket',
 			addTrailingSlash: false,
@@ -26,28 +25,19 @@ export const initSocket = (res: NextApiResponseWithSocket) => {
 		});
 
 		io.on('connection', socket => {
-		
-
 			socket.on('join-ticket', (ticketId: string) => {
-		
 				socket.join(ticketId);
 			});
 
 			socket.on('leave-ticket', (ticketId: string) => {
-			
 				socket.leave(ticketId);
 			});
 
 			socket.on('new-message', ({ ticketId, message }) => {
-			
-				
 				io?.to(ticketId).emit('message-received', message);
 			});
 
-			socket.on('ticket-updated', ({ ticketId, ticket }) => {
-				
-				
-			});
+			socket.on('ticket-updated', ({ ticketId, ticket }) => {});
 
 			socket.on('disconnect', () => {
 				console.log('Cliente desconectado:', socket.id);

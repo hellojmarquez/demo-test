@@ -22,10 +22,7 @@ export async function GET(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-			console.log(
-				'Payload completo del token:',
-				JSON.stringify(payload, null, 2)
-			);
+
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(

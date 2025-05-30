@@ -45,7 +45,7 @@ export async function GET(
 		const subAccountsRelations = await AccountRelationship.find({
 			mainAccountId: userId,
 		}).populate('subAccountId', 'name email role picture');
-		console.log('SUBACCOUNTS RELATIONS', subAccountsRelations);
+	
 		// Formatear la respuesta
 		const mainAccount = mainAccountRelation
 			? {

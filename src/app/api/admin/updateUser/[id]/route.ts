@@ -32,14 +32,12 @@ export async function PUT(
 			);
 		}
 		const body = await req.json();
-		console.log('body', body);
 		if (!body.name || !body.email) {
 			return NextResponse.json(
 				{ message: 'Nombre, email y contraseña son requeridos' },
 				{ status: 400 }
 			);
 		}
-		console.log(params.id);
 
 		// Si hay una imagen en base64, convertirla a Buffer
 		if (body.picture && body.picture.startsWith('data:image')) {
@@ -50,14 +48,12 @@ export async function PUT(
 			const hashedPassword = await encryptPassword(body.password);
 			body.password = hashedPassword;
 		}
-		console.log('body buffer', body);
+
 		await dbConnect();
 		const updatedUser = await Admin.findByIdAndUpdate(params.id, body, {
 			new: true,
 			runValidators: true,
 		});
-
-		console.log('res', updatedUser);
 
 		if (!updatedUser) {
 			return NextResponse.json(

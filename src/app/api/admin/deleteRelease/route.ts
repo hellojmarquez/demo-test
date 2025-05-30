@@ -24,12 +24,6 @@ export async function DELETE(request: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-			console.log('Token payload completo:', JSON.stringify(payload, null, 2));
-			console.log('Datos del usuario:', {
-				id: payload.id,
-				name: payload.name,
-				role: payload.role,
-			});
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(

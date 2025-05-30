@@ -38,7 +38,6 @@ export async function PUT(
 
 		await dbConnect();
 		const trackId = params.id;
-		console.log('trackId recibido', trackId);
 		let track_url = '';
 
 		// Get the current track first
@@ -84,7 +83,6 @@ export async function PUT(
 				}
 
 				if (file) {
-					console.log('ACTUALIZANDO TRAck');
 					const uploadTrackReq = await fetch(
 						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
 						{
@@ -130,10 +128,6 @@ export async function PUT(
 						);
 
 					if (!uploadResponse.ok) {
-						console.error(
-							'Error al subir el archivo de audio a S3:',
-							await uploadResponse.text()
-						);
 						return NextResponse.json(
 							{
 								success: false,
@@ -175,7 +169,6 @@ export async function PUT(
 			);
 		}
 
-		console.log('UPDATESINGLE RECIBIDO', trackData.external_id);
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
 			{
@@ -190,7 +183,6 @@ export async function PUT(
 			}
 		);
 		const apires = await trackToApi.json();
-		console.log('TRACK ACTUALIZADO EN API', apires);
 		if (!apires.ok) {
 			console.error(`Error al actualizar el track: ${trackId}`, apires);
 			return NextResponse.json(

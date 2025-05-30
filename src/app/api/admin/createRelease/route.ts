@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
 		};
 
 		if (picture) {
-			console.log('ACTUALIZANDO TRAck');
+			
 			const uploadArtworkReq = await fetch(
 				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=${picture.type}&upload_type=release.artwork`,
 				{
@@ -159,13 +159,12 @@ export async function POST(req: NextRequest) {
 				method: 'POST',
 				body: pictureFormData,
 			});
-			// console.log(uploadResponse?.headers?.get('location'));
+		
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
 
 			if (!uploadResponse.ok) {
-				console.log('COVER TO S3', uploadResponse);
-				console.error('Error al subir el archivo de audio a S3:');
+			
 				return NextResponse.json(
 					{
 						success: false,
@@ -177,7 +176,7 @@ export async function POST(req: NextRequest) {
 				);
 			}
 		}
-		console.log('picture_url', picture_url);
+
 		const artwork_data = {
 			full_size: picture_url,
 		};
@@ -203,7 +202,7 @@ export async function POST(req: NextRequest) {
 		});
 
 		const apiRes = await releaseToApi.json();
-		console.log('API RES', apiRes);
+	
 		if (!apiRes.id) {
 			return NextResponse.json(
 				{

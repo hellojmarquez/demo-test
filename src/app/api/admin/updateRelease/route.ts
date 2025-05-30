@@ -140,7 +140,6 @@ export async function PUT(
 
 				// Agregar el track creado al release
 				if (data.track) {
-					console.log('data.track', data.track);
 					releaseTrackMetadata.push({
 						title: data.track.name,
 						external_id: data.track.external_id,
@@ -150,9 +149,7 @@ export async function PUT(
 					const source_path = decodeURIComponent(
 						new URL(data.track.resource).pathname.slice(1)
 					);
-					console.log('source_path', source_path);
 					data.track.resource = source_path;
-					console.log('source_path', source_path);
 					data.track.id = data.track.extrernal_id;
 					fullNewTrackToApi.push(data.track);
 					delete data.track.id;
@@ -257,7 +254,6 @@ export async function PUT(
 						throw new Error(data.message || 'Error al crear el track');
 					}
 					if (data.track) {
-						console.log('data.track', data.track);
 						releaseTrackMetadata.push({
 							title: data.track.name,
 							external_id: data.track.external_id,
@@ -267,9 +263,8 @@ export async function PUT(
 						const source_path = decodeURIComponent(
 							new URL(data.track.resource).pathname.slice(1)
 						);
-						console.log('source_path', source_path);
+					
 						data.track.resource = source_path;
-						console.log('source_path', source_path);
 						data.track.id = data.track.extrernal_id;
 						fullNewTrackToApi.push(data.track);
 						delete data.track.id;
@@ -360,7 +355,6 @@ export async function PUT(
 		}
 
 		// Mantener los tracks existentes y agregar los nuevos
-		console.log('release antes de ingresar tracks', releaseData);
 		releaseData.tracks = [...(releaseData.tracks || []), ...fullNewTrackToBBDD];
 
 		// Primero buscar el release por external_id
@@ -415,7 +409,6 @@ export async function PUT(
 		delete dataToApi.newTracks;
 		delete dataToApi.editedTracks;
 		delete dataToApi.newArtists;
-		console.log('dataToApi', dataToApi);
 		// Llamar a la API externa con la estructura completa
 		const externalApiRes = await fetch(
 			`${process.env.MOVEMUSIC_API}/releases/${params.id}`,
@@ -431,7 +424,6 @@ export async function PUT(
 			}
 		);
 		const externalApiResJson = await externalApiRes.json();
-		console.log('externalApiResJson', externalApiResJson);
 
 		return NextResponse.json({
 			success: true,

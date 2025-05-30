@@ -134,7 +134,6 @@ export async function POST(req: NextRequest) {
 
 		await newLog.save();
 
-		console.log('New log:', newLog);
 		return NextResponse.json(newLog, { status: 201 });
 	} catch (error: any) {
 		return NextResponse.json({ error: error.message }, { status: 400 });

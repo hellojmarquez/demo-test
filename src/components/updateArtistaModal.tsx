@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Select from 'react-select';
 import { Artista } from '@/types/artista';
+import { toast } from 'react-hot-toast';
 
 interface User {
 	_id: string;
@@ -60,6 +61,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	);
 	const [selectedSubAccounts, setSelectedSubAccounts] = useState<User[]>([]);
 	const [existingRelationships, setExistingRelationships] = useState<any[]>([]);
+	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
 		if (!artista.picture) return null;
 		if (typeof artista.picture === 'string') {
@@ -237,6 +239,40 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 			);
 		} finally {
 			setIsSubmitting(false);
+		}
+	};
+
+	// Función para eliminar una relación
+	const handleDeleteRelationship = async (relationshipId: string) => {
+		try {
+			setIsDeleting(relationshipId);
+			const response = await fetch('/api/admin/accountRelationships', {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					mainAccountId: artista._id,
+					subAccountId: relationshipId,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error('Error al eliminar la relación');
+			}
+
+			// Actualizar la lista de relaciones
+			setExistingRelationships(prev =>
+				prev.filter(rel => rel._id !== relationshipId)
+			);
+
+			// Mostrar mensaje de éxito
+			toast.success('Relación eliminada exitosamente');
+		} catch (error) {
+			console.error('Error al eliminar la relación:', error);
+			toast.error('Error al eliminar la relación');
+		} finally {
+			setIsDeleting(null);
 		}
 	};
 
@@ -517,6 +553,20 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 																<span className="px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
 																	{rel.role}
 																</span>
+																<button
+																	onClick={() =>
+																		handleDeleteRelationship(rel._id)
+																	}
+																	disabled={isDeleting === rel._id}
+																	className="p-1 text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+																	title="Eliminar relación"
+																>
+																	{isDeleting === rel._id ? (
+																		<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+																	) : (
+																		<Trash2 size={16} />
+																	)}
+																</button>
 															</div>
 														</div>
 													);

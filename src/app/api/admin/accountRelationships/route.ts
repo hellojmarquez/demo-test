@@ -108,14 +108,22 @@ export async function DELETE(req: NextRequest) {
 		}
 
 		// Eliminar la relación específica
-		await AccountRelationship.deleteOne({
-			mainAccount: mainAccountId,
-			subAccount: subAccountId,
+		const result = await AccountRelationship.deleteOne({
+			mainAccountId: mainAccountId,
+			subAccountId: subAccountId,
 		});
+
+		if (result.deletedCount === 0) {
+			return NextResponse.json(
+				{ success: false, error: 'No se encontró la relación' },
+				{ status: 404 }
+			);
+		}
 
 		return NextResponse.json({
 			success: true,
 			message: 'Relación eliminada exitosamente',
+			deletedCount: result.deletedCount,
 		});
 	} catch (error) {
 		console.error('Error in accountRelationships:', error);

@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 				})
 					.setProtectedHeader({ alg: 'HS256' })
 					.setIssuedAt()
-					.setExpirationTime('1h')
+					.setExpirationTime('2d')
 					.sign(new TextEncoder().encode(process.env.JWT_SECRET));
 
 				const plainUser = userDB.toObject();
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 					name: 'loginToken',
 					value: token,
 					path: '/',
-					maxAge: 60 * 60 * 24 * 7, // 7 días
+					maxAge: 60 * 60 * 24 * 2, // 2 días
 					httpOnly: true,
 					secure: isProd,
 					sameSite: sameSite,

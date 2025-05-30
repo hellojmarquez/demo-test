@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { User, Sello } from '@/models/UserModel';
+import AccountRelationshipModel from '@/models/AccountRelationshipModel';
 import { jwtVerify } from 'jose';
 import { encryptPassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
@@ -58,12 +59,35 @@ export async function PUT(
 		const contentType = req.headers.get('content-type') || '';
 		if (contentType.includes('multipart/form-data')) {
 			const formData = await req.formData();
-			file = formData.get('picture') as File;
-			data = JSON.parse(formData.get('data') as string);
+			file = formData.get('file') as File;
+
+			// Extraer todos los campos del FormData
+			data = {
+				name: formData.get('name'),
+				email: formData.get('email'),
+				password: formData.get('password'),
+				role: formData.get('role'),
+				external_id: Number(formData.get('external_id')),
+				_id: formData.get('_id'),
+				status: formData.get('status'),
+				catalog_num: formData.get('catalog_num'),
+				year: formData.get('year'),
+				exclusivity: formData.get('exclusivity'),
+				primary_genre: formData.get('primary_genre'),
+				subAccounts: formData.get('subAccounts'),
+			};
 		} else if (contentType.includes('application/json')) {
 			data = await req.json();
 		}
 
+		if (!data) {
+			return NextResponse.json(
+				{ error: 'No se recibieron datos para actualizar' },
+				{ status: 400 }
+			);
+		}
+
+		console.log('UPDATE SELLO: ', data);
 		// Preparar los datos para la actualización
 		let updateData: any = {
 			name: data.name,
@@ -73,8 +97,7 @@ export async function PUT(
 			status: data.status,
 			logo: '',
 		};
-
-		console.log('recibido: ', data);
+		console.log('FILE: ', file);
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
 			console.log('Subiendo nueva imagen...');
@@ -181,6 +204,34 @@ export async function PUT(
 				{ status: 500 }
 			);
 		}
+
+		// Manejar las relaciones de cuentas
+		try {
+			// Eliminar relaciones existentes
+			await AccountRelationshipModel.deleteMany({
+				mainAccountId: updatedSello._id,
+			});
+
+			// Crear nuevas relaciones si hay subcuentas seleccionadas
+			if (data.subAccounts && data.subAccounts.length > 0) {
+				const subAccountsData = JSON.parse(data.subAccounts);
+				const relationships = subAccountsData.map((subAccount: any) => ({
+					mainAccountId: updatedSello._id,
+					subAccountId: subAccount.subAccountId,
+					role: subAccount.role,
+					status: subAccount.status || 'activo',
+				}));
+
+				await AccountRelationshipModel.insertMany(relationships);
+			}
+		} catch (relationshipError) {
+			console.error(
+				'Error al manejar las relaciones de cuentas:',
+				relationshipError
+			);
+			// No interrumpimos el flujo si falla la gestión de relaciones
+		}
+
 		try {
 			// Crear el log
 			const logData = {

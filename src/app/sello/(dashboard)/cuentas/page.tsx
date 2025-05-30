@@ -505,29 +505,39 @@ export default function UsuariosPage() {
 
 	const handleSelloSave = async (formData: FormData) => {
 		try {
-			const data = JSON.parse(formData.get('data') as string);
-			console.log('Datos del sello a actualizar:', data);
-
 			// Determinar si hay una imagen para enviar
 			const hasImage = formData.has('picture');
 			const headers: HeadersInit = {};
 			let body: string | FormData;
-
+			console.log('formData: ', formData);
 			if (hasImage) {
 				// Si hay imagen, enviar como FormData
 				body = formData;
 			} else {
 				// Si no hay imagen, enviar como JSON
-				headers['Content-Type'] = 'application/json';
-				body = JSON.stringify({
-					...data,
+				const data = {
+					name: formData.get('name'),
+					email: formData.get('email'),
+					password: formData.get('password'),
 					role: 'sello',
-					external_id: data.external_id || data._id, // Asegurar que siempre tengamos un external_id
-					primary_genre: data.primary_genre || '', // Asegurar que siempre tengamos un primary_genre
-				});
+					_id: formData.get('_id'),
+					external_id: formData.get('external_id'),
+					status: formData.get('status'),
+					catalog_num: formData.get('catalog_num'),
+					year: formData.get('year'),
+					exclusivity: formData.get('exclusivity'),
+					primary_genre: formData.get('primary_genre'),
+					subAccounts: formData.get('subAccounts'),
+				};
+
+				headers['Content-Type'] = 'application/json';
+				body = JSON.stringify(data);
 			}
 
-			const res = await fetch(`/api/admin/updateSello/${data.external_id}`, {
+			const external_id = formData.get('external_id');
+			console.log('body SELLO: ', body);
+
+			const res = await fetch(`/api/admin/updateSello/${external_id}`, {
 				method: 'PUT',
 				headers,
 				body,

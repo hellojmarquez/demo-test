@@ -82,6 +82,13 @@ interface SelloFormData {
 	primary_genre: string;
 }
 
+interface User {
+	_id: string;
+	name: string;
+	email: string;
+	role: string;
+}
+
 const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	sello,
 	isOpen,
@@ -89,6 +96,13 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	onSave,
 }) => {
 	const router = useRouter();
+	// Estados para la gestión de cuentas
+	const [users, setUsers] = useState<User[]>([]);
+	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+	const [selectedSubAccounts, setSelectedSubAccounts] = useState<User[]>([]);
+	const [existingRelationships, setExistingRelationships] = useState<any[]>([]);
+	const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
 	// Log para verificar los datos recibidos
 	useEffect(() => {
 		if (isOpen) {
@@ -141,6 +155,73 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		console.log('primary_genre actualizado:', formData.primary_genre);
 	}, [formData.primary_genre]);
 
+	// Funciones para la gestión de cuentas
+	const fetchUsers = async () => {
+		try {
+			setIsLoadingUsers(true);
+			const response = await fetch('/api/admin/getAllUsers?all=true');
+			if (!response.ok) {
+				throw new Error('Error al obtener usuarios');
+			}
+			const data = await response.json();
+			setUsers(data.data.users);
+		} catch (error) {
+			console.error('Error fetching users:', error);
+			toast.error('Error al cargar los usuarios');
+		} finally {
+			setIsLoadingUsers(false);
+		}
+	};
+
+	const fetchExistingRelationships = async () => {
+		try {
+			const response = await fetch(`/api/admin/getUserRelations/${sello._id}`);
+			if (!response.ok) throw new Error('Error al obtener relaciones');
+			const data = await response.json();
+			setExistingRelationships(data.data.subAccounts || []);
+		} catch (error) {
+			console.error('Error al obtener relaciones:', error);
+		}
+	};
+
+	const handleDeleteRelationship = async (relationshipId: string) => {
+		try {
+			setIsDeleting(relationshipId);
+			const response = await fetch('/api/admin/accountRelationships', {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					mainAccountId: sello._id,
+					subAccountId: relationshipId,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error('Error al eliminar la relación');
+			}
+
+			setExistingRelationships(prev =>
+				prev.filter(rel => rel._id !== relationshipId)
+			);
+			toast.success('Relación eliminada exitosamente');
+		} catch (error) {
+			console.error('Error al eliminar la relación:', error);
+			toast.error('Error al eliminar la relación');
+		} finally {
+			setIsDeleting(null);
+		}
+	};
+
+	// Cargar usuarios y relaciones al abrir el modal
+	useEffect(() => {
+		if (isOpen) {
+			fetchUsers();
+			fetchExistingRelationships();
+		}
+	}, [isOpen]);
+
 	// Generate years array from 1900 to current year
 	const currentYear = new Date().getFullYear();
 	const years = Array.from(
@@ -183,6 +264,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const [genres, setGenres] = useState<Array<{ _id: string; name: string }>>(
 		[]
 	);
+
+	const [error, setError] = useState<string | null>(null);
 
 	const statusOptions: StatusOption[] = [
 		{ value: 'activo', label: 'Activo' },
@@ -278,20 +361,25 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		}),
 	};
 
-	const createSelectStyles = <T extends BaseOption>(): StylesConfig<
-		T,
-		false
-	> => ({
+	const yearSelectStyles = {
 		...baseSelectStyles,
-	});
+	};
 
-	const statusSelectStyles = createSelectStyles<StatusOption>();
-	const accountSelectStyles = createSelectStyles<AccountOption>();
+	const artistSelectStyles = {
+		...baseSelectStyles,
+	};
 
-	const exclusivitySelectStyles = createSelectStyles<ExclusivityOption>();
-	const yearSelectStyles = createSelectStyles<YearOption>();
-	const artistSelectStyles = createSelectStyles<ArtistOption>();
-	const genreSelectStyles = createSelectStyles<GenreOption>();
+	const genreSelectStyles = {
+		...baseSelectStyles,
+	};
+
+	const statusSelectStyles = {
+		...baseSelectStyles,
+	};
+
+	const exclusivitySelectStyles = {
+		...baseSelectStyles,
+	};
 
 	// Update the input styles to accommodate icons
 	const inputStyles =
@@ -519,104 +607,49 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
+		setError(null);
 
 		try {
-			// Primero procesar las asignaciones eliminadas
-			for (const asignacionId of removedAsignaciones) {
-				await fetch(
-					`/api/admin/deleteAsignacion?asignacion_id=${asignacionId}`,
-					{
-						method: 'DELETE',
-					}
-				);
-			}
-
-			// Luego crear las nuevas asignaciones
-			for (const asignacion of newAsignaciones) {
-				await fetch('/api/admin/createAsignacion', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						sello_id: sello._id,
-						artista_id: asignacion.artista_id._id,
-						fecha_inicio: asignacion.fecha_inicio,
-						fecha_fin: asignacion.fecha_fin,
-						tipo_contrato: asignacion.tipo_contrato,
-						porcentaje_distribucion: asignacion.porcentaje_distribucion,
-					}),
-				});
-			}
-
-			// Procesar el resto de la actualización del sello
 			const formDataToSend = new FormData();
+			formDataToSend.append('name', formData.name);
+			formDataToSend.append('email', formData.email);
+			formDataToSend.append('role', 'sello');
+			formDataToSend.append('_id', formData._id);
+			formDataToSend.append('external_id', sello.external_id.toString());
 
-			// Preparar los datos del sello
-			const dataToSend = {
-				_id: sello._id,
-				external_id: sello.external_id,
-				name: formData.name,
-				email: formData.email,
-				password: formData.password,
-				role: 'sello',
-				catalog_num: parseInt(formData.catalog_num.toString()) || 0,
-				year: parseInt(formData.year.toString()) || 0,
-				status: formData.status,
-				exclusivity: formData.exclusivity,
-				primary_genre: formData.primary_genre,
-				// Incluir las asignaciones de artistas
-				assigned_artists: newAsignaciones.map(asignacion => ({
-					artista_id: asignacion.artista_id._id,
-					fecha_inicio: asignacion.fecha_inicio,
-					fecha_fin: asignacion.fecha_fin,
-					tipo_contrato: asignacion.tipo_contrato,
-					porcentaje_distribucion: asignacion.porcentaje_distribucion,
-				})),
-			};
+			if (formData.password) {
+				formDataToSend.append('password', formData.password);
+			}
 
-			// Agregar los datos al FormData
-			formDataToSend.append('data', JSON.stringify(dataToSend));
+			formDataToSend.append('status', formData.status || 'activo');
+			formDataToSend.append('catalog_num', formData.catalog_num.toString());
+			formDataToSend.append('year', formData.year.toString());
+			formDataToSend.append('exclusivity', formData.exclusivity);
+			formDataToSend.append('primary_genre', formData.primary_genre);
 
-			// Si la imagen es un File, agregarla al FormData
 			if (formData.picture instanceof File) {
+				formDataToSend.append('picture', formData.picture);
+			} else if (typeof formData.picture === 'string') {
 				formDataToSend.append('picture', formData.picture);
 			}
 
-			await onSave(formDataToSend);
-
-			// Si hay un nuevo límite extendido, crearlo
-			if (extendedLimit.limit > 0 && extendedLimit.endDate) {
-				await fetch('/api/admin/sello-limits', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						sello_id: sello._id,
-						extendedLimit: extendedLimit.limit,
-						endDate: extendedLimit.endDate,
-						paymentDetails: extendedLimit.paymentDetails,
-					}),
-				});
+			// Agregar datos de relaciones con información adicional
+			if (selectedSubAccounts.length > 0) {
+				const subAccountsData = selectedSubAccounts.map(account => ({
+					subAccountId: account._id,
+					status: 'activo', // Estado por defecto de la relación
+					role: account.role, // Incluimos el rol para referencia
+				}));
+				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
 			}
 
-			// Limpiar los estados de asignaciones
-			setNewAsignaciones([]);
-			setRemovedAsignaciones([]);
-			setExtendedLimit({
-				limit: 0,
-				endDate: '',
-				paymentDetails: {
-					amount: 0,
-					transactionId: '',
-				},
-			});
-
+			await onSave(formDataToSend);
 			onClose();
 		} catch (error) {
 			console.error('Error saving sello:', error);
-			alert('Error al guardar los cambios. Por favor, intenta de nuevo.');
+			setError(
+				error instanceof Error ? error.message : 'Error al guardar el sello'
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -1343,6 +1376,154 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 												</div>
 											</div>
 										</div>
+									</div>
+								</div>
+
+								{/* Sección de Gestión de Cuentas */}
+								<div className="space-y-4 mt-6">
+									<h3 className="text-lg font-medium text-gray-900">
+										Gestión de Cuentas
+									</h3>
+
+									{/* Subcuentas Existentes */}
+									{existingRelationships.length > 0 ? (
+										<div className="mt-4">
+											<h4 className="font-medium text-gray-700 mb-2">
+												Subcuentas Asociadas
+											</h4>
+											<div className="space-y-2">
+												{existingRelationships.map(rel => (
+													<div
+														key={rel._id}
+														className="bg-gray-50 p-3 rounded-lg flex items-center justify-between"
+													>
+														<div>
+															<p className="text-sm text-gray-600">
+																{rel.name}
+															</p>
+															<p className="text-xs text-gray-500">
+																{rel.email}
+															</p>
+														</div>
+														<div className="flex items-center space-x-2">
+															<span className="px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+																{rel.role}
+															</span>
+															<button
+																onClick={() =>
+																	handleDeleteRelationship(rel._id)
+																}
+																disabled={isDeleting === rel._id}
+																className="p-1 text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+																title="Eliminar relación"
+															>
+																{isDeleting === rel._id ? (
+																	<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+																) : (
+																	<Trash2 size={16} />
+																)}
+															</button>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									) : (
+										<div className="mt-4 text-center text-gray-500">
+											No hay subcuentas asociadas
+										</div>
+									)}
+
+									{/* Selector de Subcuentas */}
+									<div className="mt-4">
+										<h4 className="font-medium text-gray-700 mb-2">
+											Agregar Subcuentas
+										</h4>
+										<Select
+											isMulti
+											options={users}
+											value={selectedSubAccounts}
+											onChange={newValue =>
+												setSelectedSubAccounts(newValue as User[])
+											}
+											formatOptionLabel={(option: any) => (
+												<div className="flex flex-col">
+													<span className="font-medium">{option.name}</span>
+													<span className="text-sm text-gray-500">
+														{option.email}
+													</span>
+												</div>
+											)}
+											placeholder="Seleccionar subcuentas..."
+											className="basic-multi-select"
+											classNamePrefix="select"
+											styles={{
+												control: (base, state) => ({
+													...base,
+													border: 'none',
+													borderBottom: '2px solid #E5E7EB',
+													borderRadius: '0',
+													boxShadow: 'none',
+													backgroundColor: 'transparent',
+													'&:hover': {
+														borderBottom: '2px solid #4B5563',
+													},
+													'&:focus-within': {
+														borderBottom: '2px solid #4B5563',
+													},
+													minHeight: '38px',
+												}),
+												option: (base, state) => ({
+													...base,
+													backgroundColor: state.isSelected
+														? '#4B5563'
+														: state.isFocused
+														? '#E5E7EB'
+														: 'white',
+													color: state.isSelected ? 'white' : '#1F2937',
+													'&:hover': {
+														backgroundColor: state.isSelected
+															? '#4B5563'
+															: '#E5E7EB',
+													},
+													padding: '8px 12px',
+												}),
+												menu: base => ({
+													...base,
+													borderRadius: '0.375rem',
+													boxShadow:
+														'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+													width: '100%',
+													marginTop: '4px',
+												}),
+												menuList: base => ({
+													...base,
+													padding: '4px 0',
+												}),
+												placeholder: base => ({
+													...base,
+													color: '#9CA3AF',
+												}),
+												multiValue: base => ({
+													...base,
+													backgroundColor: '#E5E7EB',
+													borderRadius: '0.375rem',
+												}),
+												multiValueLabel: base => ({
+													...base,
+													color: '#1F2937',
+													padding: '2px 6px',
+												}),
+												multiValueRemove: base => ({
+													...base,
+													color: '#6B7280',
+													'&:hover': {
+														backgroundColor: '#D1D5DB',
+														color: '#1F2937',
+													},
+												}),
+											}}
+										/>
 									</div>
 								</div>
 

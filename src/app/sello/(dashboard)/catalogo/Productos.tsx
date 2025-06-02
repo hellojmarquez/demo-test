@@ -28,6 +28,7 @@ import CreateInitRelease from '@/components/CreateInitRelease';
 import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
+import { Release as ReleaseType, Picture } from '@/types/release';
 
 interface Release {
 	_id: string;
@@ -46,7 +47,7 @@ interface Release {
 	label_name: string;
 	language: string;
 	name: string;
-	picture: string | null;
+	picture: Picture | null;
 	tracks: any[];
 	youtube_declaration: boolean;
 }
@@ -364,23 +365,19 @@ const Productos: React.FC = () => {
 									}`}
 								>
 									<div className="relative">
-										{release.picture ? (
+										{release.picture && (
 											<motion.div
 												whileHover={{ scale: 1.02 }}
 												transition={{ duration: 0.2 }}
 												className="relative aspect-[16/9] overflow-hidden"
 											>
 												<img
-													src={release.picture}
+													src={release.picture.thumb_medium}
 													alt={release.name}
 													className="w-full h-full object-cover"
 												/>
 												<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 											</motion.div>
-										) : (
-											<div className="aspect-[16/9] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-												<Music className="h-16 w-16 text-gray-400" />
-											</div>
 										)}
 
 										<div className="absolute top-4 right-4 flex items-center gap-2">

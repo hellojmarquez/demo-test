@@ -17,9 +17,15 @@ export interface NewArtist {
 	spotify_identifier: string;
 }
 
+export interface Picture {
+	full_size: string;
+	thumb_medium: string;
+	thumb_small: string;
+}
+
 export interface Release {
 	name: string;
-	picture?: string | File;
+	picture: Picture | null;
 	external_id?: number;
 	auto_detect_language?: boolean;
 	generate_ean?: boolean;

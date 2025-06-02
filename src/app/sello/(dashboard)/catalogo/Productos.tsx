@@ -72,16 +72,10 @@ interface ReleaseForAPI {
 	youtube_declaration: boolean;
 }
 
-interface ReleaseForModal extends Omit<Release, 'picture'> {
-	picture: string | null;
-	track_length: string;
-}
-
 const Productos: React.FC = () => {
 	const [releases, setReleases] = useState<Release[]>([]);
 	const [expandedRelease, setExpandedRelease] = useState<string | null>(null);
-	const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
-	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [successMessageType, setSuccessMessageType] = useState<
 		'create' | 'delete' | null
@@ -123,6 +117,7 @@ const Productos: React.FC = () => {
 				);
 				const data = await res.json();
 				if (data.success) {
+					console.log(data.data.releases);
 					setReleases(data.data.releases as Release[]);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);

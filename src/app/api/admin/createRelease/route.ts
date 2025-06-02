@@ -105,12 +105,10 @@ export async function POST(req: NextRequest) {
 			auto_detect_language,
 			generate_ean,
 			genre: Number(genre),
-
 			subgenre: Number(subgenre),
 			youtube_declaration,
 			release_version,
 			publisher,
-
 			publisher_year,
 			catalogue_number: 'ISLASOUNDS' + temp_id,
 			copyright_holder,
@@ -123,7 +121,12 @@ export async function POST(req: NextRequest) {
 
 		if (picture) {
 			const uploadArtworkReq = await fetch(
-				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=${picture.type}&upload_type=release.artwork`,
+				`${
+					process.env.MOVEMUSIC_API
+				}/obtain-signed-url-for-upload/?filename=${picture.name.replaceAll(
+					' ',
+					''
+				)}&filetype=${picture.type}&upload_type=release.artwork`,
 				{
 					method: 'GET',
 					headers: {
@@ -158,6 +161,7 @@ export async function POST(req: NextRequest) {
 				method: 'POST',
 				body: pictureFormData,
 			});
+			console.log('uploadResponse: ', uploadResponse);
 
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			picture_path = decodeURIComponent(
@@ -186,8 +190,7 @@ export async function POST(req: NextRequest) {
 				kind: artist.kind,
 			})),
 		};
-		console.log('picture_path: ', picture_path);
-		console.log('picture_url: ', picture_url);
+		console.log('releaseToApiData: ', releaseToApiData);
 		const releaseToApi = await fetch(`${process.env.MOVEMUSIC_API}/releases`, {
 			method: 'POST',
 			headers: {
@@ -200,7 +203,7 @@ export async function POST(req: NextRequest) {
 		});
 
 		const apiRes = await releaseToApi.json();
-
+		console.log('apiRes: ', apiRes);
 		if (!apiRes.id) {
 			return NextResponse.json(
 				{

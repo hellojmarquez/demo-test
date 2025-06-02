@@ -112,11 +112,6 @@ interface TrackData {
 	vocals?: string;
 }
 
-interface ArtistOption {
-	value: number;
-	label: string;
-}
-
 interface KindOption {
 	value: string;
 	label: string;
@@ -160,6 +155,13 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	onEditTrack,
 	genres,
 }) => {
+	console.log('Props recibidas en UpdateReleaseModal:', {
+		release,
+		formData,
+		picture: release?.picture,
+		formDataPicture: formData?.picture,
+	});
+
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
@@ -320,20 +322,24 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 	// Efecto para cargar la imagen inicial
 	useEffect(() => {
+		console.log('useEffect de imagen - release.picture:', release?.picture);
+		console.log('useEffect de imagen - formData.picture:', formData?.picture);
+
 		if (release?.picture) {
-			if (typeof release.picture === 'string') {
-				// Si la imagen es una URL, la usamos directamente
-				if (release.picture.startsWith('http')) {
-					setImagePreview(release.picture);
-				} else {
-					// Si es base64, la convertimos a URL
-					setImagePreview(`data:image/jpeg;base64,${release.picture}`);
-				}
-			} else if (release.picture instanceof File) {
-				// Si es un File, creamos una URL temporal
-				const objectUrl = URL.createObjectURL(release.picture);
+			if (
+				typeof release.picture === 'object' &&
+				'thumb_small' in release.picture
+			) {
+				console.log('Usando thumb_small de release.picture');
+				setImagePreview(release.picture.thumb_small);
+			} else if (
+				typeof release.picture === 'object' &&
+				'name' in release.picture &&
+				'type' in release.picture
+			) {
+				console.log('Creando URL temporal para File');
+				const objectUrl = URL.createObjectURL(release.picture as File);
 				setImagePreview(objectUrl);
-				// Limpiar la URL cuando el componente se desmonte
 				return () => URL.revokeObjectURL(objectUrl);
 			}
 		}

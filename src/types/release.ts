@@ -25,7 +25,7 @@ export interface Picture {
 
 export interface Release {
 	name: string;
-	picture: Picture | null;
+	picture: Picture | File | null;
 	external_id?: number;
 	auto_detect_language?: boolean;
 	generate_ean?: boolean;

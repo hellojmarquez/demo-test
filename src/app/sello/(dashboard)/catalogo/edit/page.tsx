@@ -149,6 +149,8 @@ export default function EditPage() {
 
 	useEffect(() => {
 		if (releaseData?.data) {
+			console.log('releaseData completo:', releaseData.data);
+			console.log('releaseData.picture:', releaseData.data.picture);
 			setFormData(releaseData.data);
 		}
 	}, [releaseData]);

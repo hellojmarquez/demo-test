@@ -11,29 +11,28 @@ export async function GET(
 ) {
 	console.log('get contributor roles received');
 
+	const token = req.cookies.get('loginToken')?.value;
+	if (!token) {
+		return NextResponse.json(
+			{ success: false, error: 'Not authenticated' },
+			{ status: 401 }
+		);
+	}
+
+	// Verificar JWT
 	try {
-		const token = req.cookies.get('loginToken')?.value;
-		if (!token) {
-			return NextResponse.json(
-				{ success: false, error: 'Not authenticated' },
-				{ status: 401 }
-			);
-		}
-
-		// Verificar JWT
-		try {
-			const { payload: verifiedPayload } = await jwtVerify(
-				token,
-				new TextEncoder().encode(process.env.JWT_SECRET)
-			);
-		} catch (err) {
-			console.error('JWT verification failed', err);
-			return NextResponse.json(
-				{ success: false, error: 'Invalid token' },
-				{ status: 401 }
-			);
-		}
-
+		const { payload: verifiedPayload } = await jwtVerify(
+			token,
+			new TextEncoder().encode(process.env.JWT_SECRET)
+		);
+	} catch (err) {
+		console.error('JWT verification failed', err);
+		return NextResponse.json(
+			{ success: false, error: 'Invalid token' },
+			{ status: 401 }
+		);
+	}
+	try {
 		await dbConnect();
 		const releaseId = params.id;
 

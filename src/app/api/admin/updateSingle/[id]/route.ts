@@ -40,6 +40,7 @@ export async function PUT(
 		await dbConnect();
 		const trackId = params.id;
 		let track_url = '';
+		let track_path = '';
 
 		// Get the current track first
 		const currentTrack = await SingleTrack.findOne({ external_id: trackId });
@@ -60,28 +61,6 @@ export async function PUT(
 
 			if (data) {
 				trackData = JSON.parse(data);
-
-				// Asegurarse de que los artistas tengan el formato correcto
-				if (trackData.artists) {
-					trackData.artists = trackData.artists.map((artist: any) => ({
-						artist: Number(artist.artist) || 0,
-						kind: String(artist.kind || 'main'),
-						order: Number(artist.order || 0),
-						name: String(artist.name || ''),
-					}));
-				}
-
-				// Asegurarse de que los contribuidores tengan el formato correcto
-				if (trackData.contributors) {
-					trackData.contributors = trackData.contributors.map(
-						(contributor: any) => ({
-							external_id: Number(contributor.external_id) || 0,
-							name: String(contributor.name || ''),
-							role: Number(contributor.role) || 0,
-							order: Number(contributor.order) || 0,
-						})
-					);
-				}
 
 				if (file) {
 					const uploadTrackReq = await fetch(
@@ -129,7 +108,7 @@ export async function PUT(
 
 					track_url = uploadResponse?.headers?.get('location') || '';
 					if (track_url)
-						trackData.resource = decodeURIComponent(
+						track_path = decodeURIComponent(
 							new URL(track_url).pathname.slice(1).replace('media/', '')
 						);
 
@@ -146,35 +125,45 @@ export async function PUT(
 			}
 		} else if (contentType.includes('application/json')) {
 			trackData = await req.json();
-
-			// Asegurarse de que los artistas tengan el formato correcto
-			if (trackData.artists) {
-				trackData.artists = trackData.artists.map((artist: any) => ({
-					artist: Number(artist.artist) || 0,
-					kind: String(artist.kind || 'main'),
-					order: Number(artist.order || 0),
-					name: String(artist.name || ''),
-				}));
-			}
-
-			// Asegurarse de que los contribuidores tengan el formato correcto
-			if (trackData.contributors) {
-				trackData.contributors = trackData.contributors.map(
-					(contributor: any) => ({
-						external_id: Number(contributor.external_id) || 0,
-						name: String(contributor.name || ''),
-						role: Number(contributor.role) || 0,
-						order: Number(contributor.order) || 0,
-					})
-				);
-			}
 		} else {
 			return NextResponse.json(
 				{ success: false, error: 'Invalid content type' },
 				{ status: 400 }
 			);
 		}
+		console.log('trackData antes del map', trackData);
+		trackData.resource =
+			track_path.length > 0
+				? track_path
+				: decodeURIComponent(
+						new URL(currentTrack.resource).pathname
+							.slice(1)
+							.replace('media/', '')
+				  );
+		if (trackData.ISRC === null) delete trackData.ISRC;
 
+		// Asegurar que publishers tenga la estructura correcta
+		if (Array.isArray(trackData.publishers)) {
+			trackData.publishers = trackData.publishers.map((pub: any) => ({
+				order: pub.order || 0,
+				publisher: pub.publisher || 0,
+				author: pub.author || '',
+			}));
+		} else {
+			trackData.publishers = [];
+		}
+		// Asegurar que contributors tenga la estructura correcta
+		if (Array.isArray(trackData.contributors)) {
+			trackData.contributors = trackData.contributors.map((cont: any) => ({
+				order: cont.order || 0,
+				contributor: cont.contributor || 0,
+				role: cont.role || 0,
+			}));
+		} else {
+			trackData.contributors = [];
+		}
+
+		console.log('trackData', trackData);
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
 			{
@@ -188,15 +177,39 @@ export async function PUT(
 				},
 			}
 		);
-		const apires = await trackToApi.json();
-		if (!apires.ok) {
-			console.error(`Error al actualizar el track: ${trackId}`, apires);
-			return NextResponse.json(
-				{ success: false, error: trackToApi },
-				{ status: 500 }
+
+		// Asegurarse de que los artistas tengan el formato correcto
+		if (trackData.artists) {
+			trackData.artists = trackData.artists.map((artist: any) => ({
+				artist: Number(artist.artist) || 0,
+				kind: String(artist.kind || 'main'),
+				order: Number(artist.order || 0),
+				name: String(artist.name || ''),
+			}));
+		}
+
+		// Asegurarse de que los contribuidores tengan el formato correcto
+		if (trackData.contributors) {
+			trackData.contributors = trackData.contributors.map(
+				(contributor: any) => ({
+					external_id: Number(contributor.external_id) || 0,
+					name: String(contributor.name || ''),
+					role: Number(contributor.role) || 0,
+					order: Number(contributor.order) || 0,
+				})
 			);
 		}
-		trackData.resource = track_url;
+		const apires = await trackToApi.json();
+		console.log('apires', apires);
+		if (!apires.id) {
+			return NextResponse.json(
+				{ success: false, error: apires || 'Error al actualizar el track' },
+				{ status: 400 }
+			);
+		}
+		trackData.resource =
+			track_url.length > 0 ? track_url : currentTrack.resource;
+		console.log('trackData a base de datos', trackData);
 		// Actualizar el track
 		const updatedTrack = await SingleTrack.findOneAndUpdate(
 			{ external_id: trackId },

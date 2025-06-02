@@ -55,20 +55,6 @@ interface Role {
 	name: string;
 }
 
-interface Release {
-	_id?: string;
-	name: string;
-	picture?: {
-		base64: string;
-	};
-}
-
-interface Genre {
-	id: number;
-	name: string;
-	subgenres?: Subgenre[];
-}
-
 interface Subgenre {
 	id: number;
 	name: string;
@@ -142,6 +128,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
+	const [localTrack, setLocalTrack] = useState<Partial<Track>>(track || {});
 	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
 	const [newArtistData, setNewArtistData] = useState<NewArtistData>({
 		name: '',
@@ -151,6 +138,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		deezer_id: '',
 		spotify_id: '',
 	});
+
+	// Actualizar el estado local cuando cambia el prop track
+	useEffect(() => {
+		console.log('track', track);
+		setLocalTrack(track || {});
+	}, [track]);
 
 	// Efecto para inicializar los subgéneros cuando se carga el componente
 	useEffect(() => {
@@ -518,24 +511,33 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			newValue = (e.target as HTMLInputElement).checked;
 		}
 
+		// Actualizar el estado local
+		const updatedTrack =
+			typeof newValue === 'object'
+				? { ...localTrack, ...newValue }
+				: { ...localTrack, [name]: newValue };
+		setLocalTrack(updatedTrack);
+
+		// Notificar al padre del cambio
 		if (onTrackChange) {
-			onTrackChange(
-				typeof newValue === 'object'
-					? { ...track, ...newValue }
-					: { ...track, [name]: newValue }
-			);
+			onTrackChange(updatedTrack);
 		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
-		setError(null);
-
 		try {
-			await onSave(track as Track);
-		} catch (err: any) {
-			setError(err.message || 'Error al crear el track');
+			// Asegurarse de que los contributors estén incluidos en los datos
+			const trackData = {
+				...localTrack,
+				contributors: localTrack.contributors || [],
+			};
+			console.log('Submitting track data:', trackData);
+			await onSave(trackData);
+		} catch (error) {
+			console.error('Error saving track:', error);
+			setError('Error al guardar el track');
 		} finally {
 			setIsLoading(false);
 		}
@@ -673,7 +675,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="name"
-								value={track?.name || ''}
+								value={localTrack.name || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								required
@@ -687,7 +689,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="mix_name"
-								value={track?.mix_name || ''}
+								value={localTrack.mix_name || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -700,7 +702,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="ISRC"
-								value={track?.ISRC || ''}
+								value={localTrack.ISRC || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -713,7 +715,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="DA_ISRC"
-								value={track?.DA_ISRC || ''}
+								value={localTrack.DA_ISRC || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -726,7 +728,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="copyright_holder"
-								value={track?.copyright_holder || ''}
+								value={localTrack.copyright_holder || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -739,7 +741,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="copyright_holder_year"
-								value={track?.copyright_holder_year || ''}
+								value={localTrack.copyright_holder_year || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -752,7 +754,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="text"
 								name="dolby_atmos_resource"
-								value={track?.dolby_atmos_resource || ''}
+								value={localTrack.dolby_atmos_resource || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -765,7 +767,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<input
 								type="number"
 								name="order"
-								value={track?.order || ''}
+								value={localTrack.order || ''}
 								onChange={e => {
 									if (onTrackChange) {
 										onTrackChange({
@@ -798,11 +800,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Select
 								name="genre"
 								value={
-									genres.find(g => g.id === track?.genre)
+									genres.find(g => g.id === localTrack?.genre)
 										? {
-												value: track?.genre,
+												value: localTrack?.genre,
 												label:
-													genres.find(g => g.id === track?.genre)?.name || '',
+													genres.find(g => g.id === localTrack?.genre)?.name ||
+													'',
 										  }
 										: null
 								}
@@ -843,12 +846,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Select
 								name="subgenre"
 								value={
-									subgenres.find(s => s.id === track?.subgenre)
+									subgenres.find(s => s.id === localTrack?.subgenre)
 										? {
-												value: track?.subgenre,
+												value: localTrack?.subgenre,
 												label:
-													subgenres.find(s => s.id === track?.subgenre)?.name ||
-													'',
+													subgenres.find(s => s.id === localTrack?.subgenre)
+														?.name || '',
 										  }
 										: null
 								}
@@ -888,7 +891,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							</label>
 							<Select
 								value={
-									LANGUAGES.find(lang => lang.value === track?.language) || null
+									LANGUAGES.find(lang => lang.value === localTrack?.language) ||
+									null
 								}
 								onChange={(selectedOption: SingleValue<LanguageOption>) => {
 									if (selectedOption) {
@@ -923,7 +927,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							</label>
 							<Select
 								value={
-									VOCALS.find(option => option.value === track?.vocals) || null
+									VOCALS.find(option => option.value === localTrack?.vocals) ||
+									null
 								}
 								onChange={(selectedOption: SingleValue<LanguageOption>) => {
 									if (selectedOption) {
@@ -964,7 +969,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									delimiter: '',
 								}}
 								name="label_share"
-								value={track?.label_share || ''}
+								value={localTrack?.label_share || ''}
 								onChange={e => {
 									if (onTrackChange) {
 										onTrackChange({
@@ -992,7 +997,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									delimiter: ':',
 								}}
 								name="track_lenght"
-								value={track?.track_length || ''}
+								value={localTrack?.track_length || ''}
 								onChange={e => handleTimeChange('track_lenght', e.target.value)}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								placeholder="00:00:00"
@@ -1012,7 +1017,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									delimiter: ':',
 								}}
 								name="sample_start"
-								value={track?.sample_start || ''}
+								value={localTrack?.sample_start || ''}
 								onChange={e => handleTimeChange('sample_start', e.target.value)}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								placeholder="00:00:00"
@@ -1027,7 +1032,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
 						<div className="flex items-center w-full">
 							<CustomSwitch
-								checked={track?.album_only || false}
+								checked={localTrack?.album_only || false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1048,7 +1053,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 						<div className="flex items-center w-full">
 							<CustomSwitch
-								checked={track?.explicit_content || false}
+								checked={localTrack?.explicit_content || false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1069,7 +1074,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 						<div className="flex items-center w-full">
 							<CustomSwitch
-								checked={track?.generate_isrc || false}
+								checked={localTrack?.generate_isrc || false}
 								onChange={checked => {
 									const event = {
 										target: {
@@ -1197,7 +1202,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</div>
 					<div className="space-y-4 w-full overflow-hidden">
 						<ContributorSelector
-							contributors={track?.contributors || []}
+							contributors={localTrack.contributors || []}
 							contributorData={
 								contributors?.map(c => ({
 									external_id: c.external_id,
@@ -1206,14 +1211,44 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							}
 							roles={roles || []}
 							onContributorsChange={newContributors => {
+								console.log(
+									'onContributorsChange - newContributors:',
+									newContributors
+								);
+
+								// Los contributors ya vienen formateados del ContributorSelector
+								// Solo necesitamos actualizar el estado
+								const updatedTrack = {
+									...localTrack,
+									contributors: newContributors,
+								};
+
+								// Actualizar el estado local
+								setLocalTrack(updatedTrack);
+
+								// Notificar al padre
 								if (onTrackChange) {
-									onTrackChange({
-										...track,
-										contributors: newContributors,
-									});
+									onTrackChange(updatedTrack);
 								}
 							}}
-							onDeleteContributor={index => handleRemoveContributor(index)}
+							onDeleteContributor={index => {
+								console.log('onDeleteContributor - index:', index);
+								const newContributors = [...(localTrack.contributors || [])];
+								newContributors.splice(index, 1);
+
+								const updatedTrack = {
+									...localTrack,
+									contributors: newContributors,
+								};
+
+								// Actualizar el estado local
+								setLocalTrack(updatedTrack);
+
+								// Notificar al padre
+								if (onTrackChange) {
+									onTrackChange(updatedTrack);
+								}
+							}}
 							reactSelectStyles={{
 								...customSelectStyles,
 								control: (provided: any) => ({
@@ -1479,19 +1514,41 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						type="button"
 						onClick={async () => {
 							setIsLoading(true);
+							console.log('track A ENVIAR', localTrack);
 							try {
-								await onSave({
-									...track,
-									status: 'Borrador',
-								});
-								if (!track?.external_id) {
-									await new Promise(res => setTimeout(res, 700));
+								if (localTrack?.external_id) {
+									// Si tiene external_id, actualizar el track existente
+									const response = await fetch(
+										`/api/admin/updateSingle/${localTrack.external_id}`,
+										{
+											method: 'PUT',
+											headers: {
+												'Content-Type': 'application/json',
+											},
+											body: JSON.stringify(localTrack),
+										}
+									);
+
+									if (!response.ok) {
+										throw new Error('Error al actualizar el track');
+									}
+
+									const data = await response.json();
+									if (!data.success) {
+										throw new Error(
+											data.error || 'Error al actualizar el track'
+										);
+									}
+
+									toast.success('Track actualizado correctamente');
+								} else {
+									// Si no tiene external_id, crear nuevo track
+									await onSave({
+										...localTrack,
+										status: 'Borrador',
+									});
+									toast.success('Track guardado correctamente');
 								}
-								toast.success(
-									track
-										? 'Track actualizado correctamente'
-										: 'Track guardado correctamente'
-								);
 							} catch (error) {
 								console.error('Error al guardar el track:', error);
 								toast.error('Error al guardar el track');
@@ -1510,7 +1567,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						) : (
 							<div className="flex items-center justify-center gap-1.5 sm:gap-2">
 								<Save className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-								<span>{track ? 'Guardar borrador' : 'Crear borrador'}</span>
+								<span>
+									{localTrack?.external_id
+										? 'Guardar cambios'
+										: 'Crear borrador'}
+								</span>
 							</div>
 						)}
 					</button>

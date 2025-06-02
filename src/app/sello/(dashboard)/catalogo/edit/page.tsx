@@ -5,7 +5,7 @@ import UpdateReleasePage from '@/components/UpdateReleaseModal';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { Release, ReleaseResponse } from '@/types/release';
+import { Release, ReleaseResponse, Picture } from '@/types/release';
 import { Track, TrackResponse } from '@/types/track';
 import { toast } from 'react-hot-toast';
 import TrackForm, { GenreData } from '@/components/CreateTrackModal';
@@ -92,7 +92,7 @@ export default function EditPage() {
 	const [genres, setGenres] = useState<GenreData[]>([]);
 	const [formData, setFormData] = useState<Release>({
 		name: '',
-		picture: '',
+		picture: null,
 		external_id: 0,
 		auto_detect_language: false,
 		generate_ean: false,
@@ -286,11 +286,11 @@ export default function EditPage() {
 			};
 
 			// Si la imagen es un archivo, agrégala como 'picture'
-			const picture = updatedRelease.picture as File | string | null;
+			const picture = updatedRelease.picture;
 			if (picture instanceof File) {
 				formData.append('picture', picture);
-			} else if (typeof picture === 'string') {
-				// Si es una URL, incluirla en los datos
+			} else if (picture && typeof picture === 'object') {
+				// Si es el objeto picture original, mantenerlo como está
 				releaseData.picture = picture;
 			}
 

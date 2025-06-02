@@ -75,7 +75,7 @@ export default function CreateInitRelease({
 			formData.append('publisher_year', '2025');
 			formData.append('copyright_holder', 'Sample value');
 			formData.append('copyright_holder_year', '2025');
-
+			formData.append('generate_ean', 'true');
 			formData.append('kind', 'single');
 			formData.append('catalogue_number', 'islasounds');
 			formData.append('is_new_release', '1');

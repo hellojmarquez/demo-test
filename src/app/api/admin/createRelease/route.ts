@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 		const backcatalog = formData.get('backcatalog') === 'true';
 		const auto_detect_language =
 			formData.get('auto_detect_language') === 'true';
-		const generate_ean = formData.get('generate_ean') === 'true';
+		const generate_ean = formData.get('generate_ean');
 		const youtube_declaration = formData.get('youtube_declaration') === 'true';
 		let picture_url = '';
 		let picture_path = '';
@@ -122,7 +122,6 @@ export async function POST(req: NextRequest) {
 		};
 
 		if (picture) {
-			
 			const uploadArtworkReq = await fetch(
 				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=${picture.type}&upload_type=release.artwork`,
 				{
@@ -159,12 +158,13 @@ export async function POST(req: NextRequest) {
 				method: 'POST',
 				body: pictureFormData,
 			});
-		
+
 			picture_url = uploadResponse?.headers?.get('location') || '';
-			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
+			picture_path = decodeURIComponent(
+				new URL(picture_url).pathname.slice(1)
+			).replace('media/', '');
 
 			if (!uploadResponse.ok) {
-			
 				return NextResponse.json(
 					{
 						success: false,
@@ -177,19 +177,17 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		const artwork_data = {
-			full_size: picture_url,
-		};
 		const releaseToApiData = {
 			...newRelease,
-			artwork: artwork_data,
+			artwork: picture_path,
 			artists: artists.map((artist: any) => ({
 				order: artist.order,
 				artist: artist.artist,
 				kind: artist.kind,
 			})),
 		};
-
+		console.log('picture_path: ', picture_path);
+		console.log('picture_url: ', picture_url);
 		const releaseToApi = await fetch(`${process.env.MOVEMUSIC_API}/releases`, {
 			method: 'POST',
 			headers: {
@@ -202,7 +200,7 @@ export async function POST(req: NextRequest) {
 		});
 
 		const apiRes = await releaseToApi.json();
-	
+
 		if (!apiRes.id) {
 			return NextResponse.json(
 				{
@@ -212,13 +210,31 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
+		const getRelease = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${apiRes.id}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const getReleaseRes = await getRelease.json();
+		console.log('getReleaseRes: ', getReleaseRes);
 		await dbConnect();
 
 		// Guardar en la base de datos
 		const releaseToSave = {
 			...newRelease,
 			external_id: apiRes.id,
-			picture: String(picture_url || '/cd_cover.png'),
+			picture: {
+				full_size: getReleaseRes.artwork?.full_size || '/cd_cover.png',
+				thumb_medium: getReleaseRes.artwork?.thumb_medium || '/cd_cover.png',
+				thumb_small: getReleaseRes.artwork?.thumb_small || '/cd_cover.png',
+			},
 			genre_name,
 			subgenre_name,
 			label_name,
@@ -226,6 +242,7 @@ export async function POST(req: NextRequest) {
 			publisher_name,
 		};
 
+		console.log('releaseToSave: ', releaseToSave);
 		const savedRelease = await Release.create(releaseToSave);
 
 		try {

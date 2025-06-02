@@ -25,9 +25,15 @@ const trackSchema = new Schema<Track>({
 	resource: { type: String, required: true },
 });
 
+const pictureSchema = new Schema({
+	full_size: { type: String, required: true },
+	thumb_medium: { type: String, required: true },
+	thumb_small: { type: String, required: true },
+});
+
 const releaseSchema = new Schema(
 	{
-		picture: { type: String, required: true, default: '/cd_cover.png' },
+		picture: { type: pictureSchema, required: true },
 		external_id: { type: Number, required: false },
 		auto_detect_language: { type: Boolean, required: false },
 		generate_ean: { type: Boolean, required: false },
@@ -53,7 +59,6 @@ const releaseSchema = new Schema(
 		genre_name: { type: String, required: false },
 		subgenre: { type: Number, required: false },
 		subgenre_name: { type: String, required: false },
-		artwork: { type: String, required: false },
 		is_new_release: { type: Number, required: false },
 		official_date: { type: String, required: false },
 		original_date: { type: String, required: false },

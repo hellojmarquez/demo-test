@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import SingleTrack from '@/models/SingleTrack';
 import { jwtVerify } from 'jose';
 import { createLog } from '@/lib/logger';
+import Release from '@/models/ReleaseModel';
 
 export async function POST(req: NextRequest) {
 	console.log('crerateSingle');
@@ -194,6 +195,34 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
+		const dataToRelease = {
+			title: trackData.name,
+			mixName: trackData.mix_name,
+			external_id: trackData.external_id,
+			resource: picture_url,
+		};
+		console.log('Buscando release con external_id:', trackData.external_id);
+		console.log('dataToRelease:', dataToRelease);
+
+		// Primero verificar si el release existe
+		const existingRelease = await Release.findOne({
+			external_id: trackData.release,
+		});
+		console.log('Release existente:', existingRelease);
+
+		const updatedRelease = await Release.findOneAndUpdate(
+			{ external_id: trackData.release },
+			{ $push: { tracks: dataToRelease } },
+			{ new: true }
+		);
+		console.log('updatedRelease: ', updatedRelease);
+		if (!updatedRelease) {
+			return NextResponse.json(
+				{ success: false, error: 'No se encontró el release para actualizar' },
+				{ status: 404 }
+			);
+		}
+
 		try {
 			// Crear el log
 			const logData = {
@@ -212,10 +241,10 @@ export async function POST(req: NextRequest) {
 			console.error('Error al crear el log:', logError);
 			// No interrumpimos el flujo si falla el log
 		}
-		return NextResponse.json({
-			success: true,
-			// track: trackData,
-		});
+		return NextResponse.json(
+			{ success: true, data: createTrack },
+			{ status: 201 }
+		);
 	} catch (error: any) {
 		console.error('Error updating track:', error);
 		return NextResponse.json(

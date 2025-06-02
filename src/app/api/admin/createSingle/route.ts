@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('trackData: ', trackData);
+
 		trackData.resource = picture_path;
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 

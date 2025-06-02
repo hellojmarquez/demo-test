@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SingleTrack from '@/models/SingleTrack';
 import { jwtVerify } from 'jose';
+import Release from '@/models/ReleaseModel';
 import { createLog } from '@/lib/logger';
 
 export async function PUT(
@@ -84,7 +85,12 @@ export async function PUT(
 
 				if (file) {
 					const uploadTrackReq = await fetch(
-						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
+						`${
+							process.env.MOVEMUSIC_API
+						}/obtain-signed-url-for-upload/?filename=${file.name.replaceAll(
+							' ',
+							''
+						)}&filetype=${file.type}&upload_type=track.audio`,
 						{
 							method: 'GET',
 							headers: {
@@ -124,7 +130,7 @@ export async function PUT(
 					track_url = uploadResponse?.headers?.get('location') || '';
 					if (track_url)
 						trackData.resource = decodeURIComponent(
-							new URL(track_url).pathname.slice(1)
+							new URL(track_url).pathname.slice(1).replace('media/', '')
 						);
 
 					if (!uploadResponse.ok) {
@@ -197,6 +203,24 @@ export async function PUT(
 			trackData,
 			{ new: true }
 		);
+		const dataToRelease = {
+			title: trackData.name,
+			mixName: trackData.mix_name,
+			external_id: trackData.external_id,
+			resource: track_url,
+		};
+		const updatedRelease = await Release.findOneAndUpdate(
+			{ external_id: trackData.release },
+			{ $push: { tracks: dataToRelease } },
+			{ new: true }
+		);
+		console.log('updatedRelease: ', updatedRelease);
+		if (!updatedRelease) {
+			return NextResponse.json(
+				{ success: false, error: 'No se encontró el release para actualizar' },
+				{ status: 404 }
+			);
+		}
 		try {
 			// Crear el log
 			const logData = {

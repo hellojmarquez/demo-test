@@ -581,7 +581,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			for (let i = 0; i < tracks.length; i++) {
 				const track = tracks[i];
 				const formData = new FormData();
-				track.data.release = null;
 				formData.append('file', track.file);
 				formData.append('data', JSON.stringify(track.data));
 
@@ -1643,7 +1642,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			{isUploadModalOpen && (
 				<UploadTrackToRelease
 					isOpen={isUploadModalOpen}
-					releaseId={safeRelease.external_id || 0}
+					releaseId={release.external_id || 0}
 					onClose={() => setIsUploadModalOpen(false)}
 					onTracksReady={handleTracksReady}
 				/>

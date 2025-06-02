@@ -46,10 +46,20 @@ export async function POST(req: NextRequest) {
 
 			if (data) {
 				trackData = JSON.parse(data);
-
+				if (!file) {
+					return NextResponse.json(
+						{ success: false, error: 'Archivo de audio requerido' },
+						{ status: 400 }
+					);
+				}
 				if (file) {
 					const uploadTrackReq = await fetch(
-						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=track.audio`,
+						`${
+							process.env.MOVEMUSIC_API
+						}/obtain-signed-url-for-upload/?filename=${file.name.replaceAll(
+							' ',
+							''
+						)}&filetype=${file.type}&upload_type=track.audio`,
 						{
 							method: 'GET',
 							headers: {
@@ -86,11 +96,11 @@ export async function POST(req: NextRequest) {
 						method: 'POST',
 						body: trackFormData,
 					});
-				
+
 					picture_url = uploadResponse.headers?.get('location') || '';
 					picture_path = decodeURIComponent(
 						new URL(picture_url).pathname.slice(1)
-					);
+					).replace('media/', '');
 
 					if (!uploadResponse.ok) {
 						console.error(
@@ -115,7 +125,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-
+		console.log('trackData: ', trackData);
 		trackData.resource = picture_path;
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 
@@ -140,7 +150,7 @@ export async function POST(req: NextRequest) {
 		} else {
 			dataToapi.contributors = [];
 		}
-	
+		console.log('dataToapi: ', dataToapi);
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {
@@ -151,7 +161,7 @@ export async function POST(req: NextRequest) {
 			},
 			body: JSON.stringify(dataToapi),
 		});
-		
+
 		if (!trackReq.ok) {
 			return NextResponse.json(
 				{
@@ -166,13 +176,15 @@ export async function POST(req: NextRequest) {
 
 		const trackRes = await trackReq.json();
 
+		console.log('trackRes: ', trackRes);
+
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;
-	
+
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
-		
+
 		if (!createTrack.external_id) {
 			return NextResponse.json(
 				{
@@ -202,7 +214,7 @@ export async function POST(req: NextRequest) {
 		}
 		return NextResponse.json({
 			success: true,
-			track: trackData,
+			// track: trackData,
 		});
 	} catch (error: any) {
 		console.error('Error updating track:', error);

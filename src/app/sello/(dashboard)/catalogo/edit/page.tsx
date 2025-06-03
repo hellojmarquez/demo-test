@@ -99,6 +99,8 @@ export default function EditPage() {
 		fetcher
 	);
 
+	const [isLoading, setIsLoading] = useState(false);
+
 	useEffect(() => {
 		if (releaseData?.data) {
 			setFormData(releaseData.data);
@@ -152,6 +154,7 @@ export default function EditPage() {
 	};
 
 	const handleSave = async (updatedRelease: Release) => {
+		setIsLoading(true);
 		try {
 			const formData = new FormData();
 
@@ -219,6 +222,8 @@ export default function EditPage() {
 		} catch (error) {
 			console.error('Error updating release:', error);
 			throw error;
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -312,10 +317,17 @@ export default function EditPage() {
 							<button
 								type="button"
 								onClick={() => handleSave(formData)}
+								disabled={isLoading}
 								className="w-full sm:w-auto px-4 py-2.5 text-brand-light rounded-md flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium hover:bg-gray-50"
 							>
-								<Save className="w-4 h-4 sm:w-5 sm:h-5" />
-								<span className="group-hover:text-brand-dark">Actualizar</span>
+								{isLoading ? (
+									<div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-brand-light border-t-transparent rounded-full animate-spin" />
+								) : (
+									<Save className="w-4 h-4 sm:w-5 sm:h-5" />
+								)}
+								<span className="group-hover:text-brand-dark">
+									{isLoading ? 'Actualizando...' : 'Actualizar'}
+								</span>
 							</button>
 						</div>
 					</>

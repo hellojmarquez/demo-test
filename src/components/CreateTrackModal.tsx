@@ -1526,6 +1526,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									}
 
 									const data = await response.json();
+									console.log('RESPUESTA UPODATE SINGLE', data);
 									if (!data.success) {
 										throw new Error(
 											data.error || 'Error al actualizar el track'

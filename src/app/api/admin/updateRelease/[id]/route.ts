@@ -118,10 +118,13 @@ export async function PUT(
 			}
 		}
 		const releaseData = JSON.parse(data as string);
-		console.log('releaseData: ', releaseData);
 		if (releaseData.ean.length === 0) {
 			delete releaseData.ean;
 		}
+		if (releaseData.territory === 'worldwide') {
+			releaseData.countries = [];
+		}
+		console.log('releaseData despues del filtro: ', releaseData);
 		// Convertir los valores a números
 		if (releaseData.label) releaseData.label = Number(releaseData.label);
 		if (releaseData.publisher)
@@ -184,14 +187,31 @@ export async function PUT(
 			}
 		}
 		const artistToApi = {
-			artists: releaseData.artists.map((artist: { name: string; [key: string]: any }) => {
-				const { name, ...rest } = artist;
-				return rest;
-			}),
+			artists: releaseData.artists.map(
+				(artist: { name: string; [key: string]: any }) => {
+					const { name, ...rest } = artist;
+					return rest;
+				}
+			),
 		};
+		const getRelease = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${releaseData.external_id}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const getReleaseRes = await getRelease.json();
+
 		const releaseToApiData = {
 			...releaseData,
 			artists: artistToApi.artists,
+			tracks: getReleaseRes.tracks,
 			artwork:
 				picture_path.length > 0
 					? picture_path
@@ -224,27 +244,12 @@ export async function PUT(
 				{ status: 400 }
 			);
 		}
-		const getRelease = await fetch(
-			`${process.env.MOVEMUSIC_API}/releases/${apiRes.id}`,
-			{
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `JWT ${moveMusicAccessToken}`,
-					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-					Referer: process.env.MOVEMUSIC_REFERER || '',
-				},
-			}
-		);
-		const getReleaseRes = await getRelease.json();
-		console.log('getReleaseRes: ', getReleaseRes);
-		await dbConnect();
 
 		const cleanUrl = (url: string): string => {
 			return url.split('?')[0];
 		};
 		const dataToUpdate = {
-			...getReleaseRes,
+			...releaseData,
 			label: releaseData.label,
 			artists: releaseData.artists,
 			picture: {

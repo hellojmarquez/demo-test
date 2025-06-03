@@ -192,7 +192,13 @@ export default function EditPage() {
 			if (data.success) {
 				// Si tenemos datos en la respuesta, los usamos
 				if (data.data) {
-					setFormData(data.data);
+					// Asegurarnos de que los datos sean serializables
+					const serializedData = {
+						...data.data,
+						tracks: data.data.tracks || [],
+						artists: data.data.artists || [],
+					};
+					setFormData(serializedData);
 				} else {
 					// Si no hay datos en la respuesta, mantenemos los datos actuales
 					setFormData(prev => ({
@@ -221,7 +227,7 @@ export default function EditPage() {
 			}
 		} catch (error) {
 			console.error('Error updating release:', error);
-			throw error;
+			toast.error('Error al actualizar el release');
 		} finally {
 			setIsLoading(false);
 		}

@@ -46,6 +46,7 @@ const releaseSchema = new Schema(
 		youtube_declaration: { type: Boolean, required: false },
 		dolby_atmos: { type: Boolean, required: false },
 		artists: [artistSchema],
+		status: { type: String, required: true, default: 'borrador' },
 		tracks: { type: [trackSchema], required: false },
 		countries: { type: [String], required: false },
 		name: { type: String, required: true },

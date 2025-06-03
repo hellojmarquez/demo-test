@@ -271,6 +271,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		ean: formData?.ean || '',
 		createdAt: formData?.createdAt || new Date().toISOString(),
 		updatedAt: formData?.updatedAt || new Date().toISOString(),
+		status: formData?.status || 'borrador',
 	};
 
 	// Add default values for release
@@ -755,6 +756,20 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 											{safeFormData.genre_name}
 										</span>
 									)}
+								</div>
+								<div className="mt-2 flex items-center gap-2">
+									<span className="text-xs md:text-sm text-gray-500">
+										Status:
+									</span>
+									<span
+										className={`px-3 py-1 rounded-full text-xs md:text-sm ${
+											safeFormData.status === 'ready'
+												? 'bg-green-100 text-green-800'
+												: 'bg-gray-100 text-gray-600'
+										}`}
+									>
+										{safeFormData.status === 'ready' ? 'Listo' : 'Borrador'}
+									</span>
 								</div>
 							</div>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">

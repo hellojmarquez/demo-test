@@ -34,6 +34,7 @@ export interface Release {
 	dolby_atmos?: boolean;
 	artists?: Artist[];
 	newArtists?: NewArtist[];
+	status?: string;
 	tracks?: Array<{
 		external_id?: string;
 		order: number;

@@ -54,13 +54,9 @@ export async function POST(req: NextRequest) {
 					);
 				}
 				if (file) {
+					const fixedFileName = file.name.replaceAll(' ', '');
 					const uploadTrackReq = await fetch(
-						`${
-							process.env.MOVEMUSIC_API
-						}/obtain-signed-url-for-upload/?filename=${file.name.replaceAll(
-							' ',
-							''
-						)}&filetype=${file.type}&upload_type=track.audio`,
+						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${fixedFileName}&filetype=${file.type}&upload_type=track.audio`,
 						{
 							method: 'GET',
 							headers: {
@@ -201,21 +197,18 @@ export async function POST(req: NextRequest) {
 			external_id: trackData.external_id,
 			resource: picture_url,
 		};
-		console.log('Buscando release con external_id:', trackData.external_id);
-		console.log('dataToRelease:', dataToRelease);
 
 		// Primero verificar si el release existe
 		const existingRelease = await Release.findOne({
 			external_id: trackData.release,
 		});
-		console.log('Release existente:', existingRelease);
 
 		const updatedRelease = await Release.findOneAndUpdate(
 			{ external_id: trackData.release },
 			{ $push: { tracks: dataToRelease } },
 			{ new: true }
 		);
-		console.log('updatedRelease: ', updatedRelease);
+		console.log('RELEASE CREADO: ', updatedRelease);
 		if (!updatedRelease) {
 			return NextResponse.json(
 				{ success: false, error: 'No se encontró el release para actualizar' },

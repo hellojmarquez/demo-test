@@ -1107,7 +1107,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</div>
 					<div className="space-y-4 w-full overflow-hidden">
 						<TrackArtistSelector
-							artists={(track?.artists || []).map(artist => ({
+							artists={(localTrack?.artists || []).map(artist => ({
 								...artist,
 								kind: artist.kind as 'main' | 'featuring' | 'remixer',
 							}))}
@@ -1117,21 +1117,28 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									name: a?.name || '',
 								})) || []
 							}
-							onArtistsChange={newArtists => {
-								if (onTrackChange) {
-									onTrackChange({
-										...track,
-										artists: newArtists.map(artist => ({
-											...artist,
-											artist: artist.artist,
-											kind: artist.kind,
-											order: artist.order,
-										})),
-									});
-								}
+							onArtistsChange={(newArtists: TrackArtist[]) => {
+								// Actualizar el estado local directamente
+								const updatedTrack = {
+									...localTrack,
+									artists: newArtists.map(artist => ({
+										...artist,
+										artist: artist.artist,
+										kind: artist.kind,
+										order: artist.order,
+									})),
+								};
+								setLocalTrack(updatedTrack);
 							}}
-							onDeleteArtist={index => handleRemoveArtist(index)}
-							onCreateNewArtist={name => {
+							onDeleteArtist={(index: number) => {
+								const newArtists = [...(localTrack?.artists || [])];
+								newArtists.splice(index, 1);
+								setLocalTrack(prev => ({
+									...prev,
+									artists: newArtists,
+								}));
+							}}
+							onCreateNewArtist={(name: string) => {
 								setNewArtistData(prev => ({ ...prev, name }));
 								setIsCreateArtistModalOpen(true);
 							}}

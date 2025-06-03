@@ -250,8 +250,15 @@ export async function PUT(
 			resource: track_url,
 		};
 		const updatedRelease = await Release.findOneAndUpdate(
-			{ external_id: trackData.release },
-			{ $push: { tracks: dataToRelease } },
+			{
+				external_id: trackData.release,
+				'tracks.external_id': trackData.external_id,
+			},
+			{
+				$set: {
+					'tracks.$': dataToRelease,
+				},
+			},
 			{ new: true }
 		);
 		console.log('updatedRelease: ', updatedRelease);

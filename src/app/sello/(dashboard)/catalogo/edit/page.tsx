@@ -174,67 +174,48 @@ export default function EditPage() {
 				releaseData.picture = picture;
 			}
 
-			// Agregar los archivos de los nuevos tracks
-			if (updatedRelease.newTracks) {
-				updatedRelease.newTracks.forEach(track => {
-					if (track.resource instanceof File) {
-						formData.append(`track_${track.resource.name}`, track.resource);
-					}
-				});
-			}
-
-			// Agregar los archivos de los tracks editados
-			if (selectedTrack && selectedTrack.resource instanceof File) {
-				formData.append(
-					`edited_track_${selectedTrack.external_id}`,
-					selectedTrack.resource
-				);
-			}
-
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
 
-			// const response = await fetch(
-			// 	`/api/admin/updateRelease/${updatedRelease.external_id}`,
-			// 	{
-			// 		method: 'PUT',
-			// 		body: formData,
-			// 	}
-			// );
+			const response = await fetch(
+				`/api/admin/updateRelease/${updatedRelease.external_id}`,
+				{
+					method: 'PUT',
+					body: formData,
+				}
+			);
 
-			// const data = await response.json();
-			// if (data.success) {
-			// 	// Si tenemos datos en la respuesta, los usamos
-			// 	if (data.data) {
-			// 		setFormData(data.data);
-			// 	} else {
-			// 		// Si no hay datos en la respuesta, mantenemos los datos actuales
-			// 		setFormData(prev => ({
-			// 			...prev,
-			// 			newTracks: prev.newTracks || [],
-			// 		}));
-			// 	}
-			// 	// Limpiar los tracks editados después de guardar exitosamente
-			// 	setSelectedTrack(null);
-			// 	toast.success('Release actualizado correctamente');
-			// 	await mutateRelease();
-			// } else {
-			// 	let errorMessage = 'Error al actualizar el release';
+			const data = await response.json();
+			if (data.success) {
+				// Si tenemos datos en la respuesta, los usamos
+				if (data.data) {
+					setFormData(data.data);
+				} else {
+					// Si no hay datos en la respuesta, mantenemos los datos actuales
+					setFormData(prev => ({
+						...prev,
+					}));
+				}
 
-			// 	if (typeof data === 'string') {
-			// 		errorMessage = data;
-			// 	} else if (data && typeof data === 'object') {
-			// 		if (Array.isArray(data.error)) {
-			// 			errorMessage = data.error.join('\n');
-			// 		} else if (data.error) {
-			// 			errorMessage = data.error;
-			// 		} else if (data.message) {
-			// 			errorMessage = data.message;
-			// 		}
-			// 	}
+				toast.success('Release actualizado correctamente');
+				await mutateRelease();
+			} else {
+				let errorMessage = 'Error al actualizar el release';
 
-			// 	toast.error(errorMessage);
-			// }
+				if (typeof data === 'string') {
+					errorMessage = data;
+				} else if (data && typeof data === 'object') {
+					if (Array.isArray(data.error)) {
+						errorMessage = data.error.join('\n');
+					} else if (data.error) {
+						errorMessage = data.error;
+					} else if (data.message) {
+						errorMessage = data.message;
+					}
+				}
+
+				toast.error(errorMessage);
+			}
 		} catch (error) {
 			console.error('Error updating release:', error);
 			throw error;

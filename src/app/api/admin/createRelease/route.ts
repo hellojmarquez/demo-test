@@ -229,14 +229,24 @@ export async function POST(req: NextRequest) {
 		console.log('getReleaseRes: ', getReleaseRes);
 		await dbConnect();
 
+		const cleanUrl = (url: string) => {
+			return url.split('?')[0];
+		};
+
 		// Guardar en la base de datos
 		const releaseToSave = {
 			...newRelease,
 			external_id: apiRes.id,
 			picture: {
-				full_size: getReleaseRes.artwork?.full_size || '/cd_cover.png',
-				thumb_medium: getReleaseRes.artwork?.thumb_medium || '/cd_cover.png',
-				thumb_small: getReleaseRes.artwork?.thumb_small || '/cd_cover.png',
+				full_size: getReleaseRes.artwork?.full_size
+					? cleanUrl(getReleaseRes.artwork.full_size)
+					: '/cd_cover.png',
+				thumb_medium: getReleaseRes.artwork?.thumb_medium
+					? cleanUrl(getReleaseRes.artwork.thumb_medium)
+					: '/cd_cover.png',
+				thumb_small: getReleaseRes.artwork?.thumb_small
+					? cleanUrl(getReleaseRes.artwork.thumb_small)
+					: '/cd_cover.png',
 			},
 			genre_name,
 			subgenre_name,

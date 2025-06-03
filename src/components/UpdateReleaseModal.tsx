@@ -432,11 +432,44 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}));
 	};
 
-	const handleDeleteTrack = (index: number) => {
-		setFormData((prev: Release) => ({
-			...prev,
-			tracks: prev.tracks?.filter((_, i: number) => i !== index) || [],
-		}));
+	const handleDeleteTrack = async (index: number) => {
+		const track = formData.tracks?.[index];
+		if (!track?.external_id) {
+			// Si no tiene external_id, solo lo eliminamos del estado local
+			setFormData((prev: Release) => ({
+				...prev,
+				tracks: prev.tracks?.filter((_, i: number) => i !== index) || [],
+			}));
+			return;
+		}
+
+		try {
+			const response = await fetch(
+				`/api/admin/deleteSingleInRelease/${track.external_id}`,
+				{
+					method: 'DELETE',
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error('Error al eliminar el track');
+			}
+
+			const data = await response.json();
+			if (data.success) {
+				// Actualizar el estado local después de eliminar exitosamente
+				setFormData((prev: Release) => ({
+					...prev,
+					tracks: prev.tracks?.filter((_, i: number) => i !== index) || [],
+				}));
+				toast.success('Track eliminado exitosamente');
+			} else {
+				throw new Error(data.message || 'Error al eliminar el track');
+			}
+		} catch (error) {
+			console.error('Error al eliminar track:', error);
+			toast.error('Error al eliminar el track');
+		}
 	};
 
 	const handlePlayPause = (trackIndex: number, resource: string) => {

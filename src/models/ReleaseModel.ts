@@ -33,7 +33,10 @@ const pictureSchema = new Schema({
 
 const releaseSchema = new Schema(
 	{
-		picture: { type: pictureSchema, required: true },
+		picture: {
+			type: pictureSchema,
+			required: false,
+		},
 		external_id: { type: Number, required: false },
 		auto_detect_language: { type: Boolean, required: false },
 		generate_ean: { type: Boolean, required: false },

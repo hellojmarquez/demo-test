@@ -1221,20 +1221,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									newContributors
 								);
 
-								// Los contributors ya vienen formateados del ContributorSelector
-								// Solo necesitamos actualizar el estado
+								// Asegurarnos de que cada contributor tenga role y role_name
+								const updatedContributors = newContributors.map(contributor => {
+									if (contributor.role && !contributor.role_name) {
+										const selectedRole = roles.find(
+											r => r.id === contributor.role
+										);
+										return {
+											...contributor,
+											role_name: selectedRole?.name || '',
+										};
+									}
+									return contributor;
+								});
+
 								const updatedTrack = {
 									...localTrack,
-									contributors: newContributors,
+									contributors: updatedContributors,
 								};
 
 								// Actualizar el estado local
 								setLocalTrack(updatedTrack);
-
-								// Notificar al padre
-								if (onTrackChange) {
-									onTrackChange(updatedTrack);
-								}
 							}}
 							onDeleteContributor={index => {
 								console.log('onDeleteContributor - index:', index);
@@ -1248,11 +1255,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 								// Actualizar el estado local
 								setLocalTrack(updatedTrack);
-
-								// Notificar al padre
-								if (onTrackChange) {
-									onTrackChange(updatedTrack);
-								}
 							}}
 							reactSelectStyles={{
 								...customSelectStyles,

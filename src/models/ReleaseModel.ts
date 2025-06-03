@@ -4,6 +4,7 @@ interface Artist {
 	order: number;
 	artist: number;
 	kind: string;
+	name: string;
 }
 
 interface Track {
@@ -17,6 +18,7 @@ const artistSchema = new Schema<Artist>({
 	order: { type: Number, required: true },
 	artist: { type: Number, required: true },
 	kind: { type: String, required: true },
+	name: { type: String, required: true },
 });
 const trackSchema = new Schema<Track>({
 	title: { type: String, required: true },

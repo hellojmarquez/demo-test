@@ -119,6 +119,9 @@ export async function PUT(
 		}
 		const releaseData = JSON.parse(data as string);
 		console.log('releaseData: ', releaseData);
+		if (releaseData.ean.length === 0) {
+			delete releaseData.ean;
+		}
 		// Convertir los valores a números
 		if (releaseData.label) releaseData.label = Number(releaseData.label);
 		if (releaseData.publisher)
@@ -180,8 +183,15 @@ export async function PUT(
 				];
 			}
 		}
+		const artistToApi = {
+			artists: releaseData.artists.map((artist: { name: string; [key: string]: any }) => {
+				const { name, ...rest } = artist;
+				return rest;
+			}),
+		};
 		const releaseToApiData = {
 			...releaseData,
+			artists: artistToApi.artists,
 			artwork:
 				picture_path.length > 0
 					? picture_path
@@ -192,7 +202,7 @@ export async function PUT(
 		const releaseToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
 			{
-				method: 'PUT',
+				method: 'PATCH',
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: `JWT ${moveMusicAccessToken}`,
@@ -235,6 +245,8 @@ export async function PUT(
 		};
 		const dataToUpdate = {
 			...getReleaseRes,
+			label: releaseData.label,
+			artists: releaseData.artists,
 			picture: {
 				full_size: getReleaseRes.artwork?.full_size
 					? cleanUrl(getReleaseRes.artwork.full_size)

@@ -207,7 +207,13 @@ export async function PUT(
 			}
 		);
 		const getReleaseRes = await getRelease.json();
-
+		getReleaseRes.tracks.forEach((track: any) => {
+			if (track.resource) {
+				track.resource = decodeURIComponent(
+					new URL(track.resource).pathname.slice(1)
+				).replace('media/', '');
+			}
+		});
 		const releaseToApiData = {
 			...releaseData,
 			artists: artistToApi.artists,

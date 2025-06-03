@@ -47,9 +47,9 @@ export async function POST(
 			);
 		}
 		const externalId = params.id;
-		const release = (await Release.findOne({
+		const release = await Release.findOne({
 			external_id: externalId,
-		}).lean()) as ReleaseDocument;
+		}).lean();
 		console.log('release', release);
 		if (!release) {
 			return NextResponse.json(
@@ -87,10 +87,11 @@ export async function POST(
 				{ status: 400 }
 			);
 		}
-		return NextResponse.json({
-			success: true,
-			message: 'Release en revisión',
-		});
+		const releaseUpdate = await Release.findOneAndUpdate(
+			{ external_id: externalId },
+			{ $set: { status: 'en revision' } },
+			{ new: true }
+		).lean();
 	} catch (error: any) {
 		console.error('Error al distribuir el release:', error);
 		return NextResponse.json(

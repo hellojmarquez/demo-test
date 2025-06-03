@@ -37,16 +37,8 @@ export async function POST(req: NextRequest) {
 
 		const formData = await req.formData();
 
-		// Generar un ID temporal basado en timestamp
-		const timestamp = Date.now();
-		const random = Math.floor(Math.random() * 1000);
-
 		// Parsear campos individuales
 		const picture = formData.get('picture') as File | null;
-		let pictureBuffer: Buffer | null = null;
-		if (picture && picture instanceof File) {
-			pictureBuffer = Buffer.from(await picture.arrayBuffer());
-		}
 
 		// Parsear campos complejos que vienen como stringified JSON
 		const artistsRaw = formData.get('artists');

@@ -83,7 +83,7 @@ export async function DELETE(
 
 		const dataToApi = {
 			...track,
-			release: null,
+			release: 883,
 			ISRC: newISRC,
 			resource: newresource,
 			artists: track.artists.map(
@@ -107,8 +107,8 @@ export async function DELETE(
 		delete dataToApi._id;
 		delete dataToApi.extrernal_id;
 		delete dataToApi.status;
-		delete dataToApi. genre_name;
-		delete dataToApi. subgenre_name;
+		delete dataToApi.genre_name;
+		delete dataToApi.subgenre_name;
 		console.log('DATA TO API: ', dataToApi);
 		const updateTrackReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${track.external_id}`,

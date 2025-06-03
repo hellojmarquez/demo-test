@@ -117,7 +117,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	genres,
 	onClose,
 }) => {
-	console.log('track A ACTUALIZAR RECIBIDO', track);
 	const [isLoading, setIsLoading] = useState(false);
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -198,6 +197,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				const publisherRes = await fetch('/api/admin/getAllPublishers');
 				const publisherData = await publisherRes.json();
 				if (publisherData.success) {
+					console.log('PUBLISHER DATA', publisherData);
 					setPublishers(publisherData.data);
 				}
 
@@ -438,46 +438,43 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		if (onTrackChange) {
-			const newPublishers = [...(localTrack?.publishers || [])];
-			if (!newPublishers[index]) {
-				newPublishers[index] = { publisher: 0, author: '', order: 0, name: '' };
-			}
+		const newPublishers = [...(localTrack?.publishers || [])];
+		if (!newPublishers[index]) {
+			newPublishers[index] = { publisher: 0, author: '', order: 0, name: '' };
+		}
 
-			if (field === 'publisher') {
-				const numValue =
-					typeof value === 'string' ? parseInt(value) : Number(value);
-				if (!isNaN(numValue)) {
-					const selectedPublisher = publishers.find(
-						p => p.external_id === numValue
-					);
-					if (selectedPublisher) {
-						newPublishers[index] = {
-							...newPublishers[index],
-							publisher: selectedPublisher.external_id,
-							author: selectedPublisher.name || '',
-							name: selectedPublisher.name || '',
-						};
-					}
-				}
-			} else if (field === 'author') {
+		if (field === 'publisher') {
+			const numValue =
+				typeof value === 'string' ? parseInt(value) : Number(value);
+			const selectedPublisher = publishers.find(
+				p => p.external_id === numValue
+			);
+			newPublishers[index] = {
+				...newPublishers[index],
+				publisher: numValue,
+				name: selectedPublisher?.name || '',
+			};
+		} else if (field === 'author') {
+			newPublishers[index] = {
+				...newPublishers[index],
+				author: value as string,
+			};
+		} else if (field === 'order') {
+			const numValue =
+				typeof value === 'string' ? parseInt(value) : Number(value);
+			if (!isNaN(numValue)) {
 				newPublishers[index] = {
 					...newPublishers[index],
-					author: (value as string) || '',
+					order: numValue,
 				};
-			} else if (field === 'order') {
-				const numValue =
-					typeof value === 'string' ? parseInt(value) : Number(value);
-				if (!isNaN(numValue)) {
-					newPublishers[index] = {
-						...newPublishers[index],
-						order: numValue,
-					};
-				}
 			}
-
-			onTrackChange({ ...localTrack, publishers: newPublishers });
 		}
+
+		// Actualizar el estado local directamente
+		setLocalTrack(prev => ({
+			...prev,
+			publishers: newPublishers,
+		}));
 	};
 
 	const handleTimeChange = (name: string, value: string) => {
@@ -1312,13 +1309,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				<div className="space-y-4">
 					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
 						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
-						<button
+						{/* <button
 							type="button"
 							onClick={handleAddPublisher}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
 							<Plus size={20} />
-						</button>
+						</button> */}
 					</div>
 					<div className="space-y-4 w-full overflow-hidden">
 						{!localTrack?.publishers?.length ? (
@@ -1339,6 +1336,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												: null
 										}
 										onChange={(selectedOption: any) => {
+											console.log('selectedOption', selectedOption);
 											if (selectedOption) {
 												handlePublisherChange(
 													0,
@@ -1410,22 +1408,24 @@ const TrackForm: React.FC<TrackFormProps> = ({
 													? {
 															value: publisher.publisher,
 															label:
-																publishers?.find(
+																publishers.find(
 																	p => p.external_id === publisher.publisher
 																)?.name || '',
 													  }
 													: null
 											}
-											onChange={(selectedOption: any) => {
+											onChange={selectedOption => {
 												if (selectedOption) {
 													handlePublisherChange(
 														index,
 														'publisher',
 														selectedOption.value
 													);
+												} else {
+													handlePublisherChange(index, 'publisher', 0);
 												}
 											}}
-											options={publishers?.map(p => ({
+											options={publishers.map(p => ({
 												value: p.external_id,
 												label: p.name,
 											}))}
@@ -1434,7 +1434,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												...customSelectStyles,
 												menu: (provided: any) => ({
 													...provided,
-													zIndex: 9999,
+													zIndex: 99999,
 													backgroundColor: 'white',
 													boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
 												}),
@@ -1450,9 +1450,17 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												}),
 											}}
 											isClearable
+											menuPortalTarget={document.body}
+											menuPosition="fixed"
+											className="react-select-container"
+											classNamePrefix="react-select"
+											instanceId={`publisher-select-${
+												publisher?.publisher || 'new'
+											}`}
+											noOptionsMessage={() => 'No hay publishers disponibles'}
+											isSearchable={false}
 										/>
 									</div>
-
 									<input
 										type="text"
 										name="author"
@@ -1463,22 +1471,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										className="w-full sm:flex-1 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
 										placeholder="Autor"
 									/>
-
-									<input
-										type="number"
-										value={publisher?.order ?? 0}
-										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-											const val = parseInt(e.target.value);
-											handlePublisherChange(
-												index,
-												'order',
-												isNaN(val) ? 0 : val
-											);
-										}}
-										className="w-full sm:w-20 p-2 border rounded"
-										placeholder="Orden"
-									/>
-
 									{(localTrack?.publishers || []).length > 1 && (
 										<button
 											onClick={() => handleRemovePublisher(index)}

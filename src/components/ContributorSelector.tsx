@@ -72,8 +72,6 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 					...newContributors[index],
 					role: selectedRole.id,
 					role_name: selectedRole.name,
-					name: newContributors[index].name,
-					contributor: newContributors[index].contributor,
 				};
 				console.log('Updated role data:', newContributors[index]);
 			}
@@ -81,23 +79,13 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 			newContributors[index] = {
 				...newContributors[index],
 				order: Number(value),
-				name: newContributors[index].name,
-				contributor: newContributors[index].contributor,
-				role: newContributors[index].role,
-				role_name: newContributors[index].role_name,
 			};
 		}
 
-		// Asegurarse de que todos los campos requeridos estén presentes y mantengan sus valores
-		const formattedContributor = {
-			contributor: newContributors[index].contributor || 0,
-			name: newContributors[index].name || '',
-			role: newContributors[index].role || 0,
-			role_name: newContributors[index].role_name || '',
-			order: newContributors[index].order || index,
-		};
-
-		console.log('Final contributor data before sending:', formattedContributor);
+		console.log(
+			'Final contributor data before sending:',
+			newContributors[index]
+		);
 		onContributorsChange(newContributors);
 	};
 
@@ -113,13 +101,11 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 						);
 						console.log('Found contributor:', selectedContributor);
 						if (selectedContributor) {
-							// Asegurarse de que el primer rol esté seleccionado por defecto
-							const defaultRole = roles[0];
 							const newContributor = {
 								contributor: selectedContributor.external_id,
 								name: selectedContributor.name,
-								role: defaultRole?.id || 0,
-								role_name: defaultRole?.name || '',
+								role: 0,
+								role_name: '',
 								order: contributors.length,
 							};
 							console.log('New contributor to add:', newContributor);
@@ -147,88 +133,70 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 					{contributors.map((contributor, index) => (
 						<div
 							key={`contributor-${index}`}
-							className="flex items-center gap-2"
+							className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg"
 						>
-							<Select
-								value={
-									contributor.contributor
-										? {
-												value: contributor.contributor,
-												label: contributor.name,
-										  }
-										: null
-								}
-								onChange={selectedOption => {
-									if (selectedOption) {
-										const selectedContributor = contributorData.find(
-											c => c.external_id === selectedOption.value
-										);
-										if (selectedContributor) {
-											handleContributorChange(
-												index,
-												'contributor',
-												selectedOption.value
-											);
-										}
-									}
-								}}
-								options={contributorData.map(c => ({
-									value: c.external_id,
-									label: c.name,
-								}))}
-								placeholder="Seleccionar contribuidor"
-								className="flex-1"
-								styles={reactSelectStyles}
-							/>
-
-							<Select
-								value={
-									contributor.role
-										? {
-												value: contributor.role,
-												label: contributor.role_name,
-										  }
-										: null
-								}
-								onChange={selectedOption => {
-									if (selectedOption) {
-										const selectedRole = roles.find(
-											r => r.id === selectedOption.value
-										);
-										if (selectedRole) {
-											handleContributorChange(
-												index,
-												'role',
-												selectedOption.value
-											);
-										}
-									}
-								}}
-								options={roles.map(r => ({
-									value: r.id,
-									label: r.name,
-								}))}
-								placeholder="Seleccionar rol"
-								className="flex-1"
-								styles={reactSelectStyles}
-							/>
-
-							<input
-								type="number"
-								value={contributor.order}
-								onChange={e => {
-									const value = parseInt(e.target.value);
-									if (!isNaN(value)) {
-										handleContributorChange(index, 'order', value);
-									}
-								}}
-								className="w-20 p-2 border rounded"
-								placeholder="Orden"
-							/>
-
+							<div className="flex gap-3">
+								<div className="p-2 bg-white rounded-full">
+									<User className="w-14 h-14 text-gray-600" />
+								</div>
+								<div className="flex flex-col items-center">
+									<span className="font-medium text-sm">
+										{contributor.name}
+									</span>
+									<div className="flex items-center gap-2 mt-1">
+										<Select
+											value={
+												roles.find(r => r.id === contributor.role)
+													? {
+															value: contributor.role,
+															label:
+																roles.find(r => r.id === contributor.role)
+																	?.name || '',
+													  }
+													: null
+											}
+											onChange={selectedOption => {
+												console.log('Role selected:', selectedOption);
+												if (selectedOption) {
+													handleContributorChange(
+														index,
+														'role',
+														selectedOption.value
+													);
+												}
+											}}
+											options={roles.map(r => ({
+												value: r.id,
+												label: r.name,
+											}))}
+											styles={reactSelectStyles}
+											className="w-28"
+											classNamePrefix="react-select"
+										/>
+									</div>
+									<div className="flex flex-col items-center mt-1">
+										<input
+											type="number"
+											min={-2147483648}
+											max={2147483647}
+											value={contributor.order}
+											onChange={e => {
+												const value = parseInt(e.target.value, 10);
+												handleContributorChange(
+													index,
+													'order',
+													isNaN(value) ? 0 : value
+												);
+											}}
+											className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-center focus:outline-none focus:border-brand-light"
+										/>
+										<label className="text-xs text-gray-500">Orden</label>
+									</div>
+								</div>
+							</div>
 							<button
 								onClick={() => onDeleteContributor(index)}
-								className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+								className="p-2 text-gray-400 hover:text-red-600 transition-colors"
 							>
 								<Trash2 size={20} />
 							</button>

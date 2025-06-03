@@ -117,6 +117,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	genres,
 	onClose,
 }) => {
+	console.log('track A ACTUALIZAR RECIBIDO', track);
 	const [isLoading, setIsLoading] = useState(false);
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -438,7 +439,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		value: string | number
 	) => {
 		if (onTrackChange) {
-			const newPublishers = [...(track?.publishers || [])];
+			const newPublishers = [...(localTrack?.publishers || [])];
 			if (!newPublishers[index]) {
 				newPublishers[index] = { publisher: 0, author: '', order: 0, name: '' };
 			}
@@ -475,7 +476,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				}
 			}
 
-			onTrackChange({ ...track, publishers: newPublishers });
+			onTrackChange({ ...localTrack, publishers: newPublishers });
 		}
 	};
 
@@ -1320,19 +1321,19 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						</button>
 					</div>
 					<div className="space-y-4 w-full overflow-hidden">
-						{!track?.publishers?.length ? (
+						{!localTrack?.publishers?.length ? (
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2">
 								<div className="w-full sm:flex-1">
 									<Select
 										value={
-											track?.publishers?.[0]?.publisher
+											localTrack?.publishers?.[0]?.publisher
 												? {
-														value: track.publishers[0].publisher,
+														value: localTrack.publishers[0].publisher,
 														label:
 															publishers?.find(
 																p =>
 																	p.external_id ===
-																	track?.publishers?.[0]?.publisher
+																	localTrack?.publishers?.[0]?.publisher
 															)?.name || '',
 												  }
 												: null
@@ -1346,12 +1347,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												);
 											}
 										}}
-										options={
-											publishers?.map(p => ({
-												value: p.external_id,
-												label: p.name,
-											})) || []
-										}
+										options={publishers?.map(p => ({
+											value: p.external_id,
+											label: p.name,
+										}))}
 										placeholder="Seleccionar Publisher"
 										styles={{
 											...customSelectStyles,
@@ -1373,9 +1372,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											}),
 										}}
 										isClearable
-										menuPortalTarget={document.body}
-										menuPosition="fixed"
-										menuPlacement="auto"
 									/>
 								</div>
 
@@ -1402,7 +1398,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								/>
 							</div>
 						) : (
-							(track?.publishers || []).map((publisher, index) => (
+							(localTrack?.publishers || []).map((publisher, index) => (
 								<div
 									key={`publisher-row-${index}`}
 									className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2"
@@ -1429,12 +1425,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 													);
 												}
 											}}
-											options={
-												publishers?.map(p => ({
-													value: p.external_id,
-													label: p.name,
-												})) || []
-											}
+											options={publishers?.map(p => ({
+												value: p.external_id,
+												label: p.name,
+											}))}
 											placeholder="Seleccionar Publisher"
 											styles={{
 												...customSelectStyles,
@@ -1456,9 +1450,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												}),
 											}}
 											isClearable
-											menuPortalTarget={document.body}
-											menuPosition="fixed"
-											menuPlacement="auto"
 										/>
 									</div>
 
@@ -1488,7 +1479,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										placeholder="Orden"
 									/>
 
-									{(track?.publishers || []).length > 1 && (
+									{(localTrack?.publishers || []).length > 1 && (
 										<button
 											onClick={() => handleRemovePublisher(index)}
 											className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"

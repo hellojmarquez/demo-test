@@ -101,8 +101,6 @@ export default function EditPage() {
 
 	useEffect(() => {
 		if (releaseData?.data) {
-			console.log('releaseData completo:', releaseData.data);
-			console.log('releaseData.picture:', releaseData.data.picture);
 			setFormData(releaseData.data);
 		}
 	}, [releaseData]);
@@ -119,8 +117,6 @@ export default function EditPage() {
 			// Fetch publishers for logging
 			const publishersRes = await fetch('/api/admin/getAllPublishers');
 			const publishersData = await publishersRes.json();
-			console.log('Publishers response in edit page:', publishersData);
-			console.log('Publishers data:', publishersData.data);
 		} catch (error) {
 			console.error('Error fetching data:', error);
 		}
@@ -198,7 +194,6 @@ export default function EditPage() {
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
 
-			console.log('formData: ', formData);
 			// const response = await fetch(
 			// 	`/api/admin/updateRelease/${updatedRelease.external_id}`,
 			// 	{
@@ -274,12 +269,12 @@ export default function EditPage() {
 			}
 
 			// Si no está en tracksData, hacer fetch al backend
-			console.log('Editando track existente con ID:', track.external_id);
+
 			const response = await fetch(
 				`/api/admin/getTrackById/${track.external_id}`
 			);
 			const data = await response.json();
-			console.log('data: ', data);
+
 			if (!data.success) {
 				throw new Error('Error al obtener los datos del track');
 			}

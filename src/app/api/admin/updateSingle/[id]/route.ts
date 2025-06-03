@@ -141,26 +141,38 @@ export async function PUT(
 							.replace('media/', '')
 				  );
 		if (trackData.ISRC === null) delete trackData.ISRC;
-
+		let publisherstoapi: any[] = [];
 		// Asegurar que publishers tenga la estructura correcta
 		if (Array.isArray(trackData.publishers)) {
-			trackData.publishers = trackData.publishers.map((pub: any) => ({
+			publisherstoapi = trackData.publishers.map((pub: any) => ({
 				order: pub.order || 0,
 				publisher: pub.publisher || 0,
 				author: pub.author || '',
 			}));
 		} else {
-			trackData.publishers = [];
+			publisherstoapi = [];
 		}
+		let contributorsToApi: any[] = [];
 		// Asegurar que contributors tenga la estructura correcta
 		if (Array.isArray(trackData.contributors)) {
-			trackData.contributors = trackData.contributors.map((cont: any) => ({
+			contributorsToApi = trackData.contributors.map((cont: any) => ({
 				order: cont.order || 0,
 				contributor: cont.contributor || 0,
 				role: cont.role || 0,
 			}));
 		} else {
-			trackData.contributors = [];
+			contributorsToApi = [];
+		}
+		let artistsToApi: any[] = [];
+		// Asegurar que contributors tenga la estructura correcta
+		if (Array.isArray(trackData.artists)) {
+			artistsToApi = trackData.artists.map((art: any) => ({
+				order: art.order || 0,
+				artist: art.artist || 0,
+				kind: art.kind || '',
+			}));
+		} else {
+			artistsToApi = [];
 		}
 
 		console.log('trackData', trackData);
@@ -168,7 +180,12 @@ export async function PUT(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
 			{
 				method: 'PUT',
-				body: JSON.stringify(trackData),
+				body: JSON.stringify({
+					...trackData,
+					publishers: publisherstoapi,
+					artists: artistsToApi,
+					contributors: contributorsToApi,
+				}),
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: `JWT ${moveMusicAccessToken}`,
@@ -177,7 +194,16 @@ export async function PUT(
 				},
 			}
 		);
+		console.log('trackToApi STATUS', trackToApi.ok);
 
+		const apires = await trackToApi.json();
+		console.log('apires', apires);
+		if (!apires.id) {
+			return NextResponse.json(
+				{ success: false, error: apires || 'Error al actualizar el track' },
+				{ status: 400 }
+			);
+		}
 		// Asegurarse de que los artistas tengan el formato correcto
 		if (trackData.artists) {
 			trackData.artists = trackData.artists.map((artist: any) => ({
@@ -192,20 +218,21 @@ export async function PUT(
 		if (trackData.contributors) {
 			trackData.contributors = trackData.contributors.map(
 				(contributor: any) => ({
-					external_id: Number(contributor.external_id) || 0,
-					name: String(contributor.name || ''),
+					contributor: Number(contributor.contributor) || 0,
+					name: String(contributor.name) || '',
 					role: Number(contributor.role) || 0,
+					role_name: contributor.role_name || '',
 					order: Number(contributor.order) || 0,
 				})
 			);
 		}
-		const apires = await trackToApi.json();
-		console.log('apires', apires);
-		if (!apires.id) {
-			return NextResponse.json(
-				{ success: false, error: apires || 'Error al actualizar el track' },
-				{ status: 400 }
-			);
+		if (trackData.publishers) {
+			trackData.publishers = trackData.publishers.map((publisher: any) => ({
+				publisher: Number(publisher.publisher) || 0,
+				author: String(publisher.author) || '',
+				order: Number(publisher.order) || 0,
+				name: String(publisher.name) || '',
+			}));
 		}
 		trackData.resource =
 			track_url.length > 0 ? track_url : currentTrack.resource;

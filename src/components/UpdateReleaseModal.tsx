@@ -155,13 +155,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	onEditTrack,
 	genres,
 }) => {
-	console.log('Props recibidas en UpdateReleaseModal:', {
-		release,
-		formData,
-		picture: release?.picture,
-		formDataPicture: formData?.picture,
-	});
-
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
@@ -322,22 +315,17 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 	// Efecto para cargar la imagen inicial
 	useEffect(() => {
-		console.log('useEffect de imagen - release.picture:', release?.picture);
-		console.log('useEffect de imagen - formData.picture:', formData?.picture);
-
 		if (release?.picture) {
 			if (
 				typeof release.picture === 'object' &&
 				'thumb_small' in release.picture
 			) {
-				console.log('Usando thumb_small de release.picture');
 				setImagePreview(release.picture.thumb_small);
 			} else if (
 				typeof release.picture === 'object' &&
 				'name' in release.picture &&
 				'type' in release.picture
 			) {
-				console.log('Creando URL temporal para File');
 				const objectUrl = URL.createObjectURL(release.picture as File);
 				setImagePreview(objectUrl);
 				return () => URL.revokeObjectURL(objectUrl);

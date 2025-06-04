@@ -54,7 +54,10 @@ export async function POST(req: NextRequest) {
 					);
 				}
 				if (file) {
-					const fixedFileName = file.name.replaceAll(' ', '');
+					let fixedFileName = '';
+					if (file.name) {
+						fixedFileName = file.name.replaceAll(' ', '');
+					}
 					const uploadTrackReq = await fetch(
 						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${fixedFileName}&filetype=${file.type}&upload_type=track.audio`,
 						{

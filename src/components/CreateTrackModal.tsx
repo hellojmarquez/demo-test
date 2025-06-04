@@ -157,19 +157,24 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	// Efecto para actualizar subgéneros cuando cambia el género
 	useEffect(() => {
-		if (track?.genre) {
-			const selectedGenre = genres.find(g => g.id === track.genre);
+		console.log('useEffect se ejecutó');
+		console.log('localTrack?.genre:', localTrack?.genre);
+		console.log('genres:', genres);
+
+		if (localTrack?.genre) {
+			const selectedGenre = genres.find(g => g.id === localTrack.genre);
+			console.log('selectedGenre', selectedGenre);
 			if (selectedGenre) {
 				setSubgenres(selectedGenre.subgenres || []);
 
 				// Si hay un subgénero seleccionado pero no está en la lista actual, lo agregamos
 				if (
-					track.subgenre &&
-					!selectedGenre.subgenres.some(s => s.id === track.subgenre)
+					localTrack.subgenre &&
+					!selectedGenre.subgenres.some(s => s.id === localTrack.subgenre)
 				) {
 					const currentSubgenre = {
-						id: track.subgenre,
-						name: track.subgenre_name || '',
+						id: localTrack.subgenre,
+						name: localTrack.subgenre_name || '',
 					};
 					setSubgenres(prev => [...prev, currentSubgenre]);
 				}
@@ -179,7 +184,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		} else {
 			setSubgenres([]);
 		}
-	}, [track?.genre, genres, track?.subgenre, track?.subgenre_name]);
+	}, [
+		localTrack?.genre,
+		genres,
+		localTrack?.subgenre,
+		localTrack?.subgenre_name,
+	]);
 
 	useEffect(() => {
 		const fetchData = async () => {

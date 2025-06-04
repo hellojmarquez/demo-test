@@ -92,6 +92,13 @@ export async function POST(
 			{ $set: { status: 'en revision' } },
 			{ new: true }
 		).lean();
+		return NextResponse.json(
+			{
+				success: true,
+				message: distributeRes || 'Release distribuido correctamente',
+			},
+			{ status: 200 }
+		);
 	} catch (error: any) {
 		console.error('Error al distribuir el release:', error);
 		return NextResponse.json(

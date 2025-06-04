@@ -118,7 +118,7 @@ export async function PUT(
 			}
 		}
 		const releaseData = JSON.parse(data as string);
-		if (releaseData.ean.length === 0) {
+		if (!releaseData.ean || releaseData.ean.length === 0) {
 			delete releaseData.ean;
 		}
 		if (releaseData.territory === 'worldwide') {

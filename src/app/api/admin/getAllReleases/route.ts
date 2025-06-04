@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
 	console.log('get releases roles received');
 
 	try {
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
@@ -32,7 +33,6 @@ export async function GET(req: NextRequest) {
 			);
 			userRole = verifiedPayload.role;
 			userId = verifiedPayload.id;
-	
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -72,7 +72,6 @@ export async function GET(req: NextRequest) {
 				...searchQuery,
 				label: sello.external_id,
 			};
-		
 		} else if (userRole === 'artista') {
 			const artista = await User.findById(userId);
 			if (!artista) {
@@ -90,7 +89,6 @@ export async function GET(req: NextRequest) {
 					},
 				},
 			};
-		
 		} else if (userRole === 'publisher') {
 			const publisher = await User.findById(userId);
 			if (!publisher) {
@@ -104,7 +102,6 @@ export async function GET(req: NextRequest) {
 				...searchQuery,
 				publisher: publisher.external_id,
 			};
-		
 		} else if (userRole !== 'admin') {
 			return NextResponse.json(
 				{ success: false, error: 'No autorizado' },
@@ -121,7 +118,26 @@ export async function GET(req: NextRequest) {
 			.skip(skip)
 			.limit(limit)
 			.lean();
-
+		await Promise.all(
+			releases.map(async release => {
+				if (release.status !== 'borrador' && release.status !== 'approval') {
+					const releaseGet = await fetch(
+						`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
+						{
+							headers: {
+								Authorization: `JWT ${moveMusicAccessToken}`,
+								'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+								Referer: process.env.MOVEMUSIC_REFERER || '',
+							},
+						}
+					);
+					const releaseData = await releaseGet.json();
+					if (releaseData && releaseData.status) {
+						release.status = releaseData.status;
+					}
+				}
+			})
+		);
 		return NextResponse.json(
 			{
 				success: true,

@@ -95,6 +95,7 @@ export interface Release {
 	exclusive_shop?: number;
 	territory?: string;
 	ean?: string;
+	qc_feedback?: {};
 	createdAt?: string;
 	updatedAt?: string;
 }

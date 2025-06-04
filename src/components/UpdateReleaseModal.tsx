@@ -167,11 +167,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [isUploadingTracks, setIsUploadingTracks] = useState(false);
 	const [uploadError, setUploadError] = useState('');
-
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
-	const [trackData, setTrackData] = useState<TrackData[]>([]);
-	const [trackDetails, setTrackDetails] = useState<{ [key: string]: any }>({});
 	const [playingTrack, setPlayingTrack] = useState<string | null>(null);
 
 	const [progress, setProgress] = useState<number>(0);
@@ -190,9 +187,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		deezer_id: '',
 		spotify_id: '',
 	});
-	const [isEditingTrack, setIsEditingTrack] = useState(false);
 	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
-	const [trackFormData, setTrackFormData] = useState<Track | null>(null);
 	const [isTracksExpanded, setIsTracksExpanded] = useState(false);
 	const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
 
@@ -803,7 +798,16 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						</button>
 					</div>
 				</div>
-
+				{/*SECCION DE ERRORES*/}
+				{(formData.qc_feedback as any)?.results && (
+					<div className="bg-red-200 p-4 rounded-lg">
+						{/* formData.qc_feedback */}
+						<h2 className="text-red-800 font-bold">SECCION DE ERRORES</h2>
+						<pre className="text-red-500">
+							{JSON.stringify((formData.qc_feedback as any)?.results, null, 2)}
+						</pre>
+					</div>
+				)}
 				{/* Sección de tracks */}
 				<div className="space-y-2 mt-4 md:mt-0">
 					<button
@@ -1675,6 +1679,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					</div>
 				</div>
 			</div>
+
 			{isUploadModalOpen && (
 				<UploadTrackToRelease
 					isOpen={isUploadModalOpen}

@@ -47,6 +47,7 @@ const releaseSchema = new Schema(
 		dolby_atmos: { type: Boolean, required: false },
 		artists: [artistSchema],
 		status: { type: String, required: true, default: 'borrador' },
+		qc_feedback: { type: Object, required: false },
 		tracks: { type: [trackSchema], required: false },
 		countries: { type: [String], required: false },
 		name: { type: String, required: true },

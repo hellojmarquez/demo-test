@@ -758,12 +758,16 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									</span>
 									<span
 										className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-											safeFormData.status === 'ready'
+											formData.status === 'ready'
 												? 'bg-green-100 text-green-800'
+												: formData.status === 'en revision'
+												? 'bg-yellow-100 text-yellow-800'
+												: formData.status === 'approval'
+												? 'bg-blue-100 text-blue-800'
 												: 'bg-gray-100 text-gray-600'
 										}`}
 									>
-										{safeFormData.status === 'ready' ? 'Listo' : 'Borrador'}
+										{safeFormData.status}
 									</span>
 								</div>
 							</div>

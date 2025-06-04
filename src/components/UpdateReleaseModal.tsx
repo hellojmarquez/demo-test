@@ -806,8 +806,10 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				{(formData.qc_feedback as any)?.results && (
 					<div className="bg-red-200 p-4 rounded-lg">
 						{/* formData.qc_feedback */}
-						<h2 className="text-red-800 font-bold">SECCION DE ERRORES</h2>
-						<pre className="text-red-500">
+						<h2 className="text-red-800 font-bold text-center ">
+							SECCION DE ERRORES
+						</h2>
+						<pre className="text-red-500 text-wrap">
 							{JSON.stringify((formData.qc_feedback as any)?.results, null, 2)}
 						</pre>
 					</div>

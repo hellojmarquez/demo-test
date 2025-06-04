@@ -89,7 +89,7 @@ export async function POST(
 		}
 		const releaseUpdate = await Release.findOneAndUpdate(
 			{ external_id: externalId },
-			{ $set: { status: 'en revision' } },
+			{ $set: { status: 'en revision', qc_feedback: {} } },
 			{ new: true }
 		).lean();
 		return NextResponse.json(

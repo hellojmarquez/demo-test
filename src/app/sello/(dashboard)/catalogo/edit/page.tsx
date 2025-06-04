@@ -208,6 +208,7 @@ export default function EditPage() {
 
 				toast.success('Release actualizado correctamente');
 				await mutateRelease();
+				router.refresh();
 			} else {
 				let errorMessage = 'Error al actualizar el release';
 

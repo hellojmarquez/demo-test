@@ -3,14 +3,13 @@ import dbConnect from '@/lib/dbConnect';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import Release from '@/models/ReleaseModel';
-import mongoose from 'mongoose';
 
 export async function GET(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
 	console.log('get contributor roles received');
-
+	const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 	const token = req.cookies.get('loginToken')?.value;
 	if (!token) {
 		return NextResponse.json(
@@ -44,7 +43,21 @@ export async function GET(
 				{ status: 404 }
 			);
 		}
-
+		const getRelease = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${releaseId}`,
+			{
+				headers: {
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const releaseData = await getRelease.json();
+		release.status = releaseData.status;
+		release.qc_feedback = releaseData.qc_feedback;
+		console.log('release ', release);
+		console.log('releaseData.qc_feedback ', releaseData.qc_feedback);
 		return NextResponse.json({
 			success: true,
 			data: release,

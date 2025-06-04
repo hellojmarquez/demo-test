@@ -135,6 +135,9 @@ export async function GET(req: NextRequest) {
 					if (releaseData && releaseData.status) {
 						release.status = releaseData.status;
 					}
+					if (releaseData && releaseData.qc_feedback) {
+						release.qc_feedback = releaseData.qc_feedback;
+					}
 				}
 			})
 		);

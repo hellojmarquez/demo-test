@@ -49,7 +49,7 @@ export interface Track {
 	updatedAt?: string;
 	vocals?: string;
 	status?: string;
-
+	qc_feedback: {};
 	newTracks?: Track[];
 }
 

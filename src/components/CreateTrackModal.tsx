@@ -207,7 +207,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				const publisherRes = await fetch('/api/admin/getAllPublishers');
 				const publisherData = await publisherRes.json();
 				if (publisherData.success) {
-					console.log('PUBLISHER DATA', publisherData);
 					setPublishers(publisherData.data);
 				}
 
@@ -669,7 +668,18 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						</div>
 					</div>
 				</div>
-
+				{/*SECCION DE ERRORES*/}
+				{(track?.qc_feedback as any)?.results && (
+					<div className="bg-red-200 p-4 rounded-lg">
+						{/* formData.qc_feedback */}
+						<h2 className="text-red-800 font-bold text-center ">
+							SECCION DE ERRORES
+						</h2>
+						<pre className="text-red-500 text-wrap">
+							{JSON.stringify((track?.qc_feedback as any)?.results, null, 2)}
+						</pre>
+					</div>
+				)}
 				{/* Sección de Información Básica */}
 				<div className="space-y-4">
 					<h3 className="text-lg font-medium text-gray-900">
@@ -1226,12 +1236,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							}
 							roles={roles || []}
 							onContributorsChange={newContributors => {
-								console.log(
-									'onContributorsChange - newContributors:',
-									newContributors
-								);
-
-								// Asegurarnos de que cada contributor tenga role y role_name
 								const updatedContributors = newContributors.map(contributor => {
 									if (contributor.role && !contributor.role_name) {
 										const selectedRole = roles.find(
@@ -1254,7 +1258,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								setLocalTrack(updatedTrack);
 							}}
 							onDeleteContributor={index => {
-								console.log('onDeleteContributor - index:', index);
 								const newContributors = [...(localTrack.contributors || [])];
 								newContributors.splice(index, 1);
 
@@ -1355,7 +1358,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												: null
 										}
 										onChange={(selectedOption: any) => {
-											console.log('selectedOption', selectedOption);
 											if (selectedOption) {
 												handlePublisherChange(
 													0,

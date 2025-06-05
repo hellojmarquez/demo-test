@@ -153,6 +153,11 @@ const SingleTrackSchema = new mongoose.Schema(
 			type: String,
 			default: '00:00:00',
 		},
+		qc_feedback: {
+			type: mongoose.Schema.Types.Mixed,
+			default: {},
+			required: true,
+		},
 	},
 	{ timestamps: true }
 );

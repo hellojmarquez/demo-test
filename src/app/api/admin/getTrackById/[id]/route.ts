@@ -9,6 +9,7 @@ export async function GET(
 	{ params }: { params: { id: string } }
 ) {
 	try {
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
@@ -36,8 +37,8 @@ export async function GET(
 
 		// Buscar el track por external_id
 		const track = await SingleTrack.findOne({ external_id: externalId })
-			.select('+genre +subgenre') // Forzar la inclusión de estos campos
-			.lean();
+			.select('+genre +subgenre +qc_feedback')
+			.lean(); // Forzar la inclusión de estos campos
 
 		if (!track) {
 			return NextResponse.json(
@@ -46,11 +47,33 @@ export async function GET(
 			);
 		}
 
-		// Transformar los datos antes de enviarlos
+		// actualiza los datos con los de la api
+		const getTrack = await fetch(
+			`${process.env.MOVEMUSIC_API}/tracks/${externalId}`,
+			{
+				headers: {
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const trackData = await getTrack.json();
+		console.log('trackData ', trackData);
 
+		// Actualizar usando updateOne
+		const updateResult = await SingleTrack.findOneAndUpdate(
+			{ external_id: externalId },
+			{ $set: { qc_feedback: trackData.qc_feedback, ISRC: trackData.ISRC } },
+			{
+				new: true,
+				select: '+qc_feedback +ISRC', // Forzar la inclusión del campo
+			}
+		);
+		console.log('updateResult ', updateResult);
 		return NextResponse.json({
 			success: true,
-			data: track,
+			data: updateResult,
 		});
 	} catch (error: any) {
 		console.error('Error getting track:', error);

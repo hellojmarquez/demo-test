@@ -56,8 +56,7 @@ export async function GET(
 		const releaseData = await getRelease.json();
 		release.status = releaseData.status;
 		release.qc_feedback = releaseData.qc_feedback;
-		console.log('release ', release);
-		console.log('releaseData.qc_feedback ', releaseData.qc_feedback);
+
 		return NextResponse.json({
 			success: true,
 			data: release,

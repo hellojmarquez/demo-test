@@ -11,12 +11,6 @@ import { toast } from 'react-hot-toast';
 import TrackForm, { GenreData } from '@/components/CreateTrackModal';
 import { Save } from 'lucide-react';
 
-interface ReleaseTrack {
-	title: string;
-	resource: string | File;
-	external_id: number;
-}
-
 interface ApiError extends Error {
 	info?: any;
 	status?: number;
@@ -348,8 +342,6 @@ export default function EditPage() {
 							onSave={async (trackData: Partial<Track>) => {
 								try {
 									if (selectedTrack && trackData.name && trackData.resource) {
-										// Si estamos editando un track existente
-										const trackExternalId = Number(selectedTrack.external_id);
 										await handleTrackSave(trackData as Track);
 									}
 								} catch (error) {

@@ -81,7 +81,7 @@ export default function CreateInitRelease({
 			formData.append('is_new_release', '1');
 			formData.append('official_date', '2025-10-10');
 			formData.append('original_date', '2025-10-10');
-			formData.append('release_version', '001');
+			formData.append('release_version', '');
 			formData.append('territory', 'worldwide');
 			console.log('release a crear: ', formData);
 			const response = await fetch('/api/admin/createRelease', {

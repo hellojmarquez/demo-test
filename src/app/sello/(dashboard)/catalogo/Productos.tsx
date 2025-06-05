@@ -52,26 +52,6 @@ interface Release {
 	youtube_declaration: boolean;
 }
 
-interface ReleaseForAPI {
-	_id: string;
-	__v: number;
-	artists: any[];
-	auto_detect_language: boolean;
-	backcatalog: boolean;
-	countries: string[];
-	createdAt: string;
-	updatedAt: string;
-	dolby_atmos: boolean;
-	generate_ean: boolean;
-	kind: string;
-	label: string;
-	language: string;
-	name: string;
-	picture: string | null;
-	tracks: any[];
-	youtube_declaration: boolean;
-}
-
 const Productos: React.FC = () => {
 	const [releases, setReleases] = useState<Release[]>([]);
 	const [expandedRelease, setExpandedRelease] = useState<string | null>(null);
@@ -88,13 +68,6 @@ const Productos: React.FC = () => {
 	const [totalItems, setTotalItems] = useState(0);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('newest');
-	const [artists, setArtists] = useState<{ value: string; label: string }[]>(
-		[]
-	);
-	const [labels, setLabels] = useState<{ value: string; label: string }[]>([]);
-	const [publishers, setPublishers] = useState<
-		{ value: string; label: string }[]
-	>([]);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [releaseToDelete, setReleaseToDelete] = useState<Release | null>(null);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -224,51 +197,6 @@ const Productos: React.FC = () => {
 			setShowSuccessMessage(false);
 			setSuccessMessageType(null);
 		}, 3000);
-	};
-
-	const fetchData = async () => {
-		try {
-			const [artistsRes, labelsRes, publishersRes] = await Promise.all([
-				fetch('/api/admin/getAllArtists'),
-				fetch('/api/admin/getAllLabels'),
-				fetch('/api/admin/getAllPublishers'),
-			]);
-
-			const [artistsData, labelsData, publishersData] = await Promise.all([
-				artistsRes.json(),
-				labelsRes.json(),
-				publishersRes.json(),
-			]);
-
-			if (artistsData.success) {
-				setArtists(
-					artistsData.data.map((artist: any) => ({
-						value: artist._id,
-						label: artist.name,
-					}))
-				);
-			}
-
-			if (labelsData.success) {
-				setLabels(
-					labelsData.data.map((label: any) => ({
-						value: label._id,
-						label: label.name,
-					}))
-				);
-			}
-
-			if (publishersData.success) {
-				setPublishers(
-					publishersData.data.map((publisher: any) => ({
-						value: publisher._id,
-						label: publisher.name,
-					}))
-				);
-			}
-		} catch (error) {
-			console.error('Error fetching data:', error);
-		}
 	};
 
 	if (loading) {

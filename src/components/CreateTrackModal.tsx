@@ -43,13 +43,6 @@ interface Publisher {
 	role: string;
 }
 
-interface TrackPublisher {
-	publisher: number;
-	author: string;
-	order: number;
-	name: string;
-}
-
 interface Role {
 	id: number;
 	name: string;
@@ -360,7 +353,19 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 				alert('Por favor, selecciona un archivo WAV válido');
 				e.target.value = '';
 			}
-			console.log('file ', file);
+		}
+	};
+	const handleFileDolbyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
+				setSelectedFileDolby(file);
+
+				setUploadProgress(0);
+			} else {
+				alert('Por favor, selecciona un archivo WAV válido');
+				e.target.value = '';
+			}
 		}
 	};
 
@@ -386,12 +391,15 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 
 			<form className="space-y-8">
 				{/* Sección de Archivo y Recursos */}
-				<div className="space-y-4">
-					<h3 className="text-lg font-medium text-gray-900">
-						Archivo y Recursos
-					</h3>
-					<div className="flex flex-col md:flex-row gap-4">
-						<div className="w-full md:w-1/3">
+				<h3 className="text-lg font-medium text-gray-900">
+					Archivo y Recursos
+				</h3>
+				<div>
+					<div className="flex pb-6 ">
+						<div className="flex  w-1/2 flex-col justify-center items-center gap-4">
+							<p className="text-lg font-medium text-gray-900">
+								Archivo de audio
+							</p>
 							<div className="relative group">
 								<div className="flex flex-col items-center justify-center w-full h-40 md:h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
 									<div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
@@ -405,7 +413,7 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 									<input
 										type="file"
 										ref={fileInputRef}
-										onChange={handleFileChange}
+										onChange={handleFileDolbyChange}
 										accept=".wav"
 										className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
 									/>
@@ -428,7 +436,7 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 							)}
 
 							{track?.resource && (
-								<div className="mt-4 p-3 md:p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+								<div className="mt-4 p-3 md:p-4 w-1/2 bg-white rounded-lg border border-gray-200 shadow-sm">
 									<div className="flex items-center gap-2 md:gap-3">
 										<div className="p-1.5 md:p-2 bg-gray-100 rounded-lg">
 											<Upload className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
@@ -458,19 +466,87 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 								</div>
 							)}
 						</div>
+						<div className="flex  w-1/2 flex-col justify-center items-center gap-4">
+							<img className="w-32" src="/dolby_logo.png" alt="Dolby Atmos" />
+							<div className="relative group">
+								<div className="flex flex-col items-center justify-center w-full h-40 md:h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+									<div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+										<Upload className="w-10 h-10 md:w-12 md:h-12 mb-2 md:mb-3 text-gray-400 group-hover:text-brand-light transition-colors duration-200" />
+										<p className="mb-1 md:mb-2 text-sm text-gray-500">
+											<span className="font-semibold">Click para subir</span> o
+											arrastra y suelta
+										</p>
+										<p className="text-xs text-gray-500">WAV (MAX. 800MB)</p>
+									</div>
+									<input
+										type="file"
+										ref={fileInputRef}
+										onChange={handleFileDolbyChange}
+										accept=".wav"
+										className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+									/>
+								</div>
+							</div>
+
+							{uploadProgress > 0 && uploadProgress < 100 && (
+								<div className="mt-4">
+									<div className="flex justify-between text-sm text-gray-600 mb-1">
+										<span>Subiendo archivo...</span>
+										<span>{uploadProgress}%</span>
+									</div>
+									<div className="w-full bg-gray-200 rounded-full h-2">
+										<div
+											className="bg-brand-light h-2 rounded-full transition-all duration-300 ease-in-out"
+											style={{ width: `${uploadProgress}%` }}
+										></div>
+									</div>
+								</div>
+							)}
+
+							{track?.dolby_atmos_resource && (
+								<div className="mt-4 p-3 md:p-4 w-1/2 bg-white rounded-lg border border-gray-200 shadow-sm">
+									<div className="flex items-center gap-2 md:gap-3">
+										<div className="p-1.5 md:p-2 bg-gray-100 rounded-lg">
+											<Upload className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
+										</div>
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-medium text-gray-900 truncate">
+												{typeof track.dolby_atmos_resource === 'string'
+													? track.dolby_atmos_resource
+													: track.dolby_atmos_resource?.name}
+											</p>
+											<p className="text-xs text-gray-500">
+												{typeof track.dolby_atmos_resource === 'string'
+													? 'Archivo cargado'
+													: 'Listo para subir'}
+											</p>
+										</div>
+										<button
+											type="button"
+											onClick={() => {
+												setSelectedFile(null);
+											}}
+											className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+										>
+											<X className="w-4 h-4" />
+										</button>
+									</div>
+								</div>
+							)}
+						</div>
 					</div>
+					{(track?.qc_feedback as any) && (
+						<div className="bg-red-200 p-4 rounded-lg">
+							{/* formData.qc_feedback */}
+							<h2 className="text-red-800 font-bold text-center ">
+								SECCION DE ERRORES
+							</h2>
+							<pre className="text-red-500 text-wrap">
+								{JSON.stringify(track?.qc_feedback as any, null, 2)}
+							</pre>
+						</div>
+					)}
 				</div>
-				{(track?.qc_feedback as any) && (
-					<div className="bg-red-200 p-4 rounded-lg">
-						{/* formData.qc_feedback */}
-						<h2 className="text-red-800 font-bold text-center ">
-							SECCION DE ERRORES
-						</h2>
-						<pre className="text-red-500 text-wrap">
-							{JSON.stringify(track?.qc_feedback as any, null, 2)}
-						</pre>
-					</div>
-				)}
 				{/*SECCION DE ERRORES*/}
 				{(track?.qc_feedback as any)?.results && (
 					<div className="bg-red-200 p-4 rounded-lg">
@@ -563,19 +639,6 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 								type="text"
 								name="copyright_holder_year"
 								value={localTrack.copyright_holder_year || ''}
-								onChange={handleChange}
-								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-							/>
-						</div>
-
-						<div className="w-full">
-							<label className="block text-sm font-medium text-gray-700">
-								Dolby Atmos Resource
-							</label>
-							<input
-								type="text"
-								name="dolby_atmos_resource"
-								value={localTrack.dolby_atmos_resource || ''}
 								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
@@ -1293,6 +1356,10 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 										formData.append('file', selectedFile);
 									}
 
+									if (selectedFileDolby) {
+										formData.append('dolby_file', selectedFileDolby);
+									}
+
 									// Añadir el resto de los datos del track
 									Object.keys(localTrack).forEach(key => {
 										if (key !== 'resource') {
@@ -1304,25 +1371,25 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 									});
 									console.log('formData', formData);
 									// Si tiene external_id, actualizar el track existente
-									// const response = await fetch(
-									// 	`/api/admin/updateSingle/${localTrack.external_id}`,
-									// 	{
-									// 		method: 'PUT',
-									// 		body: formData, // Enviar FormData en lugar de JSON
-									// 	}
-									// );
+									const response = await fetch(
+										`/api/admin/updateSingle/${localTrack.external_id}`,
+										{
+											method: 'PUT',
+											body: formData, // Enviar FormData en lugar de JSON
+										}
+									);
 
-									// if (!response.ok) {
-									// 	throw new Error('Error al actualizar el track');
-									// }
+									if (!response.ok) {
+										throw new Error('Error al actualizar el track');
+									}
 
-									// const data = await response.json();
-									// console.log('RESPUESTA UPDATE SINGLE', data);
-									// if (!data.success) {
-									// 	throw new Error(
-									// 		data.error || 'Error al actualizar el track'
-									// 	);
-									// }
+									const data = await response.json();
+									console.log('RESPUESTA UPDATE SINGLE', data);
+									if (!data.success) {
+										throw new Error(
+											data.error || 'Error al actualizar el track'
+										);
+									}
 
 									toast.success('Track actualizado correctamente');
 								}

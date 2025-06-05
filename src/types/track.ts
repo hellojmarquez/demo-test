@@ -25,7 +25,7 @@ export interface Track {
 	copyright_holder?: string;
 	copyright_holder_year?: string;
 	createdAt?: string;
-	dolby_atmos_resource?: string;
+	dolby_atmos_resource?: File | string | null;
 	explicit_content: boolean;
 	generate_isrc: boolean;
 	genre: number;

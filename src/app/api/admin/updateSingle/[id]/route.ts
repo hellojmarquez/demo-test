@@ -41,6 +41,8 @@ export async function PUT(
 		const trackId = params.id;
 		let track_url = '';
 		let track_path = '';
+		let dolby_url = '';
+		let dolby_path = '';
 
 		// Get the current track first
 		const currentTrack = await SingleTrack.findOne({ external_id: trackId });
@@ -57,6 +59,7 @@ export async function PUT(
 		if (contentType.includes('multipart/form-data')) {
 			const formData = await req.formData();
 			const file = formData.get('file') as File | null;
+			const dolby_file = formData.get('dolby_file') as File | null;
 			let data = formData.get('data') as string | null;
 
 			if (data) {
@@ -122,6 +125,62 @@ export async function PUT(
 						);
 					}
 				}
+				if (dolby_file) {
+					const dolbyName = dolby_file.name.replaceAll(' ', '');
+					const uploadTrackReq = await fetch(
+						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${dolbyName}&filetype=${dolby_file.type}&upload_type=track.audio`,
+						{
+							method: 'GET',
+							headers: {
+								'Content-Type': 'application/json',
+								Authorization: `JWT ${moveMusicAccessToken}`,
+								'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+								Referer: process.env.MOVEMUSIC_REFERER || '',
+							},
+						}
+					);
+					const uploadTrackRes = await uploadTrackReq.json();
+
+					// Extraer la URL y los campos del objeto firmado
+					const { url: signedUrl, fields: trackFields } =
+						uploadTrackRes.signed_url;
+					// Crear un objeto FormData y agregar los campos y el archivo
+					const trackFormData = new FormData();
+					Object.entries(trackFields).forEach(([key, value]) => {
+						if (typeof value === 'string' || value instanceof Blob) {
+							trackFormData.append(key, value);
+						} else {
+							console.warn(
+								`El valor de '${key}' no es un tipo válido para FormData:`,
+								value
+							);
+						}
+					});
+
+					trackFormData.append('file', dolby_file);
+
+					// Realizar la solicitud POST a la URL firmada
+					const uploadResponse = await fetch(signedUrl, {
+						method: 'POST',
+						body: trackFormData,
+					});
+
+					dolby_url = uploadResponse?.headers?.get('location') || '';
+					if (dolby_url)
+						dolby_path = decodeURIComponent(
+							new URL(dolby_url).pathname.slice(1).replace('media/', '')
+						);
+
+					if (!uploadResponse.ok) {
+						return NextResponse.json(
+							{
+								success: false,
+								error: 'Error al subir el archivo de audio a S3',
+							},
+							{ status: 500 }
+						);
+					}
+				}
 			}
 		} else if (contentType.includes('application/json')) {
 			trackData = await req.json();
@@ -137,6 +196,14 @@ export async function PUT(
 				? track_path
 				: decodeURIComponent(
 						new URL(currentTrack.resource).pathname
+							.slice(1)
+							.replace('media/', '')
+				  );
+		trackData.dolby_atmos_resource =
+			dolby_path.length > 0
+				? dolby_path
+				: decodeURIComponent(
+						new URL(currentTrack.dolby_atmos_resource).pathname
 							.slice(1)
 							.replace('media/', '')
 				  );

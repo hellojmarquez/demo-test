@@ -315,8 +315,6 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 		}));
 	};
 
-	const handleTimeChange = (name: string, value: string) => {};
-
 	const handleChange = (
 		e: React.ChangeEvent<
 			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -759,12 +757,27 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 							<label className="block text-sm font-medium text-gray-700">
 								Duración
 							</label>
-							<input
-								type="text"
+							<Cleave
+								options={{
+									time: true,
+									timePattern: ['h', 'm', 's'],
+									timeFormat: 'HH:mm:ss',
+									blocks: [2, 2, 2],
+									delimiter: ':',
+								}}
 								name="track_length"
-								value={localTrack.track_length || ''}
-								onChange={handleChange}
+								value={localTrack?.track_length || ''}
+								onChange={e => {
+									handleChange({
+										target: {
+											name: 'track_length',
+											value: e.target.value,
+											type: 'text',
+										},
+									} as React.ChangeEvent<HTMLInputElement>);
+								}}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
+								placeholder="00:00:00"
 							/>
 						</div>
 
@@ -782,7 +795,15 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 								}}
 								name="sample_start"
 								value={localTrack?.sample_start || ''}
-								onChange={e => handleTimeChange('sample_start', e.target.value)}
+								onChange={e => {
+									handleChange({
+										target: {
+											name: 'sample_start',
+											value: e.target.value,
+											type: 'text',
+										},
+									} as React.ChangeEvent<HTMLInputElement>);
+								}}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 								placeholder="00:00:00"
 							/>
@@ -1283,25 +1304,25 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 									});
 									console.log('formData', formData);
 									// Si tiene external_id, actualizar el track existente
-									const response = await fetch(
-										`/api/admin/updateSingle/${localTrack.external_id}`,
-										{
-											method: 'PUT',
-											body: formData, // Enviar FormData en lugar de JSON
-										}
-									);
+									// const response = await fetch(
+									// 	`/api/admin/updateSingle/${localTrack.external_id}`,
+									// 	{
+									// 		method: 'PUT',
+									// 		body: formData, // Enviar FormData en lugar de JSON
+									// 	}
+									// );
 
-									if (!response.ok) {
-										throw new Error('Error al actualizar el track');
-									}
+									// if (!response.ok) {
+									// 	throw new Error('Error al actualizar el track');
+									// }
 
-									const data = await response.json();
-									console.log('RESPUESTA UPDATE SINGLE', data);
-									if (!data.success) {
-										throw new Error(
-											data.error || 'Error al actualizar el track'
-										);
-									}
+									// const data = await response.json();
+									// console.log('RESPUESTA UPDATE SINGLE', data);
+									// if (!data.success) {
+									// 	throw new Error(
+									// 		data.error || 'Error al actualizar el track'
+									// 	);
+									// }
 
 									toast.success('Track actualizado correctamente');
 								}

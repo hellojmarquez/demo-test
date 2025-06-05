@@ -62,8 +62,6 @@ interface Subgenre {
 
 export interface TrackFormProps {
 	track?: Track;
-	onTrackChange?: (track: Partial<Track>) => void;
-	onSave: (track: Partial<Track>) => Promise<void>;
 	genres: GenreData[];
 	onClose: () => void;
 }
@@ -110,21 +108,15 @@ const customSelectStyles = {
 	}),
 };
 
-const TrackForm: React.FC<TrackFormProps> = ({
-	track,
-	onTrackChange,
-	onSave,
-	genres,
-	onClose,
-}) => {
+const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<Contributor[]>([]);
 	const [publishers, setPublishers] = useState<Publisher[]>([]);
-	const [trackPublishers, setTrackPublishers] = useState<TrackPublisher[]>([]);
 	const [roles, setRoles] = useState<Role[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [selectedFileDolby, setSelectedFileDolby] = useState<File | null>(null);
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
@@ -157,17 +149,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	// Efecto para actualizar subgéneros cuando cambia el género
 	useEffect(() => {
-		console.log('useEffect se ejecutó');
-		console.log('localTrack?.genre:', localTrack?.genre);
-		console.log('genres:', genres);
-
 		if (localTrack?.genre) {
 			const selectedGenre = genres.find(g => g.id === localTrack.genre);
-			console.log('selectedGenre', selectedGenre);
+
 			if (selectedGenre) {
 				setSubgenres(selectedGenre.subgenres || []);
 
-				// Si hay un subgénero seleccionado pero no está en la lista actual, lo agregamos
 				if (
 					localTrack.subgenre &&
 					!selectedGenre.subgenres.some(s => s.id === localTrack.subgenre)
@@ -240,7 +227,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	// Efecto para actualizar formData cuando cambia el track
 	useEffect(() => {
-		if (track && onTrackChange) {
+		if (track) {
 			const updatedFormData = {
 				_id: track._id || '',
 				external_id: track.external_id || '',
@@ -281,166 +268,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					updatedFormData[key as keyof typeof updatedFormData] !==
 					track[key as keyof Track]
 			);
-
-			if (hasChanges) {
-				onTrackChange(updatedFormData);
-			}
 		}
 	}, [track]);
-
-	const handleAddArtist = () => {
-		if (onTrackChange) {
-			onTrackChange({
-				...track,
-				artists: [
-					...(track?.artists || []),
-					{
-						artist: 0,
-						kind: 'main',
-						order: (track?.artists || []).length,
-						name: '',
-					},
-				],
-			});
-		}
-	};
-
-	const handleAddContributor = () => {
-		if (onTrackChange) {
-			onTrackChange({
-				...track,
-				contributors: [
-					...(track?.contributors || []),
-					{
-						contributor: 0,
-						name: '',
-						role: 0,
-						order: (track?.contributors || []).length,
-						role_name: '',
-					},
-				],
-			});
-		}
-	};
-
-	const handleAddPublisher = () => {
-		if (onTrackChange) {
-			onTrackChange({
-				...track,
-				publishers: [
-					...(track?.publishers || []),
-					{
-						publisher: 0,
-						author: '',
-						order: (track?.publishers || []).length,
-						name: '',
-					},
-				],
-			});
-		}
-	};
-
-	const handleRemoveArtist = (index: number) => {
-		if (onTrackChange) {
-			const updatedArtists = [...(track?.artists || [])];
-			updatedArtists.splice(index, 1);
-			onTrackChange({ ...track, artists: updatedArtists });
-		}
-	};
-
-	const handleRemoveContributor = (index: number) => {
-		if (onTrackChange) {
-			onTrackChange({
-				...track,
-				contributors: (track?.contributors || []).filter((_, i) => i !== index),
-			});
-		}
-	};
-
-	const handleRemovePublisher = (index: number) => {
-		if (onTrackChange) {
-			onTrackChange({
-				...track,
-				publishers: (track?.publishers || []).filter((_, i) => i !== index),
-			});
-		}
-	};
-
-	const handleArtistChange = (
-		index: number,
-		field: string,
-		value: string | number
-	) => {
-		if (onTrackChange) {
-			const newArtists = [...(track?.artists || [])];
-			if (!newArtists[index]) {
-				newArtists[index] = { artist: 0, kind: '', order: 0, name: '' };
-			}
-
-			if (field === 'artist' && typeof value === 'string') {
-				const selectedArtist = artists.find(
-					a => String(a.external_id) === value
-				);
-				if (selectedArtist) {
-					newArtists[index] = {
-						...newArtists[index],
-						artist: parseInt(value),
-						name: selectedArtist.name,
-					};
-				}
-			} else if (field === 'kind' || field === 'order') {
-				newArtists[index] = { ...newArtists[index], [field]: value };
-			}
-
-			onTrackChange({ ...track, artists: newArtists });
-		}
-	};
-
-	const handleContributorChange = (
-		index: number,
-		field: string,
-		value: string | number
-	) => {
-		if (onTrackChange) {
-			const newContributors = [...(track?.contributors || [])];
-			if (!newContributors[index]) {
-				newContributors[index] = {
-					contributor: 0,
-					order: 0,
-					role: 0,
-					name: '',
-					role_name: '',
-				};
-			}
-
-			if (field === 'name') {
-				const selectedContributor = contributors.find(c => c.name === value);
-				if (selectedContributor) {
-					newContributors[index] = {
-						...newContributors[index],
-						contributor: selectedContributor.contributor,
-						name: selectedContributor.name,
-					};
-				}
-			} else if (field === 'role') {
-				const selectedRole = roles.find(r => r.id === Number(value));
-				if (selectedRole) {
-					newContributors[index] = {
-						...newContributors[index],
-						role: Number(value),
-						role_name: selectedRole.name,
-					};
-				}
-			} else if (field === 'order') {
-				newContributors[index] = {
-					...newContributors[index],
-					order: typeof value === 'string' ? parseInt(value) : value,
-				};
-			}
-
-			onTrackChange({ ...track, contributors: newContributors });
-		}
-	};
 
 	const handlePublisherChange = (
 		index: number,
@@ -486,11 +315,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		}));
 	};
 
-	const handleTimeChange = (name: string, value: string) => {
-		if (onTrackChange) {
-			onTrackChange({ ...track, [name]: value });
-		}
-	};
+	const handleTimeChange = (name: string, value: string) => {};
 
 	const handleChange = (
 		e: React.ChangeEvent<
@@ -524,30 +349,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				? { ...localTrack, ...newValue }
 				: { ...localTrack, [name]: newValue };
 		setLocalTrack(updatedTrack);
-
-		// Notificar al padre del cambio
-		if (onTrackChange) {
-			onTrackChange(updatedTrack);
-		}
-	};
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setIsLoading(true);
-		try {
-			// Asegurarse de que los contributors estén incluidos en los datos
-			const trackData = {
-				...localTrack,
-				contributors: localTrack.contributors || [],
-			};
-			console.log('Submitting track data:', trackData);
-			await onSave(trackData);
-		} catch (error) {
-			console.error('Error saving track:', error);
-			setError('Error al guardar el track');
-		} finally {
-			setIsLoading(false);
-		}
 	};
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -555,14 +356,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		if (file) {
 			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
 				setSelectedFile(file);
-				if (onTrackChange) {
-					onTrackChange({ ...track, resource: file });
-				}
+
 				setUploadProgress(0);
 			} else {
 				alert('Por favor, selecciona un archivo WAV válido');
 				e.target.value = '';
 			}
+			console.log('file ', file);
 		}
 	};
 
@@ -586,7 +386,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				</div>
 			)}
 
-			<form onSubmit={handleSubmit} className="space-y-8">
+			<form className="space-y-8">
 				{/* Sección de Archivo y Recursos */}
 				<div className="space-y-4">
 					<h3 className="text-lg font-medium text-gray-900">
@@ -651,12 +451,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											type="button"
 											onClick={() => {
 												setSelectedFile(null);
-												if (onTrackChange) {
-													onTrackChange({
-														...track,
-														resource: '',
-													});
-												}
 											}}
 											className="p-1 text-gray-400 hover:text-red-500 transition-colors"
 										>
@@ -668,6 +462,17 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						</div>
 					</div>
 				</div>
+				{(track?.qc_feedback as any) && (
+					<div className="bg-red-200 p-4 rounded-lg">
+						{/* formData.qc_feedback */}
+						<h2 className="text-red-800 font-bold text-center ">
+							SECCION DE ERRORES
+						</h2>
+						<pre className="text-red-500 text-wrap">
+							{JSON.stringify(track?.qc_feedback as any, null, 2)}
+						</pre>
+					</div>
+				)}
 				{/*SECCION DE ERRORES*/}
 				{(track?.qc_feedback as any)?.results && (
 					<div className="bg-red-200 p-4 rounded-lg">
@@ -783,17 +588,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								Orden
 							</label>
 							<input
+								onChange={handleChange}
 								type="number"
 								name="order"
 								value={localTrack.order || ''}
-								onChange={e => {
-									if (onTrackChange) {
-										onTrackChange({
-											...track,
-											order: parseInt(e.target.value) || 0,
-										});
-									}
-								}}
 								onKeyPress={e => {
 									if (!/[0-9]/.test(e.key)) {
 										e.preventDefault();
@@ -818,42 +616,32 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Select
 								name="genre"
 								value={
-									genres.find(g => g.id === localTrack?.genre)
+									localTrack.genre
 										? {
-												value: localTrack?.genre,
-												label:
-													genres.find(g => g.id === localTrack?.genre)?.name ||
-													'',
+												value: localTrack.genre,
+												label: localTrack.genre_name || '',
 										  }
 										: null
 								}
-								onChange={(selectedOption: any) => {
+								onChange={(
+									selectedOption: SingleValue<{ value: number; label: string }>
+								) => {
 									if (selectedOption) {
 										handleChange({
 											target: {
 												name: 'genre',
-												value: selectedOption.value,
+												value: selectedOption.value.toString(),
 											},
-										} as any);
+										} as React.ChangeEvent<HTMLInputElement>);
 									}
 								}}
 								options={genres.map(genre => ({
 									value: genre.id,
 									label: genre.name,
 								}))}
-								placeholder="Seleccionar género"
-								styles={{
-									...customSelectStyles,
-									control: (provided: any) => ({
-										...provided,
-										minHeight: '36px',
-										'@media (max-width: 768px)': {
-											minHeight: '42px',
-										},
-									}),
-								}}
-								className="mt-1"
-								isClearable
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={customSelectStyles}
 							/>
 						</div>
 
@@ -864,42 +652,33 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Select
 								name="subgenre"
 								value={
-									subgenres.find(s => s.id === localTrack?.subgenre)
+									localTrack.subgenre
 										? {
-												value: localTrack?.subgenre,
-												label:
-													subgenres.find(s => s.id === localTrack?.subgenre)
-														?.name || '',
+												value: localTrack.subgenre,
+												label: localTrack.subgenre_name || '',
 										  }
 										: null
 								}
-								onChange={(selectedOption: any) => {
+								onChange={(
+									selectedOption: SingleValue<{ value: number; label: string }>
+								) => {
 									if (selectedOption) {
 										handleChange({
 											target: {
 												name: 'subgenre',
-												value: selectedOption.value,
+												value: selectedOption.value.toString(),
 											},
-										} as any);
+										} as React.ChangeEvent<HTMLInputElement>);
 									}
 								}}
 								options={subgenres.map(subgenre => ({
 									value: subgenre.id,
 									label: subgenre.name,
 								}))}
-								placeholder="Seleccionar subgénero"
-								styles={{
-									...customSelectStyles,
-									control: (provided: any) => ({
-										...provided,
-										minHeight: '36px',
-										'@media (max-width: 768px)': {
-											minHeight: '42px',
-										},
-									}),
-								}}
-								className="mt-1"
-								isClearable
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={customSelectStyles}
+								isDisabled={!localTrack.genre}
 							/>
 						</div>
 
@@ -908,9 +687,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								Idioma
 							</label>
 							<Select
+								name="language"
 								value={
-									LANGUAGES.find(lang => lang.value === localTrack?.language) ||
-									null
+									localTrack.language
+										? LANGUAGES.find(l => l.value === localTrack.language)
+										: null
 								}
 								onChange={(selectedOption: SingleValue<LanguageOption>) => {
 									if (selectedOption) {
@@ -919,34 +700,26 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												name: 'language',
 												value: selectedOption.value,
 											},
-										} as any);
+										} as React.ChangeEvent<HTMLInputElement>);
 									}
 								}}
 								options={LANGUAGES}
-								placeholder="Seleccionar idioma"
-								styles={{
-									...customSelectStyles,
-									control: (provided: any) => ({
-										...provided,
-										minHeight: '36px',
-										'@media (max-width: 768px)': {
-											minHeight: '42px',
-										},
-									}),
-								}}
-								className="mt-1"
-								isClearable
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={customSelectStyles}
 							/>
 						</div>
 
 						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
-								Vocals
+								Vocales
 							</label>
 							<Select
+								name="vocals"
 								value={
-									VOCALS.find(option => option.value === localTrack?.vocals) ||
-									null
+									localTrack.vocals
+										? VOCALS.find(v => v.value === localTrack.vocals)
+										: null
 								}
 								onChange={(selectedOption: SingleValue<LanguageOption>) => {
 									if (selectedOption) {
@@ -955,23 +728,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												name: 'vocals',
 												value: selectedOption.value,
 											},
-										} as any);
+										} as React.ChangeEvent<HTMLInputElement>);
 									}
 								}}
 								options={VOCALS}
-								placeholder="Seleccionar vocals"
-								styles={{
-									...customSelectStyles,
-									control: (provided: any) => ({
-										...provided,
-										minHeight: '36px',
-										'@media (max-width: 768px)': {
-											minHeight: '42px',
-										},
-									}),
-								}}
-								className="mt-1"
-								isClearable
+								className="react-select-container"
+								classNamePrefix="react-select"
+								styles={customSelectStyles}
 							/>
 						</div>
 
@@ -988,16 +751,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								}}
 								name="label_share"
 								value={localTrack?.label_share || ''}
-								onChange={e => {
-									if (onTrackChange) {
-										onTrackChange({
-											...track,
-											label_share: e.target.value
-												? parseFloat(e.target.value)
-												: undefined,
-										});
-									}
-								}}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
 							/>
 						</div>
@@ -1006,19 +759,12 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<label className="block text-sm font-medium text-gray-700">
 								Duración
 							</label>
-							<Cleave
-								options={{
-									time: true,
-									timePattern: ['h', 'm', 's'],
-									timeFormat: 'HH:mm:ss',
-									blocks: [2, 2, 2],
-									delimiter: ':',
-								}}
-								name="track_lenght"
-								value={localTrack?.track_length || ''}
-								onChange={e => handleTimeChange('track_lenght', e.target.value)}
+							<input
+								type="text"
+								name="track_length"
+								value={localTrack.track_length || ''}
+								onChange={handleChange}
 								className="mt-1 block w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:border-brand-dark focus:outline-none focus:ring-0"
-								placeholder="00:00:00"
 							/>
 						</div>
 
@@ -1493,10 +1239,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										placeholder="Autor"
 									/>
 									{(localTrack?.publishers || []).length > 1 && (
-										<button
-											onClick={() => handleRemovePublisher(index)}
-											className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
-										>
+										<button className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors">
 											<Trash2 size={20} />
 										</button>
 									)}
@@ -1521,15 +1264,30 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							console.log('track A ENVIAR', localTrack);
 							try {
 								if (localTrack?.external_id) {
+									// Crear FormData para enviar el archivo
+									const formData = new FormData();
+
+									// Añadir el archivo si existe
+									if (selectedFile) {
+										formData.append('file', selectedFile);
+									}
+
+									// Añadir el resto de los datos del track
+									Object.keys(localTrack).forEach(key => {
+										if (key !== 'resource') {
+											const value = localTrack[key as keyof typeof localTrack];
+											if (value !== undefined) {
+												formData.append(key, JSON.stringify(value));
+											}
+										}
+									});
+									console.log('formData', formData);
 									// Si tiene external_id, actualizar el track existente
 									const response = await fetch(
 										`/api/admin/updateSingle/${localTrack.external_id}`,
 										{
 											method: 'PUT',
-											headers: {
-												'Content-Type': 'application/json',
-											},
-											body: JSON.stringify(localTrack),
+											body: formData, // Enviar FormData en lugar de JSON
 										}
 									);
 
@@ -1538,7 +1296,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									}
 
 									const data = await response.json();
-									console.log('RESPUESTA UPODATE SINGLE', data);
+									console.log('RESPUESTA UPDATE SINGLE', data);
 									if (!data.success) {
 										throw new Error(
 											data.error || 'Error al actualizar el track'
@@ -1546,13 +1304,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									}
 
 									toast.success('Track actualizado correctamente');
-								} else {
-									// Si no tiene external_id, crear nuevo track
-									await onSave({
-										...localTrack,
-										status: 'Borrador',
-									});
-									toast.success('Track guardado correctamente');
 								}
 							} catch (error) {
 								console.error('Error al guardar el track:', error);
@@ -1761,14 +1512,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										deezer_identifier: newArtistData.deezer_id,
 										spotify_identifier: newArtistData.spotify_id,
 									};
-
-									// Actualizar el formData con el nuevo artista
-									if (onTrackChange) {
-										onTrackChange({
-											...track,
-											artists: [...(track?.artists || []), newArtist],
-										});
-									}
 
 									// Limpiar el formulario y cerrar el modal
 									setNewArtistData({

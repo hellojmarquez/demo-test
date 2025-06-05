@@ -1,5 +1,5 @@
 'use client';
-
+import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
 import CreateAdminModal from '@/components/createAdminModal';
 import CreateArtistModal from '@/components/createArtistModal';
@@ -67,49 +67,16 @@ export default function CrearUsuarioPage() {
 		parentId: '',
 		parentName: '',
 	});
-
+	const {
+		user,
+		loading,
+		currentAccount,
+		showAccountSelector,
+		setShowAccountSelector,
+	} = useAuth();
 	const [parentAccounts, setParentAccounts] = useState<
 		Array<{ _id: string; name: string }>
 	>([]);
-
-	// Obtener el rol del usuario actual
-	useEffect(() => {
-		const fetchUserRole = async () => {
-			try {
-				const response = await fetch('/api/auth/me');
-				if (response.ok) {
-					const data = await response.json();
-					setUserRole(data.user.role);
-					setCurrentUser(data.user);
-
-					// Si el usuario es un sello, mostrar el modal de actualización
-					if (data.user.role === 'sello') {
-						// Adaptar los datos del usuario al formato esperado por UpdateSelloModal
-						const adaptedSelloData = {
-							_id: data.user._id,
-							name: data.user.name,
-							picture: data.user.picture,
-							catalog_num: data.user.catalog_num || 0,
-							year: data.user.year || 0,
-							status: data.user.status || 'activo',
-							contract_received: data.user.contract_received || false,
-							information_accepted: data.user.information_accepted || false,
-							label_approved: data.user.label_approved || false,
-							assigned_artists: data.user.assigned_artists || [],
-							createdAt: data.user.createdAt || new Date().toISOString(),
-							updatedAt: data.user.updatedAt || new Date().toISOString(),
-						};
-						setSelloData(adaptedSelloData);
-						setShowUpdateModal(true);
-					}
-				}
-			} catch (error) {
-				console.error('Error fetching user role:', error);
-			}
-		};
-
-		fetchUserRole();
-	}, []);
 
 	const handleChange = (
 		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -120,8 +87,6 @@ export default function CrearUsuarioPage() {
 			[name]: value,
 		}));
 	};
-
-
 
 	// Fetch parent accounts when tipo changes to 'subcuenta'
 	useEffect(() => {
@@ -414,7 +379,9 @@ export default function CrearUsuarioPage() {
 										setUserType(selectedOption?.value || '');
 									}}
 									options={[
-										{ value: 'admin', label: 'Administrador' },
+										...(user?.role === 'admin'
+											? [{ value: 'admin', label: 'Administrador' }]
+											: []),
 										{ value: 'sello', label: 'Sello' },
 										{ value: 'artista', label: 'Artista' },
 										{ value: 'contribuidor', label: 'Contribuidor' },

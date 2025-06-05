@@ -227,12 +227,13 @@ export default function EditPage() {
 			setIsLoading(false);
 		}
 	};
-
+	useEffect(() => {
+		console.log('tracksData', tracksData);
+	}, [tracksData]);
 	const handleEditTrack = async (track: any) => {
 		try {
-			// Verificar si el track tiene external_id válido
+			// Si es un track nuevo (sin external_id), manejarlo directamente
 			if (!track.external_id || track.external_id === 'undefined') {
-				// Si no tiene external_id, es un track nuevo
 				console.log('Editando track nuevo');
 				setSelectedTrack(track);
 				setEditedTrackData(track);
@@ -240,14 +241,13 @@ export default function EditPage() {
 				return;
 			}
 
-			// Primero buscar si el track está en los tracks existentes
+			// Buscar el track en tracksData
 			const trackExternalId = Number(track.external_id);
 			const existingTrack = Array.isArray(tracksData?.data)
 				? tracksData.data.find((t: Track) => t.external_id === trackExternalId)
 				: null;
 
 			if (existingTrack) {
-				// Si encontramos el track en tracksData, usar esa versión
 				console.log('Usando versión existente del track:', existingTrack);
 				setSelectedTrack(existingTrack);
 				setEditedTrackData(existingTrack);
@@ -256,7 +256,9 @@ export default function EditPage() {
 			}
 
 			// Si no está en tracksData, hacer fetch al backend
-
+			console.log(
+				'Track no encontrado en tracksData, buscando en el backend...'
+			);
 			const response = await fetch(
 				`/api/admin/getTrackById/${track.external_id}`
 			);
@@ -273,6 +275,7 @@ export default function EditPage() {
 			setActiveTab('tracks');
 		} catch (error) {
 			console.error('Error al cargar los datos del track:', error);
+			toast.error('Error al cargar los datos del track');
 		}
 	};
 
@@ -336,19 +339,6 @@ export default function EditPage() {
 					<div className="w-full overflow-x-auto sm:mx-0 px-3 sm:px-0">
 						<TrackForm
 							track={selectedTrack || undefined}
-							onTrackChange={(updatedTrack: Partial<Track>) => {
-								// Actualizar el track seleccionado
-							}}
-							onSave={async (trackData: Partial<Track>) => {
-								try {
-									if (selectedTrack && trackData.name && trackData.resource) {
-										await handleTrackSave(trackData as Track);
-									}
-								} catch (error) {
-									console.error('Error al guardar el track:', error);
-									throw error;
-								}
-							}}
 							genres={genres}
 							onClose={() => {
 								setSelectedTrack(null);

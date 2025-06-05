@@ -23,6 +23,7 @@ import Pagination from '@/components/Pagination';
 import SortSelect from '@/components/SortSelect';
 import { Sello } from '@/types/sello';
 import { Artista } from '@/types/artista';
+import { useRouter } from 'next/navigation';
 
 // Tipo base para todas las personas
 interface BasePersona {
@@ -80,6 +81,7 @@ interface SelloData {
 }
 
 const Personas = () => {
+	const router = useRouter();
 	const [users, setUsers] = useState<Persona[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -379,7 +381,10 @@ const Personas = () => {
 							]}
 						/>
 					</div>
-					<button className="w-auto flex items-center justify-center gap-2 px-6 py-3 md:px-6 md:py-2 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group">
+					<button
+						onClick={() => router.push('/sello/crearUsuario')}
+						className="w-auto flex items-center justify-center gap-2 px-6 py-3 md:px-6 md:py-2 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group"
+					>
 						<Plus
 							size={18}
 							className="text-brand-light group-hover:text-white"

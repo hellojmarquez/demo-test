@@ -27,7 +27,6 @@ export default function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const router = useRouter();
 	const {
 		user,
 		loading,

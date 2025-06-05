@@ -25,6 +25,7 @@ import SortSelect from '@/components/SortSelect';
 
 interface Release {
 	_id: string;
+	external_id: number;
 	name: string;
 	picture: {
 		base64: string;
@@ -82,6 +83,7 @@ const Assets = () => {
 			.then(res => res.json())
 			.then(response => {
 				if (response.success && response.data) {
+					console.log('response.data.releases: ', response.data.releases);
 					setReleases(response.data.releases);
 				}
 			})
@@ -204,7 +206,7 @@ const Assets = () => {
 	const getReleaseName = (releaseId: string | undefined | null): string => {
 		if (!releaseId) return 'No especificado';
 
-		const release = releases.find(r => r._id === releaseId);
+		const release = releases.find(r => r.external_id === Number(releaseId));
 		if (!release) return 'Release no encontrado';
 
 		return release.name;

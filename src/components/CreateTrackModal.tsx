@@ -57,6 +57,7 @@ export interface TrackFormProps {
 	track?: Track;
 	genres: GenreData[];
 	onClose: () => void;
+	isAsset?: boolean;
 }
 
 interface NewArtistData {
@@ -101,7 +102,12 @@ const customSelectStyles = {
 	}),
 };
 
-const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
+const TrackForm: React.FC<TrackFormProps> = ({
+	track,
+	genres,
+	onClose,
+	isAsset,
+}) => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -254,13 +260,6 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 				vocals: track.vocals || '',
 				status: track.status || 'Borrador',
 			};
-
-			// Solo actualizamos si hay cambios reales
-			const hasChanges = Object.keys(updatedFormData).some(
-				key =>
-					updatedFormData[key as keyof typeof updatedFormData] !==
-					track[key as keyof Track]
-			);
 		}
 	}, [track]);
 
@@ -377,10 +376,20 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 					duration: 3000,
 				}}
 			/>
-			<div className="flex justify-between items-center mb-4">
-				<h3 className="text-lg font-medium text-gray-900">
-					{track ? 'Editar Track' : 'Nuevo Track'}
-				</h3>
+			<div className="relative">
+				<div className="flex justify-between items-center mb-4">
+					<h3 className="text-lg font-medium text-gray-900">
+						{track ? 'Editar Track' : 'Nuevo Track'}
+					</h3>
+					{isAsset && (
+						<button
+							onClick={onClose}
+							className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+						>
+							<X className="w-6 h-6" />
+						</button>
+					)}
+				</div>
 			</div>
 
 			{error && (
@@ -391,15 +400,13 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 
 			<form className="space-y-8">
 				{/* Sección de Archivo y Recursos */}
-				<h3 className="text-lg font-medium text-gray-900">
-					Archivo y Recursos
-				</h3>
 				<div>
-					<div className="flex pb-6 ">
+					<div className="flex pb-6 items-start ">
 						<div className="flex  w-1/2 flex-col justify-center items-center gap-4">
 							<p className="text-lg font-medium text-gray-900">
 								Archivo de audio
 							</p>
+
 							<div className="relative group">
 								<div className="flex flex-col items-center justify-center w-full h-40 md:h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
 									<div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import TrackForm, { GenreData } from '@/components/CreateTrackModal';
+import useSWR from 'swr';
 import {
 	ChevronDown,
 	ChevronUp,
@@ -32,63 +34,69 @@ interface Release {
 	};
 }
 
+interface TrackResponse {
+	success: boolean;
+	data: {
+		tracks: Track[];
+		pagination: {
+			total: number;
+			page: number;
+			limit: number;
+			totalPages: number;
+		};
+	};
+}
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 const Assets = () => {
-	const [tracks, setTracks] = useState<Track[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
-	const [totalPages, setTotalPages] = useState(1);
-	const [totalItems, setTotalItems] = useState(0);
-	const [releases, setReleases] = useState<Release[]>([]);
-	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+	const [genres, setGenres] = useState<GenreData[]>([]);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('newest');
+	const [releases, setReleases] = useState<Release[]>([]);
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+	const { data, error, isLoading, mutate } = useSWR<TrackResponse>(
+		`/api/admin/getAllTracks?page=${currentPage}${
+			searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+		}&sort=${sortBy}`,
+		fetcher
+	);
+
+	const tracks = data?.data?.tracks || [];
+	const totalPages = data?.data?.pagination?.totalPages || 1;
+	const totalItems = data?.data?.pagination?.total || 0;
 
 	const sortOptions = [
 		{ label: 'Más recientes', value: 'newest' },
 		{ label: 'Más antiguos', value: 'oldest' },
 	];
 
-	const fetchTracks = async (page: number = 1, search: string = '') => {
-		try {
-			const response = await fetch(
-				`/api/admin/getAllTracks?page=${page}${
-					search ? `&search=${encodeURIComponent(search)}` : ''
-				}&sort=${sortBy}`
-			);
-			if (response.ok) {
-				const data = await response.json();
-				if (data.success) {
-					setTracks(data.data.tracks);
-					setTotalPages(data.data.pagination.totalPages);
-					setTotalItems(data.data.pagination.total);
-					setCurrentPage(data.data.pagination.page);
-				}
-			}
-			setIsLoading(false);
-		} catch (error) {
-			console.error('Error fetching tracks:', error);
-			setIsLoading(false);
-		}
-	};
-
 	useEffect(() => {
-		fetchTracks(currentPage, searchQuery);
-
-		fetch('/api/admin/getAllReleases')
-			.then(res => res.json())
-			.then(response => {
-				if (response.success && response.data) {
-					console.log('response.data.releases: ', response.data.releases);
-					setReleases(response.data.releases);
-				}
-			})
-			.catch(error => console.error('Error fetching releases:', error));
-	}, [currentPage, searchQuery, sortBy]);
+		const fetchData = async () => {
+			fetch('/api/admin/getAllReleases')
+				.then(res => res.json())
+				.then(response => {
+					if (response.success && response.data) {
+						setReleases(response.data.releases);
+					}
+				})
+				.catch(error => console.error('Error fetching releases:', error));
+			// Fetch genres
+			const genresRes = await fetch('/api/admin/getAllGenres');
+			const genresData = await genresRes.json();
+			if (genresData.success && Array.isArray(genresData.data)) {
+				setGenres(genresData.data);
+			}
+		};
+		fetchData();
+	}, []);
 
 	const toggleExpand = (trackId: string | undefined) => {
 		if (!trackId) return;
@@ -123,7 +131,7 @@ const Assets = () => {
 			const data = await response.json();
 
 			if (response.ok) {
-				setTracks(prev => prev.filter(t => t._id !== track._id));
+				mutate();
 				setShowSuccessMessage(true);
 				setTimeout(() => setShowSuccessMessage(false), 3000);
 			} else {
@@ -187,9 +195,7 @@ const Assets = () => {
 
 			const data = await response.json();
 			if (data.success) {
-				setTracks(prev =>
-					prev.map(t => (t._id === selectedTrack._id ? data.data : t))
-				);
+				mutate();
 				setShowSuccessMessage(true);
 				setTimeout(() => setShowSuccessMessage(false), 3000);
 				setIsEditModalOpen(false);
@@ -240,6 +246,7 @@ const Assets = () => {
 
 			const data = await response.json();
 			if (data.success) {
+				mutate();
 				setShowSuccessMessage(true);
 				setTimeout(() => setShowSuccessMessage(false), 3000);
 			} else {
@@ -253,22 +260,6 @@ const Assets = () => {
 
 	return (
 		<div className="p-4 sm:p-6">
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-				<h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-					Tracks
-				</h1>
-				<div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
-					<div className="flex items-center gap-x-10 justify-center  gap-4 ">
-						<SearchInput value={searchQuery} onChange={setSearchQuery} />
-						<SortSelect
-							value={sortBy}
-							onChange={setSortBy}
-							options={sortOptions}
-						/>
-					</div>
-				</div>
-			</div>
-
 			{showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
@@ -282,255 +273,271 @@ const Assets = () => {
 					</span>
 				</motion.div>
 			)}
-			{tracks.length === 0 ? (
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					className="text-gray-500 text-center py-12 sm:py-20 bg-white rounded-2xl shadow-sm border border-gray-100"
-				>
-					<Music className="h-16 w-16 sm:h-20 sm:w-20 mx-auto text-gray-300 mb-4 sm:mb-6" />
-					<p className="text-xl sm:text-2xl font-semibold text-gray-700">
-						No hay tracks disponibles
-					</p>
-					<p className="text-sm sm:text-base text-gray-400 mt-2 sm:mt-3">
-						Agrega un nuevo track para comenzar
-					</p>
-				</motion.div>
-			) : (
-				<div className="space-y-4">
-					<div className="overflow-x-auto">
-						<table className="min-w-full divide-y divide-gray-400">
-							<thead className="bg-gray-50">
-								<tr>
-									<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Track
-									</th>
-									<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Release
-									</th>
-									<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Fecha
-									</th>
-									<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Acciones
-									</th>
-								</tr>
-							</thead>
-							<tbody className="bg-white divide-y divide-gray-300">
-								{tracks.map(track => (
-									<React.Fragment key={track._id}>
-										<tr className="hover:bg-gray-50">
-											<td className="px-4 sm:px-6 py-4">
-												<div className="flex items-center gap-3">
-													<div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-														<Music className="h-5 w-5 text-gray-400" />
-													</div>
-													<div className="min-w-0 flex-1">
-														<h2 className="text-lg font-semibold text-gray-900 truncate">
-															{track.name}
-														</h2>
-														<div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-															<FileMusic className="h-4 w-4 text-brand-light" />
-															<span className="truncate">
-																{getReleaseName(track.release)}
-															</span>
-														</div>
-													</div>
-												</div>
-											</td>
-											<td className="px-4 sm:px-6 py-4">
-												<div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-													{track.genre_name && (
-														<div className="flex items-center gap-1">
-															<Disc className="h-4 w-4" />
-															<span>{track.genre_name}</span>
-														</div>
-													)}
-													{track.language && (
-														<div className="flex items-center gap-1">
-															<Languages className="h-4 w-4" />
-															<span>{track.language}</span>
-														</div>
-													)}
-												</div>
-											</td>
-											<td className="px-4 sm:px-6 py-4">
-												<div className="flex items-center gap-1 text-sm text-gray-500">
-													<Calendar className="h-4 w-4" />
-													<span>
-														{track.createdAt
-															? new Date(track.createdAt).toLocaleDateString()
-															: 'No especificado'}
-													</span>
-												</div>
-											</td>
-											<td className="px-4 sm:px-6 py-4">
-												<div className="flex items-center gap-2">
-													<motion.button
-														whileHover={{ scale: 1.05 }}
-														whileTap={{ scale: 0.95 }}
-														onClick={e => handleEdit(e, track)}
-														className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-													>
-														<Pencil className="h-5 w-5 text-brand-light" />
-													</motion.button>
-													<motion.button
-														whileHover={{ scale: 1.05 }}
-														whileTap={{ scale: 0.95 }}
-														onClick={e => handleDelete(e, track)}
-														disabled={isDeleting === track._id}
-														className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-													>
-														{isDeleting === track._id ? (
-															<div className="h-5 w-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-														) : (
-															<Trash2 className="h-5 w-5 text-red-500" />
-														)}
-													</motion.button>
-													<motion.button
-														whileHover={{ scale: 1.05 }}
-														whileTap={{ scale: 0.95 }}
-														onClick={() => toggleExpand(track._id)}
-														className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-													>
-														{expandedTrack === track._id ? (
-															<ChevronUp className="h-5 w-5" />
-														) : (
-															<ChevronDown className="h-5 w-5" />
-														)}
-													</motion.button>
-												</div>
-											</td>
-										</tr>
-										{expandedTrack === track._id && (
-											<tr>
-												<td
-													colSpan={4}
-													className="px-4 sm:px-6 py-4 bg-gray-50"
-												>
-													<motion.div
-														initial={{ opacity: 0, height: 0 }}
-														animate={{ opacity: 1, height: 'auto' }}
-														exit={{ opacity: 0, height: 0 }}
-														transition={{
-															duration: 0.4,
-															ease: 'easeInOut',
-															height: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
-														}}
-													>
-														<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-															<div className="space-y-3">
-																<p className="flex items-start gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
-																		<Hash className="h-4 w-4 text-brand-light" />{' '}
-																		ID:
-																	</span>
-																	<span className="text-gray-600 text-sm break-all">
-																		{track._id}
-																	</span>
-																</p>
-																<p className="flex items-start gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
-																		<Clock className="h-4 w-4 text-brand-light" />{' '}
-																		Duración:
-																	</span>
-																	<span className="text-gray-600 text-sm">
-																		{track.track_length || 'No especificada'}
-																	</span>
-																</p>
-																<p className="flex items-start gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
-																		<Copyright className="h-4 w-4 text-brand-light" />{' '}
-																		Derechos:
-																	</span>
-																	<span className="text-gray-600 text-sm break-words">
-																		{track.copyright_holder ||
-																			'No especificados'}
-																	</span>
-																</p>
-															</div>
-															<div className="space-y-3">
-																<p className="flex items-start gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
-																		<Share2 className="h-4 w-4 text-brand-light" />{' '}
-																		ISRC:
-																	</span>
-																	<span className="text-gray-600 text-sm break-all">
-																		{track.ISRC || 'No especificado'}
-																	</span>
-																</p>
-																<p className="flex items-start gap-2">
-																	<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
-																		<Languages className="h-4 w-4 text-brand-light" />{' '}
-																		Idioma:
-																	</span>
-																	<span className="text-gray-600 text-sm">
-																		{track.language || 'No especificado'}
-																	</span>
-																</p>
-															</div>
-														</div>
 
-														{track.artists && track.artists.length > 0 && (
-															<div className="mt-4 pt-4 border-t border-gray-100">
-																<p className="font-medium text-gray-700 mb-3 flex items-center gap-2 text-sm">
-																	<Users className="h-4 w-4 text-brand-light" />{' '}
-																	Artistas
-																</p>
-																<div className="flex flex-wrap gap-2">
-																	{track.artists.map(
-																		(artist: any, index: number) => (
-																			<span
-																				key={`${track._id}-artist-${index}`}
-																				className="inline-flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-full text-xs"
-																			>
-																				<span className="text-xs bg-brand-light/10 text-brand-light px-1.5 py-0.5 rounded-full whitespace-nowrap">
-																					{artist.kind === 'main'
-																						? 'Principal'
-																						: artist.kind === 'featuring'
-																						? 'Featuring'
-																						: artist.kind === 'remixer'
-																						? 'Remixer'
-																						: artist.kind}
-																				</span>
-																				<span className="text-gray-700 truncate max-w-[150px]">
-																					{artist.name}
-																				</span>
-																			</span>
-																		)
-																	)}
-																</div>
-															</div>
-														)}
-													</motion.div>
-												</td>
-											</tr>
-										)}
-									</React.Fragment>
-								))}
-							</tbody>
-						</table>
+			{isEditModalOpen && selectedTrack ? (
+				<TrackForm
+					track={selectedTrack}
+					genres={genres}
+					onClose={() => {
+						setIsEditModalOpen(false);
+						setSelectedTrack(null);
+					}}
+					isAsset={true}
+				/>
+			) : (
+				<>
+					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+						<h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+							Tracks
+						</h1>
+						<div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
+							<div className="flex items-center gap-x-10 justify-center gap-4">
+								<SearchInput value={searchQuery} onChange={setSearchQuery} />
+								<SortSelect
+									value={sortBy}
+									onChange={setSortBy}
+									options={sortOptions}
+								/>
+							</div>
+						</div>
 					</div>
 
-					<Pagination
-						currentPage={currentPage}
-						totalPages={totalPages}
-						totalItems={totalItems}
-						itemsPerPage={5}
-						onPageChange={setCurrentPage}
-						className="mt-4"
-					/>
-				</div>
-			)}
+					{tracks.length === 0 ? (
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							className="text-gray-500 text-center py-12 sm:py-20 bg-white rounded-2xl shadow-sm border border-gray-100"
+						>
+							<Music className="h-16 w-16 sm:h-20 sm:w-20 mx-auto text-gray-300 mb-4 sm:mb-6" />
+							<p className="text-xl sm:text-2xl font-semibold text-gray-700">
+								No hay tracks disponibles
+							</p>
+							<p className="text-sm sm:text-base text-gray-400 mt-2 sm:mt-3">
+								Agrega un nuevo track para comenzar
+							</p>
+						</motion.div>
+					) : (
+						<div className="space-y-4">
+							<div className="overflow-x-auto">
+								<table className="min-w-full divide-y divide-gray-400">
+									<thead className="bg-gray-50">
+										<tr>
+											<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Track
+											</th>
+											<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Release
+											</th>
+											<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Fecha
+											</th>
+											<th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Acciones
+											</th>
+										</tr>
+									</thead>
+									<tbody className="bg-white divide-y divide-gray-300">
+										{tracks.map((track: Track) => (
+											<React.Fragment key={track._id}>
+												<tr className="hover:bg-gray-50">
+													<td className="px-4 sm:px-6 py-4">
+														<div className="flex items-center gap-3">
+															<div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+																<Music className="h-5 w-5 text-gray-400" />
+															</div>
+															<div className="min-w-0 flex-1">
+																<h2 className="text-lg font-semibold text-gray-900 truncate">
+																	{track.name}
+																</h2>
+																<div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+																	<FileMusic className="h-4 w-4 text-brand-light" />
+																	<span className="truncate">
+																		{getReleaseName(track.release)}
+																	</span>
+																</div>
+															</div>
+														</div>
+													</td>
+													<td className="px-4 sm:px-6 py-4">
+														<div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+															{track.genre_name && (
+																<div className="flex items-center gap-1">
+																	<Disc className="h-4 w-4" />
+																	<span>{track.genre_name}</span>
+																</div>
+															)}
+															{track.language && (
+																<div className="flex items-center gap-1">
+																	<Languages className="h-4 w-4" />
+																	<span>{track.language}</span>
+																</div>
+															)}
+														</div>
+													</td>
+													<td className="px-4 sm:px-6 py-4">
+														<div className="flex items-center gap-1 text-sm text-gray-500">
+															<Calendar className="h-4 w-4" />
+															<span>
+																{track.createdAt
+																	? new Date(
+																			track.createdAt
+																	  ).toLocaleDateString()
+																	: 'No especificado'}
+															</span>
+														</div>
+													</td>
+													<td className="px-4 sm:px-6 py-4">
+														<div className="flex items-center gap-2">
+															<motion.button
+																whileHover={{ scale: 1.05 }}
+																whileTap={{ scale: 0.95 }}
+																onClick={e => handleEdit(e, track)}
+																className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+															>
+																<Pencil className="h-5 w-5 text-brand-light" />
+															</motion.button>
+															<motion.button
+																whileHover={{ scale: 1.05 }}
+																whileTap={{ scale: 0.95 }}
+																onClick={e => handleDelete(e, track)}
+																disabled={isDeleting === track._id}
+																className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+															>
+																{isDeleting === track._id ? (
+																	<div className="h-5 w-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+																) : (
+																	<Trash2 className="h-5 w-5 text-red-500" />
+																)}
+															</motion.button>
+															<motion.button
+																whileHover={{ scale: 1.05 }}
+																whileTap={{ scale: 0.95 }}
+																onClick={() => toggleExpand(track._id)}
+																className="p-2 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+															>
+																{expandedTrack === track._id ? (
+																	<ChevronUp className="h-5 w-5" />
+																) : (
+																	<ChevronDown className="h-5 w-5" />
+																)}
+															</motion.button>
+														</div>
+													</td>
+												</tr>
+												{expandedTrack === track._id && (
+													<tr>
+														<td
+															colSpan={4}
+															className="px-4 sm:px-6 py-4 bg-gray-50"
+														>
+															<motion.div
+																initial={{ opacity: 0, height: 0 }}
+																animate={{ opacity: 1, height: 'auto' }}
+																exit={{ opacity: 0, height: 0 }}
+																transition={{
+																	duration: 0.4,
+																	ease: 'easeInOut',
+																	height: {
+																		duration: 0.5,
+																		ease: [0.4, 0, 0.2, 1],
+																	},
+																}}
+															>
+																<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+																	<div className="space-y-3">
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+																				<Hash className="h-4 w-4 text-brand-light" />{' '}
+																				ID:
+																			</span>
+																			<span className="text-gray-600 text-sm break-all">
+																				{track._id}
+																			</span>
+																		</p>
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+																				<Clock className="h-4 w-4 text-brand-light" />{' '}
+																				Duración:
+																			</span>
+																			<span className="text-gray-600 text-sm">
+																				{track.track_length ||
+																					'No especificada'}
+																			</span>
+																		</p>
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+																				<Copyright className="h-4 w-4 text-brand-light" />{' '}
+																				Derechos:
+																			</span>
+																			<span className="text-gray-600 text-sm break-words">
+																				{track.copyright_holder ||
+																					'No especificados'}
+																			</span>
+																		</p>
+																	</div>
+																	<div className="space-y-3">
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+																				<Share2 className="h-4 w-4 text-brand-light" />{' '}
+																				ISRC:
+																			</span>
+																			<span className="text-gray-600 text-sm break-all">
+																				{track.ISRC || 'No especificado'}
+																			</span>
+																		</p>
+																		<p className="flex items-start gap-2">
+																			<span className="font-medium text-gray-700 min-w-[100px] flex items-center gap-1 text-sm">
+																				<Languages className="h-4 w-4 text-brand-light" />{' '}
+																				Idioma:
+																			</span>
+																			<span className="text-gray-600 text-sm">
+																				{track.language || 'No especificado'}
+																			</span>
+																		</p>
+																	</div>
+																</div>
 
-			{/* <CreateTrackModal
-				isOpen={isCreateModalOpen}
-				onClose={() => setIsCreateModalOpen(false)}
-				onSave={handleCreateTrack}
-			/> */}
+																{track.artists && track.artists.length > 0 && (
+																	<div className="mt-4 pt-4 border-t border-gray-100">
+																		<p className="font-medium text-gray-700 mb-3 flex items-center gap-2 text-sm">
+																			<Users className="h-4 w-4 text-brand-light" />{' '}
+																			Artistas
+																		</p>
+																		<div className="flex flex-wrap gap-2">
+																			{track.artists.map(
+																				(artist: any, index: number) => (
+																					<span
+																						key={`${track._id}-artist-${index}`}
+																						className="bg-gray-200 text-sm text-gray-600 px-2 py-1 rounded-full"
+																					>
+																						{artist.name}
+																					</span>
+																				)
+																			)}
+																		</div>
+																	</div>
+																)}
+															</motion.div>
+														</td>
+													</tr>
+												)}
+											</React.Fragment>
+										))}
+									</tbody>
+								</table>
+							</div>
 
-			{isEditModalOpen && selectedTrack && (
-				<UpdateTrackModal track={selectedTrack} onSave={handleSaveEdit} />
+							<Pagination
+								currentPage={currentPage}
+								totalPages={totalPages}
+								totalItems={totalItems}
+								itemsPerPage={5}
+								onPageChange={setCurrentPage}
+								className="mt-4"
+							/>
+						</div>
+					)}
+				</>
 			)}
 		</div>
 	);

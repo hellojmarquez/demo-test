@@ -343,6 +343,7 @@ export default function EditPage() {
 							onClose={() => {
 								setSelectedTrack(null);
 							}}
+							isAsset={false}
 						/>
 					</div>
 				)}

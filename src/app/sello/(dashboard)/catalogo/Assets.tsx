@@ -82,7 +82,7 @@ const Assets = () => {
 			.then(res => res.json())
 			.then(response => {
 				if (response.success && response.data) {
-					setReleases(response.data);
+					setReleases(response.data.releases);
 				}
 			})
 			.catch(error => console.error('Error fetching releases:', error));

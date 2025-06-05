@@ -21,12 +21,8 @@ import UpdateSelloModal from '@/components/UpdateSelloModal';
 import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import SortSelect from '@/components/SortSelect';
-import { useAuth } from '@/context/AuthContext';
-import { toast } from 'react-hot-toast';
 import { Sello } from '@/types/sello';
 import { Artista } from '@/types/artista';
-import { Publisher } from '@/types/publisher';
-import { Contributor } from '@/types/contributor';
 
 // Tipo base para todas las personas
 interface BasePersona {
@@ -122,6 +118,7 @@ const Personas = () => {
 			if (response.ok) {
 				const data = await response.json();
 				if (data.success) {
+					console.log('PERSONAS ', data.data.users);
 					setUsers(data.data.users);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
@@ -235,7 +232,14 @@ const Personas = () => {
 			console.error('Error refreshing personas:', error);
 		}
 	};
-
+	const getImageUrl = (imageString: string) => {
+		// Si es una URL normal (http o https)
+		if (imageString.startsWith('http')) {
+			return imageString;
+		}
+		// Si es base64 sin prefijo
+		return `data:image/jpeg;base64,${imageString}`;
+	};
 	const handlePublisherUpdate = async () => {
 		try {
 			// Recargar la lista de personas después de actualizar un publisher
@@ -431,7 +435,7 @@ const Personas = () => {
 													<motion.img
 														whileHover={{ scale: 1.05 }}
 														transition={{ duration: 0.2 }}
-														src={persona.picture}
+														src={getImageUrl(persona.picture)}
 														alt={persona.name}
 														className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover"
 													/>

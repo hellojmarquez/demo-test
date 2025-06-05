@@ -225,6 +225,7 @@ export async function PUT(
 							new URL(release.picture.full_size).pathname.slice(1)
 					  ).replace('media/', ''),
 		};
+		console.log('releaseToApiData: ', releaseToApiData);
 		const releaseToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
 			{
@@ -254,19 +255,32 @@ export async function PUT(
 		const cleanUrl = (url: string): string => {
 			return url.split('?')[0];
 		};
+		const getUpdatedRelease = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${releaseData.external_id}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const getUpdatedReleaseRes = await getUpdatedRelease.json();
 		const dataToUpdate = {
 			...releaseData,
 			label: releaseData.label,
 			artists: releaseData.artists,
 			picture: {
-				full_size: getReleaseRes.artwork?.full_size
-					? cleanUrl(getReleaseRes.artwork.full_size)
+				full_size: getUpdatedReleaseRes.artwork?.full_size
+					? cleanUrl(getUpdatedReleaseRes.artwork.full_size)
 					: '/cd_cover.png',
-				thumb_medium: getReleaseRes.artwork?.thumb_medium
-					? cleanUrl(getReleaseRes.artwork.thumb_medium)
+				thumb_medium: getUpdatedReleaseRes.artwork?.thumb_medium
+					? cleanUrl(getUpdatedReleaseRes.artwork.thumb_medium)
 					: '/cd_cover.png',
-				thumb_small: getReleaseRes.artwork?.thumb_small
-					? cleanUrl(getReleaseRes.artwork.thumb_small)
+				thumb_small: getUpdatedReleaseRes.artwork?.thumb_small
+					? cleanUrl(getUpdatedReleaseRes.artwork.thumb_small)
 					: '/cd_cover.png',
 			},
 		};

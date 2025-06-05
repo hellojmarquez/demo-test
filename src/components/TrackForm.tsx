@@ -288,9 +288,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							Dolby Atmos Resource
 						</label>
 						<input
-							type="text"
+							type="file"
 							name="dolby_atmos_resource"
-							value={track?.dolby_atmos_resource || ''}
 							onChange={handleChange}
 							className="w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 						/>

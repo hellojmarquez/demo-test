@@ -173,7 +173,7 @@ export default function EditPage() {
 
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
-			console.log('FORM DATA: ', formData);
+			console.log('FORM DATA A ENVIAR: ', formData);
 			const response = await fetch(
 				`/api/admin/updateRelease/${updatedRelease.external_id}`,
 				{

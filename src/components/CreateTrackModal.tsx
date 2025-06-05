@@ -524,7 +524,7 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 										<button
 											type="button"
 											onClick={() => {
-												setSelectedFile(null);
+												setSelectedFileDolby(null);
 											}}
 											className="p-1 text-gray-400 hover:text-red-500 transition-colors"
 										>

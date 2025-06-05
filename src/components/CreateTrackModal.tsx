@@ -413,7 +413,7 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 									<input
 										type="file"
 										ref={fileInputRef}
-										onChange={handleFileDolbyChange}
+										onChange={handleFileChange}
 										accept=".wav"
 										className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
 									/>
@@ -435,7 +435,7 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 								</div>
 							)}
 
-							{track?.resource && (
+							{(selectedFile || track?.resource) && (
 								<div className="mt-4 p-3 md:p-4 w-1/2 bg-white rounded-lg border border-gray-200 shadow-sm">
 									<div className="flex items-center gap-2 md:gap-3">
 										<div className="p-1.5 md:p-2 bg-gray-100 rounded-lg">
@@ -443,12 +443,16 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 										</div>
 										<div className="flex-1 min-w-0">
 											<p className="text-sm font-medium text-gray-900 truncate">
-												{typeof track.resource === 'string'
+												{selectedFile
+													? selectedFile.name
+													: typeof track?.resource === 'string'
 													? track.resource
-													: track.resource.name}
+													: track?.resource?.name}
 											</p>
 											<p className="text-xs text-gray-500">
-												{typeof track.resource === 'string'
+												{selectedFile
+													? 'Listo para subir'
+													: typeof track?.resource === 'string'
 													? 'Archivo cargado'
 													: 'Listo para subir'}
 											</p>
@@ -503,7 +507,7 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 								</div>
 							)}
 
-							{track?.dolby_atmos_resource && (
+							{(selectedFileDolby || track?.dolby_atmos_resource) && (
 								<div className="mt-4 p-3 md:p-4 w-1/2 bg-white rounded-lg border border-gray-200 shadow-sm">
 									<div className="flex items-center gap-2 md:gap-3">
 										<div className="p-1.5 md:p-2 bg-gray-100 rounded-lg">
@@ -511,12 +515,16 @@ const TrackForm: React.FC<TrackFormProps> = ({ track, genres, onClose }) => {
 										</div>
 										<div className="flex-1 min-w-0">
 											<p className="text-sm font-medium text-gray-900 truncate">
-												{typeof track.dolby_atmos_resource === 'string'
+												{selectedFileDolby
+													? selectedFileDolby.name
+													: typeof track?.dolby_atmos_resource === 'string'
 													? track.dolby_atmos_resource
-													: track.dolby_atmos_resource?.name}
+													: track?.dolby_atmos_resource?.name}
 											</p>
 											<p className="text-xs text-gray-500">
-												{typeof track.dolby_atmos_resource === 'string'
+												{selectedFileDolby
+													? 'Listo para subir'
+													: typeof track?.dolby_atmos_resource === 'string'
 													? 'Archivo cargado'
 													: 'Listo para subir'}
 											</p>

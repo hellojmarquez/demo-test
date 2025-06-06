@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import { v4 as uuidv4 } from 'uuid';
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
 
 		// Crear el nuevo artista
 		const newArtist = await User.create({
+			_id: new mongoose.Types.ObjectId(),
 			external_id: artistaRes.id,
 			name,
 			email,

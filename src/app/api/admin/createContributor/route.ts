@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import mongoose from 'mongoose';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
@@ -26,7 +27,6 @@ export async function POST(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-		
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
 
 		// Crear y guardar el contribuidor en la base de datos local
 		const contributor = new User({
+			_id: new mongoose.Types.ObjectId(),
 			external_id: contributorRes.id,
 			name: contributorRes.name,
 			email: email,
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
 				details: `contributor creado: ${name}`,
 				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
 			};
-		
+
 			await createLog(logData);
 		} catch (logError) {
 			console.error('Error al crear el log:', logError);

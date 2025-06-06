@@ -54,159 +54,154 @@ export async function PUT(
 		}
 
 		const contentType = req.headers.get('content-type') || '';
-		let trackData: Record<string, any> = {};
 
-		if (contentType.includes('multipart/form-data')) {
-			const formData = await req.formData();
-			const file = formData.get('file') as File | null;
-			const dolby_file = formData.get('dolby_file') as File | null;
-			let data = formData.get('data') as string | null;
+		const formData = await req.formData();
+		const file = formData.get('file') as File | null;
+		const dolby_file = formData.get('dolby_file') as File | null;
+		const trackData = JSON.parse(formData.get('data') as string);
 
-			if (data) {
-				trackData = JSON.parse(data);
-
-				if (file) {
-					const uploadTrackReq = await fetch(
-						`${
-							process.env.MOVEMUSIC_API
-						}/obtain-signed-url-for-upload/?filename=${file.name.replaceAll(
-							' ',
-							''
-						)}&filetype=${file.type}&upload_type=track.audio`,
-						{
-							method: 'GET',
-							headers: {
-								'Content-Type': 'application/json',
-								Authorization: `JWT ${moveMusicAccessToken}`,
-								'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-								Referer: process.env.MOVEMUSIC_REFERER || '',
-							},
-						}
-					);
-					const uploadTrackRes = await uploadTrackReq.json();
-
-					// Extraer la URL y los campos del objeto firmado
-					const { url: signedUrl, fields: trackFields } =
-						uploadTrackRes.signed_url;
-					// Crear un objeto FormData y agregar los campos y el archivo
-					const trackFormData = new FormData();
-					Object.entries(trackFields).forEach(([key, value]) => {
-						if (typeof value === 'string' || value instanceof Blob) {
-							trackFormData.append(key, value);
-						} else {
-							console.warn(
-								`El valor de '${key}' no es un tipo válido para FormData:`,
-								value
-							);
-						}
-					});
-
-					trackFormData.append('file', file);
-
-					// Realizar la solicitud POST a la URL firmada
-					const uploadResponse = await fetch(signedUrl, {
-						method: 'POST',
-						body: trackFormData,
-					});
-
-					track_url = uploadResponse?.headers?.get('location') || '';
-					if (track_url)
-						track_path = decodeURIComponent(
-							new URL(track_url).pathname.slice(1).replace('media/', '')
-						);
-
-					if (!uploadResponse.ok) {
-						return NextResponse.json(
-							{
-								success: false,
-								error: 'Error al subir el archivo de audio a S3',
-							},
-							{ status: 500 }
-						);
-					}
+		if (file) {
+			const fileName = file.name.replaceAll(' ', '');
+			const uploadTrackReq = await fetch(
+				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${fileName}&filetype=${file.type}&upload_type=track.audio`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `JWT ${moveMusicAccessToken}`,
+						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+						Referer: process.env.MOVEMUSIC_REFERER || '',
+					},
 				}
-				if (dolby_file) {
-					const dolbyName = dolby_file.name.replaceAll(' ', '');
-					const uploadTrackReq = await fetch(
-						`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${dolbyName}&filetype=${dolby_file.type}&upload_type=track.audio`,
-						{
-							method: 'GET',
-							headers: {
-								'Content-Type': 'application/json',
-								Authorization: `JWT ${moveMusicAccessToken}`,
-								'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-								Referer: process.env.MOVEMUSIC_REFERER || '',
-							},
-						}
+			);
+			const uploadTrackRes = await uploadTrackReq.json();
+
+			// Extraer la URL y los campos del objeto firmado
+			const { url: signedUrl, fields: trackFields } = uploadTrackRes.signed_url;
+			// Crear un objeto FormData y agregar los campos y el archivo
+			const trackFormData = new FormData();
+			Object.entries(trackFields).forEach(([key, value]) => {
+				if (typeof value === 'string' || value instanceof Blob) {
+					trackFormData.append(key, value);
+				} else {
+					console.warn(
+						`El valor de '${key}' no es un tipo válido para FormData:`,
+						value
 					);
-					const uploadTrackRes = await uploadTrackReq.json();
-
-					// Extraer la URL y los campos del objeto firmado
-					const { url: signedUrl, fields: trackFields } =
-						uploadTrackRes.signed_url;
-					// Crear un objeto FormData y agregar los campos y el archivo
-					const trackFormData = new FormData();
-					Object.entries(trackFields).forEach(([key, value]) => {
-						if (typeof value === 'string' || value instanceof Blob) {
-							trackFormData.append(key, value);
-						} else {
-							console.warn(
-								`El valor de '${key}' no es un tipo válido para FormData:`,
-								value
-							);
-						}
-					});
-
-					trackFormData.append('file', dolby_file);
-
-					// Realizar la solicitud POST a la URL firmada
-					const uploadResponse = await fetch(signedUrl, {
-						method: 'POST',
-						body: trackFormData,
-					});
-
-					dolby_url = uploadResponse?.headers?.get('location') || '';
-					if (dolby_url)
-						dolby_path = decodeURIComponent(
-							new URL(dolby_url).pathname.slice(1).replace('media/', '')
-						);
-
-					if (!uploadResponse.ok) {
-						return NextResponse.json(
-							{
-								success: false,
-								error: 'Error al subir el archivo de audio a S3',
-							},
-							{ status: 500 }
-						);
-					}
 				}
+			});
+
+			trackFormData.append('file', file);
+
+			// Realizar la solicitud POST a la URL firmada
+			const uploadResponse = await fetch(signedUrl, {
+				method: 'POST',
+				body: trackFormData,
+			});
+			console.log('uploadResponse', uploadResponse);
+			track_url = uploadResponse?.headers?.get('location') || '';
+
+			if (track_url) {
+				const trackDecoed = decodeURIComponent(
+					new URL(track_url).pathname.slice(1)
+				);
+				track_path = trackDecoed.replace('media/', '');
+				console.log('track_path', track_path);
 			}
-		} else if (contentType.includes('application/json')) {
-			trackData = await req.json();
-		} else {
-			return NextResponse.json(
-				{ success: false, error: 'Invalid content type' },
-				{ status: 400 }
+
+			if (!uploadResponse.ok) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'Error al subir el archivo de audio a S3',
+					},
+					{ status: 500 }
+				);
+			}
+		}
+
+		if (dolby_file) {
+			const dolbyName = dolby_file.name.replaceAll(' ', '');
+			const uploadTrackReq = await fetch(
+				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${dolbyName}&filetype=${dolby_file.type}&upload_type=track.audio`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `JWT ${moveMusicAccessToken}`,
+						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+						Referer: process.env.MOVEMUSIC_REFERER || '',
+					},
+				}
+			);
+			const uploadTrackRes = await uploadTrackReq.json();
+
+			// Extraer la URL y los campos del objeto firmado
+			const { url: signedUrl, fields: trackFields } = uploadTrackRes.signed_url;
+			// Crear un objeto FormData y agregar los campos y el archivo
+			const trackFormData = new FormData();
+			Object.entries(trackFields).forEach(([key, value]) => {
+				if (typeof value === 'string' || value instanceof Blob) {
+					trackFormData.append(key, value);
+				} else {
+					console.warn(
+						`El valor de '${key}' no es un tipo válido para FormData:`,
+						value
+					);
+				}
+			});
+
+			trackFormData.append('file', dolby_file);
+
+			// Realizar la solicitud POST a la URL firmada
+			const uploadResponse = await fetch(signedUrl, {
+				method: 'POST',
+				body: trackFormData,
+			});
+
+			dolby_url = uploadResponse?.headers?.get('location') || '';
+			if (dolby_url) {
+				const dolbyDecoded = decodeURIComponent(
+					new URL(dolby_url).pathname.slice(1)
+				);
+				dolby_path = dolbyDecoded.replace('media/', '');
+			}
+
+			if (!uploadResponse.ok) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'Error al subir el archivo de audio a S3',
+					},
+					{ status: 500 }
+				);
+			}
+		}
+		console.log('trackData', trackData);
+		let currentTrackFormated = '';
+		if (currentTrack.resource && currentTrack.resource.length > 0) {
+			const currentTrackDecoded = decodeURIComponent(
+				new URL(currentTrack.resource).pathname.slice(1)
+			);
+			currentTrackFormated = currentTrackDecoded.replace('media/', '');
+		}
+		let currentTrackDolbyFormated = '';
+		if (
+			currentTrack.dolby_atmos_resource &&
+			currentTrack.dolby_atmos_resource.length > 0
+		) {
+			const currentTrackDolbyDecoded = decodeURIComponent(
+				new URL(currentTrack.dolby_atmos_resource).pathname.slice(1)
+			);
+			currentTrackDolbyFormated = currentTrackDolbyDecoded.replace(
+				'media/',
+				''
 			);
 		}
-		console.log('trackData antes del map', trackData);
 		trackData.resource =
-			track_path.length > 0
-				? track_path
-				: decodeURIComponent(
-						new URL(currentTrack.resource).pathname
-							.slice(1)
-							.replace('media/', '')
-				  );
+			track_url.length > 0 ? track_url : currentTrack.resource;
 		trackData.dolby_atmos_resource =
-			dolby_path.length > 0
-				? dolby_path
-				: decodeURIComponent(
-						new URL(currentTrack.dolby_atmos_resource).pathname
-							.slice(1)
-							.replace('media/', '')
-				  );
+			dolby_url.length > 0 ? dolby_url : currentTrack.dolby_atmos_resource;
 		if (trackData.ISRC === null) delete trackData.ISRC;
 		let publisherstoapi: any[] = [];
 		// Asegurar que publishers tenga la estructura correcta
@@ -242,13 +237,16 @@ export async function PUT(
 			artistsToApi = [];
 		}
 
-		console.log('trackData', trackData);
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
 			{
 				method: 'PUT',
 				body: JSON.stringify({
 					...trackData,
+					resource: file ? track_path : currentTrackFormated,
+					dolby_atmos_resource: dolby_file
+						? dolby_path
+						: currentTrackDolbyFormated,
 					publishers: publisherstoapi,
 					artists: artistsToApi,
 					contributors: contributorsToApi,

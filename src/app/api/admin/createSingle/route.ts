@@ -98,9 +98,10 @@ export async function POST(req: NextRequest) {
 					});
 
 					picture_url = uploadResponse.headers?.get('location') || '';
-					picture_path = decodeURIComponent(
+					const picture_path_decoded = decodeURIComponent(
 						new URL(picture_url).pathname.slice(1)
-					).replace('media/', '');
+					);
+					picture_path = picture_path_decoded.replace('media/', '');
 
 					if (!uploadResponse.ok) {
 						console.error(

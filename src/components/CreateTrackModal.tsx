@@ -132,7 +132,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	// Actualizar el estado local cuando cambia el prop track
 	useEffect(() => {
-		console.log('track', track);
 		setLocalTrack(track || {});
 	}, [track]);
 
@@ -185,9 +184,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 				const contributorRes = await fetch('/api/admin/getAllContributor');
 				const contributorData = await contributorRes.json();
-				console.log('CONTRIBUTOR DATA RES', contributorData);
 				if (contributorData.success) {
-					console.log('CONTRIBUTOR DATA', contributorData);
 					setContributors(contributorData.data);
 				}
 				const publisherRes = await fetch('/api/admin/getAllPublishers');
@@ -550,7 +547,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							)}
 						</div>
 					</div>
-					{(track?.qc_feedback as any) && (
+					{track?.qc_feedback && Object.keys(track.qc_feedback).length > 0 && (
 						<div className="bg-red-200 p-4 rounded-lg">
 							{/* formData.qc_feedback */}
 							<h2 className="text-red-800 font-bold text-center ">
@@ -1360,7 +1357,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						type="button"
 						onClick={async () => {
 							setIsLoading(true);
-							console.log('track A ENVIAR', localTrack);
+
 							try {
 								if (localTrack?.external_id) {
 									// Crear FormData para enviar el archivo
@@ -1376,15 +1373,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									}
 
 									// Añadir el resto de los datos del track
-									Object.keys(localTrack).forEach(key => {
-										if (key !== 'resource') {
-											const value = localTrack[key as keyof typeof localTrack];
-											if (value !== undefined) {
-												formData.append(key, JSON.stringify(value));
-											}
-										}
-									});
-									console.log('formData', formData);
+									formData.append('data', JSON.stringify(localTrack));
+									console.log('formData a enviar', formData);
 									// Si tiene external_id, actualizar el track existente
 									const response = await fetch(
 										`/api/admin/updateSingle/${localTrack.external_id}`,

@@ -5,8 +5,8 @@ import mongoose from 'mongoose';
 const baseUserSchema = new mongoose.Schema(
 	{
 		_id: {
-			type: mongoose.Schema.Types.ObjectId,
-			required: true,
+			type: mongoose.Schema.Types.ObjectId || '',
+			required: false,
 		},
 		name: {
 			type: String,

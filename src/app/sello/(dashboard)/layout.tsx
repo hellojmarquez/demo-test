@@ -196,6 +196,13 @@ export default function DashboardLayout({
 											<X size={24} />
 										</button>
 									</div>
+									<div className="w-full sm:flex sm:mx-auto sm:items-center">
+										<div className="w-full mx-auto">
+											<AccountSwitchButton
+												onMenuClose={() => setMobileMenuOpen(false)}
+											/>
+										</div>
+									</div>
 									<div className="flex flex-col px-4 py-2">
 										<Link
 											href="/sello"

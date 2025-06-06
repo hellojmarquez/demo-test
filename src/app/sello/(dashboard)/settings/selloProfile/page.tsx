@@ -18,9 +18,6 @@ import {
 	Trash2,
 	Upload,
 	User,
-	UserPlus,
-	UserRoundCheck,
-	Users,
 	Camera,
 } from 'lucide-react';
 import { Sello } from '@/types/sello';
@@ -169,7 +166,6 @@ const SelloProfile = () => {
 				primary_genre: userData.primary_genre || prev.primary_genre,
 			}));
 		}
-		console.log('formData', userData);
 	}, [userData]);
 
 	const [asignaciones, setAsignaciones] = useState<Array<any>>([]);

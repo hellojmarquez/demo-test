@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -121,12 +120,12 @@ export async function POST(request: NextRequest) {
 				});
 
 				picture_url = uploadResponse?.headers?.get('location') || '';
-				picture_path = decodeURIComponent(
+				const picture_path_decoded = decodeURIComponent(
 					new URL(picture_url).pathname.slice(1)
 				);
+				picture_path = picture_path_decoded.replace('media/', '');
 
 				if (!uploadResponse.ok) {
-
 					return NextResponse.json(
 						{ message: 'Error al subir la imagen a S3' },
 						{ status: 500 }
@@ -163,7 +162,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		const createLabelRes = await createLabelReq.json();
-		
+
 		if (!createLabelRes.id) {
 			return NextResponse.json({ success: false, error: createLabelRes });
 		}
@@ -218,7 +217,7 @@ export async function POST(request: NextRequest) {
 				details: `Sello creado: ${name}`,
 				ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
 			};
-		
+
 			await createLog(logData);
 		} catch (logError) {
 			console.error('Error al crear el log:', logError);

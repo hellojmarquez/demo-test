@@ -103,7 +103,6 @@ export async function PUT(
 
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
-
 			const uploadMediaReq = await fetch(
 				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=label.logo`,
 				{
@@ -130,15 +129,19 @@ export async function PUT(
 				body: mediaFormData,
 			});
 			picture_url = uploadResponse?.headers?.get('location') || '';
-			picture_path = decodeURIComponent(new URL(picture_url).pathname.slice(1));
+			const picture_path_decoded = decodeURIComponent(
+				new URL(picture_url).pathname.slice(1)
+			);
+			picture_path = picture_path_decoded.replace('media/', '');
 			updateData.logo = picture_path;
 		}
 		if (picture_path.length > 0) {
 			updateData.logo = picture_path;
 		} else {
-			updateData.logo = decodeURIComponent(
+			const decoded_logo = decodeURIComponent(
 				new URL(currentSello.picture).pathname.slice(1)
 			);
+			updateData.logo = decoded_logo.replace('media/', '');
 		}
 
 		const externalApiRes = await fetch(

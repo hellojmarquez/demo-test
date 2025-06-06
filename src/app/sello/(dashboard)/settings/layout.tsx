@@ -38,7 +38,9 @@ export default function DashboardLayout({
 
 	return (
 		<SettingsProvider>
-			<div className={`${inter.className} min-h-screen bg-gray-50`}>
+			<div
+				className={`${inter.className} max-w-[1290px] px-6 min-h-screen bg-gray-50`}
+			>
 				<div className="flex flex-col min-h-screen">
 					<nav className="hidden md:flex md:justify-between md:w-full">
 						<div className="flex items-center space-x-4">
@@ -67,20 +69,6 @@ export default function DashboardLayout({
 							>
 								<Users size={18} className="mr-2" />
 								<span>Cuentas</span>
-								<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-							</Link>
-
-							<Link
-								href="/sello/settings/artistProfile"
-								className={`flex items-center p-2 transition-colors relative group ${
-									isActive('/sello/settings/artistProfile')
-										? 'text-brand-dark border-b-2 border-brand-dark'
-										: 'text-gray-900'
-								}`}
-								onClick={() => setMobileMenuOpen(false)}
-							>
-								<User size={18} className="mr-2" />
-								<span>Perfil Artista</span>
 								<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 							</Link>
 						</div>

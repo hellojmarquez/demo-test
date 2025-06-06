@@ -103,22 +103,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const [existingRelationships, setExistingRelationships] = useState<any[]>([]);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-	// Log para verificar los datos recibidos
-	useEffect(() => {
-		if (isOpen) {
-			console.log('Datos recibidos en UpdateSelloModal:', {
-				sello,
-				formData: {
-					...sello,
-					email: sello.email || '',
-					password: sello.password || '',
-					exclusivity: sello.exclusivity || 'no_exclusivo',
-					primary_genre: sello.primary_genre || '',
-				},
-			});
-		}
-	}, [isOpen, sello]);
-
 	const [formData, setFormData] = useState<SelloFormData>(() => {
 		return {
 			_id: sello._id,
@@ -266,11 +250,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		{ value: 'activo', label: 'Activo' },
 		{ value: 'inactivo', label: 'Inactivo' },
 		{ value: 'banneado', label: 'Baneado' },
-	];
-
-	const tipoOptions: AccountOption[] = [
-		{ value: 'principal', label: 'Cuenta Principal' },
-		{ value: 'subcuenta', label: 'Subcuenta' },
 	];
 
 	const exclusivityOptions: ExclusivityOption[] = [

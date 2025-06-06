@@ -39,8 +39,7 @@ const ArtistProfile = () => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		console.log('userData en perfil: ', userData);
-		console.log('formData actual: ', formData);
+	
 		if (userData?.name) {
 			console.log('Actualizando formData con nombre:', userData.name);
 			setFormData(prev => ({

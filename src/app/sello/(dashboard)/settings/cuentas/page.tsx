@@ -18,12 +18,7 @@ interface SubAccount {
 const getImageSource = (picture: string | null | undefined) => {
 	if (!picture) return null;
 
-	// Si es una URL (comienza con http:// o https://)
-	if (picture.startsWith('http://') || picture.startsWith('https://')) {
-		return picture;
-	}
-
-	if (picture.startsWith('data:image')) {
+	if (picture.startsWith('http') || picture.startsWith('data:image')) {
 		return picture;
 	}
 

@@ -35,17 +35,14 @@ export default function AccountSwitchButton() {
 		}
 
 		// Si es un string que comienza con data:image
-		if (displayAccount.picture.startsWith('data:image')) {
+		if (
+			displayAccount.picture.startsWith('http') ||
+			displayAccount.picture.startsWith('data:image')
+		) {
 			return displayAccount.picture;
 		}
 
-		// Si es un string base64 sin el prefijo data:image
-		if (displayAccount.picture.startsWith('iVBORw0KGgo')) {
-			return `data:image/png;base64,${displayAccount.picture}`;
-		}
-
-		// Si es una URL
-		return displayAccount.picture;
+		return `data:image/png;base64,${displayAccount.picture}`;
 	};
 
 	const imageSrc = getImageSrc();

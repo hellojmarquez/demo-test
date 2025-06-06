@@ -60,6 +60,7 @@ export async function PUT(
 		const contentType = req.headers.get('content-type');
 		let body: UpdateArtistBody;
 		if (contentType?.includes('multipart/form-data')) {
+			console.log('multipart/form-data');
 			const formData = await req.formData();
 			const password = formData.get('password') as string;
 			const subAccounts = formData.get('subAccounts') as string;
@@ -97,6 +98,7 @@ export async function PUT(
 				body.picture = picture;
 			}
 		} else {
+			console.log('application/json');
 			body = await req.json();
 			body.role = 'artista';
 
@@ -104,9 +106,8 @@ export async function PUT(
 			if (body.password) {
 				body.password = await encryptPassword(body.password);
 			}
-		
 		}
-	
+
 		// Validar datos requeridos
 		if (!body.name || !body.email) {
 			return NextResponse.json(
@@ -199,7 +200,6 @@ export async function PUT(
 
 					// Insertar todas las relaciones
 					await AccountRelationship.insertMany(relationships);
-				
 				}
 			}
 		} catch (relationshipError) {

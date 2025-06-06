@@ -15,7 +15,6 @@ import {
 	MessageSquare,
 	FileMusic,
 	Settings,
-	LogOut,
 	Calculator,
 	NotebookPen,
 } from 'lucide-react';

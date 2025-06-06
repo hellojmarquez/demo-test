@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 						}),
 					}
 				);
-				console.log('plainUser en backend', plainUser);
+
 				const moveMusicToken = await moveMusicLoginRes.json();
 				const response = NextResponse.json({
 					message: 'Login exitoso',

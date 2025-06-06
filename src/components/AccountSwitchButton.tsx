@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
 import { Settings, LogOut, User, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function AccountSwitchButton() {
 	const { user, currentAccount, setShowAccountSelector, logout } = useAuth();
@@ -139,16 +140,16 @@ export default function AccountSwitchButton() {
 						Cambiar cuenta
 					</button>
 
-					<button
+					<Link
+						href="/sello/settings"
 						onClick={() => {
 							setIsOpen(false);
-							// Aquí iría la navegación a la página de configuración
 						}}
 						className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
 					>
 						<Settings size={16} className="mr-2" />
-						Configuración
-					</button>
+						Mi Cuenta
+					</Link>
 
 					<button
 						onClick={() => {

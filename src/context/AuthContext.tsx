@@ -20,6 +20,7 @@ export type Account = {
 
 export type User = {
 	_id: string;
+	external_id?: string;
 	name: string;
 	role: string;
 	email: string;

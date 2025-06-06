@@ -118,46 +118,74 @@ export default function AccountSwitchButton() {
 			</button>
 
 			{isOpen && (
-				<div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
-					<div className="px-4 py-2 border-b border-gray-100">
-						<p className="text-sm font-medium text-gray-900">
-							{displayAccount.name}
-						</p>
-						<p className="text-xs text-gray-500">{displayAccount.email}</p>
+				<div className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl py-3 z-50 border border-gray-100/50">
+					<div className="px-5 py-3 mb-2">
+						<div className="flex items-center space-x-3">
+							<div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+								{imageSrc ? (
+									<Image
+										src={imageSrc}
+										alt={displayAccount.name}
+										fill
+										className="object-cover"
+									/>
+								) : (
+									<span className="text-sm font-medium text-gray-600">
+										{initial}
+									</span>
+								)}
+							</div>
+							<div>
+								<p className="text-sm font-semibold text-gray-900">
+									{displayAccount.name}
+								</p>
+								<p className="text-xs text-gray-500">{displayAccount.email}</p>
+							</div>
+						</div>
 					</div>
 
-					<button
-						onClick={() => {
-							setIsOpen(false);
-							setShowAccountSelector(true);
-						}}
-						className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-					>
-						<User size={16} className="mr-2" />
-						Cambiar cuenta
-					</button>
+					<div className="px-2">
+						<button
+							onClick={() => {
+								setIsOpen(false);
+								setShowAccountSelector(true);
+							}}
+							className="w-full px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100/80 rounded-lg flex items-center group transition-all duration-200"
+						>
+							<div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mr-3 group-hover:bg-blue-100 transition-colors">
+								<User size={16} className="text-blue-600" />
+							</div>
+							Cambiar cuenta
+						</button>
 
-					<Link
-						href="/sello/settings"
-						onClick={() => {
-							setIsOpen(false);
-						}}
-						className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-					>
-						<Settings size={16} className="mr-2" />
-						Mi Cuenta
-					</Link>
+						<Link
+							href="/sello/settings"
+							onClick={() => {
+								setIsOpen(false);
+							}}
+							className="w-full px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100/80 rounded-lg flex items-center group transition-all duration-200"
+						>
+							<div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center mr-3 group-hover:bg-purple-100 transition-colors">
+								<Settings size={16} className="text-purple-600" />
+							</div>
+							Mi Cuenta
+						</Link>
 
-					<button
-						onClick={() => {
-							setIsOpen(false);
-							handleLogout();
-						}}
-						className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 flex items-center"
-					>
-						<LogOut size={16} className="mr-2" />
-						Cerrar sesión
-					</button>
+						<div className="h-px bg-gray-100 my-2"></div>
+
+						<button
+							onClick={() => {
+								setIsOpen(false);
+								handleLogout();
+							}}
+							className="w-full px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center group transition-all duration-200"
+						>
+							<div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center mr-3 group-hover:bg-red-100 transition-colors">
+								<LogOut size={16} className="text-red-600" />
+							</div>
+							Cerrar sesión
+						</button>
+					</div>
 				</div>
 			)}
 		</div>

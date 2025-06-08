@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Plus, ArrowBigUp, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Track } from '@/types/track';
 
 interface UploadTrackToReleaseProps {
 	isOpen: boolean;
@@ -108,13 +107,13 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					{
 						artist: 1541,
 						kind: 'main',
-						order: 5,
+						order: 0,
 						name: 'Jhon Doe',
 					},
 				],
 				publishers: [
 					{
-						order: 3,
+						order: 0,
 						publisher: 194,
 						name: 'ISLA SOUNDS',
 						author: 'Juan Cisneros',
@@ -122,7 +121,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				],
 				contributors: [
 					{
-						order: 3,
+						order: 0,
 						contributor: 1019,
 						name: 'Jhon Doe',
 						role: 2,

@@ -18,7 +18,6 @@ import { Release, Artist } from '@/types/release';
 import UploadTrackToRelease from './UploadTrackToRelease';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Track } from '@/types/track';
 import { toast } from 'react-hot-toast';
 import { RELEVANT_COUNTRIES, CountryOption } from '@/constants/countries';
 import CustomSwitch from './CustomSwitch';
@@ -61,57 +60,6 @@ interface ArtistData {
 	external_id: number;
 }
 
-interface TrackData {
-	_id: string;
-	name: string;
-	mix_name?: string;
-	DA_ISRC?: string;
-	ISRC?: string;
-	__v: number;
-	album_only: boolean;
-	artists: Array<{
-		artist: number;
-		kind: string;
-		order: number;
-		name: string;
-	}>;
-	contributors: Array<{
-		contributor: number;
-		name: string;
-		role: number;
-		order: number;
-		role_name: string;
-	}>;
-	copyright_holder?: string;
-	copyright_holder_year?: string;
-	createdAt: string;
-	dolby_atmos_resource?: string;
-	explicit_content: boolean;
-	generate_isrc: boolean;
-	genre?: {
-		id: number;
-		name: string;
-	};
-	subgenre?: {
-		id: number;
-		name: string;
-	};
-	label_share?: number;
-	language?: string;
-	order?: number;
-	publishers: Array<{
-		publisher: number;
-		author: string;
-		order: number;
-	}>;
-	release?: string;
-	resource?: File | string | null;
-	sample_start?: string;
-	track_lenght?: string;
-	updatedAt: string;
-	vocals?: string;
-}
-
 interface KindOption {
 	value: string;
 	label: string;
@@ -149,7 +97,6 @@ const RELEASE_TYPES: KindOption[] = [
 
 const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
-	onSave,
 	formData,
 	setFormData,
 	onEditTrack,
@@ -848,11 +795,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						}`}
 					>
 						{safeRelease.tracks?.map((track, index) => {
-							const genre = genres.find(g => g.id === track.genre);
-							const subgenre = genre?.subgenres.find(
-								s => s.id === track.subgenre
-							);
-
 							return (
 								<div
 									key={index}
@@ -1692,6 +1634,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					releaseId={release.external_id || 0}
 					onClose={() => setIsUploadModalOpen(false)}
 					onTracksReady={handleTracksReady}
+					existingTracksCount={safeRelease.tracks?.length || 0}
 				/>
 			)}
 			{isCreateArtistModalOpen && (

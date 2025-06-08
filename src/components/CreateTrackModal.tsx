@@ -664,14 +664,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								onChange={handleChange}
 								type="number"
 								name="order"
-								value={localTrack.order || ''}
+								value={localTrack.order}
 								onKeyPress={e => {
 									if (!/[0-9]/.test(e.key)) {
 										e.preventDefault();
 									}
 								}}
 								className="w-full md:w-20 p-2 border rounded"
-								placeholder="200"
+								placeholder="0"
 								min="0"
 							/>
 						</div>

@@ -7,7 +7,7 @@ interface UploadTrackToReleaseProps {
 	isOpen: boolean;
 	releaseId: number;
 	onClose: () => void;
-
+	existingTracksCount: number;
 	onTracksReady: (tracks: { file: File; data: any }[]) => void;
 }
 
@@ -22,6 +22,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	isOpen,
 	onClose,
 	releaseId,
+	existingTracksCount,
 	onTracksReady,
 }) => {
 	console.log('releaseId!!!!!!!!!!!: ', releaseId);
@@ -95,9 +96,9 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 		}
 
 		// Preparar los tracks para enviar al padre
-		const tracksToUpload = validAssets.map(asset => {
+		const tracksToUpload = validAssets.map((asset, index) => {
 			const track = {
-				order: 0,
+				order: existingTracksCount + index,
 				name: asset.title,
 				mix_name: asset.mixName,
 				release: releaseId,

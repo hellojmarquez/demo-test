@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
 				}
 			})
 		);
-		console.log('releases', releases);
+
 		return NextResponse.json(
 			{
 				success: true,

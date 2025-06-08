@@ -72,6 +72,10 @@ const releaseSchema = new Schema(
 		exclusive_shop: { type: Number, required: false },
 		territory: { type: String, required: false },
 		ean: { type: String, required: false },
+		available: {
+			type: Boolean,
+			default: true,
+		},
 	},
 	{ timestamps: true }
 );

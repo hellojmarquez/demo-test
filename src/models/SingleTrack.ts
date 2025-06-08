@@ -158,6 +158,10 @@ const SingleTrackSchema = new mongoose.Schema(
 			default: {},
 			required: true,
 		},
+		available: {
+			type: Boolean,
+			default: true,
+		},
 	},
 	{ timestamps: true }
 );

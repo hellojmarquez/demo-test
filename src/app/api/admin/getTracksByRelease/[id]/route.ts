@@ -18,17 +18,18 @@ export async function GET(
 			);
 		}
 
-		// Verificar JWT
+		let userRole = '';
 		try {
 			const { payload: verifiedPayload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			userRole = verifiedPayload.role as string;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
-				{ status: 403 }
+				{ status: 401 }
 			);
 		}
 
@@ -41,9 +42,13 @@ export async function GET(
 				{ status: 403 }
 			);
 		}
+		const query =
+			userRole === 'admin'
+				? { external_id: releaseId }
+				: { external_id: releaseId, available: true };
 
 		// Obtener el release para obtener su external_id
-		const release = await Release.findOne({ external_id: releaseId });
+		const release = await Release.findOne(query);
 
 		if (!release) {
 			return NextResponse.json(
@@ -51,11 +56,19 @@ export async function GET(
 				{ status: 200 }
 			);
 		}
+		if (userRole !== 'admin' && !release.available) {
+			return NextResponse.json(
+				{ success: false, error: 'Release no encontrado' },
+				{ status: 403 }
+			);
+		}
+		const tracksuery =
+			userRole === 'admin'
+				? { release: release.external_id }
+				: { release: release.external_id, available: true };
 
 		// Buscar todos los tracks que pertenecen al release usando el external_id
-		const tracks = await SingleTrack.find({
-			release: release.external_id,
-		})
+		const tracks = await SingleTrack.find(tracksuery)
 			.sort({
 				order: 1,
 			})

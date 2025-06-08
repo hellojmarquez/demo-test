@@ -2,7 +2,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import Release from '@/models/ReleaseModel';
 import dbConnect from '@/lib/dbConnect';
-import SingleTrack from '@/models/SingleTrack';
 import { jwtVerify } from 'jose';
 import { createLog } from '@/lib/logger';
 

@@ -12,6 +12,7 @@ import {
 	Link,
 	Upload,
 	Image as ImageIcon,
+	Check,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -862,48 +863,38 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 													{track.ISRC}
 												</div>
 											)}
-											{track.resource && (
+											{track.resource ? (
 												<div className="flex items-center gap-2">
 													<button
+														type="button"
 														onClick={() => {
+															console.log('Track data:', track);
+															console.log('Resource:', track.resource);
 															navigator.clipboard.writeText(track.resource);
-															setCopiedTrackId(
-																track.external_id || `new-${index}`
-															);
-															toast.success('Enlace copiado al portapapeles');
+															setCopiedTrackId(track.external_id || null);
 															setTimeout(() => setCopiedTrackId(null), 2000);
 														}}
-														className={`inline-flex items-center gap-1 px-2 py-1 text-xs ${
-															copiedTrackId ===
-															(track.external_id || `new-${index}`)
-																? 'bg-green-500 hover:bg-green-600 text-white'
-																: 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-														} rounded-full transition-all duration-200`}
+														className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
 													>
-														{copiedTrackId ===
-														(track.external_id || `new-${index}`) ? (
+														{copiedTrackId === track.external_id ? (
 															<>
-																<svg
-																	xmlns="http://www.w3.org/2000/svg"
-																	className="h-3.5 w-3.5"
-																	viewBox="0 0 20 20"
-																	fill="currentColor"
-																>
-																	<path
-																		fillRule="evenodd"
-																		d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-																		clipRule="evenodd"
-																	/>
-																</svg>
+																<Check className="h-3.5 w-3.5" />
 																Copiado
 															</>
 														) : (
 															<>
-																<Link size={14} />
+																<Link className="h-3.5 w-3.5" />
 																Copiar enlace
 															</>
 														)}
 													</button>
+												</div>
+											) : (
+												<div className="text-sm text-gray-500">
+													{(() => {
+														console.log('Track sin resource:', track);
+														return 'Pendiente de subir';
+													})()}
 												</div>
 											)}
 											{track.dolby_atmos_resource && (

@@ -57,7 +57,17 @@ export async function GET(req: NextRequest) {
 		const sort = sortMiddleware(req, sortOptions);
 
 		// Construir la query base
-		let finalQuery = { ...searchQuery };
+		let finalQuery = {};
+		if (userRole === 'admin') {
+			finalQuery = {
+				...searchQuery,
+			};
+		} else {
+			finalQuery = {
+				...searchQuery,
+				available: true,
+			};
+		}
 
 		// Filtrar según el rol del usuario
 		if (userRole === 'sello') {
@@ -120,24 +130,22 @@ export async function GET(req: NextRequest) {
 			.lean();
 		await Promise.all(
 			releases.map(async release => {
-				if (release.status !== 'borrador' && release.status !== 'approval') {
-					const releaseGet = await fetch(
-						`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
-						{
-							headers: {
-								Authorization: `JWT ${moveMusicAccessToken}`,
-								'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-								Referer: process.env.MOVEMUSIC_REFERER || '',
-							},
-						}
-					);
-					const releaseData = await releaseGet.json();
-					if (releaseData && releaseData.status) {
-						release.status = releaseData.status;
+				const releaseGet = await fetch(
+					`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
+					{
+						headers: {
+							Authorization: `JWT ${moveMusicAccessToken}`,
+							'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+							Referer: process.env.MOVEMUSIC_REFERER || '',
+						},
 					}
-					if (releaseData && releaseData.qc_feedback) {
-						release.qc_feedback = releaseData.qc_feedback;
-					}
+				);
+				const releaseData = await releaseGet.json();
+				if (releaseData && releaseData.status) {
+					release.status = releaseData.status;
+				}
+				if (releaseData && releaseData.qc_feedback) {
+					release.qc_feedback = releaseData.qc_feedback;
 				}
 			})
 		);

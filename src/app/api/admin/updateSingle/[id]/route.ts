@@ -53,8 +53,6 @@ export async function PUT(
 			);
 		}
 
-		const contentType = req.headers.get('content-type') || '';
-
 		const formData = await req.formData();
 		const file = formData.get('file') as File | null;
 		const dolby_file = formData.get('dolby_file') as File | null;
@@ -313,6 +311,7 @@ export async function PUT(
 			mixName: trackData.mix_name,
 			external_id: trackData.external_id,
 			resource: track_url,
+			available: trackData.available,
 		};
 		const updatedRelease = await Release.findOneAndUpdate(
 			{

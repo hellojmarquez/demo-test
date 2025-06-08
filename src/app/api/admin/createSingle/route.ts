@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
 		trackData.resource = picture_path;
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
-
+		delete dataToapi.available;
 		// Asegurar que publishers tenga la estructura correcta
 		if (Array.isArray(dataToapi.publishers)) {
 			dataToapi.publishers = dataToapi.publishers.map((pub: any) => ({
@@ -200,13 +200,9 @@ export async function POST(req: NextRequest) {
 			mixName: trackData.mix_name,
 			external_id: trackData.external_id,
 			resource: picture_url,
+			available: trackData.available,
 		};
-
-		// Primero verificar si el release existe
-		const existingRelease = await Release.findOne({
-			external_id: trackData.release,
-		});
-
+		console.log('dataToRelease: ', dataToRelease);
 		const updatedRelease = await Release.findOneAndUpdate(
 			{ external_id: trackData.release },
 			{ $push: { tracks: dataToRelease } },

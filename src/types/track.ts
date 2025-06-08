@@ -51,6 +51,7 @@ export interface Track {
 	status?: string;
 	qc_feedback?: any;
 	newTracks?: Track[];
+	available?: boolean;
 }
 
 export interface TrackResponse {

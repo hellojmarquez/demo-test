@@ -143,6 +143,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				track_lenght: '00:03:00',
 				sample_start: '00:00:00',
 				status: 'Borrador',
+				available: true,
 			};
 
 			return {

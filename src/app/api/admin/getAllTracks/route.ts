@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 		}
 
 		// Verificar JWT y obtener el rol del usuario
-		let userRole = 'admin';
+		let userRole = '';
 		let userId = '';
 		try {
 			const { payload: verifiedPayload } = await jwtVerify(
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 		};
 		const sort = sortMiddleware(req, sortOptions);
 
-		let query = {};
+		let query = { ...searchQuery };
 		let total = 0;
 
 		if (userRole === 'sello') {
@@ -60,8 +60,9 @@ export async function GET(req: NextRequest) {
 
 			// Construimos el query para tracks que pertenecen a esos releases
 			query = {
-				...searchQuery,
+				...query,
 				release: { $in: releaseIds },
+				available: true,
 			};
 
 			// Contamos los tracks que coinciden
@@ -78,19 +79,26 @@ export async function GET(req: NextRequest) {
 
 			// Construimos el query para tracks donde el publisher participa
 			query = {
-				...searchQuery,
+				...query,
 				publishers: {
 					$elemMatch: {
 						publisher: publisher.external_id,
 					},
 				},
+				available: true,
 			};
 
 			// Contamos los tracks que coinciden
 			total = await SingleTrack.countDocuments(query);
+		} else if (userRole === 'admin') {
+			// Para admin, mostramos todos los tracks sin filtro de available
+			total = await SingleTrack.countDocuments(query);
 		} else {
-			// Para admin, mostramos todos los tracks
-			query = searchQuery;
+			// Para otros roles, solo tracks disponibles
+			query = {
+				...query,
+				available: true,
+			};
 			total = await SingleTrack.countDocuments(query);
 		}
 

@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
 		const label = parseInt(formData.get('label') as string);
 		const label_name = formData.get('label_name') as string;
 		const kind = formData.get('kind') as string;
-		const language = formData.get('language') as string;
+
 		const release_version = formData.get('release_version') as string;
 		const publisher = formData.get('publisher') as string;
-
+		const available = formData.get('available') === 'true';
 		const publisher_name = formData.get('publisher_name') as string;
 
 		const publisher_year = formData.get('publisher_year') as string;
@@ -228,6 +228,7 @@ export async function POST(req: NextRequest) {
 		// Guardar en la base de datos
 		const releaseToSave = {
 			...newRelease,
+			available: available,
 			external_id: apiRes.id,
 			picture: {
 				full_size: getReleaseRes.artwork?.full_size

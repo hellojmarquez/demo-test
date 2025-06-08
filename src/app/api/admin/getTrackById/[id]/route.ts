@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import SingleTrack from '@/models/SingleTrack';
+import { Track } from '@/types/track';
 
 export async function GET(
 	req: NextRequest,
@@ -18,12 +19,13 @@ export async function GET(
 			);
 		}
 
-		// Verificar JWT
+		let userRole = '';
 		try {
 			const { payload: verifiedPayload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			userRole = verifiedPayload.role as string;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -36,8 +38,12 @@ export async function GET(
 		const externalId = params.id;
 
 		// Buscar el track por external_id
-		const track = await SingleTrack.findOne({ external_id: externalId })
-			.select('+genre +subgenre +qc_feedback')
+		const query =
+			userRole === 'admin'
+				? { external_id: externalId }
+				: { external_id: externalId, available: true };
+		const track = await SingleTrack.findOne(query)
+			.select('+genre +subgenre +qc_feedback +available')
 			.lean(); // Forzar la inclusión de estos campos
 
 		if (!track) {
@@ -46,7 +52,14 @@ export async function GET(
 				{ status: 404 }
 			);
 		}
-
+		// Type assertion to ensure track has available property
+		const typedTrack = track as Track;
+		if (userRole !== 'admin' && !typedTrack.available) {
+			return NextResponse.json(
+				{ success: false, error: 'No tienes permiso para ver este track' },
+				{ status: 403 }
+			);
+		}
 		// actualiza los datos con los de la api
 		const getTrack = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${externalId}`,

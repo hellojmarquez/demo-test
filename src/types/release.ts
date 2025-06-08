@@ -98,6 +98,7 @@ export interface Release {
 	qc_feedback?: {};
 	createdAt?: string;
 	updatedAt?: string;
+	available?: boolean;
 }
 
 export interface ReleaseResponse {

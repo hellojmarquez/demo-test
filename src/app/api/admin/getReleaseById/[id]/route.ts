@@ -18,12 +18,13 @@ export async function GET(
 		);
 	}
 
-	// Verificar JWT
+	let userRole = '';
 	try {
 		const { payload: verifiedPayload } = await jwtVerify(
 			token,
 			new TextEncoder().encode(process.env.JWT_SECRET)
 		);
+		userRole = verifiedPayload.role as string;
 	} catch (err) {
 		console.error('JWT verification failed', err);
 		return NextResponse.json(
@@ -34,13 +35,23 @@ export async function GET(
 	try {
 		await dbConnect();
 		const releaseId = params.id;
-
+		const query =
+			userRole === 'admin'
+				? { external_id: releaseId }
+				: { external_id: releaseId, available: true };
 		// Buscar el release por ID
-		const release = await Release.findOne({ external_id: releaseId });
+		const release = await Release.findOne(query);
 		if (!release) {
 			return NextResponse.json(
 				{ success: false, error: 'Release no encontrado' },
 				{ status: 404 }
+			);
+		}
+		// Si no es admin y el release no está disponible, retornar error
+		if (userRole !== 'admin' && !release.available) {
+			return NextResponse.json(
+				{ success: false, error: 'No tienes permiso para ver este release' },
+				{ status: 403 }
 			);
 		}
 		const getRelease = await fetch(

@@ -65,9 +65,10 @@ export async function DELETE(
 			track.resource.length > 0
 		) {
 			try {
-				newresource = decodeURIComponent(
+				const decodedResource = decodeURIComponent(
 					new URL(track.resource).pathname.slice(1)
-				).replace('media/', '');
+				);
+				newresource = decodedResource.replace('media/', '');
 				console.log('NEW RESOURCE: ', newresource);
 			} catch (error) {
 				console.log('NEW RESOURCE err: ', error);
@@ -139,7 +140,13 @@ export async function DELETE(
 		}
 		console.log('RESPUESTA DE API: ', updateTrackRes);
 
-		await SingleTrack.findByIdAndUpdate(track._id, { $set: track });
+		await SingleTrack.findByIdAndUpdate(track._id, {
+			$set: {
+				available: false,
+				ISRC: track.ISRC,
+				release:883
+			},
+		});
 
 		if (!SingleTrack) {
 			return NextResponse.json(

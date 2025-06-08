@@ -221,87 +221,85 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		fetchData();
 	}, []);
 
-	// Efecto para actualizar formData cuando cambia el track
-	useEffect(() => {
-		if (track) {
-			const updatedFormData = {
-				_id: track._id || '',
-				external_id: track.external_id || '',
-				name: track.title || track.name || '',
-				mix_name: track.mix_name || '',
-				DA_ISRC: track.DA_ISRC || '',
-				ISRC: track.ISRC || '',
-				__v: track.__v || 0,
-				album_only: track.album_only || false,
-				artists: track.artists || [],
-				contributors: track.contributors || [],
-				copyright_holder: track.copyright_holder || '',
-				copyright_holder_year: track.copyright_holder_year || '',
-				createdAt: track.createdAt || '',
-				dolby_atmos_resource: track.dolby_atmos_resource || '',
-				explicit_content: track.explicit_content || false,
-				generate_isrc: track.generate_isrc || false,
-				genre: typeof track.genre === 'number' ? track.genre : 0,
-				genre_name: track.genre_name || '',
-				subgenre: typeof track.subgenre === 'number' ? track.subgenre : 0,
-				subgenre_name: track.subgenre_name || '',
-				label_share: track.label_share || 0,
-				language: track.language || '',
-				order: track.order || 0,
-				publishers: track.publishers || [],
-				release: track.release || '',
-				resource: track.resource || '',
-				sample_start: track.sample_start || '',
-				track_length: track.track_length || '',
-				updatedAt: track.updatedAt || '',
-				vocals: track.vocals || '',
-				status: track.status || 'Borrador',
+	const handleAddPublisher = () => {
+		setLocalTrack(prev => {
+			const newPublishers = [...(prev.publishers || [])];
+			newPublishers.push({
+				publisher: 0,
+				author: '',
+				order: newPublishers.length,
+				name: '',
+			});
+			return {
+				...prev,
+				publishers: newPublishers,
 			};
-		}
-	}, [track]);
+		});
+	};
+
+	const handleRemovePublisher = (indexToRemove: number) => {
+		setLocalTrack(prev => {
+			const newPublishers = (prev.publishers || []).filter(
+				(_, index) => index !== indexToRemove
+			);
+			// Reordenar los publishers restantes
+			return {
+				...prev,
+				publishers: newPublishers.map((publisher, index) => ({
+					...publisher,
+					order: index,
+				})),
+			};
+		});
+	};
 
 	const handlePublisherChange = (
 		index: number,
-		field: string,
+		field: 'publisher' | 'author' | 'order',
 		value: string | number
 	) => {
-		const newPublishers = [...(localTrack?.publishers || [])];
-		if (!newPublishers[index]) {
-			newPublishers[index] = { publisher: 0, author: '', order: 0, name: '' };
-		}
+		if (field === 'order') {
+			setLocalTrack(prev => {
+				const newPublishers = [...(prev.publishers || [])];
+				const currentPublisher = newPublishers[index];
+				const newOrder = Number(value);
 
-		if (field === 'publisher') {
-			const numValue =
-				typeof value === 'string' ? parseInt(value) : Number(value);
-			const selectedPublisher = publishers.find(
-				p => p.external_id === numValue
-			);
-			newPublishers[index] = {
-				...newPublishers[index],
-				publisher: numValue,
-				name: selectedPublisher?.name || '',
-			};
-		} else if (field === 'author') {
-			newPublishers[index] = {
-				...newPublishers[index],
-				author: value as string,
-			};
-		} else if (field === 'order') {
-			const numValue =
-				typeof value === 'string' ? parseInt(value) : Number(value);
-			if (!isNaN(numValue)) {
+				// Si el nuevo orden es mayor que el número total de publishers, ajustarlo
+				if (newOrder >= newPublishers.length) {
+					value = newPublishers.length - 1;
+				}
+
+				// Si el nuevo orden es negativo, ajustarlo a 0
+				if (newOrder < 0) {
+					value = 0;
+				}
+
+				// Reordenar todos los publishers
+				newPublishers.splice(index, 1); // Remover el publisher de su posición actual
+				newPublishers.splice(Number(value), 0, currentPublisher); // Insertar en la nueva posición
+
+				// Actualizar los órdenes de todos los publishers
+				return {
+					...prev,
+					publishers: newPublishers.map((publisher, idx) => ({
+						...publisher,
+						order: idx,
+					})),
+				};
+			});
+		} else {
+			setLocalTrack(prev => {
+				const newPublishers = [...(prev.publishers || [])];
 				newPublishers[index] = {
 					...newPublishers[index],
-					order: numValue,
+					[field]: value,
 				};
-			}
+				return {
+					...prev,
+					publishers: newPublishers,
+				};
+			});
 		}
-
-		// Actualizar el estado local directamente
-		setLocalTrack(prev => ({
-			...prev,
-			publishers: newPublishers,
-		}));
 	};
 
 	const handleChange = (
@@ -1173,13 +1171,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				<div className="space-y-4">
 					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
 						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
-						{/* <button
+						<button
 							type="button"
 							onClick={handleAddPublisher}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
 							<Plus size={20} />
-						</button> */}
+						</button>
 					</div>
 					<div className="space-y-4 w-full overflow-hidden">
 						{!localTrack?.publishers?.length ? (
@@ -1236,27 +1234,29 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									/>
 								</div>
 
-								<input
-									type="text"
-									name="author"
-									value=""
-									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-										handlePublisherChange(0, 'author', e.target.value);
-									}}
-									className="w-full sm:flex-1 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
-									placeholder="Autor"
-								/>
+								<div className="flex items-center gap-2">
+									<input
+										type="text"
+										name="author"
+										value={localTrack?.publishers?.[0]?.author || ''}
+										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+											handlePublisherChange(0, 'author', e.target.value);
+										}}
+										className="w-32 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
+										placeholder="Autor"
+									/>
 
-								<input
-									type="number"
-									value={0}
-									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-										const val = parseInt(e.target.value);
-										handlePublisherChange(0, 'order', isNaN(val) ? 0 : val);
-									}}
-									className="w-full sm:w-20 p-2 border rounded"
-									placeholder="Orden"
-								/>
+									<input
+										type="number"
+										value={localTrack?.publishers?.[0]?.order || 0}
+										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+											const val = parseInt(e.target.value);
+											handlePublisherChange(0, 'order', isNaN(val) ? 0 : val);
+										}}
+										className="w-20 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
+										placeholder="Orden"
+									/>
+								</div>
 							</div>
 						) : (
 							(localTrack?.publishers || []).map((publisher, index) => (
@@ -1324,18 +1324,37 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											isSearchable={false}
 										/>
 									</div>
-									<input
-										type="text"
-										name="author"
-										value={publisher?.author || ''}
-										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-											handlePublisherChange(index, 'author', e.target.value);
-										}}
-										className="w-full sm:flex-1 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
-										placeholder="Autor"
-									/>
+									<div className="flex items-center gap-2">
+										<input
+											type="text"
+											value={publisher?.author || ''}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+												handlePublisherChange(index, 'author', e.target.value);
+											}}
+											className="w-32 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
+											placeholder="Autor"
+										/>
+										<input
+											type="number"
+											value={publisher?.order || 0}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+												const val = parseInt(e.target.value);
+												handlePublisherChange(
+													index,
+													'order',
+													isNaN(val) ? 0 : val
+												);
+											}}
+											className="w-20 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
+											placeholder="Orden"
+										/>
+									</div>
 									{(localTrack?.publishers || []).length > 1 && (
-										<button className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors">
+										<button
+											type="button"
+											onClick={() => handleRemovePublisher(index)}
+											className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+										>
 											<Trash2 size={20} />
 										</button>
 									)}
@@ -1374,7 +1393,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 									// Añadir el resto de los datos del track
 									formData.append('data', JSON.stringify(localTrack));
-									console.log('formData a enviar', formData);
+									console.log('localTrack: ', localTrack);
 									// Si tiene external_id, actualizar el track existente
 									const response = await fetch(
 										`/api/admin/updateSingle/${localTrack.external_id}`,

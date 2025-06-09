@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 		const subgenre = formData.get('subgenre') as string;
 		const subgenre_name = formData.get('subgenre_name') as string;
 
-		const temp_id = uuidv4();
+		const temp_id = uuidv4().substring(0, 3);
 		let newRelease = {
 			name,
 			label,
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 			release_version,
 			publisher,
 			publisher_year,
-			catalogue_number: 'ISLASOUNDS' + temp_id,
+			catalogue_number: 'IS' + temp_id,
 			copyright_holder,
 			copyright_holder_year,
 			is_new_release: 1,

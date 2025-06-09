@@ -45,9 +45,13 @@ export async function DELETE(
 		}
 
 		// Eliminar el release
-		const deletedRelease = await Release.findOneAndDelete({
-			external_id: params.id,
-		});
+		const deletedRelease = await Release.findByIdAndUpdate(
+			release._id,
+			{
+				avaliable: false,
+			},
+			{ new: true }
+		);
 
 		try {
 			// Crear el log de eliminación

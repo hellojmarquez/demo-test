@@ -48,11 +48,18 @@ export async function DELETE(
 		const deletedRelease = await Release.findByIdAndUpdate(
 			release._id,
 			{
-				avaliable: false,
+				$set: {
+					available: false,
+				},
 			},
 			{ new: true }
 		);
-
+		if (!deletedRelease) {
+			return NextResponse.json(
+				{ success: false, message: 'Error al borrar el producto' },
+				{ status: 500 }
+			);
+		}
 		try {
 			// Crear el log de eliminación
 			const logData = {

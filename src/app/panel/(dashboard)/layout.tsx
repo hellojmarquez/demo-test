@@ -18,6 +18,7 @@ import {
 	Calculator,
 	NotebookPen,
 } from 'lucide-react';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -67,6 +68,11 @@ export default function DashboardLayout({
 
 	return (
 		<>
+			<Script
+				id="ze-snippet"
+				src="https://static.zdassets.com/ekr/snippet.js?key=74ac04f6-5f74-4f3c-be06-d9be41acb6cd"
+				strategy="afterInteractive"
+			/>
 			<AccountSelector />
 			<div className="min-h-screen flex flex-col items-center bg-white ">
 				{/* Header with Navigation */}

@@ -505,7 +505,10 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				`/api/admin/distributeRelease/${safeFormData.external_id}`,
 				{
 					method: 'POST',
-					body: JSON.stringify(action),
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ action }),
 				}
 			);
 			const data = await response.json();

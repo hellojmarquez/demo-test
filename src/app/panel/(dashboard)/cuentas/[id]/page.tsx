@@ -360,7 +360,7 @@ export default function UsuariosPage() {
 				</h2>
 				<div className="flex space-x-2">
 					<Link
-						href="/sello/crearUsuario"
+						href="/panel/crearUsuario"
 						className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-brand-light hover:text-white transition-all duration-200 shadow-sm group"
 					>
 						<Plus

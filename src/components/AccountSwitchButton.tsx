@@ -66,12 +66,12 @@ export default function AccountSwitchButton({
 
 			if (response.ok) {
 				// Redirigir al login
-				router.push('/sello/login');
+				router.push('/panel/login');
 			}
 		} catch (error) {
 			console.error('Error during logout:', error);
 			// Aún si hay error, intentar redirigir
-			router.push('/sello/login');
+			router.push('/panel/login');
 		}
 	};
 
@@ -167,7 +167,7 @@ export default function AccountSwitchButton({
 						</button>
 
 						<Link
-							href="/sello/settings"
+							href="/panel/settings"
 							onClick={() => {
 								setIsOpen(false);
 							}}

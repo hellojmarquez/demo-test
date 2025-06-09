@@ -24,7 +24,7 @@ export default function SelloHome() {
 	// Redirect if no user
 	useEffect(() => {
 		if (!loading && !user) {
-			router.push('/sello/login');
+			router.push('/panel/login');
 		}
 	}, [user, loading, router]);
 

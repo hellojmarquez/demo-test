@@ -112,7 +112,7 @@ const Productos: React.FC = () => {
 	const handleEdit = (e: React.MouseEvent, release: Release) => {
 		e.preventDefault();
 		e.stopPropagation();
-		router.push(`/sello/catalogo/edit?releaseId=${release.external_id}`);
+		router.push(`/panel/catalogo/edit?releaseId=${release.external_id}`);
 	};
 
 	const handleDelete = async (e: React.MouseEvent, release: Release) => {

@@ -382,7 +382,7 @@ const Personas = () => {
 						/>
 					</div>
 					<button
-						onClick={() => router.push('/sello/crearUsuario')}
+						onClick={() => router.push('/panel/crearUsuario')}
 						className="w-auto flex items-center justify-center gap-2 px-6 py-3 md:px-6 md:py-2 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group"
 					>
 						<Plus

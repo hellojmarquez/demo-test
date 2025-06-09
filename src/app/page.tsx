@@ -1,5 +1,5 @@
 import React from 'react';
-import SelloLogin from './sello/login/page';
+import SelloLogin from './panel/login/page';
 
 const page = () => {
 	return <SelloLogin />;

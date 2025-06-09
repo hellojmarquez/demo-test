@@ -26,7 +26,7 @@ export default function NotFound() {
 						Volver atrás
 					</button>
 					<Link
-						href="/sello"
+						href="/panel"
 						className="px-6 py-2 bg-brand-dark text-white rounded-md hover:bg-brand-dark/90 transition-colors inline-block"
 					>
 						Ir al Dashboard

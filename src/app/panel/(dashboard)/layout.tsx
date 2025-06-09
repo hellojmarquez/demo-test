@@ -1,4 +1,4 @@
-// src/app/sello/(dashboard)/layout.tsx
+// src/app/panel/(dashboard)/layout.tsx
 'use client';
 import { useAuth } from '@/context/AuthContext';
 import AccountSelector from '@/components/AccountSelector';
@@ -38,7 +38,7 @@ export default function DashboardLayout({
 	const pathname = usePathname();
 
 	const isActive = (path: string) => {
-		if (path === '/sello') {
+		if (path === '/panel') {
 			return pathname?.toString() === path;
 		}
 		return (
@@ -91,9 +91,9 @@ export default function DashboardLayout({
 							<nav className="hidden  md:flex md:justify-between md:w-full">
 								<div className="flex items-center space-x-4">
 									<Link
-										href="/sello"
+										href="/panel"
 										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/sello')
+											isActive('/panel')
 												? 'text-white border-b-2'
 												: 'text-white'
 										}`}
@@ -105,9 +105,9 @@ export default function DashboardLayout({
 									</Link>
 									{isAdmin && (
 										<Link
-											href="/sello/cuentas"
+											href="/panel/cuentas"
 											className={`flex items-center p-2 transition-colors relative group ${
-												isActive('/sello/cuentas')
+												isActive('/panel/cuentas')
 													? 'text-white border-b-2'
 													: 'text-white'
 											}`}
@@ -119,9 +119,9 @@ export default function DashboardLayout({
 										</Link>
 									)}
 									<Link
-										href="/sello/mensajes"
+										href="/panel/mensajes"
 										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/sello/mensajes')
+											isActive('/panel/mensajes')
 												? 'text-white border-b-2'
 												: 'text-white'
 										}`}
@@ -132,9 +132,9 @@ export default function DashboardLayout({
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
 									<Link
-										href="/sello/catalogo"
+										href="/panel/catalogo"
 										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/sello/catalogo')
+											isActive('/panel/catalogo')
 												? 'text-white border-b-2'
 												: 'text-white'
 										}`}
@@ -146,9 +146,9 @@ export default function DashboardLayout({
 									</Link>
 									{isAdmin && (
 										<Link
-											href="/sello/contabilidad"
+											href="/panel/contabilidad"
 											className={`flex items-center p-2 transition-colors relative group ${
-												isActive('/sello/contabilidad')
+												isActive('/panel/contabilidad')
 													? 'text-white border-b-2'
 													: 'text-white'
 											}`}
@@ -161,9 +161,9 @@ export default function DashboardLayout({
 									)}
 									{isAdmin && (
 										<Link
-											href="/sello/logs"
+											href="/panel/logs"
 											className={`flex items-center p-2 transition-colors relative group ${
-												isActive('/sello/contabilidad')
+												isActive('/panel/contabilidad')
 													? 'text-white border-b-2'
 													: 'text-white'
 											}`}
@@ -205,9 +205,9 @@ export default function DashboardLayout({
 									</div>
 									<div className="flex flex-col px-4 py-2">
 										<Link
-											href="/sello"
+											href="/panel"
 											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/sello')
+												isActive('/panel')
 													? 'text-white border-l-2 border-white'
 													: 'text-white'
 											}`}
@@ -218,9 +218,9 @@ export default function DashboardLayout({
 										</Link>
 										{isAdmin && (
 											<Link
-												href="/sello/cuentas"
+												href="/panel/cuentas"
 												className={`flex items-center p-3 transition-colors relative group ${
-													isActive('/sello/cuentas')
+													isActive('/panel/cuentas')
 														? 'text-white border-l-2 border-white'
 														: 'text-white'
 												}`}
@@ -231,9 +231,9 @@ export default function DashboardLayout({
 											</Link>
 										)}
 										<Link
-											href="/sello/mensajes"
+											href="/panel/mensajes"
 											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/sello/mensajes')
+												isActive('/panel/mensajes')
 													? 'text-white border-l-2 border-white'
 													: 'text-white'
 											}`}
@@ -243,9 +243,9 @@ export default function DashboardLayout({
 											<span>Mensajes</span>
 										</Link>
 										<Link
-											href="/sello/catalogo"
+											href="/panel/catalogo"
 											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/sello/catalogo')
+												isActive('/panel/catalogo')
 													? 'text-white border-l-2 border-white'
 													: 'text-white'
 											}`}
@@ -256,9 +256,9 @@ export default function DashboardLayout({
 										</Link>
 										{isAdmin && (
 											<Link
-												href="/sello/contabilidad"
+												href="/panel/contabilidad"
 												className={`flex items-center p-3 transition-colors relative group ${
-													isActive('/sello/contabilidad')
+													isActive('/panel/contabilidad')
 														? 'text-white border-l-2 border-white'
 														: 'text-white'
 												}`}

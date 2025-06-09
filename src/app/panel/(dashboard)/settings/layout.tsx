@@ -45,9 +45,9 @@ export default function DashboardLayout({
 					<nav className="hidden md:flex md:justify-between md:w-full">
 						<div className="flex items-center space-x-4">
 							<Link
-								href="/sello/settings"
+								href="/panel/settings"
 								className={`flex items-center p-2 transition-colors relative group ${
-									isActive('/sello/settings')
+									isActive('/panel/settings')
 										? 'text-brand-dark border-b-2 border-brand-dark'
 										: 'text-gray-900'
 								}`}
@@ -59,9 +59,9 @@ export default function DashboardLayout({
 							</Link>
 
 							<Link
-								href="/sello/settings/cuentas"
+								href="/panel/settings/cuentas"
 								className={`flex items-center p-2 transition-colors relative group ${
-									isActive('/sello/settings/cuentas')
+									isActive('/panel/settings/cuentas')
 										? 'text-brand-dark border-b-2 border-brand-dark'
 										: 'text-gray-900'
 								}`}
@@ -98,9 +98,9 @@ export default function DashboardLayout({
 							>
 								<div className="py-2">
 									<Link
-										href="/sello/settings"
+										href="/panel/settings"
 										className={`block px-4 py-2 ${
-											isActive('/sello/settings')
+											isActive('/panel/settings')
 												? 'text-brand-dark bg-brand-light'
 												: 'text-gray-900'
 										}`}
@@ -109,9 +109,9 @@ export default function DashboardLayout({
 										Detalles
 									</Link>
 									<Link
-										href="/sello/settings/cuentas"
+										href="/panel/settings/cuentas"
 										className={`block px-4 py-2 ${
-											isActive('/sello/settings/cuentas')
+											isActive('/panel/settings/cuentas')
 												? 'text-brand-dark bg-brand-light'
 												: 'text-gray-900'
 										}`}
@@ -120,9 +120,9 @@ export default function DashboardLayout({
 										Cuentas
 									</Link>
 									<Link
-										href="/sello/settings/artistProfile"
+										href="/panel/settings/artistProfile"
 										className={`block px-4 py-2 ${
-											isActive('/sello/settings/artistProfile')
+											isActive('/panel/settings/artistProfile')
 												? 'text-brand-dark bg-brand-light'
 												: 'text-gray-900'
 										}`}

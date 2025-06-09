@@ -184,7 +184,6 @@ const CreateReleasePage = () => {
 				}
 				if (genresData.success && Array.isArray(genresData.data)) {
 					setGenres(genresData.data);
-				
 				} else {
 					setError(
 						'Error al cargar los géneros. Formato de respuesta inesperado.'
@@ -314,14 +313,13 @@ const CreateReleasePage = () => {
 				}
 			});
 
-		
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',
 				body: formDataToSend,
 			});
 
 			if (response.ok) {
-				router.push('/sello/catalogo');
+				router.push('/panel/catalogo');
 			} else {
 				const data = await response.json();
 				throw new Error(data.message || 'Error al crear el lanzamiento');

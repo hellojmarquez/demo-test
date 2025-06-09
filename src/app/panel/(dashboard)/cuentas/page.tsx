@@ -964,7 +964,7 @@ export default function UsuariosPage() {
 							Invitar
 						</motion.button>
 						<Link
-							href="/sello/crearUsuario"
+							href="/panel/crearUsuario"
 							className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium bg-white text-brand-light hover:text-white hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
 						>
 							<Plus className="h-4 w-4 mr-1.5" />

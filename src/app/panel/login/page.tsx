@@ -76,11 +76,11 @@ export default function SelloLogin() {
 				};
 
 				login(userData);
-				router.push('/sello');
+				router.push('/panel');
 			} else {
 				// Si el usuario está baneado, redirigir a la página de baneo
 				if (data.error === 'banneado') {
-					router.push('/sello/banned');
+					router.push('/panel/banned');
 					return;
 				}
 				setError(data.error || 'Login failed. Please try again.');

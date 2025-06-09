@@ -13,6 +13,7 @@ import {
 	Upload,
 	Image as ImageIcon,
 	Check,
+	Loader2,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -115,6 +116,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			fileName: string;
 		};
 	}>({});
+	const [menuIsOpen, setMenuIsOpen] = useState(false);
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [isUploadingTracks, setIsUploadingTracks] = useState(false);
 	const [uploadError, setUploadError] = useState('');
@@ -141,6 +143,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
 	const [isTracksExpanded, setIsTracksExpanded] = useState(false);
 	const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
+	const [selectedAction, setSelectedAction] = useState<string | null>(null);
 
 	// Add the common input styles at the top of the component
 	const inputStyles =
@@ -148,7 +151,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const selectStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
 	const selectWrapperStyles = 'relative';
-
+	useEffect(() => {
+		console.log('release: ', release);
+	}, [release]);
 	// Add the react-select styles
 	const reactSelectStyles = {
 		control: (base: any) => ({
@@ -493,14 +498,14 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			toast.error('Error al cargar los datos del track');
 		}
 	};
-	const handleDistribute = async () => {
+	const handleDistribute = async (action: string) => {
 		setIsLoading(true);
 		try {
 			const response = await fetch(
 				`/api/admin/distributeRelease/${safeFormData.external_id}`,
 				{
 					method: 'POST',
-					body: JSON.stringify(safeFormData),
+					body: JSON.stringify(action),
 				}
 			);
 			const data = await response.json();
@@ -607,41 +612,77 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		<div className="container mx-auto md:px-4 py-8">
 			<audio ref={audioRef} />
 			<div className="flex justify-end">
-				<button
-					onClick={handleDistribute}
-					disabled={isLoading}
-					className={`bg-black text-white font-bold px-6 py-2 flex items-center justify-center min-w-[120px] ${
-						isLoading ? 'opacity-70 cursor-not-allowed' : ''
-					}`}
-				>
-					{isLoading ? (
-						<>
-							<svg
-								className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
-								viewBox="0 0 24 24"
+				{release.status === 'ready' && (
+					<button
+						onClick={() => handleDistribute('distribute')}
+						disabled={isLoading}
+						className={`bg-black text-white font-bold px-6 py-2 flex items-center justify-center min-w-[120px] ${
+							isLoading ? 'opacity-70 cursor-not-allowed' : ''
+						}`}
+					>
+						{isLoading ? (
+							<>
+								<Loader2 className="animate-spin h-5 w-5 text-white" />
+								Procesando...
+							</>
+						) : (
+							'Distribuir'
+						)}
+					</button>
+				)}
+				{release.status === 'distributed' && (
+					<div className="flex gap-2">
+						<div className="relative w-[200px]">
+							<select
+								onChange={e => {
+									console.log('🔍 Native select changed:', e.target.value);
+									setSelectedAction(e.target.value || null);
+								}}
+								className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer"
+								defaultValue=""
 							>
-								<circle
-									className="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
+								<option value="" disabled>
+									Seleccionar acción
+								</option>
+								<option value="takedown">Dar de baja</option>
+								<option value="submit_editing">Solicitar edición</option>
+							</select>
+							<div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+								{/* <svg
+									className="w-4 h-4 text-gray-400"
+									fill="none"
 									stroke="currentColor"
-									strokeWidth="4"
-								></circle>
-								<path
-									className="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								></path>
-							</svg>
-							Procesando...
-						</>
-					) : (
-						'Distribuir'
-					)}
-				</button>
+									viewBox="0 0 24 24"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M19 9l-7 7-7-7"
+									/>
+								</svg> */}
+							</div>
+						</div>
+						<button
+							onClick={() => selectedAction && handleDistribute(selectedAction)}
+							disabled={!selectedAction || isLoading}
+							className={`bg-black text-white font-bold px-6 py-2 flex items-center justify-center min-w-[120px] ${
+								!selectedAction || isLoading
+									? 'opacity-70 cursor-not-allowed'
+									: ''
+							}`}
+						>
+							{isLoading ? (
+								<>
+									<Loader2 className="animate-spin h-5 w-5 text-white" />
+									Procesando...
+								</>
+							) : (
+								'Ejecutar'
+							)}
+						</button>
+					</div>
+				)}
 			</div>
 			<div className="bg-white rounded-lg md:p-6">
 				{/* Sección de imagen y datos básicos */}

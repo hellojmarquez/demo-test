@@ -47,6 +47,7 @@ export async function POST(
 			);
 		}
 		const externalId = params.id;
+		const { action } = await req.json();
 		const release = await Release.findOne({
 			external_id: externalId,
 		}).lean();
@@ -70,7 +71,7 @@ export async function POST(
 				},
 				body: JSON.stringify({
 					id: externalId,
-					action: 'distribute',
+					action: action,
 				}),
 			}
 		);
@@ -95,7 +96,7 @@ export async function POST(
 		return NextResponse.json(
 			{
 				success: true,
-				message: distributeRes || 'Release distribuido correctamente',
+				message: distributeRes,
 			},
 			{ status: 200 }
 		);

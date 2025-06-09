@@ -70,7 +70,7 @@ export default function DashboardLayout({
 		<>
 			<Script
 				id="ze-snippet"
-				src="https://static.zdassets.com/ekr/snippet.js?key=74ac04f6-5f74-4f3c-be06-d9be41acb6cd"
+				src="https://static.zdassets.com/ekr/snippet.js?key=fcddf08a-ccb3-42ac-8dcc-cbb79fb87082"
 				strategy="afterInteractive"
 			/>
 			<AccountSelector />

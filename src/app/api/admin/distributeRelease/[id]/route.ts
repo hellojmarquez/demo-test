@@ -94,10 +94,16 @@ export async function POST(
 			{ $set: { status: 'en revision', qc_feedback: {} } },
 			{ new: true }
 		).lean();
+		if (!releaseUpdate) {
+			return NextResponse.json(
+				{ success: false, error: 'Release no actualizado' },
+				{ status: 400 }
+			);
+		}
 		return NextResponse.json(
 			{
 				success: true,
-				message: 'distributeRes',
+				message: distributeRes,
 			},
 			{ status: 200 }
 		);

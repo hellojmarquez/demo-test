@@ -17,7 +17,7 @@ import {
 
 export default function SelloHome() {
 	const { user, loading, currentAccount, setShowAccountSelector } = useAuth();
-	const [ddexDelivery, setDdexDelivery] = useState<any>(null);
+
 	const [userData, setUserData] = useState<any>(null);
 	const router = useRouter();
 
@@ -27,15 +27,7 @@ export default function SelloHome() {
 			router.push('/panel/login');
 		}
 	}, [user, loading, router]);
-	useEffect(() => {
-		const getDdexDelivery = async () => {
-			const res = await fetchWithRefresh('/api/admin/ddexDelivery');
-			const data = await res.json();
-			console.log('data: ', data.data);
-			setDdexDelivery(data.data);
-		};
-		getDdexDelivery();
-	}, []);
+
 	// Show account selector if there's more than one
 	useEffect(() => {
 		if (user?.accounts && user.accounts.length > 1 && !currentAccount) {

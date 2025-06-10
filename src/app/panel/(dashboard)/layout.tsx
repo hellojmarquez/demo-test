@@ -182,10 +182,41 @@ export default function DashboardLayout({
 										</div>
 									</div>
 									{isAdmin && (
+										<div className="relative group">
+											<button
+												className={`flex items-center p-2 text-white ${
+													isActive('/panel/estadisticas') ? 'border-b-2' : ''
+												}`}
+											>
+												<Calculator size={18} className="mr-2" />
+												<span>Estadísticas</span>
+												<ChevronDown size={16} className="ml-1" />
+											</button>
+											<div className="absolute left-0 mt-2 w-48 bg-brand-dark shadow-lg rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+												<div className="py-1">
+													<Link
+														href="/panel/contabilidad"
+														className="block px-4 py-2 text-white hover:bg-brand-light"
+														onClick={() => setMobileMenuOpen(false)}
+													>
+														Contabilidad
+													</Link>
+													<Link
+														href="/panel/trends"
+														className="block px-4 py-2 text-white hover:bg-brand-light"
+														onClick={() => setMobileMenuOpen(false)}
+													>
+														Trends
+													</Link>
+												</div>
+											</div>
+										</div>
+									)}
+									{isAdmin && (
 										<Link
 											href="/panel/logs"
 											className={`flex items-center p-2 transition-colors relative group ${
-												isActive('/panel/contabilidad')
+												isActive('/panel/logs')
 													? 'text-white border-b-2'
 													: 'text-white'
 											}`}

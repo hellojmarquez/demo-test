@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
-import SelloArtistaContrato from '@/models/AsignacionModel';
+
 import { jwtVerify } from 'jose';
 
 export async function GET(request: NextRequest) {
 	try {
 		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
+		const { searchParams } = new URL(request.url);
+		const page = searchParams.get('page') || '1';
+		const pageSize = searchParams.get('page_size') || '10';
+		const search = searchParams.get('search') || '';
+		const ordering = searchParams.get('ordering') || '-created';
+
+		const queryParams = new URLSearchParams({
+			page,
+			page_size: pageSize,
+			ordering,
+			...(search && { search }),
+		});
+
 		const ddexDeliveryReq = await fetch(
-			`${process.env.MOVEMUSIC_API}/ddex-delivery-confirmations/`,
+			`${
+				process.env.MOVEMUSIC_API
+			}/ddex-delivery-confirmations/?${queryParams.toString()}`,
 			{
 				method: 'GET',
 				headers: {
@@ -17,6 +31,11 @@ export async function GET(request: NextRequest) {
 				},
 			}
 		);
+
+		if (!ddexDeliveryReq.ok) {
+			throw new Error('Error al obtener los datos de DDX-Delivery');
+		}
+
 		const ddexDeliveryRes = await ddexDeliveryReq.json();
 		console.log('ddexDeliveryRes: ', ddexDeliveryRes);
 		return NextResponse.json({
@@ -24,7 +43,7 @@ export async function GET(request: NextRequest) {
 			data: ddexDeliveryRes,
 		});
 	} catch (error: any) {
-		console.error('Error terminando contrato:', error);
+		console.error('Error en DDX-Delivery:', error);
 		return NextResponse.json(
 			{ success: false, message: error.message },
 			{ status: 500 }

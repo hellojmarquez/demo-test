@@ -2,17 +2,19 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Pagination from '@/components/Pagination';
+import SearchInput from '@/components/SearchInput';
 
 interface StoreConfirmation {
 	store: string;
 	status: boolean;
 }
 
-interface DDXDelivery {
+interface DDXDeliveryItem {
 	id: number;
 	release_name: string;
 	upc: string;
-	action: string;
+	action: 'INSERT' | 'TAKEDOWN' | 'FULL_UPDATE' | 'METADATA_UPDATE';
 	status: string;
 	store_confirmations: StoreConfirmation[];
 	created: string;
@@ -23,126 +25,60 @@ interface DDXDeliveryResponse {
 	count: number;
 	next: string | null;
 	previous: string | null;
-	results: DDXDelivery[];
+	results: DDXDeliveryItem[];
 }
 
 export default function DDXDeliveryPage() {
 	const [data, setData] = useState<DDXDeliveryResponse | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-
-	// Datos de ejemplo para pruebas
-	const sampleData: DDXDeliveryResponse = {
-		count: 5,
-		next: null,
-		previous: null,
-		results: [
-			{
-				id: 1,
-				release_name: 'Summer Hits 2024',
-				upc: '123456789012',
-				action: 'INSERT',
-				status: 'COMPLETED',
-				store_confirmations: [
-					{ store: 'Spotify', status: true },
-					{ store: 'Apple Music', status: true },
-					{ store: 'Amazon Music', status: true },
-				],
-				created: '2024-03-15T10:30:00.000Z',
-				release_owner: 'John Doe',
-			},
-			{
-				id: 2,
-				release_name: 'Rock Classics Vol. 2',
-				upc: '234567890123',
-				action: 'UPDATE',
-				status: 'PENDING',
-				store_confirmations: [
-					{ store: 'Spotify', status: true },
-					{ store: 'Apple Music', status: false },
-					{ store: 'Amazon Music', status: true },
-				],
-				created: '2024-03-14T15:45:00.000Z',
-				release_owner: 'Jane Smith',
-			},
-			{
-				id: 3,
-				release_name: 'Latin Pop Mix',
-				upc: '345678901234',
-				action: 'INSERT',
-				status: 'FAILED',
-				store_confirmations: [
-					{ store: 'Spotify', status: false },
-					{ store: 'Apple Music', status: false },
-					{ store: 'Amazon Music', status: false },
-				],
-				created: '2024-03-13T09:15:00.000Z',
-				release_owner: 'Carlos Rodriguez',
-			},
-			{
-				id: 4,
-				release_name: 'Jazz Collection',
-				upc: '456789012345',
-				action: 'INSERT',
-				status: 'COMPLETED',
-				store_confirmations: [
-					{ store: 'Spotify', status: true },
-					{ store: 'Apple Music', status: true },
-					{ store: 'Amazon Music', status: true },
-					{ store: 'Deezer', status: true },
-				],
-				created: '2024-03-12T14:20:00.000Z',
-				release_owner: 'Sarah Johnson',
-			},
-			{
-				id: 5,
-				release_name: 'Electronic Beats',
-				upc: '567890123456',
-				action: 'UPDATE',
-				status: 'PENDING',
-				store_confirmations: [
-					{ store: 'Spotify', status: true },
-					{ store: 'Apple Music', status: true },
-					{ store: 'Amazon Music', status: false },
-					{ store: 'Deezer', status: false },
-					{ store: 'Tidal', status: true },
-				],
-				created: '2024-03-11T11:10:00.000Z',
-				release_owner: 'Mike Wilson',
-			},
-		],
-	};
+	const [currentPage, setCurrentPage] = useState(1);
+	const [searchTerm, setSearchTerm] = useState('');
+	const pageSize = 10;
 
 	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				const response = await fetch('/api/admin/ddexDelivery');
-				const jsonData = await response.json();
-				console.log('jsonData: ', jsonData);
-				// Comentar la línea siguiente y descomentar la de sampleData para probar con datos de ejemplo
-				// setData(jsonData.data);
-				setData(sampleData);
-			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Error desconocido');
-			} finally {
-				setLoading(false);
-			}
-		};
-
 		fetchData();
-	}, []);
+	}, [currentPage, searchTerm]);
+
+	const fetchData = async () => {
+		try {
+			setLoading(true);
+			const response = await fetch(
+				`/api/admin/ddexDelivery?page=${currentPage}&page_size=${pageSize}&search=${searchTerm}`
+			);
+			if (!response.ok) {
+				throw new Error('Error al cargar los datos');
+			}
+			const jsonData = await response.json();
+			console.log('jsonData: ', jsonData);
+			setData(jsonData.data);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Error desconocido');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handlePageChange = (page: number) => {
+		setCurrentPage(page);
+	};
+
+	const handleSearch = (value: string) => {
+		setSearchTerm(value);
+		setCurrentPage(1); // Reset to first page when searching
+	};
 
 	if (loading) {
 		return (
-			<div className="flex justify-center items-center h-64">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-dark"></div>
+			<div className="flex justify-center items-center min-h-screen">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-primary"></div>
 			</div>
 		);
 	}
 
 	if (error) {
 		return (
-			<div className="flex justify-center items-center h-64">
+			<div className="flex justify-center items-center min-h-screen">
 				<div className="text-red-500">Error: {error}</div>
 			</div>
 		);
@@ -151,7 +87,7 @@ export default function DDXDeliveryPage() {
 	if (!data || data.count === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center h-64">
-				<div className="text-gray-500 text-lg mb-2">
+				<div className="text-gray-500 text-2xl font-bold mb-2">
 					No hay entregas DDX-Delivery
 				</div>
 				<p className="text-gray-400">
@@ -162,100 +98,97 @@ export default function DDXDeliveryPage() {
 	}
 
 	return (
-		<div className="container mx-auto px-4">
-			<h1 className="text-2xl font-bold mb-6">DDX-Delivery</h1>
-			<div className="bg-white rounded-lg shadow overflow-hidden">
-				<div className="overflow-x-auto">
-					<table className="min-w-full divide-y divide-gray-200">
-						<thead className="bg-gray-50">
-							<tr>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Release Name
-								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									UPC
-								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Acción
-								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Estado
-								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Tiendas
-								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Fecha
-								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Propietario
-								</th>
-							</tr>
-						</thead>
-						<tbody className="bg-white divide-y divide-gray-200">
-							{data.results.map(item => (
-								<tr key={item.id} className="hover:bg-gray-50">
-									<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-										{item.release_name}
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										{item.upc}
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										<span
-											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-												item.action === 'INSERT'
-													? 'bg-green-100 text-green-800'
-													: 'bg-yellow-100 text-yellow-800'
-											}`}
-										>
-											{item.action}
-										</span>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										<span
-											className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-												item.status === 'COMPLETED'
-													? 'bg-green-100 text-green-800'
-													: item.status === 'PENDING'
-													? 'bg-yellow-100 text-yellow-800'
-													: 'bg-red-100 text-red-800'
-											}`}
-										>
-											{item.status}
-										</span>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										<div className="flex flex-wrap gap-1">
-											{item.store_confirmations.map((confirmation, index) => (
+		<div className="container mx-auto px-4 py-8">
+			<div className="flex justify-between items-center mb-6">
+				<h1 className="text-2xl font-bold">DDX-Delivery</h1>
+				<div className="w-64">
+					<SearchInput
+						placeholder="Buscar..."
+						value={searchTerm}
+						onChange={handleSearch}
+						className="w-full"
+					/>
+				</div>
+			</div>
+			<div className="overflow-x-auto">
+				<table className="min-w-full bg-white rounded-lg overflow-hidden">
+					<thead className="bg-gray-100">
+						<tr>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								Release Name
+							</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								UPC
+							</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								Action
+							</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								Status
+							</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								Store Confirmations
+							</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								Created
+							</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								Release Owner
+							</th>
+						</tr>
+					</thead>
+					<tbody className="divide-y divide-gray-200">
+						{data.results.map(item => (
+							<tr key={item.id} className="hover:bg-gray-50">
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									{item.release_name}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									{item.upc}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									{item.action}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									{item.status}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									<div className="space-y-1">
+										{item.store_confirmations.map((confirmation, index) => (
+											<div key={index} className="flex items-center space-x-2">
+												<span>{confirmation.store}:</span>
 												<span
-													key={index}
-													className={`px-2 py-1 text-xs rounded-full ${
+													className={`px-2 py-1 rounded text-xs ${
 														confirmation.status
 															? 'bg-green-100 text-green-800'
 															: 'bg-red-100 text-red-800'
 													}`}
 												>
-													{confirmation.store}
+													{confirmation.status ? 'OK' : 'Error'}
 												</span>
-											))}
-										</div>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										{format(
-											new Date(item.created),
-											"d 'de' MMMM 'de' yyyy 'a las' HH:mm",
-											{ locale: es }
-										)}
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										{item.release_owner}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+											</div>
+										))}
+									</div>
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									{format(new Date(item.created), 'PPP', { locale: es })}
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									{item.release_owner}
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+			<div className="mt-4">
+				<Pagination
+					currentPage={currentPage}
+					totalItems={data.count}
+					itemsPerPage={pageSize}
+					totalPages={Math.ceil(data.count / pageSize)}
+					onPageChange={handlePageChange}
+				/>
 			</div>
 		</div>
 	);

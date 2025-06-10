@@ -17,6 +17,7 @@ import {
 	Settings,
 	Calculator,
 	NotebookPen,
+	ChevronDown,
 } from 'lucide-react';
 import Script from 'next/script';
 
@@ -36,11 +37,25 @@ export default function DashboardLayout({
 	} = useAuth();
 
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const [statsMenuOpen, setStatsMenuOpen] = useState(false);
+	const [catalogMenuOpen, setCatalogMenuOpen] = useState(false);
 	const pathname = usePathname();
 
 	const isActive = (path: string) => {
 		if (path === '/panel') {
 			return pathname?.toString() === path;
+		}
+		if (path === '/panel/estadisticas') {
+			return (
+				pathname?.toString().startsWith('/panel/contabilidad') ||
+				pathname?.toString().startsWith('/panel/trends')
+			);
+		}
+		if (path === '/panel/catalogo') {
+			return pathname?.toString() === '/panel/catalogo';
+		}
+		if (path === '/panel/ddx-delivery') {
+			return pathname?.toString() === '/panel/ddx-delivery';
 		}
 		return (
 			pathname?.toString() === path ||
@@ -76,7 +91,7 @@ export default function DashboardLayout({
 			<AccountSelector />
 			<div className="min-h-screen flex flex-col items-center bg-white ">
 				{/* Header with Navigation */}
-				<header className="bg-brand-dark w-full shadow">
+				<header className="bg-brand-dark w-full shadow z-50">
 					<div className="max-w-[1290px] mx-auto">
 						{/* Top Bar */}
 						<div className="flex  justify-between md:justify-start px-6 items-center md:space-x-10 py-4">
@@ -137,34 +152,35 @@ export default function DashboardLayout({
 										<span>Mensajes</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
-									<Link
-										href="/panel/catalogo"
-										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/panel/catalogo')
-												? 'text-white border-b-2'
-												: 'text-white'
-										}`}
-										onClick={() => setMobileMenuOpen(false)}
-									>
-										<FileMusic size={18} className="mr-2" />
-										<span>Catálogo</span>
-										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</Link>
-									{isAdmin && (
-										<Link
-											href="/panel/contabilidad"
-											className={`flex items-center p-2 transition-colors relative group ${
-												isActive('/panel/contabilidad')
-													? 'text-white border-b-2'
-													: 'text-white'
+									<div className="relative group">
+										<button
+											className={`flex items-center p-2 text-white ${
+												isActive('/panel/catalogo') ? 'border-b-2' : ''
 											}`}
-											onClick={() => setMobileMenuOpen(false)}
 										>
-											<Calculator size={18} className="mr-2" />
-											<span>Contabilidad</span>
-											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-										</Link>
-									)}
+											<FileMusic size={18} className="mr-2" />
+											<span>Catálogo</span>
+											<ChevronDown size={16} className="ml-1" />
+										</button>
+										<div className="absolute left-0 mt-2 w-48 bg-brand-dark shadow-lg rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+											<div className="py-1">
+												<Link
+													href="/panel/catalogo"
+													className="block px-4 py-2 text-white hover:bg-brand-light"
+													onClick={() => setMobileMenuOpen(false)}
+												>
+													Catálogo
+												</Link>
+												<Link
+													href="/panel/ddx-delivery"
+													className="block px-4 py-2 text-white hover:bg-brand-light"
+													onClick={() => setMobileMenuOpen(false)}
+												>
+													DDX-Delivery
+												</Link>
+											</div>
+										</div>
+									</div>
 									{isAdmin && (
 										<Link
 											href="/panel/logs"
@@ -248,31 +264,91 @@ export default function DashboardLayout({
 											<MessageSquare size={18} className="mr-2" />
 											<span>Mensajes</span>
 										</Link>
-										<Link
-											href="/panel/catalogo"
-											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/panel/catalogo')
-													? 'text-white border-l-2 border-white'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
+										<button
+											onClick={() => setCatalogMenuOpen(!catalogMenuOpen)}
+											className="flex items-center p-3 text-white w-full"
 										>
 											<FileMusic size={18} className="mr-2" />
 											<span>Catálogo</span>
-										</Link>
-										{isAdmin && (
+											<ChevronDown
+												size={16}
+												className={`ml-2 transition-transform duration-200 ${
+													catalogMenuOpen ? 'rotate-180' : ''
+												}`}
+											/>
+										</button>
+										<div
+											className={`pl-8 overflow-hidden transition-all duration-200 ${
+												catalogMenuOpen ? 'max-h-32' : 'max-h-0'
+											}`}
+										>
 											<Link
-												href="/panel/contabilidad"
+												href="/panel/catalogo"
 												className={`flex items-center p-3 transition-colors relative group ${
-													isActive('/panel/contabilidad')
+													isActive('/panel/catalogo')
 														? 'text-white border-l-2 border-white'
 														: 'text-white'
 												}`}
 												onClick={() => setMobileMenuOpen(false)}
 											>
-												<Calculator size={18} className="mr-2" />
-												<span>Contabilidad</span>
+												<span>Catálogo</span>
 											</Link>
+											<Link
+												href="/panel/ddx-delivery"
+												className={`flex items-center p-3 transition-colors relative group ${
+													isActive('/panel/ddx-delivery')
+														? 'text-white border-l-2 border-white'
+														: 'text-white'
+												}`}
+												onClick={() => setMobileMenuOpen(false)}
+											>
+												<span>DDX-Delivery</span>
+											</Link>
+										</div>
+										{isAdmin && (
+											<>
+												<button
+													onClick={() => setStatsMenuOpen(!statsMenuOpen)}
+													className="flex items-center p-3 text-white w-full"
+												>
+													<Calculator size={18} className="mr-2" />
+													<span>Estadísticas</span>
+													<ChevronDown
+														size={16}
+														className={`ml-2 transition-transform duration-200 ${
+															statsMenuOpen ? 'rotate-180' : ''
+														}`}
+													/>
+												</button>
+												<div
+													className={`pl-8 overflow-hidden transition-all duration-200 ${
+														statsMenuOpen ? 'max-h-32' : 'max-h-0'
+													}`}
+												>
+													<Link
+														href="/panel/contabilidad"
+														className={`flex items-center p-3 transition-colors relative group ${
+															isActive('/panel/contabilidad')
+																? 'text-white border-l-2 border-white'
+																: 'text-white'
+														}`}
+														onClick={() => setMobileMenuOpen(false)}
+													>
+														<span>Contabilidad</span>
+													</Link>
+													<Link
+														href="/panel/trends"
+														className={`flex items-center p-3 transition-colors relative group ${
+															isActive('/panel/trends')
+																? 'text-white border-l-2 border-white'
+																: 'text-white'
+														}`}
+														onClick={() => setMobileMenuOpen(false)}
+													>
+														<span>Trends</span>
+													</Link>
+												</div>
+											</>
 										)}
 										<Link
 											href="#!"

@@ -7,8 +7,6 @@ import { createLog } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
 	try {
-		await dbConnect();
-
 		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
 		const token = request.cookies.get('loginToken')?.value;
 		if (!token) {
@@ -69,6 +67,7 @@ export async function POST(request: NextRequest) {
 		// 		{ status: 400 }
 		// 	);
 		// }
+		await dbConnect();
 
 		// Validar que el email no exista
 		const existingUser = await User.findOne({ email: email.toLowerCase() });

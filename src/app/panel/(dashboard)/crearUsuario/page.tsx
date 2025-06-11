@@ -348,9 +348,6 @@ export default function CrearUsuarioPage() {
 				<div className="space-y-6">
 					<div className="bg-white rounded-lg shadow p-6">
 						<div className="space-y-4">
-							<h2 className="text-xl font-semibold text-gray-800">
-								Crear Nuevo Usuario
-							</h2>
 							<div>
 								<label className="block text-sm font-medium text-gray-700 mb-2">
 									Tipo de Usuario

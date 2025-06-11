@@ -117,22 +117,6 @@ export default function DashboardLayout({
 							{/* Desktop Navigation */}
 							<nav className="hidden  md:flex md:justify-between md:w-full">
 								<div className="flex items-center space-x-4">
-									{isAdmin && (
-										<Link
-											href="/panel/cuentas"
-											className={`flex items-center p-2 transition-colors relative group ${
-												isActive('/panel/cuentas')
-													? 'text-white border-b-2'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
-										>
-											<Users size={18} className="mr-2" />
-											<span>Usuarios</span>
-											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-										</Link>
-									)}
-
 									<div className="relative group">
 										<button
 											className={`flex items-center p-2 text-white ${
@@ -238,21 +222,6 @@ export default function DashboardLayout({
 										</div>
 									</div>
 									<div className="flex flex-col px-4 py-2">
-										{isAdmin && (
-											<Link
-												href="/panel/cuentas"
-												className={`flex items-center p-3 transition-colors relative group ${
-													isActive('/panel/cuentas')
-														? 'text-white border-l-2 border-white'
-														: 'text-white'
-												}`}
-												onClick={() => setMobileMenuOpen(false)}
-											>
-												<Users size={18} className="mr-2" />
-												<span>Usuarios</span>
-											</Link>
-										)}
-
 										<button
 											onClick={() => setCatalogMenuOpen(!catalogMenuOpen)}
 											className="flex items-center p-3 text-white w-full"

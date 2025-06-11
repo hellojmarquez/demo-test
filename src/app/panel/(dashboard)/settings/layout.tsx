@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Users, Info, User } from 'lucide-react';
+import { Menu, X, Users, Info, User, Network } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SettingsProvider } from '@/context/SettingsContext';
 
@@ -67,8 +67,22 @@ export default function DashboardLayout({
 								}`}
 								onClick={() => setMobileMenuOpen(false)}
 							>
-								<Users size={18} className="mr-2" />
+								<Network size={18} className="mr-2" />
 								<span>Cuentas</span>
+								<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+							</Link>
+
+							<Link
+								href="/panel/settings/usuarios"
+								className={`flex items-center p-2 transition-colors relative group ${
+									isActive('/panel/settings/usuarios')
+										? 'text-brand-dark border-b-2 border-brand-dark'
+										: 'text-gray-900'
+								}`}
+								onClick={() => setMobileMenuOpen(false)}
+							>
+								<Users size={18} className="mr-2" />
+								<span>Usuarios</span>
 								<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 							</Link>
 						</div>

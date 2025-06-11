@@ -96,6 +96,9 @@ export interface Release {
 	territory?: string;
 	ean?: string;
 	qc_feedback?: {};
+	has_acr_alert?: boolean;
+	acr_alert?: {};
+	release_user_declaration?: {};
 	createdAt?: string;
 	updatedAt?: string;
 	available?: boolean;

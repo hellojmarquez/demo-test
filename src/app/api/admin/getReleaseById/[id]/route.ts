@@ -67,6 +67,8 @@ export async function GET(
 		const releaseData = await getRelease.json();
 		release.status = releaseData.status;
 		release.qc_feedback = releaseData.qc_feedback;
+		release.acr_alert = releaseData.acr_alert;
+		release.has_acr_alert = releaseData.has_acr_alert;
 
 		return NextResponse.json({
 			success: true,

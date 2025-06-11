@@ -47,6 +47,8 @@ export default function EditPage() {
 		youtube_declaration: false,
 		dolby_atmos: false,
 		artists: [],
+		has_acr_alert: false,
+		acr_alert: {},
 		tracks: [],
 		countries: [],
 		catalogue_number: '',

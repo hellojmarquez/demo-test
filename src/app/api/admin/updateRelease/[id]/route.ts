@@ -272,6 +272,9 @@ export async function PUT(
 			...releaseData,
 			label: releaseData.label,
 			artists: releaseData.artists,
+			acr_alert: getUpdatedReleaseRes.acr_alert,
+			has_acr_alert: getUpdatedReleaseRes.has_acr_alert,
+			release_user_declaration: getUpdatedReleaseRes.release_user_declaration,
 			picture: {
 				full_size: getUpdatedReleaseRes.artwork?.full_size
 					? cleanUrl(getUpdatedReleaseRes.artwork.full_size)

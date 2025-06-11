@@ -229,6 +229,8 @@ export async function POST(req: NextRequest) {
 		const releaseToSave = {
 			...newRelease,
 			available: available,
+			has_acr_alert: false,
+			acr_alert: null,
 			external_id: apiRes.id,
 			picture: {
 				full_size: getReleaseRes.artwork?.full_size

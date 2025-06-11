@@ -77,10 +77,15 @@ export async function GET(
 		// Actualizar usando updateOne
 		const updateResult = await SingleTrack.findOneAndUpdate(
 			{ external_id: externalId },
-			{ $set: { qc_feedback: trackData.qc_feedback, ISRC: trackData.ISRC } },
+			{
+				$set: {
+					qc_feedback: trackData.qc_feedback,
+					ISRC: trackData.ISRC,
+				},
+			},
 			{
 				new: true,
-				select: '+qc_feedback +ISRC', // Forzar la inclusión del campo
+				select: '+qc_feedback +ISRC ', // Forzar la inclusión del campo
 			}
 		);
 		console.log('updateResult ', updateResult);

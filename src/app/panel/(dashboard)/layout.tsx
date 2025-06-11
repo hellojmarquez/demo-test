@@ -132,19 +132,7 @@ export default function DashboardLayout({
 											<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 										</Link>
 									)}
-									<Link
-										href="/panel/mensajes"
-										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/panel/mensajes')
-												? 'text-white border-b-2'
-												: 'text-white'
-										}`}
-										onClick={() => setMobileMenuOpen(false)}
-									>
-										<MessageSquare size={18} className="mr-2" />
-										<span>Mensajes</span>
-										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</Link>
+
 									<div className="relative group">
 										<button
 											className={`flex items-center p-2 text-white ${
@@ -264,18 +252,7 @@ export default function DashboardLayout({
 												<span>Usuarios</span>
 											</Link>
 										)}
-										<Link
-											href="/panel/mensajes"
-											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/panel/mensajes')
-													? 'text-white border-l-2 border-white'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
-										>
-											<MessageSquare size={18} className="mr-2" />
-											<span>Mensajes</span>
-										</Link>
+
 										<button
 											onClick={() => setCatalogMenuOpen(!catalogMenuOpen)}
 											className="flex items-center p-3 text-white w-full"

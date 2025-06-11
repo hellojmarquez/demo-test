@@ -116,7 +116,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			fileName: string;
 		};
 	}>({});
-	const [menuIsOpen, setMenuIsOpen] = useState(false);
+
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [isUploadingTracks, setIsUploadingTracks] = useState(false);
 	const [uploadError, setUploadError] = useState('');
@@ -148,9 +148,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	// Add the common input styles at the top of the component
 	const inputStyles =
 		'w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
-	const selectStyles =
-		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
-	const selectWrapperStyles = 'relative';
+
 	useEffect(() => {
 		console.log('release: ', release);
 	}, [release]);
@@ -220,6 +218,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		exclusive_shop: formData?.exclusive_shop || 0,
 		territory: formData?.territory || '',
 		ean: formData?.ean || '',
+		has_acr_alert: formData?.has_acr_alert || false,
+		acr_alert: formData?.acr_alert || null,
+		release_user_declaration: formData?.release_user_declaration || null,
 		createdAt: formData?.createdAt || new Date().toISOString(),
 		updatedAt: formData?.updatedAt || new Date().toISOString(),
 		status: formData?.status || 'borrador',
@@ -261,6 +262,9 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		exclusive_shop: 0,
 		territory: '',
 		ean: '',
+		has_acr_alert: false,
+		acr_alert: null,
+		release_user_declaration: null,
 		createdAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 	};

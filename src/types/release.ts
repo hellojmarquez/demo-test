@@ -97,8 +97,8 @@ export interface Release {
 	ean?: string;
 	qc_feedback?: {};
 	has_acr_alert?: boolean;
-	acr_alert?: {};
-	release_user_declaration?: {};
+	acr_alert?: {} | null;
+	release_user_declaration?: {} | null;
 	createdAt?: string;
 	updatedAt?: string;
 	available?: boolean;

@@ -49,6 +49,7 @@ export default function EditPage() {
 		artists: [],
 		has_acr_alert: false,
 		acr_alert: {},
+		release_user_declaration: null,
 		tracks: [],
 		countries: [],
 		catalogue_number: '',

@@ -96,7 +96,13 @@ export default function DashboardLayout({
 						{/* Top Bar */}
 						<div className="flex  justify-between md:justify-start px-6 items-center md:space-x-10 py-4">
 							<div className="flex items-center">
-								<img src="/logo_white.png" alt="Isla Sounds" className="h-3" />
+								<Link href="/panel">
+									<img
+										src="/logo_white.png"
+										alt="Isla Sounds"
+										className="h-3"
+									/>
+								</Link>
 							</div>
 
 							{/* Mobile menu button */}
@@ -111,19 +117,6 @@ export default function DashboardLayout({
 							{/* Desktop Navigation */}
 							<nav className="hidden  md:flex md:justify-between md:w-full">
 								<div className="flex items-center space-x-4">
-									<Link
-										href="/panel"
-										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/panel')
-												? 'text-white border-b-2'
-												: 'text-white'
-										}`}
-										onClick={() => setMobileMenuOpen(false)}
-									>
-										<Home size={18} className="mr-2" />
-										<span>Dashboard</span>
-										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</Link>
 									{isAdmin && (
 										<Link
 											href="/panel/cuentas"
@@ -257,18 +250,6 @@ export default function DashboardLayout({
 										</div>
 									</div>
 									<div className="flex flex-col px-4 py-2">
-										<Link
-											href="/panel"
-											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/panel')
-													? 'text-white border-l-2 border-white'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
-										>
-											<Home size={18} className="mr-2" />
-											<span>Dashboard</span>
-										</Link>
 										{isAdmin && (
 											<Link
 												href="/panel/cuentas"

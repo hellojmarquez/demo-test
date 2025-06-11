@@ -89,7 +89,9 @@ export default function AccountSelector() {
 				>
 					<X size={20} />
 				</button>
-				<h2 className="text-xl font-bold mb-4">Selecciona una cuenta</h2>
+				<h2 className="text-xl text-brand-medium mb-4">
+					Selecciona una cuenta
+				</h2>
 				{isLoading ? (
 					<div className="text-center py-4">
 						<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>

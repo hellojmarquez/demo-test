@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
-import { Settings, LogOut, User, ChevronDown } from 'lucide-react';
+import { Settings, LogOut, User, ChevronDown, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -94,12 +94,20 @@ export default function AccountSwitchButton({
 
 	return (
 		<div
-			className="flex w-full flex-col items-center sm:items-end"
+			className="flex flex-row gap-x-2 w-full relative items-center justify-center "
 			ref={dropdownRef}
 		>
+			<span className="my-auto -mt-2 md:m-0">
+				<a
+					href="https://isla-sounds.zendesk.com/hc/en-us/requests/new"
+					target="_blank"
+				>
+					<HelpCircle className=" text-white w-5 h-5" />
+				</a>
+			</span>
 			<button
 				onClick={() => setIsOpen(!isOpen)}
-				className="text-sm bg-gray-50/10 hover:bg-gray-50/20 text-white p-2 rounded-full transition flex items-center space-x-2 md:space-x-3"
+				className="text-sm bg-gray-50/10 hover:bg-gray-50/20 text-white p-2 rounded-full transition flex items-center  space-x-2 md:space-x-3"
 			>
 				<div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
 					{imageSrc ? (
@@ -113,6 +121,7 @@ export default function AccountSwitchButton({
 						<span className="text-sm font-medium text-gray-600">{initial}</span>
 					)}
 				</div>
+
 				<span className="truncate max-w-[120px] md:max-w-[150px] font-medium hidden sm:block">
 					{displayAccount.name}
 				</span>
@@ -123,9 +132,8 @@ export default function AccountSwitchButton({
 					} hidden sm:block`}
 				/>
 			</button>
-
 			{isOpen && (
-				<div className="w-full relative sm:bg-white/95 sm:absolute sm:left-auto sm:-translate-x-8 sm:right-0 sm:mt-4 sm:w-64 backdrop-blur-sm rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl py-0 sm:py-3 border-0 sm:border border-gray-100/50 sm:translate-y-14">
+				<div className="w-full relative sm:bg-white/95 sm:absolute sm:left-auto sm:-translate-x-8 sm:right-0 sm:top-3 sm:w-64 backdrop-blur-sm rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl py-0 sm:py-3 border-0 sm:border border-gray-100/50 sm:translate-y-14">
 					<div className="px-5 py-3 mb-2 hidden sm:block">
 						<div className="flex items-center space-x-3">
 							<div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">

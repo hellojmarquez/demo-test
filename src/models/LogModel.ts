@@ -5,7 +5,7 @@ const logSchema = new mongoose.Schema(
 		action: {
 			type: String,
 			required: true,
-			enum: ['CREATE', 'UPDATE', 'DELETE'],
+			enum: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN'],
 		},
 		entity: {
 			type: String,

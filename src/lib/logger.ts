@@ -3,7 +3,7 @@ import Log from '@/models/LogModel';
 import mongoose from 'mongoose';
 
 interface LogParams {
-	action: 'CREATE' | 'UPDATE' | 'DELETE';
+	action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN';
 	entity: 'USER' | 'PRODUCT' | 'RELEASE' | 'TRACK';
 	entityId: string;
 	userId: string;
@@ -27,7 +27,7 @@ export async function createLog(params: LogParams) {
 		};
 
 		const log = await Log.create(logData);
-	
+
 		return log;
 	} catch (error) {
 		console.error('Error al crear log:', error);

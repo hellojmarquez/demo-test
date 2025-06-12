@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/context/AuthContext';
+import { PlusCircle, Pencil, Trash2, LogIn } from 'lucide-react';
 
 interface Log {
 	_id: string;
-	action: 'CREATE' | 'UPDATE' | 'DELETE';
+	action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN';
 	entity: 'USER' | 'PRODUCT' | 'RELEASE' | 'TRACK';
 	entityId: string;
 	userId: string;
@@ -30,6 +31,14 @@ const actionColors = {
 	CREATE: 'bg-green-100 text-green-800',
 	UPDATE: 'bg-blue-100 text-blue-800',
 	DELETE: 'bg-red-100 text-red-800',
+	LOGIN: 'bg-purple-100 text-purple-800',
+} as const;
+
+const actionIcons = {
+	CREATE: PlusCircle,
+	UPDATE: Pencil,
+	DELETE: Trash2,
+	LOGIN: LogIn,
 } as const;
 
 type ActionType = keyof typeof actionColors;
@@ -194,13 +203,19 @@ export default function Logs() {
 												})}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap">
-												<span
-													className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-														actionColors[log.action]
-													}`}
-												>
-													{log.action}
-												</span>
+												<div className="flex items-center gap-2">
+													{React.createElement(actionIcons[log.action], {
+														size: 16,
+														className: actionColors[log.action].split(' ')[1],
+													})}
+													<span
+														className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+															actionColors[log.action]
+														}`}
+													>
+														{log.action}
+													</span>
+												</div>
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 												{log.entity}

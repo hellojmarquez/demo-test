@@ -3,7 +3,7 @@ import { SignJWT } from 'jose';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/UserModel';
 import { comparePassword } from '@/utils/auth';
-
+import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
 	console.log('Login admin request received');
 	try {
@@ -127,6 +127,24 @@ export async function POST(req: NextRequest) {
 				const isProd = process.env.NODE_ENV === 'production';
 				const cookieDomain = isProd ? process.env.COOKIE_DOMAIN : undefined;
 				const sameSite = isProd ? 'none' : 'lax';
+				try {
+					// Crear el log
+					const logData = {
+						action: 'LOGIN' as const,
+						entity: 'USER' as const,
+						entityId: userDB._id.toString(),
+						userId: userDB._id as string,
+						userName: (userDB.name as string) || 'Usuario sin nombre',
+						userRole: userDB.role as string,
+						details: `Sesión iniciada: ${userDB.name}`,
+						ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+					};
+
+					await createLog(logData);
+				} catch (logError) {
+					console.error('Error al crear el log:', logError);
+					// No interrumpimos el flujo si falla el log
+				}
 				response.cookies.set({
 					name: 'accessToken',
 					value: moveMusicToken.access,

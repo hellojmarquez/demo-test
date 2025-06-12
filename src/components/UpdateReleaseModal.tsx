@@ -14,6 +14,7 @@ import {
 	Image as ImageIcon,
 	Check,
 	Loader2,
+	Copy,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -1918,6 +1919,47 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								Crear Artista
 							</button>
 						</div>
+					</div>
+				</div>
+			)}
+			{safeFormData.release_user_declaration && (
+				<div className="mt-8">
+					<h4 className="text-lg font-semibold text-gray-900 border-b pb-2">
+						Declaracion de Usuario
+					</h4>
+					<div className="text-sm text-gray-700">
+						{typeof safeFormData.release_user_declaration === 'object' &&
+						safeFormData.release_user_declaration !== null ? (
+							<div className="space-y-1">
+								{Object.entries(safeFormData.release_user_declaration).map(
+									([key, value]) => (
+										<div key={key} className="flex items-center gap-2">
+											<span className="font-medium">{key}:</span>
+											{key === 'release_license' ? (
+												<div className="flex items-center gap-2">
+													<span className="text-blue-600 hover:underline">
+														{String(value)}
+													</span>
+													<button
+														onClick={() => {
+															navigator.clipboard.writeText(String(value));
+														}}
+														className="p-1 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100"
+														title="Copiar enlace"
+													>
+														<Copy className="h-4 w-4" />
+													</button>
+												</div>
+											) : (
+												<span>{String(value)}</span>
+											)}
+										</div>
+									)
+								)}
+							</div>
+						) : (
+							String(safeFormData.release_user_declaration)
+						)}
 					</div>
 				</div>
 			)}

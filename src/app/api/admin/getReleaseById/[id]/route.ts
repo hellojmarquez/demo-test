@@ -54,22 +54,26 @@ export async function GET(
 				{ status: 403 }
 			);
 		}
-		// const getRelease = await fetch(
-		// 	`${process.env.MOVEMUSIC_API}/releases/${releaseId}`,
-		// 	{
-		// 		headers: {
-		// 			Authorization: `JWT ${moveMusicAccessToken}`,
-		// 			'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-		// 			Referer: process.env.MOVEMUSIC_REFERER || '',
-		// 		},
-		// 	}
-		// );
-		// const releaseData = await getRelease.json();
-		// release.status = releaseData.status;
-		// release.qc_feedback = releaseData.qc_feedback;
-		// release.acr_alert = releaseData.acr_alert;
-		// release.has_acr_alert = releaseData.has_acr_alert;
-
+		const getRelease = await fetch(
+			`${process.env.MOVEMUSIC_API}/releases/${releaseId}`,
+			{
+				headers: {
+					Authorization: `JWT ${moveMusicAccessToken}`,
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+			}
+		);
+		const releaseData = await getRelease.json();
+		release.status = releaseData.status;
+		release.qc_feedback = releaseData.qc_feedback;
+		release.acr_alert = releaseData.acr_alert;
+		release.has_acr_alert = releaseData.has_acr_alert;
+		const updatedRelease = await Release.findOneAndUpdate(
+			{ external_id: releaseId },
+			{ $set: release },
+			{ new: true }
+		);
 		return NextResponse.json({
 			success: true,
 			data: release,

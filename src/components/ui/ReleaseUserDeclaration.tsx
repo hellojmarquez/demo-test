@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
-import { Upload, Send } from 'lucide-react';
+import { Upload, Send, Loader2 } from 'lucide-react';
 
 interface ReleaseUserDeclarationProps {
 	value: number;
@@ -60,9 +60,10 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 	value: propValue,
 	className,
 }) => {
-	const [selectedValue, setSelectedValue] = useState(propValue);
+	const [selectedValue, setSelectedValue] = useState<number | null>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
-	const [error, setError] = useState('');
+	const [error, setError] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
 	useEffect(() => {
 		setSelectedValue(propValue);
 	}, [propValue]);
@@ -77,6 +78,15 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 		}
 	};
 
+	const formatErrorMessage = (error: any): string => {
+		if (typeof error === 'object' && error !== null) {
+			return Object.entries(error)
+				.map(([key, value]) => `${key}: ${value}`)
+				.join('\n');
+		}
+		return error || 'Error al enviar la declaración';
+	};
+
 	const handleSubmit = async () => {
 		if (selectedValue === 4) {
 			if (!selectedFile) {
@@ -85,8 +95,12 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 			}
 		}
 
+		setIsLoading(true);
+		setError(null);
 		const formData = new FormData();
-		formData.append('user_declaration', selectedValue.toString());
+		if (selectedValue !== null) {
+			formData.append('user_declaration', selectedValue.toString());
+		}
 		formData.append('release', propValue.toString());
 
 		if (selectedFile) {
@@ -99,20 +113,29 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 				body: formData,
 			});
 
+			const data = await response.json();
+
 			if (!response.ok) {
-				throw new Error('Error al enviar la declaración');
+				console.log('trow del error : ', data.error);
+				const errorMessage = formatErrorMessage(data.error);
+				throw new Error(errorMessage);
 			}
 
-			const data = await response.json();
 			console.log('Respuesta:', data);
 		} catch (error) {
-			console.error('Error:', error);
-			setError('Error al enviar la declaración');
+			console.error('el error es:', error);
+			setError(
+				error instanceof Error
+					? error.message
+					: 'Error al enviar la declaración'
+			);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
 	return (
-		<div className={className + ' mt-8 space-y-4'}>
+		<div className={`flex flex-col gap-4 ${className}`}>
 			<h4 className="text-lg font-semibold text-gray-900 border-b pb-2">
 				User declaration
 			</h4>
@@ -160,10 +183,22 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 				<div>
 					<button
 						onClick={handleSubmit}
-						className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-dark rounded-md hover:bg-brand-lightfocus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+						disabled={isLoading}
+						className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+							isLoading ? 'bg-blue-500' : ''
+						}`}
 					>
-						<Send className="h-4 w-4" />
-						Enviar
+						{isLoading ? (
+							<>
+								<Loader2 className="h-4 w-4 animate-spin text-white" />
+								<span>Enviando...</span>
+							</>
+						) : (
+							<>
+								<Send className="h-4 w-4" />
+								<span>Enviar</span>
+							</>
+						)}
 					</button>
 				</div>
 			</div>

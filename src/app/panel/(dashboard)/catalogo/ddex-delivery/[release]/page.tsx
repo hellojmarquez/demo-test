@@ -20,21 +20,21 @@ interface DDEXDeliveryConfirmations {
 }
 
 // Datos de ejemplo
-const data: DDEXDeliveryConfirmations = {
-	id: 1,
-	release_name: 'Summer Vibes 2024',
-	upc: '602577784321',
-	action: 'INSERT',
-	status: 'SUCCESS',
-	store_confirmations: [
-		{ store: 'Spotify', status: true },
-		{ store: 'Apple Music', status: true },
-		{ store: 'Amazon Music', status: true },
-		{ store: 'Deezer', status: true },
-	],
-	created: '2024-03-15T10:30:00.000Z',
-	release_owner: 'Universal Music Group',
-};
+// const data: DDEXDeliveryConfirmations = {
+// 	id: 1,
+// 	release_name: 'Summer Vibes 2024',
+// 	upc: '602577784321',
+// 	action: 'INSERT',
+// 	status: 'SUCCESS',
+// 	store_confirmations: [
+// 		{ store: 'Spotify', status: true },
+// 		{ store: 'Apple Music', status: true },
+// 		{ store: 'Amazon Music', status: true },
+// 		{ store: 'Deezer', status: true },
+// 	],
+// 	created: '2024-03-15T10:30:00.000Z',
+// 	release_owner: 'Universal Music Group',
+// };
 
 type Props = {
 	params: { release: string };
@@ -42,31 +42,31 @@ type Props = {
 
 const DDEXDeliveryPage = ({ params }: Props) => {
 	const releaseId = params.release;
-	// const [data, setData] = useState<DDEXDeliveryConfirmations>({
-	// 	id: 0,
-	// 	release_name: '',
-	// 	status: '',
-	// 	upc: '',
-	// 	action: '',
-	// 	store_confirmations: [],
-	// 	created: '',
-	// 	release_owner: '',
-	// });
+	const [data, setData] = useState<DDEXDeliveryConfirmations>({
+		id: 0,
+		release_name: '',
+		status: '',
+		upc: '',
+		action: '',
+		store_confirmations: [],
+		created: '',
+		release_owner: '',
+	});
 	const [error, setError] = useState<string | null>(null);
 
-	// useEffect(() => {
-	// 	const fetchData = async () => {
-	// 		const response = await fetch(`/api/admin/ddexDeliveryById/${releaseId}`);
-	// 		const data = await response.json();
-	// 		if (!data.success) {
-	// 			setError(data.error);
-	// 		} else {
-	// 			setData(data.data);
-	// 			setError(null);
-	// 		}
-	// 	};
-	// 	fetchData();
-	// }, [releaseId]);
+	useEffect(() => {
+		const fetchData = async () => {
+			const response = await fetch(`/api/admin/ddexDeliveryById/${releaseId}`);
+			const data = await response.json();
+			if (!data.success) {
+				setError(data.error);
+			} else {
+				setData(data.data);
+				setError(null);
+			}
+		};
+		fetchData();
+	}, [releaseId]);
 
 	if (error) {
 		return (

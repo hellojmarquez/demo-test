@@ -811,11 +811,16 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									</div>
 								</div>
 
-								<DDEXDelivery
-									ddex_delivery_confirmations={
-										safeFormData.ddex_delivery_confirmations
+								<button
+									onClick={() =>
+										router.push(
+											`/panel/catalogo/ddex-delivery/${release.external_id}`
+										)
 									}
-								/>
+									className="text-sm text-brand-light hover:text-brand-dark font-medium flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-full whitespace-nowrap flex-shrink-0"
+								>
+									Distribucion
+								</button>
 							</div>
 						</div>
 					</div>

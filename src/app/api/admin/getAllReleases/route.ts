@@ -153,6 +153,9 @@ export async function GET(req: NextRequest) {
 				if (releaseData && releaseData.has_acr_alert) {
 					release.has_acr_alert = releaseData.has_acr_alert;
 				}
+				if (releaseData && releaseData.ddex_delivery_confirmations) {
+					release.has_acr_alert = releaseData.ddex_delivery_confirmations;
+				}
 			})
 		);
 

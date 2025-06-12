@@ -22,6 +22,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
+import Spinner from '@/components/Spinner';
 
 const actionIcons = {
 	CREATE: PlusCircle,
@@ -39,14 +40,18 @@ const actionColors = {
 
 export default function SelloHome() {
 	const [logs, setLogs] = useState([]);
+	const [loading, setLoading] = useState(true);
+
 	useEffect(() => {
 		const fetchLogs = async () => {
 			const res = await fetchWithRefresh('/api/admin/getRecientLogs');
 			const data = await res.json();
 			setLogs(data.logs);
+			setLoading(false);
 		};
 		fetchLogs();
 	}, []);
+
 	return (
 		<div className="p-6 space-y-8 min-w-full mx-auto">
 			<motion.div
@@ -127,24 +132,33 @@ export default function SelloHome() {
 					className="bg-white rounded-xl shadow-sm overflow-hidden"
 				>
 					<ul className="divide-y divide-gray-100">
-						{logs.map((log: any) => {
-							const Icon = actionIcons[log.action as keyof typeof actionIcons];
-							return (
-								<ActivityItem
-									key={log._id}
-									user={log.userName}
-									detail={`${log.details} - IP: ${log.ipAddress}`}
-									time={format(new Date(log.createdAt), 'PPpp', { locale: es })}
-									icon={
-										<Icon
-											className={`h-4 w-4 ${
-												actionColors[log.action as keyof typeof actionColors]
-											}`}
-										/>
-									}
-								/>
-							);
-						})}
+						{loading ? (
+							<div className="flex justify-center items-center py-8">
+								<Spinner />
+							</div>
+						) : (
+							logs.map((log: any) => {
+								const Icon =
+									actionIcons[log.action as keyof typeof actionIcons];
+								return (
+									<ActivityItem
+										key={log._id}
+										user={log.userName}
+										detail={`${log.details} - IP: ${log.ipAddress}`}
+										time={format(new Date(log.createdAt), 'PPpp', {
+											locale: es,
+										})}
+										icon={
+											<Icon
+												className={`h-4 w-4 ${
+													actionColors[log.action as keyof typeof actionColors]
+												}`}
+											/>
+										}
+									/>
+								);
+							})
+						)}
 					</ul>
 					<div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-t border-gray-100">
 						<Link

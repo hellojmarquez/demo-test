@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
+import FilterSelect from '@/components/FilterSelect';
 
 interface StoreConfirmation {
 	store: string;
@@ -28,23 +29,45 @@ interface DDXDeliveryResponse {
 	results: DDXDeliveryItem[];
 }
 
+interface Release {
+	name: string;
+	external_id: string;
+}
+
+interface ReleaseOption {
+	label: string;
+	value: string;
+}
+
 export default function DDXDeliveryPage() {
 	const [data, setData] = useState<DDXDeliveryResponse | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
-	const [searchTerm, setSearchTerm] = useState('');
+	const [releases, setReleases] = useState<ReleaseOption[]>([]);
+	const [selectedRelease, setSelectedRelease] = useState<string>('');
+	const [selectedAction, setSelectedAction] = useState<string>('');
 	const pageSize = 10;
-
+	const [searchTerm, setSearchTerm] = useState('');
+	const actions = [
+		{ label: 'INSERT', value: 'INSERT' },
+		{ label: 'TAKEDOWN', value: 'TAKEDOWN' },
+		{ label: 'FULL UPDATE', value: 'FULL_UPDATE' },
+		{ label: 'METADATA UPDATE', value: 'METADATA_UPDATE' },
+	];
 	useEffect(() => {
+		console.log('selectedRelease: ', selectedRelease);
+		console.log('selectedAction: ', selectedAction);
 		fetchData();
-	}, [currentPage, searchTerm]);
+	}, [currentPage, searchTerm, selectedRelease, selectedAction]);
 
 	const fetchData = async () => {
 		try {
 			setLoading(true);
 			const response = await fetch(
-				`/api/admin/ddexDelivery?page=${currentPage}&page_size=${pageSize}&search=${searchTerm}`
+				`/api/admin/ddexDelivery?page=${currentPage}&page_size=${pageSize}&search=${searchTerm}${
+					selectedRelease ? `&release=${selectedRelease}` : ''
+				}${selectedAction ? `&action=${selectedAction}` : ''}`
 			);
 			if (!response.ok) {
 				throw new Error('Error al cargar los datos');
@@ -52,6 +75,23 @@ export default function DDXDeliveryPage() {
 			const jsonData = await response.json();
 			console.log('jsonData: ', jsonData);
 			setData(jsonData.data);
+			const releaseReq = await fetch(`/api/admin/getAllReleases?all=true`);
+			if (!releaseReq.ok) {
+				throw new Error('Error al cargar los datos');
+			}
+			const releaseJson = await releaseReq.json();
+
+			// Transformar los datos al formato que espera FilterSelect
+			const formattedReleases = releaseJson.data.releases.map(
+				(release: Release) => {
+					const formattedName = release.name.replaceAll(' ', '%20');
+					return {
+						label: release.name,
+						value: formattedName,
+					};
+				}
+			);
+			setReleases(formattedReleases);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Error desconocido');
 		} finally {
@@ -99,14 +139,25 @@ export default function DDXDeliveryPage() {
 
 	return (
 		<div className="container mx-auto px-4 py-8">
+			<h1 className="text-2xl font-bold mb-6">DDEX Delivery</h1>
 			<div className="flex justify-between items-center mb-6">
-				<h1 className="text-2xl font-bold">DDX-Delivery</h1>
-				<div className="w-64">
+				<div className="flex items-center justify-end gap-x-12 w-full">
+					<FilterSelect
+						value={selectedRelease}
+						onChange={setSelectedRelease}
+						options={releases}
+						placeholder="Seleccionar release"
+					/>
+					<FilterSelect
+						value={selectedAction}
+						onChange={setSelectedAction}
+						options={actions}
+						placeholder="Seleccionar acción"
+					/>
 					<SearchInput
 						placeholder="Buscar..."
 						value={searchTerm}
 						onChange={handleSearch}
-						className="w-full"
 					/>
 				</div>
 			</div>
@@ -138,7 +189,7 @@ export default function DDXDeliveryPage() {
 						</tr>
 					</thead>
 					<tbody className="divide-y divide-gray-200">
-						{data.results.map(item => (
+						{data?.results.map(item => (
 							<tr key={item.id} className="hover:bg-gray-50">
 								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
 									{item.release_name}

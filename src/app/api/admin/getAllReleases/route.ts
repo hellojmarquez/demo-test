@@ -154,22 +154,29 @@ export async function GET(req: NextRequest) {
 					release.has_acr_alert = releaseData.has_acr_alert;
 				}
 				if (releaseData && releaseData.ddex_delivery_confirmations) {
-					release.has_acr_alert = releaseData.ddex_delivery_confirmations;
+					release.ddex_delivery_confirmations =
+						releaseData.ddex_delivery_confirmations;
 				}
 			})
 		);
+
+		// Verificar si se solicitan todos los releases
+		const searchParams = req.nextUrl.searchParams;
+		const getAll = searchParams.get('all') === 'true';
 
 		return NextResponse.json(
 			{
 				success: true,
 				data: {
 					releases,
-					pagination: {
-						total,
-						page,
-						limit,
-						totalPages: Math.ceil(total / limit),
-					},
+					pagination: getAll
+						? null
+						: {
+								total,
+								page,
+								limit,
+								totalPages: Math.ceil(total / limit),
+						  },
 				},
 			},
 			{

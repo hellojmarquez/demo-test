@@ -280,7 +280,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				typeof release.picture === 'object' &&
 				'thumb_small' in release.picture
 			) {
-				setImagePreview(release.picture.thumb_small);
+				setImagePreview(release.picture.thumb_medium);
 			} else if (
 				typeof release.picture === 'object' &&
 				'name' in release.picture &&

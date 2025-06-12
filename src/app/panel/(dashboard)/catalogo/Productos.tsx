@@ -20,8 +20,6 @@ import {
 	AlertTriangle,
 	X,
 } from 'lucide-react';
-import Link from 'next/link';
-import UpdateReleaseModal from '@/components/UpdateReleaseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import CreateInitRelease from '@/components/CreateInitRelease';
@@ -29,6 +27,7 @@ import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
 import { Release as ReleaseType, Picture } from '@/types/release';
+import DDEXDelivery from '@/components/ddex_delivery';
 
 interface Release {
 	_id: string;
@@ -50,6 +49,7 @@ interface Release {
 	picture: Picture | null;
 	tracks: any[];
 	youtube_declaration: boolean;
+	ddex_delivery_confirmations: {} | null;
 }
 
 const Productos: React.FC = () => {
@@ -295,7 +295,7 @@ const Productos: React.FC = () => {
 												className="relative aspect-[16/9] overflow-hidden"
 											>
 												<img
-													src={release.picture.thumb_medium}
+													src={release.picture.full_size}
 													alt={release.name}
 													className="w-full h-full object-cover"
 												/>
@@ -334,7 +334,7 @@ const Productos: React.FC = () => {
 												<h2 className="text-xl font-bold text-gray-900 mb-2 break-words">
 													{release.name}
 												</h2>
-												<div className="flex items-center gap-3 text-sm text-gray-600">
+												<div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
 													<div className="flex items-center gap-1">
 														<BriefcaseBusiness className="h-4 w-4 text-brand-light flex-shrink-0" />
 														<span className="truncate">
@@ -348,6 +348,11 @@ const Productos: React.FC = () => {
 														</span>
 													</div>
 												</div>
+												<DDEXDelivery
+													ddex_delivery_confirmations={
+														release.ddex_delivery_confirmations
+													}
+												/>
 											</div>
 											<motion.button
 												whileHover={{ scale: 1.05 }}

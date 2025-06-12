@@ -1,5 +1,7 @@
-import React from 'react';
+'use client';
+import React, { useEffect, useState } from 'react';
 import { X, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface StoreConfirmation {
 	store: string;
@@ -18,7 +20,7 @@ interface DDEXDeliveryConfirmations {
 }
 
 // Datos de ejemplo
-const exampleData: DDEXDeliveryConfirmations = {
+const data: DDEXDeliveryConfirmations = {
 	id: 1,
 	release_name: 'Summer Vibes 2024',
 	upc: '602577784321',
@@ -40,6 +42,40 @@ type Props = {
 
 const DDEXDeliveryPage = ({ params }: Props) => {
 	const releaseId = params.release;
+	// const [data, setData] = useState<DDEXDeliveryConfirmations>({
+	// 	id: 0,
+	// 	release_name: '',
+	// 	status: '',
+	// 	upc: '',
+	// 	action: '',
+	// 	store_confirmations: [],
+	// 	created: '',
+	// 	release_owner: '',
+	// });
+	const [error, setError] = useState<string | null>(null);
+
+	// useEffect(() => {
+	// 	const fetchData = async () => {
+	// 		const response = await fetch(`/api/admin/ddexDeliveryById/${releaseId}`);
+	// 		const data = await response.json();
+	// 		if (!data.success) {
+	// 			setError(data.error);
+	// 		} else {
+	// 			setData(data.data);
+	// 			setError(null);
+	// 		}
+	// 	};
+	// 	fetchData();
+	// }, [releaseId]);
+
+	if (error) {
+		return (
+			<div className="flex justify-center items-center h-screen">
+				<p className="bg-red-300 px-6 py-2 rounded-lg text-red-700 ">{error}</p>
+			</div>
+		);
+	}
+
 	const {
 		release_name,
 		upc,
@@ -48,12 +84,10 @@ const DDEXDeliveryPage = ({ params }: Props) => {
 		store_confirmations,
 		created,
 		release_owner,
-	} = exampleData;
-
+	} = data;
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleString();
 	};
-
 	const allConfirmed = store_confirmations?.every(conf => conf.status);
 	const allFailed = store_confirmations?.every(conf => !conf.status);
 
@@ -73,7 +107,6 @@ const DDEXDeliveryPage = ({ params }: Props) => {
 			<h1 className="text-2xl flex items-center justify-between font-bold mb-4">
 				DDEX Delivery {getStatusIcon()}
 			</h1>
-			<div className="mb-2 text-xs text-gray-500">Release ID: {releaseId}</div>
 
 			<div className="border rounded-lg shadow-lg bg-white p-4">
 				<div className="space-y-2">

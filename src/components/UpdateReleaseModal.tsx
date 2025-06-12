@@ -24,6 +24,7 @@ import { toast } from 'react-hot-toast';
 import { RELEVANT_COUNTRIES, CountryOption } from '@/constants/countries';
 import CustomSwitch from './CustomSwitch';
 import ArtistSelector, { NewArtist } from './ArtistSelector';
+import ReleaseUserDeclaration from './ui/ReleaseUserDeclaration';
 
 interface ReleaseTrack {
 	external_id?: string;
@@ -1043,6 +1044,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					</div>
 				</div>
 
+				{safeFormData.has_acr_alert && (
+					<ReleaseUserDeclaration
+						value={safeFormData.external_id}
+						className="mt-8"
+					/>
+				)}
 				{/* Información Básica del Release */}
 				<div className="mt-8 space-y-4">
 					<h3 className="text-lg font-semibold text-gray-900 border-b pb-2">

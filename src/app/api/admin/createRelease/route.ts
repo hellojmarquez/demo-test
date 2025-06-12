@@ -248,7 +248,9 @@ export async function POST(req: NextRequest) {
 			label_name,
 			artists,
 			publisher_name,
+			release_user_declaration: null,
 			qc_feedback: {},
+			ddex_delivery_confirmations: null,
 		};
 
 		console.log('releaseToSave: ', releaseToSave);

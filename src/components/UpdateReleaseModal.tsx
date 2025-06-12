@@ -26,6 +26,7 @@ import { RELEVANT_COUNTRIES, CountryOption } from '@/constants/countries';
 import CustomSwitch from './CustomSwitch';
 import ArtistSelector, { NewArtist } from './ArtistSelector';
 import ReleaseUserDeclaration from './ui/ReleaseUserDeclaration';
+import DDEXDelivery from './ddex_delivery';
 
 interface ReleaseTrack {
 	external_id?: string;
@@ -226,6 +227,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		createdAt: formData?.createdAt || new Date().toISOString(),
 		updatedAt: formData?.updatedAt || new Date().toISOString(),
 		status: formData?.status || 'borrador',
+		ddex_delivery_confirmations: formData?.ddex_delivery_confirmations || null,
 	};
 
 	// Add default values for release
@@ -657,7 +659,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								<option value="submit_editing">Solicitar edición</option>
 							</select>
 							<div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-								{/* <svg
+								<svg
 									className="w-4 h-4 text-gray-400"
 									fill="none"
 									stroke="currentColor"
@@ -669,7 +671,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										strokeWidth={2}
 										d="M19 9l-7 7-7-7"
 									/>
-								</svg> */}
+								</svg>
 							</div>
 						</div>
 						<button
@@ -808,6 +810,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										{safeFormData.genre_name || 'Sin género'}
 									</div>
 								</div>
+
+								<DDEXDelivery
+									ddex_delivery_confirmations={
+										safeFormData.ddex_delivery_confirmations
+									}
+								/>
 							</div>
 						</div>
 					</div>

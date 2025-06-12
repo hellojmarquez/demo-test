@@ -65,13 +65,17 @@ export async function GET(
 			}
 		);
 		const releaseData = await getRelease.json();
-		release.status = releaseData.status;
-		release.qc_feedback = releaseData.qc_feedback;
-		release.acr_alert = releaseData.acr_alert;
-		release.has_acr_alert = releaseData.has_acr_alert;
+
 		const updatedRelease = await Release.findOneAndUpdate(
 			{ external_id: releaseId },
-			{ $set: release },
+			{
+				$set: {
+					status: releaseData.status,
+					qc_feedback: releaseData.qc_feedback,
+					acr_alert: releaseData.acr_alert,
+					has_acr_alert: releaseData.has_acr_alert,
+				},
+			},
 			{ new: true }
 		);
 		return NextResponse.json({

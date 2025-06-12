@@ -99,6 +99,7 @@ export interface Release {
 	has_acr_alert?: boolean;
 	acr_alert?: {} | null;
 	release_user_declaration?: {} | null;
+	ddex_delivery_confirmations?: {} | null;
 	createdAt?: string;
 	updatedAt?: string;
 	available?: boolean;

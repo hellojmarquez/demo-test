@@ -147,6 +147,12 @@ export async function GET(req: NextRequest) {
 				if (releaseData && releaseData.qc_feedback) {
 					release.qc_feedback = releaseData.qc_feedback;
 				}
+				if (releaseData && releaseData.acr_alert) {
+					release.acr_alert = releaseData.acr_alert;
+				}
+				if (releaseData && releaseData.has_acr_alert) {
+					release.has_acr_alert = releaseData.has_acr_alert;
+				}
 			})
 		);
 

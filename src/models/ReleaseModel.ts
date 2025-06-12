@@ -49,7 +49,11 @@ const releaseSchema = new Schema(
 		has_acr_alert: { type: Boolean, required: true },
 		acr_alert: { type: Object, required: false, default: null },
 		release_user_declaration: { type: Object, required: false, default: null },
-
+		ddex_delivery_confirmations: {
+			type: Object,
+			required: false,
+			default: null,
+		},
 		status: { type: String, required: true, default: 'offline' },
 		qc_feedback: { type: Object, required: false },
 		tracks: { type: [trackSchema], required: false },

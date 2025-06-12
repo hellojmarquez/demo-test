@@ -50,10 +50,10 @@ export default function DashboardLayout({
 			return pathname?.toString() === path;
 		}
 		if (path === '/panel/estadisticas') {
-			return (
-				pathname?.toString().startsWith('/panel/contabilidad') ||
-				pathname?.toString().startsWith('/panel/trends')
-			);
+			return pathname?.toString().startsWith('/panel/estadisticas');
+		}
+		if (path === '/panel/conntabilidad') {
+			return pathname?.toString().startsWith('/panel/conntabilidad');
 		}
 		if (path === '/panel/catalogo') {
 			return pathname?.toString() === '/panel/catalogo';
@@ -253,75 +253,60 @@ export default function DashboardLayout({
 											>
 												<span>Catálogo</span>
 											</Link>
-											<Link
-												href="/panel/ddx-delivery"
-												className={`flex items-center p-3 transition-colors relative group ${
-													isActive('/panel/ddx-delivery')
-														? 'text-white border-l-2 border-white'
-														: 'text-white'
-												}`}
-												onClick={() => setMobileMenuOpen(false)}
-											>
-												<span>DDX-Delivery</span>
-											</Link>
+											{isAdmin && (
+												<Link
+													href="/panel/ddx-delivery"
+													className={`flex items-center p-3 transition-colors relative group ${
+														isActive('/panel/ddx-delivery')
+															? 'text-white border-l-2 border-white'
+															: 'text-white'
+													}`}
+													onClick={() => setMobileMenuOpen(false)}
+												>
+													<span>DDX-Delivery</span>
+												</Link>
+											)}
 										</div>
 										{isAdmin && (
 											<>
-												<button
-													onClick={() => setStatsMenuOpen(!statsMenuOpen)}
-													className="flex items-center p-3 text-white w-full"
-												>
-													<Calculator size={18} className="mr-2" />
-													<span>Estadísticas</span>
-													<ChevronDown
-														size={16}
-														className={`ml-2 transition-transform duration-200 ${
-															statsMenuOpen ? 'rotate-180' : ''
-														}`}
-													/>
-												</button>
-												<div
-													className={`pl-8 overflow-hidden transition-all duration-200 ${
-														statsMenuOpen ? 'max-h-32' : 'max-h-0'
+												<Link
+													href="/panel/estadisticas"
+													className={`flex items-center p-3 transition-colors relative group ${
+														isActive('/panel/estadisticas')
+															? 'text-white border-l-2 border-white'
+															: 'text-white'
 													}`}
+													onClick={() => setMobileMenuOpen(false)}
 												>
-													<Link
-														href="/panel/contabilidad"
-														className={`flex items-center p-3 transition-colors relative group ${
-															isActive('/panel/contabilidad')
-																? 'text-white border-l-2 border-white'
-																: 'text-white'
-														}`}
-														onClick={() => setMobileMenuOpen(false)}
-													>
-														<span>Contabilidad</span>
-													</Link>
-													<Link
-														href="/panel/trends"
-														className={`flex items-center p-3 transition-colors relative group ${
-															isActive('/panel/trends')
-																? 'text-white border-l-2 border-white'
-																: 'text-white'
-														}`}
-														onClick={() => setMobileMenuOpen(false)}
-													>
-														<span>Trends</span>
-													</Link>
-												</div>
+													<LineChart size={18} className="mr-2" />
+													<span>Estadísticas</span>
+												</Link>
+												<Link
+													href="/panel/contabilidad"
+													className={`flex items-center p-3 transition-colors relative group ${
+														isActive('/panel/contabilidad')
+															? 'text-white border-l-2 border-white'
+															: 'text-white'
+													}`}
+													onClick={() => setMobileMenuOpen(false)}
+												>
+													<DollarSign size={18} className="mr-2" />
+													<span>Contabilidad</span>
+												</Link>
+												<Link
+													href="/panel/logs"
+													className={`flex items-center p-3 transition-colors relative group ${
+														isActive('/panel/logs')
+															? 'text-white border-l-2 border-white'
+															: 'text-white'
+													}`}
+													onClick={() => setMobileMenuOpen(false)}
+												>
+													<NotebookPen size={18} className="mr-2" />
+													<span>Logs</span>
+												</Link>
 											</>
 										)}
-										<Link
-											href="#!"
-											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/admin/config')
-													? 'text-white border-l-2 border-white'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
-										>
-											<Settings size={18} className="mr-2" />
-											<span>Configuración</span>
-										</Link>
 									</div>
 								</div>
 							</nav>

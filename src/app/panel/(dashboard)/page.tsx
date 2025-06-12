@@ -13,66 +13,40 @@ import {
 	FileUp,
 	Clock,
 	Shield,
+	ChevronRight,
+	PlusCircle,
+	Pencil,
+	Trash2,
+	LogIn,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import Link from 'next/link';
+
+const actionIcons = {
+	CREATE: PlusCircle,
+	UPDATE: Pencil,
+	DELETE: Trash2,
+	LOGIN: LogIn,
+} as const;
+
+const actionColors = {
+	CREATE: 'text-green-500',
+	UPDATE: 'text-blue-500',
+	DELETE: 'text-red-500',
+	LOGIN: 'text-purple-500',
+} as const;
 
 export default function SelloHome() {
-	const { user, loading, currentAccount, setShowAccountSelector } = useAuth();
-
-	const [userData, setUserData] = useState<any>(null);
-	const router = useRouter();
-
-	// Redirect if no user
+	const [logs, setLogs] = useState([]);
 	useEffect(() => {
-		if (!loading && !user) {
-			router.push('/panel/login');
-		}
-	}, [user, loading, router]);
-
-	// Show account selector if there's more than one
-	useEffect(() => {
-		if (user?.accounts && user.accounts.length > 1 && !currentAccount) {
-			setShowAccountSelector(true);
-		}
-	}, [user, currentAccount, setShowAccountSelector]);
-
-	// Update data when user or selected account changes
-	useEffect(() => {
-		if (currentAccount) {
-			setUserData(currentAccount);
-		} else if (user) {
-			setUserData(user);
-		}
-	}, [user, currentAccount]);
-
-	useEffect(() => {
-		if (currentAccount) {
-			const getAccountData = async () => {
-				try {
-					const res = await fetchWithRefresh(
-						`/api/accounts/${currentAccount.id}`
-					);
-					const data = await res.json();
-					setUserData(data);
-				} catch (error) {
-					console.error('Error fetching data:', error);
-				}
-			};
-
-			getAccountData();
-		}
-	}, [currentAccount]);
-
-	if (loading || !userData) {
-		return (
-			<div className="flex justify-center items-center h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-				<div className="flex flex-col items-center">
-					<div className="w-12 h-12 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin mb-4"></div>
-					<p className="text-indigo-600 font-medium">Loading...</p>
-				</div>
-			</div>
-		);
-	}
-
+		const fetchLogs = async () => {
+			const res = await fetchWithRefresh('/api/admin/getRecientLogs');
+			const data = await res.json();
+			setLogs(data.logs);
+		};
+		fetchLogs();
+	}, []);
 	return (
 		<div className="p-6 space-y-8 min-w-full mx-auto">
 			<motion.div
@@ -142,7 +116,7 @@ export default function SelloHome() {
 				>
 					<Clock className="h-5 w-5 text-indigo-600" />
 					<h2 className="text-xl font-semibold text-gray-800">
-						Recent Activity
+						Actividad reciente
 					</h2>
 				</motion.div>
 
@@ -153,55 +127,33 @@ export default function SelloHome() {
 					className="bg-white rounded-xl shadow-sm overflow-hidden"
 				>
 					<ul className="divide-y divide-gray-100">
-						<ActivityItem
-							user="Carlos"
-							detail="IP: 192.168.1.1"
-							time="3 min ago"
-							icon={<Shield className="h-4 w-4 text-blue-500" />}
-						/>
-						<ActivityItem
-							user="Laura"
-							detail="IP: 81.34.99.23"
-							time="22 min ago"
-							icon={<Shield className="h-4 w-4 text-green-500" />}
-						/>
-						<ActivityItem
-							user="API Upload"
-							detail="Sello Z"
-							time="Today 12:33"
-							icon={<FileUp className="h-4 w-4 text-amber-500" />}
-						/>
-						<ActivityItem
-							user="System"
-							detail="Backup completed"
-							time="Today 09:15"
-							icon={<Shield className="h-4 w-4 text-purple-500" />}
-						/>
-						<ActivityItem
-							user="Miguel"
-							detail="IP: 82.223.45.67"
-							time="Yesterday 18:42"
-							icon={<Shield className="h-4 w-4 text-blue-500" />}
-						/>
+						{logs.map((log: any) => {
+							const Icon = actionIcons[log.action as keyof typeof actionIcons];
+							return (
+								<ActivityItem
+									key={log._id}
+									user={log.userName}
+									detail={`${log.details} - IP: ${log.ipAddress}`}
+									time={format(new Date(log.createdAt), 'PPpp', { locale: es })}
+									icon={
+										<Icon
+											className={`h-4 w-4 ${
+												actionColors[log.action as keyof typeof actionColors]
+											}`}
+										/>
+									}
+								/>
+							);
+						})}
 					</ul>
 					<div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-t border-gray-100">
-						<button className="text-sm text-indigo-600 font-medium hover:text-indigo-800 transition-colors flex items-center">
-							View all activity
-							<svg
-								className="ml-1 w-4 h-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-								xmlns="http://www.w3.org/2000/svg"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M9 5l7 7-7 7"
-								/>
-							</svg>
-						</button>
+						<Link
+							href="/panel/logs"
+							className="text-sm text-indigo-600 font-medium hover:text-indigo-800 transition-colors flex items-center"
+						>
+							Ver toda la actividad
+							<ChevronRight className="ml-1 w-4 h-4" />
+						</Link>
 					</div>
 				</motion.div>
 			</section>

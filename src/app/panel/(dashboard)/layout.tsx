@@ -140,13 +140,15 @@ export default function DashboardLayout({
 												>
 													Catálogo
 												</Link>
-												<Link
-													href="/panel/ddx-delivery"
-													className="block px-4 py-2 text-white hover:bg-brand-light"
-													onClick={() => setMobileMenuOpen(false)}
-												>
-													DDX-Delivery
-												</Link>
+												{isAdmin && (
+													<Link
+														href="/panel/ddx-delivery"
+														className="block px-4 py-2 text-white hover:bg-brand-light"
+														onClick={() => setMobileMenuOpen(false)}
+													>
+														DDEX-Delivery
+													</Link>
+												)}
 											</div>
 										</div>
 									</div>
@@ -263,7 +265,7 @@ export default function DashboardLayout({
 													}`}
 													onClick={() => setMobileMenuOpen(false)}
 												>
-													<span>DDX-Delivery</span>
+													<span>DDEX-Delivery</span>
 												</Link>
 											)}
 										</div>

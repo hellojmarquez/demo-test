@@ -40,5 +40,14 @@
 			"source": "/login/:path*",
 			"destination": "/login/:path*"
 		}
-	]
+	],
+	"functions": {
+		"api/admin/createSingle": {
+			"memory": 1024,
+			"maxDuration": 60,
+			"bodyParser": {
+				"sizeLimit": "100mb"
+			}
+		}
+	}
 }

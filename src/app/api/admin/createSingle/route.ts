@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
 		let picture_url = '';
 		let picture_path = '';
-
+		console.log('contentType: ', contentType);
 		if (contentType.includes('multipart/form-data')) {
 			const formData = await req.formData();
 			const file = formData.get('file') as File | null;

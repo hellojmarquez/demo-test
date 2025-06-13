@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 						}
 					);
 					const uploadTrackRes = await uploadTrackReq.json();
-					console.log('uploadTrackRes: ', uploadTrackRes);
+
 					// Extraer la URL y los campos del objeto firmado
 					const { url: signedUrl, fields: trackFields } =
 						uploadTrackRes.signed_url;
@@ -126,7 +126,32 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
+		console.log('trackData: ', trackData.release);
+		const getRelease = await fetch(
+			`${req.nextUrl.origin}/api/admin/getReleaseById/${trackData.release}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+				},
+			}
+		);
 
+		const releaseData = await getRelease.json();
+		console.log('releaseData: ', releaseData);
+		const existingTrack = releaseData.data.tracks.find(
+			(track: any) => track.title === trackData.name
+		);
+		if (existingTrack) {
+			return NextResponse.json(
+				{ success: false, error: 'El track ya existe en el release' },
+				{ status: 400 }
+			);
+		}
+		if (releaseData.is_new_release) {
+			trackData.release_version = releaseData.release_version;
+		}
 		trackData.resource = picture_path;
 		let dataToapi = JSON.parse(JSON.stringify(trackData));
 		delete dataToapi.available;
@@ -151,7 +176,7 @@ export async function POST(req: NextRequest) {
 		} else {
 			dataToapi.contributors = [];
 		}
-		console.log('dataToapi: ', dataToapi);
+
 		const trackReq = await fetch(`${process.env.MOVEMUSIC_API}/tracks/`, {
 			method: 'POST',
 			headers: {
@@ -177,8 +202,6 @@ export async function POST(req: NextRequest) {
 
 		const trackRes = await trackReq.json();
 
-		console.log('trackRes: ', trackRes);
-
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;
 		trackData.resource = picture_url;
@@ -202,13 +225,13 @@ export async function POST(req: NextRequest) {
 			resource: picture_url,
 			available: trackData.available,
 		};
-		console.log('dataToRelease: ', dataToRelease);
+
 		const updatedRelease = await Release.findOneAndUpdate(
 			{ external_id: trackData.release },
 			{ $push: { tracks: dataToRelease } },
 			{ new: true }
 		);
-		console.log('RELEASE CREADO: ', updatedRelease);
+
 		if (!updatedRelease) {
 			return NextResponse.json(
 				{ success: false, error: 'No se encontró el release para actualizar' },

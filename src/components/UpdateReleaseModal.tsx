@@ -552,14 +552,11 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	};
 
 	const handleTracksReady = async (tracks: { file: File; data: any }[]) => {
-		// Cerrar el modal de UploadTrackToRelease inmediatamente
 		setIsUploadModalOpen(false);
 		setIsTracksExpanded(true);
-		// Iniciar la carga en segundo plano
 		setIsUploadingTracks(true);
 		setUploadError('');
 
-		// Inicializar el progreso para todos los tracks
 		const initialProgress = tracks.reduce(
 			(acc, track) => ({
 				...acc,
@@ -577,55 +574,96 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		try {
 			// Crear un array de promesas para subir todos los tracks en paralelo
 			const uploadPromises = tracks.map(async track => {
-				const formData = new FormData();
-				formData.append('file', track.file);
-				formData.append('data', JSON.stringify(track.data));
+				try {
+					const formData = new FormData();
+					formData.append('file', track.file);
+					formData.append('data', JSON.stringify(track.data));
 
-				const response = await fetch('/api/admin/createSingle', {
-					method: 'POST',
-					body: formData,
-				});
+					const response = await fetch('/api/admin/createSingle', {
+						method: 'POST',
+						body: formData,
+					});
 
-				const resData = await response.json();
+					const resData = await response.json();
 
-				if (!response.ok || !resData.success) {
-					throw new Error(`Error al subir el track ${track.file.name}`);
+					if (!response.ok || !resData.success) {
+						// Si es un error de duplicado, actualizar el progreso con error
+						if (resData.error === 'El track ya existe en el release') {
+							setUploadProgress(prev => ({
+								...prev,
+								[track.file.name]: {
+									total: 1,
+									loaded: 1,
+									percentage: 100,
+									fileName: track.file.name,
+									error: 'Nombre duplicado',
+								},
+							}));
+							// Agregar el mensaje de error para este track específico
+							setUploadError(prev =>
+								prev
+									? `${prev}\n${track.file.name}: Nombre duplicado`
+									: `${track.file.name}: Nombre duplicado`
+							);
+							return null; // Retornar null para tracks con error
+						}
+						throw new Error(`Error al subir el track ${track.file.name}`);
+					}
+
+					setUploadProgress(prev => ({
+						...prev,
+						[track.file.name]: {
+							total: 1,
+							loaded: 1,
+							percentage: 100,
+							fileName: track.file.name,
+						},
+					}));
+
+					return response;
+				} catch (error) {
+					setUploadProgress(prev => ({
+						...prev,
+						[track.file.name]: {
+							total: 1,
+							loaded: 1,
+							percentage: 100,
+							fileName: track.file.name,
+							error: 'El track ya existe',
+						},
+					}));
+					return null;
 				}
-				// Actualizar el progreso para este track específico
-				setUploadProgress(prev => ({
-					...prev,
-					[track.file.name]: {
-						total: 1,
-						loaded: 1,
-						percentage: 100,
-						fileName: track.file.name,
-					},
-				}));
-
-				return response;
 			});
 
 			// Esperar a que todos los tracks se suban
-			await Promise.all(uploadPromises);
+			const results = await Promise.all(uploadPromises);
 
-			// Refrescar los datos del release después de subir todos los tracks
+			// Verificar si al menos un track se subió correctamente
+			const successfulUploads = results.filter(result => result !== null);
 
-			// Limpiar los estados después de completar exitosamente
-			setIsUploadingTracks(false);
-			setUploadProgress({});
-			setUploadError('');
-			// Esperar un momento para asegurar que la base de datos se actualice
-			const verifyResponse = await fetch(
-				`/api/admin/getReleaseById/${release.external_id}`
-			);
-			const res = await verifyResponse.json();
-			if (res.success) {
-				console.log('res: ', res);
-				safeRelease.tracks = res.data.tracks;
-				setFormData(prev => ({
-					...prev,
-					tracks: res.data.tracks,
-				}));
+			if (successfulUploads.length > 0) {
+				// Limpiar los estados después de completar exitosamente
+				setIsUploadingTracks(false);
+				setUploadProgress({});
+
+				// No limpiar el error aquí para que se muestre
+				// setUploadError(''); <- Eliminar esta línea
+
+				// Actualizar los datos del release
+				const verifyResponse = await fetch(
+					`/api/admin/getReleaseById/${release.external_id}`
+				);
+				const res = await verifyResponse.json();
+				if (res.success) {
+					safeRelease.tracks = res.data.tracks;
+					setFormData(prev => ({
+						...prev,
+						tracks: res.data.tracks,
+					}));
+				}
+			} else {
+				setUploadError('Ningún track se pudo subir correctamente');
 			}
 		} catch (err: any) {
 			console.error('Error al subir tracks:', err);
@@ -1207,18 +1245,20 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className={inputStyles}
 							/>
 						</div>
-						<div className="w-full">
-							<label className="block text-sm font-medium text-gray-700">
-								Versión del Release
-							</label>
-							<input
-								type="text"
-								name="release_version"
-								value={safeFormData.release_version}
-								onChange={handleChange}
-								className={inputStyles}
-							/>
-						</div>
+						{!safeFormData.is_new_release && (
+							<div className="w-full">
+								<label className="block text-sm font-medium text-gray-700">
+									Versión del Release
+								</label>
+								<input
+									type="text"
+									name="release_version"
+									value={safeFormData.release_version}
+									onChange={handleChange}
+									className={inputStyles}
+								/>
+							</div>
+						)}
 					</div>
 				</div>
 

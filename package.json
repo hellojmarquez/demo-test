@@ -51,6 +51,7 @@
 		"react-input-mask": "^2.0.4",
 		"react-select": "^5.10.1",
 		"react-time-picker": "^7.0.0",
+		"recharts": "^2.15.3",
 		"rimraf": "^5.0.7",
 		"socket.io": "^4.8.1",
 		"socket.io-client": "^4.8.1",

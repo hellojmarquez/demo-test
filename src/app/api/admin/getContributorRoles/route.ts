@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
 	console.log('get contributor roles received');
 
 	try {
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
@@ -22,7 +23,6 @@ export async function GET(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(

@@ -8,7 +8,7 @@ import { createLog } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
 	try {
-		// 1. Verificar token de autenticación
+		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
 		const token = request.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(

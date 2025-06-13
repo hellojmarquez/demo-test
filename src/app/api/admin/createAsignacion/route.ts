@@ -6,6 +6,7 @@ import { jwtVerify } from 'jose';
 
 export async function POST(request: NextRequest) {
 	try {
+		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
 		const token = request.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(

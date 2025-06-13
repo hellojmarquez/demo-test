@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
 
 	try {
 	
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(

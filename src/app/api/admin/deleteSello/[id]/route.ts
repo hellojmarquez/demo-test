@@ -10,6 +10,7 @@ export async function DELETE(
 	{ params }: { params: { id: string } }
 ) {
 	try {
+		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
 		const token = request.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(

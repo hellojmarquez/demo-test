@@ -7,6 +7,7 @@ import { jwtVerify } from 'jose';
 export async function GET(request: NextRequest) {
 	try {
 		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
+		const token = request.cookies.get('loginToken')?.value;
 		const { searchParams } = new URL(request.url);
 		const page = searchParams.get('page') || '1';
 		const pageSize = searchParams.get('page_size') || '10';

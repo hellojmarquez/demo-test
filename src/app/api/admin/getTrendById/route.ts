@@ -1,13 +1,12 @@
 export const dynamic = 'force-dynamic';
-import dbConnect from '@/lib/dbConnect';
-import User from '@/models/UserModel';
-import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
 export async function GET(req: NextRequest) {
-	console.log('get all publishers received');
+	console.log('get contributor roles received');
 
 	try {
+		// Obtener el token
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
@@ -30,17 +29,23 @@ export async function GET(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-		await dbConnect();
-		const publishers = await User.find({ role: 'publisher' })
-			.select('-password')
-			.sort({ createdAt: -1 });
+
+		const genresRes = await fetch(`${process.env.MOVEMUSIC_API}/trends/`, {
+			headers: {
+				Authorization: `JWT ${moveMusicAccessToken}`,
+				'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+				Referer: process.env.MOVEMUSIC_REFERER || '',
+			},
+		});
+
+		const genresData = await genresRes.json();
 
 		return NextResponse.json({
 			success: true,
-			data: publishers,
+			data: genresData.results,
 		});
 	} catch (error) {
-		console.error('Error fetching publishers:', error);
+		console.error('Error fetching contributor generos:');
 		return NextResponse.json(
 			{ success: false, error: 'Internal Server Error' },
 			{ status: 500 }

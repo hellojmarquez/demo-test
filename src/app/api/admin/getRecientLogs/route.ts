@@ -7,24 +7,34 @@ import dbConnect from '@/lib/dbConnect';
 export async function GET(request: NextRequest) {
 	try {
 		// Verificar el token JWT
+		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
 		const token = request.cookies.get('loginToken')?.value;
+		let userRole;
+
 		if (!token) {
 			return NextResponse.json(
 				{ success: false, error: 'Not authenticated' },
 				{ status: 401 }
 			);
 		}
-
 		// Verificar JWT
+		let verifiedPayload;
 		try {
-			const { payload: verifiedPayload } = await jwtVerify(
+			const { payload } = await jwtVerify(
 				token,
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
+			verifiedPayload = payload;
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
+				{ status: 401 }
+			);
+		}
+		if (verifiedPayload.role !== 'admin') {
+			return NextResponse.json(
+				{ success: false, error: 'Not authenticated' },
 				{ status: 401 }
 			);
 		}

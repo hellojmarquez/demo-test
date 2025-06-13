@@ -186,6 +186,7 @@ export default function UsuariosPage() {
 					}&sort=${sortBy}`
 				);
 				const data = await res.json();
+				console.log('data: ', data);
 				if (data.success) {
 					let filteredUsers = data.data.users;
 

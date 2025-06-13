@@ -6,6 +6,7 @@ import { jwtVerify } from 'jose';
 export async function POST(req: NextRequest) {
 	try {
 		// Verificar autenticación
+		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
 			return NextResponse.json(
@@ -21,7 +22,6 @@ export async function POST(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 		} catch (err) {
-		
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
 			message: 'Relaciones creadas exitosamente',
 		});
 	} catch (error) {
-	
 		return NextResponse.json(
 			{ success: false, error: 'Error al crear las relaciones' },
 			{ status: 500 }
@@ -86,7 +85,6 @@ export async function DELETE(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 		} catch (err) {
-		
 			return NextResponse.json(
 				{ success: false, error: 'Invalid token' },
 				{ status: 401 }
@@ -126,7 +124,6 @@ export async function DELETE(req: NextRequest) {
 			deletedCount: result.deletedCount,
 		});
 	} catch (error) {
-	
 		return NextResponse.json(
 			{ success: false, error: 'Error al eliminar la relación' },
 			{ status: 500 }

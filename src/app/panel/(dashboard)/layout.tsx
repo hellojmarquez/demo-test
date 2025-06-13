@@ -167,24 +167,11 @@ export default function DashboardLayout({
 										onClick={() => setMobileMenuOpen(false)}
 									>
 										<TrendingUpDown size={18} className="mr-2" />
-										<span>Trends</span>
+										<span>Estadísticas</span>
 										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
 									</Link>
 									{isAdmin && (
 										<>
-											<Link
-												href="/panel/estadisticas"
-												className={`flex items-center p-2 transition-colors relative group ${
-													isActive('/panel/estadisticas')
-														? 'text-white border-b-2'
-														: 'text-white'
-												}`}
-												onClick={() => setMobileMenuOpen(false)}
-											>
-												<LineChart size={18} className="mr-2" />
-												<span>Estadísticas</span>
-												<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-											</Link>
 											<Link
 												href="/panel/contabilidad"
 												className={`flex items-center p-2 transition-colors relative group ${
@@ -296,22 +283,10 @@ export default function DashboardLayout({
 											onClick={() => setMobileMenuOpen(false)}
 										>
 											<TrendingUpDown size={18} className="mr-2" />
-											<span>Trends</span>
+											<span>Estadísticas</span>
 										</Link>
 										{isAdmin && (
 											<>
-												<Link
-													href="/panel/estadisticas"
-													className={`flex items-center p-3 transition-colors relative group ${
-														isActive('/panel/estadisticas')
-															? 'text-white border-l-2 border-white'
-															: 'text-white'
-													}`}
-													onClick={() => setMobileMenuOpen(false)}
-												>
-													<LineChart size={18} className="mr-2" />
-													<span>Estadísticas</span>
-												</Link>
 												<Link
 													href="/panel/contabilidad"
 													className={`flex items-center p-3 transition-colors relative group ${

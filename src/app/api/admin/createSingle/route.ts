@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
 
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
-		console.log('TRACK CREADO: ', createTrack);
+
 		if (!createTrack.external_id) {
 			return NextResponse.json(
 				{

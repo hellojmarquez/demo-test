@@ -580,15 +580,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					const response = await fetch('/api/admin/createSingle', {
 						method: 'POST',
 						body: formData,
-						signal: AbortSignal.timeout(30000), // 30 segundos
 					});
-					console.log('response crear single: ', response);
+
 					const resData = await response.json();
-					console.log('resData previo a error : ', resData);
+
 					// Verificar primero si hay error en la respuesta
 					if (resData.error) {
-						console.error('Error específico:', resData.error);
-						console.error('Respuesta completa:', resData);
 						toast.error(resData.error);
 						setUploadProgress(prev => ({
 							...prev,

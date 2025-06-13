@@ -43,7 +43,7 @@ const releaseSchema = new Schema(
 		auto_detect_language: { type: Boolean, required: false },
 		generate_ean: { type: Boolean, required: false },
 		backcatalog: { type: Boolean, required: false },
-		youtube_declaration: { type: Boolean, required: false },
+		youtube_declaration: { type: Boolean, required: true, default: true },
 		dolby_atmos: { type: Boolean, required: false },
 		artists: [artistSchema],
 		has_acr_alert: { type: Boolean, required: true },

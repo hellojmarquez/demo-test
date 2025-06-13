@@ -84,6 +84,7 @@ export default function CreateInitRelease({
 			formData.append('release_version', '');
 			formData.append('territory', 'worldwide');
 			formData.append('available', 'true');
+			formData.append('youtube_declaration', 'true');
 
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',

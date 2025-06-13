@@ -209,9 +209,13 @@ export async function PUT(
 		const getReleaseRes = await getRelease.json();
 		getReleaseRes.tracks.forEach((track: any) => {
 			if (track.resource) {
-				track.resource = decodeURIComponent(
+				const decoded = decodeURIComponent(
 					new URL(track.resource).pathname.slice(1)
-				).replace('media/', '');
+				);
+				track.resource = decoded.replace('media/', '');
+			}
+			if (track.dolby_atmos_resource && track.dolby_atmos_resource.length > 0) {
+				releaseData.dolby_atmos = true;
 			}
 		});
 		const releaseToApiData = {
@@ -225,7 +229,7 @@ export async function PUT(
 							new URL(release.picture.full_size).pathname.slice(1)
 					  ).replace('media/', ''),
 		};
-		console.log('releaseToApiData: ', releaseToApiData);
+
 		const releaseToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
 			{

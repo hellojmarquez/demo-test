@@ -15,6 +15,7 @@ import {
 	Check,
 	Loader2,
 	Copy,
+	X,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -801,7 +802,18 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									<div className="text-xs md:text-sm font-semibold text-gray-900">
 										{safeFormData.catalogue_number || 'Sin número'}
 									</div>
+									<div className="flex items-end w-full">
+										<label className="mt-2 block text-sm font-bold text-gray-700">
+											Dolby Atmos:
+										</label>
+										{release.dolby_atmos ? (
+											<Check className="ml-2 h-5 w-5 text-green-500" />
+										) : (
+											<X className="ml-2 h-5 w-5 text-red-500" />
+										)}
+									</div>
 								</div>
+
 								<div className="p-2 md:p-4 bg-gray-50 rounded-xl border border-gray-100">
 									<div className="text-xs font-medium text-gray-500 mb-1">
 										Género
@@ -1521,26 +1533,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								</div>
 							)}
 						</div>
-						<div className="flex items-end w-full">
-							<CustomSwitch
-								checked={safeFormData.dolby_atmos ?? false}
-								onChange={checked => {
-									const event = {
-										target: {
-											name: 'dolby_atmos',
-											checked: checked,
-											type: 'checkbox',
-										},
-									} as React.ChangeEvent<HTMLInputElement>;
-									handleChange(event);
-								}}
-								onText=""
-								offText=""
-							/>
-							<label className="ml-2 block text-sm text-gray-700">
-								Dolby Atmos
-							</label>
-						</div>
 					</div>
 				</div>
 
@@ -1571,7 +1563,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								}
 							}}
 							options={[
-								{ value: 'worldwide', label: 'Worldwide' },
+								{ value: 'worldwide', label: 'Todo el mundo' },
 								{ value: 'select', label: 'select' },
 								{ value: 'deselect', label: 'deselect' },
 							]}

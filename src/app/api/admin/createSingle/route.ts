@@ -145,7 +145,10 @@ export async function POST(req: NextRequest) {
 		);
 		if (existingTrack) {
 			return NextResponse.json(
-				{ success: false, error: 'El track ya existe en el release' },
+				{
+					success: false,
+					error: `El track ${existingTrack.title} ya existe en el release`,
+				},
 				{ status: 400 }
 			);
 		}

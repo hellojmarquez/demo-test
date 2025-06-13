@@ -586,27 +586,25 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 					const resData = await response.json();
 
+					// Verificar primero si hay error en la respuesta
+					if (resData.error) {
+						console.log('Error detectado:', resData.error);
+						toast.error(resData.error);
+						setUploadProgress(prev => ({
+							...prev,
+							[track.file.name]: {
+								total: 1,
+								loaded: 1,
+								percentage: 100,
+								fileName: track.file.name,
+								error: 'Nombre duplicado',
+							},
+						}));
+						return null;
+					}
+
+					// Si no hay error, verificar si la respuesta fue exitosa
 					if (!response.ok || !resData.success) {
-						// Si es un error de duplicado, actualizar el progreso con error
-						if (resData.error === 'El track ya existe en el release') {
-							setUploadProgress(prev => ({
-								...prev,
-								[track.file.name]: {
-									total: 1,
-									loaded: 1,
-									percentage: 100,
-									fileName: track.file.name,
-									error: 'Nombre duplicado',
-								},
-							}));
-							// Agregar el mensaje de error para este track específico
-							setUploadError(prev =>
-								prev
-									? `${prev}\n${track.file.name}: Nombre duplicado`
-									: `${track.file.name}: Nombre duplicado`
-							);
-							return null; // Retornar null para tracks con error
-						}
 						throw new Error(`Error al subir el track ${track.file.name}`);
 					}
 

@@ -27,10 +27,6 @@ export async function GET(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-			console.log(
-				'Payload completo del token:',
-				JSON.stringify(payload, null, 2)
-			);
 		} catch (err) {
 			console.error('JWT verification failed', err);
 			return NextResponse.json(
@@ -56,14 +52,12 @@ export async function GET(req: NextRequest) {
 
 		// Si el usuario es un sello, filtrar por sus artistas asignados
 		if (verifiedPayload.role === 'sello') {
-
 			// Obtener los IDs de los artistas asociados al sello
 			const contratos = await SelloArtistaContrato.find({
 				sello_id: verifiedPayload.id,
 				estado: 'activo',
 			}).select('artista_id');
 
-		
 			const artistaIds = contratos.map(contrato => contrato.artista_id);
 
 			// Construir la query base
@@ -90,9 +84,7 @@ export async function GET(req: NextRequest) {
 				.skip(skip)
 				.limit(limit)
 				.lean();
-			
 		} else {
-	
 			// Para otros roles, mantener la lógica original
 			const baseQuery = {};
 			const finalQuery = {
@@ -124,7 +116,7 @@ export async function GET(req: NextRequest) {
 				},
 			},
 		};
-	
+
 		return NextResponse.json(response);
 	} catch (error) {
 		console.error('Error fetching users:', error);

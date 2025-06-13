@@ -112,7 +112,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 
 			if (!response.ok) throw new Error('Error al obtener relaciones');
 			const data = await response.json();
-			console.log('Datos recibidos de la API:', data);
+
 			// Usar la estructura correcta de la respuesta
 			setExistingRelationships(data.data.subAccounts || []);
 		} catch (error) {
@@ -216,7 +216,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 					status: 'activo', // Estado por defecto de la relación
 					role: account.role, // Incluimos el rol para referencia
 				}));
-				console.log('Subcuentas a enviar:', subAccountsData);
+
 				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
 			}
 
@@ -525,7 +525,6 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											</h4>
 											<div className="space-y-2">
 												{existingRelationships.map(rel => {
-													console.log('Renderizando relación:', rel);
 													return (
 														<div
 															key={rel._id}

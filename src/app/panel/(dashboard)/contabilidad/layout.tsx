@@ -31,7 +31,6 @@ export default function DashboardLayout({
 	}
 
 	if (!user) {
-		console.log('Layout - No user found, returning null');
 		return null;
 	}
 

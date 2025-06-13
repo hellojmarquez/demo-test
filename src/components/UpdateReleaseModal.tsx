@@ -496,7 +496,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		try {
 			// Si es un track nuevo (no tiene external_id o es undefined), lo manejamos directamente
 			if (!track.external_id || track.external_id === 'undefined') {
-				console.log('Editando track nuevo');
 				setSelectedTrack(track);
 				onEditTrack(track);
 				return;
@@ -504,7 +503,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 			// Solo hacemos la llamada a la API si tenemos un external_id válido
 			if (track.external_id && track.external_id !== 'undefined') {
-				console.log('Editando track existente con ID:', track.external_id);
 				const response = await fetch(
 					`/api/admin/getTrackById/${track.external_id}`
 				);
@@ -588,7 +586,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 					// Verificar primero si hay error en la respuesta
 					if (resData.error) {
-						console.log('Error detectado:', resData.error);
 						toast.error(resData.error);
 						setUploadProgress(prev => ({
 							...prev,
@@ -698,7 +695,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						<div className="relative w-[200px]">
 							<select
 								onChange={e => {
-									console.log('🔍 Native select changed:', e.target.value);
 									setSelectedAction(e.target.value || null);
 								}}
 								className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer"
@@ -944,7 +940,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						}`}
 					>
 						{safeRelease.tracks?.map((track, index) => {
-							console.log('track: ', track);
 							return (
 								<div
 									key={index}

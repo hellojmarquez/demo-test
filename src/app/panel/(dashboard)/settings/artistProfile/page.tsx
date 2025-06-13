@@ -39,9 +39,7 @@ const ArtistProfile = () => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-	
 		if (userData?.name) {
-			console.log('Actualizando formData con nombre:', userData.name);
 			setFormData(prev => ({
 				...prev,
 				name: userData.name,
@@ -131,16 +129,6 @@ const ArtistProfile = () => {
 			if (formData.picture && formData.picture !== userData.picture) {
 				formDataToSend.append('picture', formData.picture);
 			}
-
-			console.log('Enviando datos:', {
-				name: formData.name,
-				email: formData.email,
-				role: userData.role,
-				_id: userData._id,
-				external_id: userData.external_id,
-				hasPassword: !!formData.password,
-				hasNewPicture: formData.picture !== userData.picture,
-			});
 
 			const response = await fetch(
 				`/api/admin/updateArtist/${userData.external_id}`,

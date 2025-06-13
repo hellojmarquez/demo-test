@@ -24,7 +24,7 @@ export default function SelloLogin() {
 
 		setLoading(true);
 		setError(null); // Reset error state before request
-		console.log(user, password);
+
 		try {
 			// Eliminar cookies existentes
 			document.cookie =

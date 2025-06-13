@@ -37,9 +37,6 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 		field: string,
 		value: string | number
 	) => {
-		console.log('handleContributorChange - Input:', { field, value, index });
-		console.log('Current contributors:', contributors);
-
 		const newContributors = [...contributors];
 		if (!newContributors[index]) {
 			newContributors[index] = {
@@ -55,25 +52,23 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 			const selectedContributor = contributorData.find(
 				c => c.external_id === value
 			);
-			console.log('Selected contributor:', selectedContributor);
+
 			if (selectedContributor) {
 				newContributors[index] = {
 					...newContributors[index],
 					contributor: selectedContributor.external_id,
 					name: selectedContributor.name,
 				};
-				console.log('Updated contributor data:', newContributors[index]);
 			}
 		} else if (field === 'role') {
 			const selectedRole = roles.find(r => r.id === Number(value));
-			console.log('Selected role:', selectedRole);
+
 			if (selectedRole) {
 				newContributors[index] = {
 					...newContributors[index],
 					role: selectedRole.id,
 					role_name: selectedRole.name,
 				};
-				console.log('Updated role data:', newContributors[index]);
 			}
 		} else if (field === 'order') {
 			newContributors[index] = {
@@ -82,10 +77,6 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 			};
 		}
 
-		console.log(
-			'Final contributor data before sending:',
-			newContributors[index]
-		);
 		onContributorsChange(newContributors);
 	};
 
@@ -94,12 +85,11 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 			<Select
 				value={null}
 				onChange={selectedOption => {
-					console.log('Select onChange - selectedOption:', selectedOption);
 					if (selectedOption) {
 						const selectedContributor = contributorData.find(
 							c => c.external_id === selectedOption.value
 						);
-						console.log('Found contributor:', selectedContributor);
+
 						if (selectedContributor) {
 							const newContributor = {
 								contributor: selectedContributor.external_id,
@@ -108,7 +98,7 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 								role_name: '',
 								order: contributors.length,
 							};
-							console.log('New contributor to add:', newContributor);
+
 							onContributorsChange([...contributors, newContributor]);
 						}
 					}
@@ -156,7 +146,6 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 													: null
 											}
 											onChange={selectedOption => {
-												console.log('Role selected:', selectedOption);
 												if (selectedOption) {
 													handleContributorChange(
 														index,

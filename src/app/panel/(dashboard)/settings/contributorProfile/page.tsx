@@ -33,7 +33,7 @@ const page = () => {
 	});
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
-		console.log(`Cambiando ${name} a:`, value);
+
 		setFormData(prev => ({
 			...prev,
 			[name]: value,
@@ -84,7 +84,6 @@ const page = () => {
 					prev.status,
 			}));
 		}
-		console.log('publisheer', userData);
 	}, [userData]);
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';

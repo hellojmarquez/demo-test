@@ -30,7 +30,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	onSave,
 	onTrackChange,
 }) => {
-	console.log('TrackForm rendered with track:', track);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [genres, setGenres] = useState<Genre[]>([]);
@@ -48,7 +47,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		console.log('handleSubmit called with track:', track);
+
 		setIsSubmitting(true);
 		setErrors({});
 
@@ -70,7 +69,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		const { name, value, type } = e.target;
 		const newValue =
 			type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-		console.log('handleChange called with:', { name, value: newValue });
 
 		if (track) {
 			if (name === 'genre') {
@@ -105,7 +103,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		field: keyof Artist,
 		value: string
 	) => {
-		console.log('handleArtistChange called with:', { index, field, value });
 		if (track && track.artists) {
 			const updatedArtists = [...track.artists];
 			updatedArtists[index] = {
@@ -121,7 +118,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	};
 
 	const addArtist = () => {
-		console.log('addArtist called');
 		if (track) {
 			onTrackChange({
 				...track,
@@ -134,7 +130,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	};
 
 	const removeArtist = (index: number) => {
-		console.log('removeArtist called with index:', index);
 		if (track && track.artists) {
 			const updatedArtists = [...track.artists];
 			updatedArtists.splice(index, 1);

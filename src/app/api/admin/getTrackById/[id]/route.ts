@@ -72,7 +72,6 @@ export async function GET(
 			}
 		);
 		const trackData = await getTrack.json();
-		console.log('trackData ', trackData);
 
 		// Actualizar usando updateOne
 		const updateResult = await SingleTrack.findOneAndUpdate(
@@ -88,7 +87,7 @@ export async function GET(
 				select: '+qc_feedback +ISRC ', // Forzar la inclusión del campo
 			}
 		);
-	
+
 		return NextResponse.json({
 			success: true,
 			data: updateResult,

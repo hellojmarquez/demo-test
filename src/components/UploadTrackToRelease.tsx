@@ -24,7 +24,6 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	existingTracksCount,
 	onTracksReady,
 }) => {
-	console.log('releaseId!!!!!!!!!!!: ', releaseId);
 	const router = useRouter();
 	const [assets, setAssets] = useState<AssetRow[]>([]);
 	const [error, setError] = useState('');
@@ -151,7 +150,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				data: track,
 			};
 		});
-		console.log('tracksToUpload!!!!!!!!!!!: ', tracksToUpload);
+
 		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
 		onTracksReady(tracksToUpload);
 		onClose();

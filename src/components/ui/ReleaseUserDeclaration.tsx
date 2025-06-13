@@ -116,12 +116,9 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 			const data = await response.json();
 
 			if (!response.ok) {
-				console.log('trow del error : ', data.error);
 				const errorMessage = formatErrorMessage(data.error);
 				throw new Error(errorMessage);
 			}
-
-			console.log('Respuesta:', data);
 		} catch (error) {
 			console.error('el error es:', error);
 			setError(

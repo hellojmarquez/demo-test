@@ -90,7 +90,6 @@ const Productos: React.FC = () => {
 				);
 				const data = await res.json();
 				if (data.success) {
-					console.log(data.data.releases);
 					setReleases(data.data.releases as Release[]);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);

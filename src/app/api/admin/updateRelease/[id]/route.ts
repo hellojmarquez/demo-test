@@ -97,7 +97,6 @@ export async function PUT(
 				method: 'POST',
 				body: pictureFormData,
 			});
-			console.log('uploadResponse: ', uploadResponse);
 
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			const picture_path_decoded = decodeURIComponent(
@@ -124,7 +123,7 @@ export async function PUT(
 		if (releaseData.territory === 'worldwide') {
 			releaseData.countries = [];
 		}
-		console.log('releaseData despues del filtro: ', releaseData);
+
 		// Convertir los valores a números
 		if (releaseData.label) releaseData.label = Number(releaseData.label);
 		if (releaseData.publisher)
@@ -136,7 +135,6 @@ export async function PUT(
 		// Manejar nuevos artistas si existen
 		if (releaseData.newArtists && releaseData.newArtists.length > 0) {
 			const createdArtists = [];
-			console.log('Procesando nuevos artistas:', releaseData.newArtists);
 
 			for (const newArtist of releaseData.newArtists) {
 				try {
@@ -160,7 +158,6 @@ export async function PUT(
 					);
 
 					const createArtistRes = await createArtistReq.json();
-					console.log('Respuesta de creación de artista:', createArtistRes);
 
 					if (createArtistRes.success && createArtistRes.data) {
 						// Agregar el artista creado al array de artistas del release
@@ -245,7 +242,7 @@ export async function PUT(
 		);
 
 		const apiRes = await releaseToApi.json();
-		console.log('apiRes: ', apiRes);
+
 		if (!apiRes.id) {
 			return NextResponse.json(
 				{

@@ -39,7 +39,7 @@ const page = () => {
 	});
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
-		console.log(`Cambiando ${name} a:`, value);
+
 		setFormData(prev => ({
 			...prev,
 			[name]: value,
@@ -120,7 +120,6 @@ const page = () => {
 					prev.status,
 			}));
 		}
-		console.log('publisheer', userData);
 	}, [userData]);
 	return (
 		<AnimatePresence>

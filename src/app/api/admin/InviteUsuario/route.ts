@@ -6,8 +6,6 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { createLog } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-	console.log('INVITAR USUARIOS received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -26,7 +24,6 @@ export async function POST(req: NextRequest) {
 				new TextEncoder().encode(process.env.JWT_SECRET)
 			);
 			verifiedPayload = payload;
-
 		} catch (err) {
 			console.error('JWT verification failed', err);
 
@@ -46,7 +43,6 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-
 
 		if (role === 'artista') {
 			const data = {
@@ -80,7 +76,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const artistData = await artistResponse.json();
-		
+
 			if (!artistData.success) {
 				return NextResponse.json(
 					{
@@ -101,7 +97,7 @@ export async function POST(req: NextRequest) {
 				details: `Usuario invitado: ${name}`,
 				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
 			};
-		
+
 			await createLog(logData);
 		}
 		if (role === 'admin') {
@@ -122,7 +118,7 @@ export async function POST(req: NextRequest) {
 				}
 			);
 			const apiRes = await apiReq.json();
-		
+
 			if (!apiRes.success) {
 				return NextResponse.json(
 					{
@@ -180,7 +176,6 @@ export async function POST(req: NextRequest) {
 			const apiRes = await apiReq.json();
 
 			if (!apiRes.success) {
-			
 				return NextResponse.json(
 					{
 						success: false,
@@ -216,7 +211,6 @@ export async function POST(req: NextRequest) {
 			const apiRes = await apiReq.json();
 
 			if (!apiRes.success) {
-			
 				return NextResponse.json(
 					{
 						success: false,
@@ -249,7 +243,6 @@ export async function POST(req: NextRequest) {
 		// Verificar la conexión antes de enviar
 		try {
 			await transporter.verify();
-
 		} catch (error) {
 			console.error('Error al verificar la conexión SMTP:', error);
 
@@ -307,7 +300,6 @@ export async function POST(req: NextRequest) {
 			subject: 'Invitación a la plataforma',
 			html: emailContent,
 		});
-
 
 		return NextResponse.json({
 			success: true,

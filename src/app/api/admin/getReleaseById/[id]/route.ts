@@ -8,7 +8,6 @@ export async function GET(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
-	console.log('get contributor roles received');
 	const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 	const token = req.cookies.get('loginToken')?.value;
 	if (!token) {

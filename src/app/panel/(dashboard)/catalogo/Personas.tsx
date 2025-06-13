@@ -120,7 +120,6 @@ const Personas = () => {
 			if (response.ok) {
 				const data = await response.json();
 				if (data.success) {
-					console.log('PERSONAS ', data.data.users);
 					setUsers(data.data.users);
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);

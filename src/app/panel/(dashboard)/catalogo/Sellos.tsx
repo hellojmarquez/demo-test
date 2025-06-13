@@ -83,7 +83,6 @@ export default function SellosPage() {
 			}
 
 			const updatedSello = await response.json();
-			console.log('Sello actualizado recibido');
 
 			// Actualizar el estado con el sello actualizado
 			setSellos(prevSellos =>

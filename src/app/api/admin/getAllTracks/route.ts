@@ -10,8 +10,6 @@ import { sortMiddleware, SortOptions } from '@/middleware/sort';
 import { jwtVerify } from 'jose';
 
 export async function GET(req: NextRequest) {
-	console.log('get singletracks received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;

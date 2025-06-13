@@ -8,8 +8,6 @@ import { sortMiddleware, SortOptions } from '@/middleware/sort';
 import { jwtVerify } from 'jose';
 
 export async function GET(req: NextRequest) {
-	console.log('get users received');
-
 	try {
 		// Verificar autenticación
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;

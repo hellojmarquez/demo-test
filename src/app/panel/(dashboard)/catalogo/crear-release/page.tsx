@@ -169,13 +169,7 @@ const CreateReleasePage = () => {
 				const artistsData = await artistsRes.json();
 				const selloRes = await fetch('/api/admin/getAllSellos');
 				const selloData = await selloRes.json();
-				// const publisherRes = await fetch('/api/admin/getAllPublishers');
-				// const publisherData = await publisherRes.json();
 
-				// if (publisherData.success && Array.isArray(publisherData.data)) {
-				// 	setSelloData(publisherData.data);
-				// 	console.log(publisherData.data);
-				// }
 				if (selloData.success && Array.isArray(selloData.data)) {
 					setSelloData(selloData.data);
 				}

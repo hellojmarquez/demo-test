@@ -177,7 +177,7 @@ export default function EditPage() {
 
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
-			console.log('FORM DATA A ENVIAR: ', formData);
+
 			const response = await fetch(
 				`/api/admin/updateRelease/${updatedRelease.external_id}`,
 				{
@@ -231,14 +231,11 @@ export default function EditPage() {
 			setIsLoading(false);
 		}
 	};
-	useEffect(() => {
-		console.log('tracksData', tracksData);
-	}, [tracksData]);
+
 	const handleEditTrack = async (track: any) => {
 		try {
 			// Si es un track nuevo (sin external_id), manejarlo directamente
 			if (!track.external_id || track.external_id === 'undefined') {
-				console.log('Editando track nuevo');
 				setSelectedTrack(track);
 				setEditedTrackData(track);
 				setActiveTab('tracks');
@@ -252,17 +249,12 @@ export default function EditPage() {
 				: null;
 
 			if (existingTrack) {
-				console.log('Usando versión existente del track:', existingTrack);
 				setSelectedTrack(existingTrack);
 				setEditedTrackData(existingTrack);
 				setActiveTab('tracks');
 				return;
 			}
 
-			// Si no está en tracksData, hacer fetch al backend
-			console.log(
-				'Track no encontrado en tracksData, buscando en el backend...'
-			);
 			const response = await fetch(
 				`/api/admin/getTrackById/${track.external_id}`
 			);

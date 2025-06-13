@@ -8,8 +8,6 @@ import { paginationMiddleware } from '@/middleware/pagination';
 import { searchMiddleware } from '@/middleware/search';
 
 export async function GET(req: NextRequest) {
-	console.log('get sellos roles received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;

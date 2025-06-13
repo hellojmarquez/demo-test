@@ -185,7 +185,7 @@ const TrendsPage = () => {
 		const fetchReleases = async () => {
 			const response = await fetch('/api/admin/getAllReleases?all=true');
 			const data = await response.json();
-			console.log(data.data.releases);
+
 			if (!data.success) {
 				setError(data.error);
 				return;

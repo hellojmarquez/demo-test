@@ -1498,7 +1498,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 									// Añadir el resto de los datos del track
 									formData.append('data', JSON.stringify(localTrack));
-									console.log('localTrack: ', localTrack);
+
 									// Si tiene external_id, actualizar el track existente
 									const response = await fetch(
 										`/api/admin/updateSingle/${localTrack.external_id}`,
@@ -1513,7 +1513,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									}
 
 									const data = await response.json();
-									console.log('RESPUESTA UPDATE SINGLE', data);
+
 									if (!data.success) {
 										throw new Error(
 											data.error || 'Error al actualizar el track'

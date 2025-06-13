@@ -56,8 +56,6 @@ export default function DDXDeliveryPage() {
 		{ label: 'METADATA UPDATE', value: 'METADATA_UPDATE' },
 	];
 	useEffect(() => {
-		console.log('selectedRelease: ', selectedRelease);
-		console.log('selectedAction: ', selectedAction);
 		fetchData();
 	}, [currentPage, searchTerm, selectedRelease, selectedAction]);
 
@@ -73,7 +71,7 @@ export default function DDXDeliveryPage() {
 				throw new Error('Error al cargar los datos');
 			}
 			const jsonData = await response.json();
-			console.log('jsonData: ', jsonData);
+
 			setData(jsonData.data);
 			const releaseReq = await fetch(`/api/admin/getAllReleases?all=true`);
 			if (!releaseReq.ok) {

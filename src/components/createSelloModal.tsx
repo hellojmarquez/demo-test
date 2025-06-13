@@ -264,7 +264,6 @@ function CreateSelloModal({
 			const data = await response.json();
 
 			if (!data.success) {
-				console.log('data: ', data);
 				let errorMessage = 'Error al crear el sello';
 
 				if (data.error) {

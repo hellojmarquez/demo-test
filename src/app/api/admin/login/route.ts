@@ -5,7 +5,6 @@ import User from '@/models/UserModel';
 import { comparePassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
-	console.log('Login admin request received');
 	try {
 		const { email, password } = await req.json();
 		if (!email || !password) {

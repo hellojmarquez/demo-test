@@ -161,7 +161,6 @@ export async function PUT(
 		const externalApiResJson = await externalApiRes.json();
 
 		if (!externalApiResJson.id) {
-			console.log('externalApiResJson: ', externalApiResJson);
 			return NextResponse.json(
 				{
 					success: false,

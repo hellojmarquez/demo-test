@@ -7,8 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createLog } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-	console.log(' release USER DECLARATION received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -48,7 +46,7 @@ export async function POST(req: NextRequest) {
 			user_declaration,
 			release_license: '',
 		};
-		console.log('dataToApi: ', dataToApi);
+
 		if (doc) {
 			if (doc.type !== 'application/pdf') {
 				return NextResponse.json(
@@ -131,7 +129,6 @@ export async function POST(req: NextRequest) {
 
 		const apiRes = await uploadDataReq.json();
 		if (!apiRes.release) {
-			console.log('apiRes error: ', apiRes);
 			return NextResponse.json(
 				{
 					success: false,

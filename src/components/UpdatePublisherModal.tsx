@@ -47,9 +47,6 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 	isOpen,
 	onClose,
 }) => {
-	console.log('UpdatePublisherModal recibió publisher:', publisher);
-	console.log('Email recibido en el modal:', publisher.email);
-
 	const [formData, setFormData] = useState({
 		name: publisher.name,
 		email: publisher.email || '',
@@ -89,8 +86,6 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 	};
 
 	useEffect(() => {
-		console.log('Publisher actualizado en useEffect:', publisher);
-		console.log('Email del publisher en useEffect:', publisher.email);
 		setFormData(prev => ({
 			...prev,
 			name: publisher.name,
@@ -102,7 +97,7 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
-		console.log(`Cambiando ${name} a:`, value);
+
 		setFormData(prev => ({
 			...prev,
 			[name]: value,

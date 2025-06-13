@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 export async function GET(req: NextRequest) {
-	console.log('get contributor roles received');
-
 	try {
 		// Obtener el token
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;

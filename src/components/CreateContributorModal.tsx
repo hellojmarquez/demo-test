@@ -66,18 +66,6 @@ export default function CreateContributorModal({
 				throw new Error(data.error || 'Error al crear el contribuidor');
 			}
 
-			console.log('Respuesta del servidor al crear contributor:', {
-				success: data.success,
-				contributor: {
-					_id: data.contributor._id,
-					name: data.contributor.name,
-					email: data.contributor.email,
-					external_id: data.contributor.external_id,
-					role: data.contributor.role,
-					createdAt: data.contributor.createdAt,
-				},
-			});
-
 			await onSave(data.contributor);
 			setFormData({ name: '', email: '', password: '' });
 			onClose();

@@ -186,7 +186,6 @@ export default function UsuariosPage() {
 					}&sort=${sortBy}`
 				);
 				const data = await res.json();
-				console.log('data: ', data);
 				if (data.success) {
 					let filteredUsers = data.data.users;
 
@@ -211,16 +210,6 @@ export default function UsuariosPage() {
 		fetchUsers();
 	}, [currentPage, searchQuery, sortBy, selectedRole]);
 
-	useEffect(() => {
-		console.log('selectedRole changed:', selectedRole);
-		console.log('selectedRole value:', selectedRole?.value);
-	}, [selectedRole]);
-
-	const handleRoleChange = (option: RoleOption | null) => {
-		console.log('handleRoleChange called with:', option);
-		setSelectedRole(option);
-	};
-
 	if (loading) {
 		return (
 			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
@@ -230,15 +219,12 @@ export default function UsuariosPage() {
 	}
 
 	const handleEdit = (user: User) => {
-		console.log('Rol del usuario:', user.role);
-
 		// Verificar si el rol es "artist" o "artista" (ignorando mayúsculas/minúsculas)
 		if (
 			user.role &&
 			(user.role.toLowerCase() === 'artist' ||
 				user.role.toLowerCase() === 'artista')
 		) {
-			console.log('Es un artista, abriendo modal de artista');
 			// Asegurarse de que el artista tenga el external_id
 			const artista = {
 				...user,
@@ -249,12 +235,6 @@ export default function UsuariosPage() {
 		}
 		// Verificar si el rol es "sello"
 		else if (user.role && user.role.toLowerCase() === 'sello') {
-			console.log('Es un sello, datos completos:', {
-				...user,
-				email: user.email,
-				role: user.role,
-				external_id: user.external_id,
-			});
 			// Adaptar los datos del usuario al formato esperado por UpdateSelloModal
 			const adaptedSelloData = {
 				_id: user._id,
@@ -284,25 +264,19 @@ export default function UsuariosPage() {
 		}
 		// Verificar si el rol es "admin"
 		else if (user.role && user.role.toLowerCase() === 'admin') {
-			console.log('Es un administrador, abriendo modal de admin');
 			setSelectedAdmin(user);
 			setShowAdminModal(true);
 		}
 		// Verificar si el rol es "contributor"
 		else if (user.role && user.role.toLowerCase() === 'contributor') {
-			console.log('Es un contribuidor, abriendo modal de contribuidor');
 			setSelectedContributor(user);
 			setShowContributorModal(true);
 		}
 		// Verificar si el rol es "publisher"
 		else if (user.role && user.role.toLowerCase() === 'publisher') {
-			console.log('Es un publisher, abriendo modal de publisher');
 			setSelectedPublisher(user);
 			setShowPublisherModal(true);
 		} else {
-			console.log(
-				'No es un artista, sello, admin, contribuidor ni publisher, usando edición normal'
-			);
 			setEditingUserId(user._id);
 			setEditedUser({ ...user });
 		}
@@ -510,7 +484,7 @@ export default function UsuariosPage() {
 			const hasImage = formData.has('picture');
 			const headers: HeadersInit = {};
 			let body: string | FormData;
-			console.log('formData: ', formData);
+
 			if (hasImage) {
 				// Si hay imagen, enviar como FormData
 				body = formData;
@@ -536,7 +510,6 @@ export default function UsuariosPage() {
 			}
 
 			const external_id = formData.get('external_id');
-			console.log('body SELLO: ', body);
 
 			const res = await fetch(`/api/admin/updateSello/${external_id}`, {
 				method: 'PUT',
@@ -608,13 +581,7 @@ export default function UsuariosPage() {
 		const [error, setError] = useState<string | null>(null);
 		const catalogNumRef = useRef<HTMLInputElement>(null);
 
-		useEffect(() => {
-			console.log('Modal selectedRole changed:', selectedRole);
-			console.log('Modal selectedRole value:', selectedRole?.value);
-		}, [selectedRole]);
-
 		const handleRoleChange = (option: RoleOption | null) => {
-			console.log('Modal handleRoleChange called with:', option);
 			setSelectedRole(option);
 		};
 
@@ -647,7 +614,7 @@ export default function UsuariosPage() {
 			e.preventDefault();
 			setError(null);
 			setIsLoading(true);
-			console.log('selectedRole', selectedRole?.value);
+
 			try {
 				let response;
 				let data;
@@ -692,7 +659,6 @@ export default function UsuariosPage() {
 					throw new Error(data.error || 'Error al invitar usuario');
 				}
 
-				console.log('data', data);
 				toast.success('El usuario ha sido invitado');
 				setShowInviteModal(false);
 				setName('');
@@ -1109,7 +1075,6 @@ export default function UsuariosPage() {
 
 			{showArtistModal && selectedArtist && (
 				<>
-					{console.log('Renderizando modal de artista')}
 					<UpdateArtistaModal
 						artista={{
 							_id: selectedArtist._id,
@@ -1134,7 +1099,6 @@ export default function UsuariosPage() {
 						}}
 						isOpen={showArtistModal}
 						onClose={() => {
-							console.log('Cerrando modal de artista');
 							setShowArtistModal(false);
 							setSelectedArtist(null);
 						}}
@@ -1145,12 +1109,10 @@ export default function UsuariosPage() {
 
 			{showSelloModal && selectedSello && (
 				<>
-					{console.log('Renderizando modal de sello')}
 					<UpdateSelloModal
 						sello={selectedSello as any}
 						isOpen={showSelloModal}
 						onClose={() => {
-							console.log('Cerrando modal de sello');
 							setShowSelloModal(false);
 							setSelectedSello(null);
 						}}
@@ -1161,12 +1123,10 @@ export default function UsuariosPage() {
 
 			{showAdminModal && selectedAdmin && (
 				<>
-					{console.log('Renderizando modal de admin')}
 					<UpdateAdminModal
 						admin={selectedAdmin}
 						isOpen={showAdminModal}
 						onClose={() => {
-							console.log('Cerrando modal de admin');
 							setShowAdminModal(false);
 							setSelectedAdmin(null);
 						}}
@@ -1177,7 +1137,6 @@ export default function UsuariosPage() {
 
 			{showContributorModal && selectedContributor && (
 				<>
-					{console.log('Renderizando modal de contribuidor')}
 					<UpdateContributorModal
 						contributor={{
 							id: selectedContributor._id,
@@ -1195,7 +1154,6 @@ export default function UsuariosPage() {
 						onUpdate={handleContributorUpdate}
 						isOpen={showContributorModal}
 						onClose={() => {
-							console.log('Cerrando modal de contribuidor');
 							setShowContributorModal(false);
 							setSelectedContributor(null);
 						}}
@@ -1205,7 +1163,6 @@ export default function UsuariosPage() {
 
 			{showPublisherModal && selectedPublisher && (
 				<>
-					{console.log('Renderizando modal de publisher')}
 					<UpdatePublisherModal
 						publisher={{
 							_id: selectedPublisher._id,

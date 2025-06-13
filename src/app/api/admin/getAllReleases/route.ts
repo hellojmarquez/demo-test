@@ -11,8 +11,6 @@ import { searchMiddleware } from '@/middleware/search';
 import { sortMiddleware, SortOptions } from '@/middleware/sort';
 
 export async function GET(req: NextRequest) {
-	console.log('get releases roles received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;

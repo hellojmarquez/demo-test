@@ -11,7 +11,6 @@ export async function PUT(
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		console.log('update track');
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
 		if (!token) {
@@ -96,7 +95,7 @@ export async function PUT(
 				method: 'POST',
 				body: trackFormData,
 			});
-			console.log('uploadResponse', uploadResponse);
+
 			track_url = uploadResponse?.headers?.get('location') || '';
 
 			if (track_url) {
@@ -104,7 +103,6 @@ export async function PUT(
 					new URL(track_url).pathname.slice(1)
 				);
 				track_path = trackDecoed.replace('media/', '');
-				console.log('track_path', track_path);
 			}
 
 			if (!uploadResponse.ok) {
@@ -175,7 +173,7 @@ export async function PUT(
 				);
 			}
 		}
-		console.log('trackData', trackData);
+
 		let currentTrackFormated = '';
 		if (currentTrack.resource && currentTrack.resource.length > 0) {
 			const currentTrackDecoded = decodeURIComponent(
@@ -257,10 +255,9 @@ export async function PUT(
 				},
 			}
 		);
-		console.log('trackToApi STATUS', trackToApi.ok);
 
 		const apires = await trackToApi.json();
-		console.log('apires', apires);
+
 		if (!apires.id) {
 			return NextResponse.json(
 				{ success: false, error: apires || 'Error al actualizar el track' },
@@ -299,7 +296,7 @@ export async function PUT(
 		}
 		trackData.resource =
 			track_url.length > 0 ? track_url : currentTrack.resource;
-		console.log('trackData a base de datos', trackData);
+
 		// Actualizar el track
 		const updatedTrack = await SingleTrack.findOneAndUpdate(
 			{ external_id: trackId },
@@ -325,7 +322,7 @@ export async function PUT(
 			},
 			{ new: true }
 		);
-		console.log('updatedRelease: ', updatedRelease);
+
 		if (!updatedRelease) {
 			return NextResponse.json(
 				{ success: false, error: 'No se encontró el release para actualizar' },

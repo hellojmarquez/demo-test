@@ -135,11 +135,10 @@ export async function PUT(
 		// Manejar nuevos artistas si existen
 		if (releaseData.newArtists && releaseData.newArtists.length > 0) {
 			const createdArtists = [];
-
 			for (const newArtist of releaseData.newArtists) {
 				try {
 					const createArtistReq = await fetch(
-						`${req.nextUrl.origin}/api/admin/createArtist`,
+						`${req.nextUrl.origin}/api/admin/createArtistInRelease`,
 						{
 							method: 'POST',
 							headers: {
@@ -147,6 +146,8 @@ export async function PUT(
 								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
 							},
 							body: JSON.stringify({
+								order: newArtist.order,
+								kind: newArtist.kind,
 								name: newArtist.name,
 								email: newArtist.email,
 								amazon_music_identifier: newArtist.amazon_music_identifier,
@@ -159,14 +160,9 @@ export async function PUT(
 
 					const createArtistRes = await createArtistReq.json();
 
-					if (createArtistRes.success && createArtistRes.data) {
+					if (createArtistRes.success && createArtistRes.artist) {
 						// Agregar el artista creado al array de artistas del release
-						createdArtists.push({
-							order: newArtist.order,
-							artist: createArtistRes.data.external_id,
-							kind: newArtist.kind,
-							name: newArtist.name,
-						});
+						createdArtists.push(createArtistRes.artist);
 					} else {
 						console.error('Error al crear artista:', createArtistRes);
 					}

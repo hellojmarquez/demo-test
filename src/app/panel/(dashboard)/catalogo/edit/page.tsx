@@ -74,6 +74,7 @@ export default function EditPage() {
 		exclusive_shop: 0,
 		territory: '',
 		ean: '',
+		newArtists: [],
 		createdAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 	});
@@ -152,6 +153,7 @@ export default function EditPage() {
 
 	const handleSave = async (updatedRelease: Release) => {
 		setIsLoading(true);
+		console.log('updatedRelease: ', updatedRelease);
 		try {
 			const formData = new FormData();
 
@@ -195,6 +197,7 @@ export default function EditPage() {
 						...data.data,
 						tracks: data.data.tracks || [],
 						artists: data.data.artists || [],
+						newArtists: data.data.newArtists || [],
 					};
 					setFormData(serializedData);
 				} else {
@@ -306,7 +309,6 @@ export default function EditPage() {
 						<div className="w-full overflow-x-auto bg-white sm:mx-0 p-0 md:px-3  sm:px-0">
 							<UpdateReleasePage
 								release={formData}
-								onSave={handleSave}
 								formData={formData}
 								setFormData={setFormData}
 								onEditTrack={handleEditTrack}

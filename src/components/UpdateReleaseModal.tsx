@@ -51,7 +51,6 @@ interface ReleaseTrack {
 
 interface UpdateReleasePageProps {
 	release: Release;
-	onSave: (updatedRelease: Release) => void;
 	formData: Release;
 	setFormData: React.Dispatch<React.SetStateAction<Release>>;
 	onEditTrack: (track: ReleaseTrack) => void;

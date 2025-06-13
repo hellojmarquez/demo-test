@@ -112,7 +112,8 @@ export async function POST(req: NextRequest) {
 			parentName: null,
 			tipo: 'principal',
 		});
-		if (!newArtist.external_id) {
+		console.log('newArtist: ', newArtist);
+		if (!newArtist) {
 			return NextResponse.json(
 				{ success: false, error: 'Error al crear el artista' },
 				{ status: 400 }
@@ -139,10 +140,10 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({
 			success: true,
 			artist: {
-				id: artistaRes.id,
+				order,
+				artist: artistaRes.id,
 				kind,
 				name,
-				order,
 			},
 		});
 	} catch (error) {

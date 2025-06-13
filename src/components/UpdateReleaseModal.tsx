@@ -944,6 +944,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						}`}
 					>
 						{safeRelease.tracks?.map((track, index) => {
+							console.log('track: ', track);
 							return (
 								<div
 									key={index}
@@ -989,13 +990,11 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 													{track.ISRC}
 												</div>
 											)}
-											{track.resource ? (
+											{track.resource && (
 												<div className="flex items-center gap-2">
 													<button
 														type="button"
 														onClick={() => {
-															console.log('Track data:', track);
-															console.log('Resource:', track.resource);
 															navigator.clipboard.writeText(track.resource);
 															setCopiedTrackId(track.external_id || null);
 															setTimeout(() => setCopiedTrackId(null), 2000);
@@ -1014,13 +1013,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 															</>
 														)}
 													</button>
-												</div>
-											) : (
-												<div className="text-sm text-gray-500">
-													{(() => {
-														console.log('Track sin resource:', track);
-														return 'Pendiente de subir';
-													})()}
 												</div>
 											)}
 											{track.dolby_atmos_resource && (

@@ -110,7 +110,7 @@ export async function DELETE(
 		delete dataToApi.status;
 		delete dataToApi.genre_name;
 		delete dataToApi.subgenre_name;
-		console.log('DATA TO API: ', dataToApi);
+
 		const updateTrackReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${track.external_id}`,
 			{
@@ -125,7 +125,7 @@ export async function DELETE(
 			}
 		);
 		const updateTrackRes = await updateTrackReq.json();
-		console.log('UPDATE API TRACK RES: ', updateTrackRes);
+
 		if (!updateTrackRes.id) {
 			return NextResponse.json(
 				{
@@ -138,13 +138,12 @@ export async function DELETE(
 		if (!track.ISRC || track.ISRC.length === 0) {
 			track.ISRC = updateTrackRes.ISRC;
 		}
-		console.log('RESPUESTA DE API: ', updateTrackRes);
 
 		await SingleTrack.findByIdAndUpdate(track._id, {
 			$set: {
 				available: false,
 				ISRC: track.ISRC,
-				release:883
+				release: 883,
 			},
 		});
 
@@ -182,7 +181,7 @@ export async function DELETE(
 		const updatedTracks = releaseData.tracks.filter(
 			(track: any) => track.external_id !== trackId
 		);
-		console.log('UPDATED TRACKS DESPUES DE FILTRO: ', updatedTracks);
+
 		// Actualizar el release con el nuevo array de tracks
 		const updatedRelease = await Release.findOneAndUpdate(
 			{ external_id: releaseData.external_id },

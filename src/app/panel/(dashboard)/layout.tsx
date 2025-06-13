@@ -157,7 +157,19 @@ export default function DashboardLayout({
 											</div>
 										</div>
 									</div>
-
+									<Link
+										href="/panel/trends"
+										className={`flex items-center p-2 transition-colors relative group ${
+											isActive('/panel/trends')
+												? 'text-white border-b-2'
+												: 'text-white'
+										}`}
+										onClick={() => setMobileMenuOpen(false)}
+									>
+										<TrendingUpDown size={18} className="mr-2" />
+										<span>Trends</span>
+										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
+									</Link>
 									{isAdmin && (
 										<>
 											<Link
@@ -201,19 +213,6 @@ export default function DashboardLayout({
 											</Link>
 										</>
 									)}
-									<Link
-										href="/panel/trends"
-										className={`flex items-center p-2 transition-colors relative group ${
-											isActive('/panel/trends')
-												? 'text-white border-b-2'
-												: 'text-white'
-										}`}
-										onClick={() => setMobileMenuOpen(false)}
-									>
-										<TrendingUpDown size={18} className="mr-2" />
-										<span>Trends</span>
-										<span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full group-hover:left-0"></span>
-									</Link>
 								</div>
 								<div className="flex items-center space-x-4">
 									<AccountSwitchButton />
@@ -287,6 +286,18 @@ export default function DashboardLayout({
 												</Link>
 											)}
 										</div>
+										<Link
+											href="/panel/trends"
+											className={`flex items-center p-3 transition-colors relative group ${
+												isActive('/panel/trends')
+													? 'text-white border-l-2 border-white'
+													: 'text-white'
+											}`}
+											onClick={() => setMobileMenuOpen(false)}
+										>
+											<TrendingUpDown size={18} className="mr-2" />
+											<span>Trends</span>
+										</Link>
 										{isAdmin && (
 											<>
 												<Link
@@ -327,18 +338,6 @@ export default function DashboardLayout({
 												</Link>
 											</>
 										)}
-										<Link
-											href="/panel/trends"
-											className={`flex items-center p-3 transition-colors relative group ${
-												isActive('/panel/trends')
-													? 'text-white border-l-2 border-white'
-													: 'text-white'
-											}`}
-											onClick={() => setMobileMenuOpen(false)}
-										>
-											<TrendingUpDown size={18} className="mr-2" />
-											<span>Trends</span>
-										</Link>
 									</div>
 								</div>
 							</nav>

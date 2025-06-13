@@ -139,11 +139,12 @@ export async function POST(req: NextRequest) {
 		);
 
 		const releaseData = await getRelease.json();
-		console.log('releaseData: ', releaseData);
+		console.log('releaseData: ', releaseData.name);
 		const existingTrack = releaseData.data.tracks.find(
 			(track: any) => track.title === trackData.name
 		);
 		if (existingTrack) {
+			console.log('existingTrack: ', existingTrack);
 			return NextResponse.json(
 				{
 					success: false,

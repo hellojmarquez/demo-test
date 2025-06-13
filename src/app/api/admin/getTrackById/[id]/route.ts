@@ -88,7 +88,7 @@ export async function GET(
 				select: '+qc_feedback +ISRC ', // Forzar la inclusión del campo
 			}
 		);
-		console.log('updateResult ', updateResult);
+	
 		return NextResponse.json({
 			success: true,
 			data: updateResult,

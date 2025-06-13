@@ -121,6 +121,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 	const [localTrack, setLocalTrack] = useState<Partial<Track>>(track || {});
 	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
+	const [isCreatePublisherModalOpen, setIsCreatePublisherModalOpen] =
+		useState(false);
 	const [newArtistData, setNewArtistData] = useState<NewArtistData>({
 		name: '',
 		email: '',
@@ -128,6 +130,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		apple_music_id: '',
 		deezer_id: '',
 		spotify_id: '',
+	});
+	const [newPublishers, setNewPublishers] = useState({
+		name: '',
+		email: '',
+		password: '',
 	});
 
 	// Actualizar el estado local cuando cambia el prop track
@@ -360,6 +367,56 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				alert('Por favor, selecciona un archivo WAV válido');
 				e.target.value = '';
 			}
+		}
+	};
+
+	// Función para recargar publishers
+	const reloadPublishers = async () => {
+		try {
+			const response = await fetch('/api/admin/getAllPublishers');
+			const data = await response.json();
+			if (data.success) {
+				setPublishers(data.data.publishers);
+			}
+		} catch (error) {
+			console.error('Error reloading publishers:', error);
+		}
+	};
+
+	// Función para crear publisher
+	const handleCreatePublisher = async () => {
+		setIsLoading(true);
+		setError('');
+
+		try {
+			const response = await fetch('/api/admin/createPublisher', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(newPublishers),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Error al crear el publisher');
+			}
+
+			// Cerrar modal y limpiar formulario
+			setIsCreatePublisherModalOpen(false);
+			setNewPublishers({ name: '', email: '', password: '' });
+
+			// Recargar lista de publishers
+			await reloadPublishers();
+
+			// Mostrar mensaje de éxito
+			toast.success('Publisher creado exitosamente');
+		} catch (error: any) {
+			setError(error.message);
+			toast.error(error.message);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -1173,7 +1230,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
 						<button
 							type="button"
-							onClick={handleAddPublisher}
+							onClick={() => setIsCreatePublisherModalOpen(true)}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
 							<Plus size={20} />
@@ -1231,6 +1288,31 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											}),
 										}}
 										isClearable
+										isSearchable={true}
+										components={{
+											NoOptionsMessage: ({ inputValue }: any) => (
+												<div className="p-2 text-center">
+													<p className="text-sm text-gray-500 mb-2">
+														No se encontraron publishers para "{inputValue}"
+													</p>
+													<button
+														onClick={e => {
+															e.preventDefault();
+															e.stopPropagation();
+															setNewPublishers(prev => ({
+																...prev,
+																name: inputValue || '',
+															}));
+															setIsCreatePublisherModalOpen(true);
+														}}
+														className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
+													>
+														<Plus className="w-4 h-4 mr-1" />
+														Crear nuevo publisher
+													</button>
+												</div>
+											),
+										}}
 									/>
 								</div>
 
@@ -1320,8 +1402,31 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											instanceId={`publisher-select-${
 												publisher?.publisher || 'new'
 											}`}
-											noOptionsMessage={() => 'No hay publishers disponibles'}
-											isSearchable={false}
+											isSearchable={true}
+											components={{
+												NoOptionsMessage: ({ inputValue }: any) => (
+													<div className="p-2 text-center">
+														<p className="text-sm text-gray-500 mb-2">
+															No se encontraron publishers
+														</p>
+														<button
+															onClick={e => {
+																e.preventDefault();
+																e.stopPropagation();
+																setNewPublishers(prev => ({
+																	...prev,
+																	name: inputValue || '',
+																}));
+																setIsCreatePublisherModalOpen(true);
+															}}
+															className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
+														>
+															<Plus className="w-4 h-4 mr-1" />
+															Crear nuevo publisher
+														</button>
+													</div>
+												),
+											}}
 										/>
 									</div>
 									<div className="flex items-center gap-2">
@@ -1639,6 +1744,97 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								className="w-full sm:w-auto px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md transition-colors"
 							>
 								Crear Artista
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{isCreatePublisherModalOpen && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+					<div className="bg-white rounded-lg p-6 w-full max-w-md">
+						<h2 className="text-xl font-semibold mb-4">
+							Crear nuevo Publisher
+						</h2>
+
+						{error && (
+							<div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
+								{error}
+							</div>
+						)}
+
+						<div className="space-y-4">
+							<div>
+								<label className="block text-sm font-medium text-gray-700">
+									Nombre
+								</label>
+								<input
+									type="text"
+									value={newPublishers.name}
+									onChange={e =>
+										setNewPublishers(prev => ({
+											...prev,
+											name: e.target.value,
+										}))
+									}
+									className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-light focus:ring-brand-light"
+									disabled={isLoading}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700">
+									Email
+								</label>
+								<input
+									type="email"
+									value={newPublishers.email}
+									onChange={e =>
+										setNewPublishers(prev => ({
+											...prev,
+											email: e.target.value,
+										}))
+									}
+									className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-light focus:ring-brand-light"
+									disabled={isLoading}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700">
+									Contraseña
+								</label>
+								<input
+									type="password"
+									value={newPublishers.password}
+									onChange={e =>
+										setNewPublishers(prev => ({
+											...prev,
+											password: e.target.value,
+										}))
+									}
+									className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-light focus:ring-brand-light"
+									disabled={isLoading}
+								/>
+							</div>
+						</div>
+
+						<div className="mt-6 flex justify-end gap-3">
+							<button
+								onClick={() => {
+									setIsCreatePublisherModalOpen(false);
+									setNewPublishers({ name: '', email: '', password: '' });
+									setError('');
+								}}
+								className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+								disabled={isLoading}
+							>
+								Cancelar
+							</button>
+							<button
+								onClick={handleCreatePublisher}
+								className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
+								disabled={isLoading}
+							>
+								{isLoading ? 'Creando...' : 'Crear'}
 							</button>
 						</div>
 					</div>

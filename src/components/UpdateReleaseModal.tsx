@@ -453,7 +453,20 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			}
 		}
 	};
-
+	const fetchReleaseData = async () => {
+		try {
+			const response = await fetch(
+				`/api/admin/getReleaseById/${release.external_id}`
+			);
+			if (!response.ok) {
+				throw new Error('Error al obtener los datos del release');
+			}
+			const data = await response.json();
+			setFormData(data);
+		} catch (err) {
+			console.error('Error al obtener los datos del release:', err);
+		}
+	};
 	// Efecto para manejar el final de la reproducción y el progreso
 	useEffect(() => {
 		const audio = audioRef.current;
@@ -538,25 +551,10 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		}
 	};
 
-	const fetchReleaseData = async () => {
-		try {
-			const response = await fetch(
-				`/api/admin/getReleaseById/${release.external_id}`
-			);
-			if (!response.ok) {
-				throw new Error('Error al obtener los datos del release');
-			}
-			const data = await response.json();
-			setFormData(data);
-		} catch (err) {
-			console.error('Error al obtener los datos del release:', err);
-		}
-	};
-
 	const handleTracksReady = async (tracks: { file: File; data: any }[]) => {
 		// Cerrar el modal de UploadTrackToRelease inmediatamente
 		setIsUploadModalOpen(false);
-
+		setIsTracksExpanded(true);
 		// Iniciar la carga en segundo plano
 		setIsUploadingTracks(true);
 		setUploadError('');
@@ -588,10 +586,11 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					body: formData,
 				});
 
-				if (!response.ok) {
+				const resData = await response.json();
+
+				if (!response.ok || !resData.success) {
 					throw new Error(`Error al subir el track ${track.file.name}`);
 				}
-
 				// Actualizar el progreso para este track específico
 				setUploadProgress(prev => ({
 					...prev,
@@ -610,12 +609,24 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			await Promise.all(uploadPromises);
 
 			// Refrescar los datos del release después de subir todos los tracks
-			await fetchReleaseData();
 
 			// Limpiar los estados después de completar exitosamente
 			setIsUploadingTracks(false);
 			setUploadProgress({});
 			setUploadError('');
+			// Esperar un momento para asegurar que la base de datos se actualice
+			const verifyResponse = await fetch(
+				`/api/admin/getReleaseById/${release.external_id}`
+			);
+			const res = await verifyResponse.json();
+			if (res.success) {
+				console.log('res: ', res);
+				safeRelease.tracks = res.data.tracks;
+				setFormData(prev => ({
+					...prev,
+					tracks: res.data.tracks,
+				}));
+			}
 		} catch (err: any) {
 			console.error('Error al subir tracks:', err);
 			setUploadError(err.message || 'Error al subir los tracks');

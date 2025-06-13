@@ -156,6 +156,7 @@ export default function EditPage() {
 			const formData = new FormData();
 
 			// Preparar los datos del release manteniendo la estructura original de tracks[]
+
 			const releaseData = {
 				...updatedRelease,
 				tracks: updatedRelease.tracks?.map(track => ({

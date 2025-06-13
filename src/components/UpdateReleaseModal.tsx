@@ -153,9 +153,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const inputStyles =
 		'w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
-	useEffect(() => {
-		console.log('release: ', release);
-	}, [release]);
 	// Add the react-select styles
 	const reactSelectStyles = {
 		control: (base: any) => ({
@@ -293,7 +290,14 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			}
 		}
 	}, [release?.picture]);
-
+	useEffect(() => {
+		if (formData.is_new_release) {
+			setFormData((prev: Release) => ({
+				...prev,
+				original_date: prev.official_date,
+			}));
+		}
+	}, [formData.is_new_release, formData.official_date]);
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -1296,7 +1300,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						</div>
 						<div className="w-full">
 							<label className="block text-sm font-medium text-gray-700">
-								¿Es Nuevo Lanzamiento?
+								¿Es Nuevo lanzamiento?
 							</label>
 							<Select
 								value={{
@@ -1334,18 +1338,20 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								className={inputStyles}
 							/>
 						</div>
-						<div className="w-full">
-							<label className="block text-sm font-medium text-gray-700">
-								Fecha Original
-							</label>
-							<input
-								type="date"
-								name="original_date"
-								value={safeFormData.original_date}
-								onChange={handleChange}
-								className={inputStyles}
-							/>
-						</div>
+						{!formData.is_new_release && (
+							<div className="w-full">
+								<label className="block text-sm font-medium text-gray-700">
+									Fecha de lanzamiento
+								</label>
+								<input
+									type="date"
+									name="original_date"
+									value={safeFormData.original_date}
+									onChange={handleChange}
+									className={inputStyles}
+								/>
+							</div>
+						)}
 					</div>
 				</div>
 

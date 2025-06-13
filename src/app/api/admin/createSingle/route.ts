@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-		console.log('trackData: ', trackData.release);
+
 		const getRelease = await fetch(
 			`${req.nextUrl.origin}/api/admin/getReleaseById/${trackData.release}`,
 			{
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
 		);
 
 		const releaseData = await getRelease.json();
-		console.log('releaseData: ', releaseData.name);
+
 		const existingTrack = releaseData.data.tracks.find(
 			(track: any) => track.title === trackData.name
 		);
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
 
 		// Crear el track
 		const createTrack = await SingleTrack.create(trackData);
-
+		console.log('TRACK CREADO: ', createTrack);
 		if (!createTrack.external_id) {
 			return NextResponse.json(
 				{

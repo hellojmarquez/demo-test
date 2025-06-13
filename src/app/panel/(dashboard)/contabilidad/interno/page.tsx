@@ -333,6 +333,10 @@ const storeOptions = Array.from(new Set(exampleData.map(row => row.Store))).map(
 	store => ({ label: store, value: store })
 );
 
+const countryOptions = Array.from(
+	new Set(exampleData.map(row => row.Country))
+).map(country => ({ label: country, value: country }));
+
 const COLORS = [
 	'#8884d8',
 	'#82ca9d',
@@ -347,16 +351,21 @@ const COLORS = [
 const Page = () => {
 	const [selectedLabel, setSelectedLabel] = React.useState('');
 	const [selectedStores, setSelectedStores] = React.useState(storeOptions);
+	const [selectedCountries, setSelectedCountries] =
+		React.useState(countryOptions);
 
-	// Obtener los valores seleccionados
 	const selectedStoreValues = selectedStores.map(opt => opt.value);
+	const selectedCountryValues = selectedCountries.map(opt => opt.value);
 
-	// Filtrar por label y tiendas
+	// Filtrar por label, tiendas y países
 	const filteredData = exampleData.filter(
 		row =>
 			(selectedLabel ? row.Label === selectedLabel : true) &&
 			(selectedStoreValues.length > 0
 				? selectedStoreValues.includes(row.Store)
+				: true) &&
+			(selectedCountryValues.length > 0
+				? selectedCountryValues.includes(row.Country)
 				: true)
 	);
 
@@ -427,6 +436,18 @@ const Page = () => {
 						}
 						options={storeOptions}
 						placeholder="Filtrar por Tienda"
+						classNamePrefix="react-select"
+					/>
+				</div>
+				<div style={{ minWidth: 250 }}>
+					<Select
+						isMulti
+						value={selectedCountries}
+						onChange={opts =>
+							setSelectedCountries(opts as { label: string; value: string }[])
+						}
+						options={countryOptions}
+						placeholder="Filtrar por País"
 						classNamePrefix="react-select"
 					/>
 				</div>

@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, XCircle, Plus, Trash2, Upload } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Save, XCircle, Plus, Trash2, Upload, Image } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 import 'react-clock/dist/Clock.css';
 import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
-import Select from 'react-select';
+import Select, { SingleValue } from 'react-select';
 import { Track } from '@/types/track';
-import { SingleValue } from 'react-select';
 import { LANGUAGES, VOCALS, LanguageOption } from '@/constants/languages';
 import CustomSwitch from './CustomSwitch';
-import TrackArtistSelector, { TrackArtist } from './TrackArtistSelector';
-import Image from 'next/image';
+import TrackArtistSelector from './TrackArtistSelector';
+import type { TrackArtist, TrackNewArtist } from './TrackArtistSelector';
+import NextImage from 'next/image';
 import ContributorSelector from './ContributorSelector';
 import { toast, Toaster } from 'react-hot-toast';
 
@@ -65,15 +65,17 @@ export interface TrackFormProps {
 
 interface NewArtistData {
 	artist: number;
-	kind: string;
+	kind: 'main' | 'featuring' | 'remixer';
 	order: number;
 	name: string;
 	email: string;
-	amazon_music_id: string;
-	apple_music_id: string;
-	deezer_id: string;
-	spotify_id: string;
+	amazon_music_identifier: string;
+	apple_identifier: string;
+	deezer_identifier: string;
+	spotify_identifier: string;
+	isNew?: boolean;
 }
+
 interface TrackData {
 	external_id: string | number;
 	order: number;
@@ -105,6 +107,7 @@ interface TrackData {
 	track_length: string;
 	available: boolean;
 }
+
 const customSelectStyles = {
 	control: (provided: any) => ({
 		...provided,
@@ -157,14 +160,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 	const [newArtistData, setNewArtistData] = useState<NewArtistData>({
 		artist: 0,
-		kind: '',
+		kind: 'main',
 		order: 0,
 		name: '',
 		email: '',
-		amazon_music_id: '',
-		apple_music_id: '',
-		deezer_id: '',
-		spotify_id: '',
+		amazon_music_identifier: '',
+		apple_identifier: '',
+		deezer_identifier: '',
+		spotify_identifier: '',
 	});
 	const [localTrack, setLocalTrack] = useState<TrackData>({
 		order: 0,
@@ -1098,6 +1101,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								...artist,
 								kind: artist.kind as 'main' | 'featuring' | 'remixer',
 							}))}
+							newArtists={localTrack?.newArtists || []}
 							artistData={
 								artists?.map(a => ({
 									artist: a?.artist || 0,
@@ -1117,12 +1121,26 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								};
 								setLocalTrack(updatedTrack);
 							}}
+							onNewArtistsChange={(newArtists: TrackNewArtist[]) => {
+								setLocalTrack(prev => ({
+									...prev,
+									newArtists: newArtists,
+								}));
+							}}
 							onDeleteArtist={(index: number) => {
 								const newArtists = [...(localTrack?.artists || [])];
 								newArtists.splice(index, 1);
 								setLocalTrack(prev => ({
 									...prev,
 									artists: newArtists,
+								}));
+							}}
+							onDeleteNewArtist={(index: number) => {
+								const newArtists = [...(localTrack?.newArtists || [])];
+								newArtists.splice(index, 1);
+								setLocalTrack(prev => ({
+									...prev,
+									newArtists: newArtists,
 								}));
 							}}
 							onCreateNewArtist={(name: string) => {
@@ -1677,7 +1695,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								<div>
 									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
 										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center">
-											<Image
+											<NextImage
 												src="/icons/Amazon_Music_logo.svg"
 												alt="Amazon Music"
 												width={24}
@@ -1689,11 +1707,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									</label>
 									<input
 										type="text"
-										value={newArtistData.amazon_music_id}
+										value={newArtistData.amazon_music_identifier}
 										onChange={e =>
 											setNewArtistData(prev => ({
 												...prev,
-												amazon_music_id: e.target.value,
+												amazon_music_identifier: e.target.value,
 											}))
 										}
 										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
@@ -1703,7 +1721,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								<div>
 									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
 										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center">
-											<Image
+											<NextImage
 												src="/icons/ITunes_logo.svg"
 												alt="Apple Music"
 												width={24}
@@ -1715,11 +1733,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									</label>
 									<input
 										type="text"
-										value={newArtistData.apple_music_id}
+										value={newArtistData.apple_identifier}
 										onChange={e =>
 											setNewArtistData(prev => ({
 												...prev,
-												apple_music_id: e.target.value,
+												apple_identifier: e.target.value,
 											}))
 										}
 										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
@@ -1729,7 +1747,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								<div>
 									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
 										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center">
-											<Image
+											<NextImage
 												src="/icons/dezzer_logo.svg"
 												alt="Deezer"
 												width={20}
@@ -1741,11 +1759,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									</label>
 									<input
 										type="text"
-										value={newArtistData.deezer_id}
+										value={newArtistData.deezer_identifier}
 										onChange={e =>
 											setNewArtistData(prev => ({
 												...prev,
-												deezer_id: e.target.value,
+												deezer_identifier: e.target.value,
 											}))
 										}
 										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
@@ -1755,7 +1773,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								<div>
 									<label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1.5 sm:gap-2">
 										<div className="h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center">
-											<Image
+											<NextImage
 												src="/icons/spotify_logo.svg"
 												alt="Spotify"
 												width={20}
@@ -1767,11 +1785,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									</label>
 									<input
 										type="text"
-										value={newArtistData.spotify_id}
+										value={newArtistData.spotify_identifier}
 										onChange={e =>
 											setNewArtistData(prev => ({
 												...prev,
-												spotify_id: e.target.value,
+												spotify_identifier: e.target.value,
 											}))
 										}
 										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
@@ -1790,18 +1808,23 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<button
 								onClick={() => {
 									// Crear el nuevo artista con la estructura requerida
-									const newArtist = {
+									const newArtist: NewArtistData = {
 										order: (track?.artists || []).length,
 										artist: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
 										name: newArtistData.name,
-										kind: 'main',
+										kind: 'main' as const,
 										email: newArtistData.email,
-										amazon_music_identifier: newArtistData.amazon_music_id,
-										apple_identifier: newArtistData.apple_music_id,
-										deezer_identifier: newArtistData.deezer_id,
-										spotify_identifier: newArtistData.spotify_id,
+										amazon_music_identifier:
+											newArtistData.amazon_music_identifier,
+										apple_identifier: newArtistData.apple_identifier,
+										deezer_identifier: newArtistData.deezer_identifier,
+										spotify_identifier: newArtistData.spotify_identifier,
+										isNew: true,
 									};
-
+									setLocalTrack((prev: TrackData) => ({
+										...prev,
+										newArtists: [...(prev.newArtists || []), newArtist],
+									}));
 									// Limpiar el formulario y cerrar el modal
 									setNewArtistData({
 										artist: 0,
@@ -1809,10 +1832,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										order: 0,
 										name: '',
 										email: '',
-										amazon_music_id: '',
-										apple_music_id: '',
-										deezer_id: '',
-										spotify_id: '',
+										amazon_music_identifier: '',
+										apple_identifier: '',
+										deezer_identifier: '',
+										spotify_identifier: '',
 									});
 									setIsCreateArtistModalOpen(false);
 								}}

@@ -9,10 +9,12 @@ import {
 
 export type TrackArtist = ReleaseArtist & {
 	kind: 'main' | 'featuring' | 'remixer';
+	isNew?: boolean;
 };
 
 export type TrackNewArtist = ReleaseNewArtist & {
 	kind: 'main' | 'featuring' | 'remixer';
+	isNew?: boolean;
 };
 
 export interface ArtistOption {
@@ -51,6 +53,13 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 }) => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+	const handleCreateNewArtist = (name: string) => {
+		if (onCreateNewArtist) {
+			onCreateNewArtist(name);
+			setIsMenuOpen(false);
+		}
+	};
+
 	return (
 		<div className="space-y-4 flex flex-col  p-2 bg-slate-100">
 			<Select<ArtistOption>
@@ -64,6 +73,7 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 								artist: selectedOption.value,
 								kind: 'main',
 								name: selectedOption.label,
+								isNew: false,
 							} as TrackArtist,
 						]);
 					}
@@ -91,8 +101,7 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 								onClick={e => {
 									e.preventDefault();
 									e.stopPropagation();
-									onCreateNewArtist(inputValue);
-									setIsMenuOpen(false);
+									handleCreateNewArtist(inputValue);
 								}}
 								className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
 							>

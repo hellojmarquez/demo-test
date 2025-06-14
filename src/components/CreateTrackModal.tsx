@@ -1372,8 +1372,25 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<button
 							type="button"
 							onClick={() => {
-								setNewPublishers({ name: '', author: '', email: '' });
-								setIsCreatePublisherModalOpen(true);
+								const maxOrder = Math.max(
+									...(localTrack?.publishers || []).map(
+										(p: { order: number }) => p.order
+									),
+									...(localTrack?.newPublishers || []).map(
+										(p: { order: number }) => p.order
+									),
+									-1
+								);
+								const newPublisher: Publisher = {
+									publisher: 0,
+									name: '',
+									author: '',
+									order: maxOrder + 1,
+								};
+								setLocalTrack(prev => ({
+									...prev,
+									publishers: [...(prev.publishers || []), newPublisher],
+								}));
 							}}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
@@ -1491,88 +1508,95 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2"
 								>
 									<div className="w-full sm:flex-1">
-										<Select
-											value={
-												publisher?.publisher
-													? {
-															value: publisher.publisher,
-															label:
-																publishers.find(
-																	p => p.external_id === publisher.publisher
-																)?.name || '',
-													  }
-													: null
-											}
-											onChange={selectedOption => {
-												if (selectedOption) {
-													console.log('selectedOption', selectedOption);
-													handlePublisherChange(
-														index,
-														'publisher',
-														selectedOption.value
-													);
-												} else {
-													handlePublisherChange(index, 'publisher', 0);
+										{publisher.publisher === 0 && publisher.name ? (
+											<div className="px-3 py-2 text-sm text-gray-700">
+												{publisher.name}
+											</div>
+										) : (
+											<Select
+												value={
+													publisher?.publisher
+														? {
+																value: publisher.publisher,
+																label:
+																	publisher.name ||
+																	publishers.find(
+																		p => p.external_id === publisher.publisher
+																	)?.name ||
+																	'',
+														  }
+														: null
 												}
-											}}
-											options={publishers.map(p => ({
-												value: p.external_id,
-												label: p.name,
-											}))}
-											placeholder="Seleccionar Publisher"
-											styles={{
-												...customSelectStyles,
-												menu: (provided: any) => ({
-													...provided,
-													zIndex: 99999,
-													backgroundColor: 'white',
-													boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-												}),
-												control: (provided: any) => ({
-													...provided,
-													minHeight: '36px',
-													backgroundColor: 'white',
-													border: '1px solid #D1D5DB',
-													borderRadius: '4px',
-													'&:hover': {
-														borderColor: '#4B5563',
-													},
-												}),
-											}}
-											isClearable
-											menuPortalTarget={document.body}
-											menuPosition="fixed"
-											className="react-select-container"
-											classNamePrefix="react-select"
-											instanceId={`publisher-select-${
-												publisher?.publisher || 'new'
-											}`}
-											isSearchable={true}
-											components={{
-												NoOptionsMessage: ({ inputValue }: any) => (
-													<div className="p-2 text-center">
-														<p className="text-sm text-gray-500 mb-2">
-															No se encontraron publishers
-														</p>
-														<button
-															onClick={e => {
-																e.preventDefault();
-																e.stopPropagation();
-																setNewPublishers(prev => ({
-																	...prev,
-																	name: inputValue || '',
-																}));
-																setIsCreatePublisherModalOpen(true);
-															}}
-															className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
-														>
-															<Plus className="w-4 h-4 mr-1" />
-															Crear nuevo publisher
-														</button>
-													</div>
-												),
-											}}
-										/>
+												onChange={selectedOption => {
+													if (selectedOption) {
+														handlePublisherChange(
+															index,
+															'publisher',
+															selectedOption.value
+														);
+													} else {
+														handlePublisherChange(index, 'publisher', 0);
+													}
+												}}
+												options={publishers.map(p => ({
+													value: p.external_id,
+													label: p.name,
+												}))}
+												placeholder="Seleccionar Publisher"
+												styles={{
+													...customSelectStyles,
+													menu: (provided: any) => ({
+														...provided,
+														zIndex: 99999,
+														backgroundColor: 'white',
+														boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+													}),
+													control: (provided: any) => ({
+														...provided,
+														minHeight: '36px',
+														backgroundColor: 'white',
+														border: '1px solid #D1D5DB',
+														borderRadius: '4px',
+														'&:hover': {
+															borderColor: '#4B5563',
+														},
+													}),
+												}}
+												isClearable
+												menuPortalTarget={document.body}
+												menuPosition="fixed"
+												className="react-select-container"
+												classNamePrefix="react-select"
+												instanceId={`publisher-select-${
+													publisher?.publisher || 'new'
+												}`}
+												isSearchable={true}
+												components={{
+													NoOptionsMessage: ({ inputValue }: any) => (
+														<div className="p-2 text-center">
+															<p className="text-sm text-gray-500 mb-2">
+																No se encontraron publishers
+															</p>
+															<button
+																onClick={e => {
+																	e.preventDefault();
+																	e.stopPropagation();
+																	setNewPublishers(prev => ({
+																		...prev,
+																		name: inputValue || '',
+																	}));
+																	setIsCreatePublisherModalOpen(true);
+																}}
+																className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
+															>
+																<Plus className="w-4 h-4 mr-1" />
+																Crear nuevo publisher
+															</button>
+														</div>
+													),
+												}}
+											/>
+										)}
 									</div>
 									<div className="flex items-center gap-2">
 										<input

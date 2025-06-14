@@ -1587,28 +1587,28 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									// Añadir el resto de los datos del track
 									formData.append('data', JSON.stringify(localTrack));
 									console.log('localTrack: ', localTrack);
-									// // Si tiene external_id, actualizar el track existente
-									// const response = await fetch(
-									// 	`/api/admin/updateSingle/${localTrack.external_id}`,
-									// 	{
-									// 		method: 'PUT',
-									// 		body: formData, // Enviar FormData en lugar de JSON
-									// 	}
-									// );
+									// Si tiene external_id, actualizar el track existente
+									const response = await fetch(
+										`/api/admin/updateSingle/${localTrack.external_id}`,
+										{
+											method: 'PUT',
+											body: formData, // Enviar FormData en lugar de JSON
+										}
+									);
 
-									// if (!response.ok) {
-									// 	throw new Error('Error al actualizar el track');
-									// }
+									if (!response.ok) {
+										throw new Error('Error al actualizar el track');
+									}
 
-									// const data = await response.json();
+									const data = await response.json();
 
-									// if (!data.success) {
-									// 	throw new Error(
-									// 		data.error || 'Error al actualizar el track'
-									// 	);
-									// }
+									if (!data.success) {
+										throw new Error(
+											data.error || 'Error al actualizar el track'
+										);
+									}
 
-									// toast.success('Track actualizado correctamente');
+									toast.success('Track actualizado correctamente');
 								}
 							} catch (error) {
 								console.error('Error al guardar el track:', error);

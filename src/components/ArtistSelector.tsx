@@ -41,8 +41,13 @@ const ArtistSelector: React.FC<ArtistSelectorProps> = ({
 }) => {
 	const handleArtistChange = (selectedOption: SingleValue<ArtistOption>) => {
 		if (selectedOption) {
+			const maxOrder = Math.max(
+				...artists.map(a => a.order),
+				...(newArtists || []).map(a => a.order),
+				-1
+			);
 			const newArtist = {
-				order: artists.length,
+				order: maxOrder + 1,
 				artist: selectedOption.value,
 				kind: 'main',
 				name: selectedOption.label,

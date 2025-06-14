@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
 		const artistaRes = await artistaReq.json();
 
 		// Crear el nuevo artista
-		const newArtist = await User.create({
+		const artistData = {
 			_id: new mongoose.Types.ObjectId(),
 			external_id: artistaRes.id,
 			name,
@@ -111,20 +111,30 @@ export async function POST(req: NextRequest) {
 			parentId: null,
 			parentName: null,
 			tipo: 'principal',
-		});
-		console.log('newArtist: ', newArtist);
-		if (!newArtist) {
+		};
+		let newId;
+		try {
+			const newArtist = new User(artistData);
+			const savedArtist = await newArtist.save();
+			newId = savedArtist._id.toString();
+			console.log('savedArtist: ', savedArtist);
+		} catch (error) {
+			console.error('Error al crear el artista:', error);
 			return NextResponse.json(
-				{ success: false, error: 'Error al crear el artista' },
-				{ status: 400 }
+				{
+					success: false,
+					error: error || 'Error al crear el artista',
+				},
+				{ status: 500 }
 			);
 		}
+
 		try {
 			// Crear el log
 			const logData = {
 				action: 'CREATE' as const,
 				entity: 'USER' as const,
-				entityId: newArtist._id.toString(),
+				entityId: newId.toString(),
 				userId: verifiedPayload.id as string,
 				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
 				userRole: verifiedPayload.role as string,

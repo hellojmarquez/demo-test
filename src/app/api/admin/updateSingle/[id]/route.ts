@@ -56,7 +56,49 @@ export async function PUT(
 		const file = formData.get('file') as File | null;
 		const dolby_file = formData.get('dolby_file') as File | null;
 		const trackData = JSON.parse(formData.get('data') as string);
+		if (trackData.newArtists && trackData.newArtists.length > 0) {
+			const createdArtists = [];
+			for (const newArtist of trackData.newArtists) {
+				try {
+					const createArtistReq = await fetch(
+						`${req.nextUrl.origin}/api/admin/createArtistInRelease`,
+						{
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+							},
+							body: JSON.stringify({
+								order: newArtist.order,
+								kind: newArtist.kind,
+								name: newArtist.name,
+								email: newArtist.email,
+								amazon_music_identifier: newArtist.amazon_music_identifier,
+								apple_identifier: newArtist.apple_identifier,
+								deezer_identifier: newArtist.deezer_identifier,
+								spotify_identifier: newArtist.spotify_identifier,
+							}),
+						}
+					);
 
+					const createArtistRes = await createArtistReq.json();
+
+					if (createArtistRes.success && createArtistRes.artist) {
+						// Agregar el artista creado al array de artistas del release
+						createdArtists.push(createArtistRes.artist);
+					} else {
+						console.error('Error al crear artista:', createArtistRes);
+					}
+				} catch (error) {
+					console.error('Error en la creación de artista:', error);
+				}
+			}
+
+			// Actualizar el array de artistas del release con los nuevos artistas creados
+			if (createdArtists.length > 0) {
+				trackData.artists = [...(trackData.artists || []), ...createdArtists];
+			}
+		}
 		if (file) {
 			const fileName = file.name.replaceAll(' ', '');
 			const uploadTrackReq = await fetch(
@@ -257,7 +299,7 @@ export async function PUT(
 		);
 
 		const apires = await trackToApi.json();
-
+		console.log('apires: ', apires);
 		if (!apires.id) {
 			return NextResponse.json(
 				{ success: false, error: apires || 'Error al actualizar el track' },

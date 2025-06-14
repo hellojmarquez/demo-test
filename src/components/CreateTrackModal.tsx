@@ -40,6 +40,7 @@ interface Contributor {
 }
 
 interface Publisher {
+	[x: string]: any;
 	publisher: number;
 	author: string;
 	order: number;
@@ -1370,7 +1371,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
 						<button
 							type="button"
-							onClick={() => console.log('agregar')}
+							onClick={() => {
+								setNewPublishers({ name: '', author: '', email: '' });
+								setIsCreatePublisherModalOpen(true);
+							}}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
 							<Plus size={20} />
@@ -1388,7 +1392,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 														label:
 															publishers?.find(
 																p =>
-																	p.publisher ===
+																	p.external_id ===
 																	localTrack?.publishers?.[0]?.publisher
 															)?.name || '',
 												  }
@@ -1404,7 +1408,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											}
 										}}
 										options={publishers?.map(p => ({
-											value: p.publisher,
+											value: p.external_id,
 											label: p.name,
 										}))}
 										placeholder="Seleccionar Publisher"
@@ -1494,13 +1498,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 															value: publisher.publisher,
 															label:
 																publishers.find(
-																	p => p.publisher === publisher.publisher
+																	p => p.external_id === publisher.publisher
 																)?.name || '',
 													  }
 													: null
 											}
 											onChange={selectedOption => {
 												if (selectedOption) {
+													console.log('selectedOption', selectedOption);
 													handlePublisherChange(
 														index,
 														'publisher',
@@ -1511,7 +1516,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												}
 											}}
 											options={publishers.map(p => ({
-												value: p.publisher,
+												value: p.external_id,
 												label: p.name,
 											}))}
 											placeholder="Seleccionar Publisher"

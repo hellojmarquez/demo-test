@@ -16,6 +16,7 @@ import {
 	Loader2,
 	Copy,
 	X,
+	AlertTriangle,
 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
 import { Release, Artist } from '@/types/release';
@@ -1748,6 +1749,15 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							YouTube Declaration
 						</label>
 					</div>
+					{!safeFormData?.youtube_declaration && (
+						<div className="flex items-center gap-2 mt-2 text-amber-600">
+							<AlertTriangle className="h-5 w-5" />
+							<span className="text-sm">
+								Si desactiva esta opción este producto no se distribuirá en
+								YouTube
+							</span>
+						</div>
+					)}
 				</div>
 			</div>
 

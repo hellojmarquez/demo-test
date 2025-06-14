@@ -1465,6 +1465,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 																name: inputValue || '',
 															}));
 															setIsCreatePublisherModalOpen(true);
+															// Eliminar la fila vacía actual
+															setLocalTrack(prev => ({
+																...prev,
+																publishers: prev.publishers.filter(
+																	(p, i) => i !== inputValue
+																),
+															}));
 														}}
 														className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
 													>
@@ -1487,17 +1494,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										}}
 										className="w-32 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
 										placeholder="Autor"
-									/>
-
-									<input
-										type="number"
-										value={localTrack?.publishers?.[0]?.order || 0}
-										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-											const val = parseInt(e.target.value);
-											handlePublisherChange(0, 'order', isNaN(val) ? 0 : val);
-										}}
-										className="w-20 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
-										placeholder="Orden"
 									/>
 								</div>
 							</div>
@@ -1586,6 +1582,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 																		name: inputValue || '',
 																	}));
 																	setIsCreatePublisherModalOpen(true);
+																	// Eliminar la fila vacía actual
+																	setLocalTrack(prev => ({
+																		...prev,
+																		publishers: prev.publishers.filter(
+																			(p, i) => i !== index
+																		),
+																	}));
 																}}
 																className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
 															>
@@ -1607,20 +1610,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											}}
 											className="w-32 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
 											placeholder="Autor"
-										/>
-										<input
-											type="number"
-											value={publisher?.order || 0}
-											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-												const val = parseInt(e.target.value);
-												handlePublisherChange(
-													index,
-													'order',
-													isNaN(val) ? 0 : val
-												);
-											}}
-											className="w-20 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
-											placeholder="Orden"
 										/>
 									</div>
 									{(localTrack?.publishers || []).length > 1 && (

@@ -56,6 +56,7 @@ export async function PUT(
 		const file = formData.get('file') as File | null;
 		const dolby_file = formData.get('dolby_file') as File | null;
 		const trackData = JSON.parse(formData.get('data') as string);
+		console.log('trackData recibida', trackData);
 		if (trackData.newArtists && trackData.newArtists.length > 0) {
 			const createdArtists = [];
 			for (const newArtist of trackData.newArtists) {
@@ -97,6 +98,54 @@ export async function PUT(
 			// Actualizar el array de artistas del release con los nuevos artistas creados
 			if (createdArtists.length > 0) {
 				trackData.artists = [...(trackData.artists || []), ...createdArtists];
+			}
+		}
+
+		if (trackData.newContributors && trackData.newContributors.length > 0) {
+			const createdUsers = [];
+			for (const user of trackData.newContributors) {
+				console.log('contributor a crear', user);
+				try {
+					const createContributorReq = await fetch(
+						`${req.nextUrl.origin}/api/admin/createContributorInMedia`,
+						{
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+							},
+							body: JSON.stringify({
+								email: user.email,
+								name: user.name,
+								order: user.order,
+								role: user.role,
+								role_name: user.role_name,
+							}),
+						}
+					);
+
+					const createContributorRes = await createContributorReq.json();
+
+					if (
+						createContributorRes.success &&
+						createContributorRes.contributor
+					) {
+						// Agregar el artista creado al array de artistas del release
+						createdUsers.push(createContributorRes.contributor);
+					} else {
+						console.error('Error al crear artista:', createContributorRes);
+					}
+				} catch (error) {
+					console.error('Error en la creación de artista:', error);
+				}
+			}
+
+			// Actualizar el array de contributors del release con los nuevos artistas creados
+			if (createdUsers.length > 0) {
+				trackData.contributors = [
+					...(trackData.contributors || []),
+					...createdUsers,
+				];
 			}
 		}
 		if (file) {
@@ -274,7 +323,16 @@ export async function PUT(
 		} else {
 			artistsToApi = [];
 		}
-
+		delete trackData.newContributors;
+		delete trackData.newArtists;
+		console.log('track a api', {
+			...trackData,
+			resource: file ? track_path : currentTrackFormated,
+			dolby_atmos_resource: dolby_file ? dolby_path : currentTrackDolbyFormated,
+			publishers: publisherstoapi,
+			artists: artistsToApi,
+			contributors: contributorsToApi,
+		});
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
 			{
@@ -299,7 +357,7 @@ export async function PUT(
 		);
 
 		const apires = await trackToApi.json();
-		console.log('apires: ', apires);
+
 		if (!apires.id) {
 			return NextResponse.json(
 				{ success: false, error: apires || 'Error al actualizar el track' },

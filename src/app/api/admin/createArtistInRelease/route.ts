@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 			const newArtist = new User(artistData);
 			const savedArtist = await newArtist.save();
 			newId = savedArtist._id.toString();
-			console.log('savedArtist: ', savedArtist);
+		
 		} catch (error) {
 			console.error('Error al crear el artista:', error);
 			return NextResponse.json(

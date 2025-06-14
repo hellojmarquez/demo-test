@@ -1809,7 +1809,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								onClick={() => {
 									// Crear el nuevo artista con la estructura requerida
 									const newArtist: NewArtistData = {
-										order: (track?.artists || []).length,
+										order: (localTrack?.newArtists || []).length,
 										artist: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
 										name: newArtistData.name,
 										kind: 'main' as const,

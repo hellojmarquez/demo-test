@@ -1808,8 +1808,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<button
 								onClick={() => {
 									// Crear el nuevo artista con la estructura requerida
+									const maxOrder = Math.max(
+										...(localTrack?.artists || []).map(a => a.order),
+										...(localTrack?.newArtists || []).map(a => a.order),
+										-1
+									);
 									const newArtist: NewArtistData = {
-										order: (localTrack?.newArtists || []).length,
+										order: maxOrder + 1,
 										artist: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
 										name: newArtistData.name,
 										kind: 'main' as const,

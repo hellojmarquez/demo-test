@@ -66,10 +66,15 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 				value={null}
 				onChange={selectedOption => {
 					if (selectedOption) {
+						const maxOrder = Math.max(
+							...artists.map(a => a.order),
+							...(newArtists || []).map(a => a.order),
+							-1
+						);
 						onArtistsChange([
 							...artists,
 							{
-								order: artists.length,
+								order: maxOrder + 1,
 								artist: selectedOption.value,
 								kind: 'main',
 								name: selectedOption.label,

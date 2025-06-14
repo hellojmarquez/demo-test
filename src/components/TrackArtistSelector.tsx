@@ -61,7 +61,7 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 	};
 
 	return (
-		<div className="space-y-4 flex flex-col  p-2 bg-slate-100">
+		<div className="space-y-4 flex flex-col p-2 bg-slate-100">
 			<Select<ArtistOption>
 				value={null}
 				onChange={selectedOption => {

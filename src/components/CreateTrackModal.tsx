@@ -106,6 +106,14 @@ interface TrackData {
 	explicit_content: boolean;
 	track_length: string;
 	available: boolean;
+	newContributors: NewContributor[];
+}
+
+interface NewContributor {
+	name: string;
+	role: number;
+	role_name: string;
+	order: number;
 }
 
 const customSelectStyles = {
@@ -199,6 +207,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		track_length: track?.track_length || '',
 		available: track?.available || true,
 		newArtists: [],
+		newContributors: [],
 	});
 	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
 	const [isCreatePublisherModalOpen, setIsCreatePublisherModalOpen] =
@@ -209,6 +218,16 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		email: '',
 		password: '',
 	});
+
+	const [newContributorData, setNewContributorData] = useState<{
+		name: string;
+		email: string;
+	}>({
+		name: '',
+		email: '',
+	});
+	const [isCreateContributorModalOpen, setIsCreateContributorModalOpen] =
+		useState(false);
 
 	// Actualizar el estado local cuando cambia el prop track
 	// useEffect(() => {
@@ -1213,6 +1232,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					<div className="space-y-4 w-full overflow-hidden">
 						<ContributorSelector
 							contributors={localTrack.contributors || []}
+							newContributors={localTrack.newContributors || []}
 							contributorData={
 								contributors?.map(c => ({
 									external_id: c.contributor,
@@ -1242,6 +1262,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								// Actualizar el estado local
 								setLocalTrack(updatedTrack);
 							}}
+							onNewContributorsChange={newContributors => {
+								const updatedNewContributors = newContributors.map(
+									contributor => {
+										if (contributor.role && !contributor.role_name) {
+											const selectedRole = roles.find(
+												r => r.id === contributor.role
+											);
+											return {
+												...contributor,
+												role_name: selectedRole?.name || '',
+											};
+										}
+										return contributor;
+									}
+								);
+
+								setLocalTrack(prev => ({
+									...prev,
+									newContributors: updatedNewContributors,
+								}));
+							}}
 							onDeleteContributor={index => {
 								const newContributors = [...(localTrack.contributors || [])];
 								newContributors.splice(index, 1);
@@ -1253,6 +1294,18 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 								// Actualizar el estado local
 								setLocalTrack(updatedTrack);
+							}}
+							onDeleteNewContributor={index => {
+								const newContributors = [...(localTrack.newContributors || [])];
+								newContributors.splice(index, 1);
+								setLocalTrack(prev => ({
+									...prev,
+									newContributors: newContributors,
+								}));
+							}}
+							onCreateNewContributor={name => {
+								setNewContributorData(prev => ({ ...prev, name }));
+								setIsCreateContributorModalOpen(true);
 							}}
 							reactSelectStyles={{
 								...customSelectStyles,
@@ -1588,27 +1641,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									formData.append('data', JSON.stringify(localTrack));
 									console.log('localTrack: ', localTrack);
 									// Si tiene external_id, actualizar el track existente
-									const response = await fetch(
-										`/api/admin/updateSingle/${localTrack.external_id}`,
-										{
-											method: 'PUT',
-											body: formData, // Enviar FormData en lugar de JSON
-										}
-									);
+									// const response = await fetch(
+									// 	`/api/admin/updateSingle/${localTrack.external_id}`,
+									// 	{
+									// 		method: 'PUT',
+									// 		body: formData, // Enviar FormData en lugar de JSON
+									// 	}
+									// );
 
-									if (!response.ok) {
-										throw new Error('Error al actualizar el track');
-									}
+									// if (!response.ok) {
+									// 	throw new Error('Error al actualizar el track');
+									// }
 
-									const data = await response.json();
+									// const data = await response.json();
 
-									if (!data.success) {
-										throw new Error(
-											data.error || 'Error al actualizar el track'
-										);
-									}
+									// if (!data.success) {
+									// 	throw new Error(
+									// 		data.error || 'Error al actualizar el track'
+									// 	);
+									// }
 
-									toast.success('Track actualizado correctamente');
+									// toast.success('Track actualizado correctamente');
 								}
 							} catch (error) {
 								console.error('Error al guardar el track:', error);
@@ -1640,22 +1693,19 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			</form>
 
 			{isCreateArtistModalOpen && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white rounded-lg p-6 w-full max-w-md">
 						<div className="flex justify-between items-center mb-4">
-							<h3 className="text-base sm:text-lg font-medium text-gray-900">
+							<h3 className="text-lg font-medium text-gray-900">
 								Crear Nuevo Artista
 							</h3>
 							<button
-								onClick={() => {
-									setIsCreateArtistModalOpen(false);
-								}}
-								className="text-gray-400 hover:text-gray-500 p-1 hover:bg-gray-100 rounded-full transition-colors"
+								onClick={() => setIsCreateArtistModalOpen(false)}
+								className="text-gray-400 hover:text-gray-500"
 							>
-								<XCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+								<XCircle className="h-6 w-6" />
 							</button>
 						</div>
-
 						<div className="space-y-4">
 							<div>
 								<label className="block text-xs sm:text-sm font-medium text-gray-700">
@@ -1938,6 +1988,100 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								disabled={isLoading}
 							>
 								{isLoading ? 'Creando...' : 'Crear'}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{isCreateContributorModalOpen && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white rounded-lg p-6 w-full max-w-md">
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="text-lg font-medium text-gray-900">
+								Crear Nuevo Contribuidor
+							</h3>
+							<button
+								onClick={() => setIsCreateContributorModalOpen(false)}
+								className="text-gray-400 hover:text-gray-500"
+							>
+								<XCircle className="h-6 w-6" />
+							</button>
+						</div>
+						<div className="space-y-4">
+							<div>
+								<label className="block text-xs sm:text-sm font-medium text-gray-700">
+									Nombre
+								</label>
+								<input
+									type="text"
+									value={newContributorData.name}
+									onChange={e =>
+										setNewContributorData(prev => ({
+											...prev,
+											name: e.target.value,
+										}))
+									}
+									className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+								/>
+							</div>
+							<div>
+								<label className="block text-xs sm:text-sm font-medium text-gray-700">
+									Email
+								</label>
+								<input
+									type="email"
+									value={newContributorData.email}
+									onChange={e =>
+										setNewContributorData(prev => ({
+											...prev,
+											email: e.target.value,
+										}))
+									}
+									className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+								/>
+							</div>
+						</div>
+
+						<div className="mt-6 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+							<button
+								onClick={() => setIsCreateContributorModalOpen(false)}
+								className="w-full sm:w-auto px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+							>
+								Cancelar
+							</button>
+							<button
+								onClick={() => {
+									// Crear el nuevo contribuidor con la estructura requerida
+									const maxOrder = Math.max(
+										...(localTrack?.contributors || []).map(c => c.order),
+										...(localTrack?.newContributors || []).map(c => c.order),
+										-1
+									);
+									const newContributor = {
+										name: newContributorData.name,
+										email: newContributorData.email,
+										role: 0,
+										role_name: '',
+										order: maxOrder + 1,
+										isNew: true,
+									};
+
+									setLocalTrack(prev => ({
+										...prev,
+										newContributors: [
+											...(prev.newContributors || []),
+											newContributor,
+										],
+									}));
+
+									// Limpiar el formulario y cerrar el modal
+									setNewContributorData({ name: '', email: '' });
+									setIsCreateContributorModalOpen(false);
+								}}
+								className="w-full sm:w-auto px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md transition-colors"
+							>
+								Crear Contribuidor
 							</button>
 						</div>
 					</div>

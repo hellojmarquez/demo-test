@@ -1309,6 +1309,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							}}
 							reactSelectStyles={{
 								...customSelectStyles,
+
 								control: (provided: any) => ({
 									...provided,
 									minHeight: '36px',

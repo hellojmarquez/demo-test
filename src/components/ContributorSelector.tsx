@@ -142,7 +142,7 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 	};
 
 	return (
-		<div className="space-y-4 flex flex-col p-2 bg-slate-100">
+		<div className="space-y-4 flex flex-col p-2 bg-slate-100 overflow-y-scroll ">
 			<Select
 				value={null}
 				onChange={selectedOption => {
@@ -203,20 +203,20 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 			/>
 
 			<div className="space-y-2 min-h-60 p-2">
-				<div className="flex flex-wrap gap-2 items-center">
+				<div className="flex flex-wrap  gap-2 items-center">
 					{[...contributors]
 						.sort((a, b) => a.order - b.order)
 						.map((contributor, index) => (
 							<div
 								key={`contributor-${index}`}
-								className="flex items-start justify-between p-3 bg-gray-50 w-60  rounded-lg"
+								className="flex items-start justify-between p-3 bg-gray-50 max-w-72  rounded-lg"
 							>
 								<div className="flex gap-3">
 									<div className="p-2 bg-white rounded-full">
 										<User className="w-14 h-14 text-gray-600" />
 									</div>
 									<div className="flex flex-col items-center">
-										<span className="font-medium text-sm">
+										<span className="font-medium  text-sm">
 											{contributor.name}
 										</span>
 										<div className="flex items-center gap-2 mt-1">
@@ -245,7 +245,8 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 													label: r.name,
 												}))}
 												styles={reactSelectStyles}
-												className="w-28"
+												className="w-full,
+    position: 'absolute',"
 												classNamePrefix="react-select"
 											/>
 										</div>
@@ -283,14 +284,14 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 						.map((contributor, index) => (
 							<div
 								key={`new-contributor-${index}`}
-								className="flex items-start justify-between p-3 bg-gray-50 w-60 rounded-lg border-2 border-brand-light"
+								className="flex items-start justify-between p-3 bg-gray-50 max-w-72 rounded-lg border-2 border-brand-light"
 							>
 								<div className="flex gap-3">
 									<div className="p-2 bg-white rounded-full">
 										<User className="w-14 h-14 text-gray-600" />
 									</div>
 									<div className="flex flex-col items-center">
-										<span className="font-medium text-sm">
+										<span className="font-medium break-words text-wrap text-sm">
 											{contributor.name}
 										</span>
 										<div className="flex items-center gap-2 mt-1">

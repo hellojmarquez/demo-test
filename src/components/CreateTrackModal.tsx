@@ -76,6 +76,14 @@ interface NewArtistData {
 	isNew?: boolean;
 }
 
+interface NewPublisher {
+	publisher: number;
+	email: string;
+	author: string;
+	order: number;
+	name: string;
+}
+
 interface TrackData {
 	external_id: string | number;
 	order: number;
@@ -107,6 +115,7 @@ interface TrackData {
 	track_length: string;
 	available: boolean;
 	newContributors: NewContributor[];
+	newPublishers: NewPublisher[];
 }
 
 interface NewContributor {
@@ -208,15 +217,20 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		available: track?.available || true,
 		newArtists: [],
 		newContributors: [],
+		newPublishers: [],
 	});
 	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
 	const [isCreatePublisherModalOpen, setIsCreatePublisherModalOpen] =
 		useState(false);
 
-	const [newPublishers, setNewPublishers] = useState({
+	const [newPublishers, setNewPublishers] = useState<{
+		name: string;
+		author: string;
+		email: string;
+	}>({
 		name: '',
+		author: '',
 		email: '',
-		password: '',
 	});
 
 	const [newContributorData, setNewContributorData] = useState<{
@@ -319,22 +333,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 		fetchData();
 	}, []);
-
-	const handleAddPublisher = () => {
-		setLocalTrack(prev => {
-			const newPublishers = [...(prev.publishers || [])];
-			newPublishers.push({
-				publisher: 0,
-				author: '',
-				order: newPublishers.length,
-				name: '',
-			});
-			return {
-				...prev,
-				publishers: newPublishers,
-			};
-		});
-	};
 
 	const handleRemovePublisher = (indexToRemove: number) => {
 		setLocalTrack(prev => {
@@ -476,41 +474,41 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	};
 
 	// Función para crear publisher
-	const handleCreatePublisher = async () => {
-		setIsLoading(true);
-		setError('');
+	// const handleCreatePublisher = async () => {
+	// 	setIsLoading(true);
+	// 	setError('');
 
-		try {
-			const response = await fetch('/api/admin/createPublisher', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(newPublishers),
-			});
+	// 	try {
+	// 		const response = await fetch('/api/admin/createPublisher', {
+	// 			method: 'POST',
+	// 			headers: {
+	// 				'Content-Type': 'application/json',
+	// 			},
+	// 			body: JSON.stringify(newPublishers),
+	// 		});
 
-			const data = await response.json();
+	// 		const data = await response.json();
 
-			if (!response.ok) {
-				throw new Error(data.error || 'Error al crear el publisher');
-			}
+	// 		if (!response.ok) {
+	// 			throw new Error(data.error || 'Error al crear el publisher');
+	// 		}
 
-			// Cerrar modal y limpiar formulario
-			setIsCreatePublisherModalOpen(false);
-			setNewPublishers({ name: '', email: '', password: '' });
+	// 		// Cerrar modal y limpiar formulario
+	// 		setIsCreatePublisherModalOpen(false);
+	// 		setNewPublishers({ name: '', author: '' });
 
-			// Recargar lista de publishers
-			await reloadPublishers();
+	// 		// Recargar lista de publishers
+	// 		await reloadPublishers();
 
-			// Mostrar mensaje de éxito
-			toast.success('Publisher creado exitosamente');
-		} catch (error: any) {
-			setError(error.message);
-			toast.error(error.message);
-		} finally {
-			setIsLoading(false);
-		}
-	};
+	// 		// Mostrar mensaje de éxito
+	// 		toast.success('Publisher creado exitosamente');
+	// 	} catch (error: any) {
+	// 		setError(error.message);
+	// 		toast.error(error.message);
+	// 	} finally {
+	// 		setIsLoading(false);
+	// 	}
+	// };
 
 	return (
 		<div className="bg-white rounded-lg md:p-6">
@@ -1372,13 +1370,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
 						<button
 							type="button"
-							onClick={() => setIsCreatePublisherModalOpen(true)}
+							onClick={() => console.log('agregar')}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
 							<Plus size={20} />
 						</button>
 					</div>
-					{/* <div className="space-y-4 w-full overflow-hidden">
+					<div className="space-y-4 w-full overflow-hidden">
 						{!localTrack?.publishers?.length ? (
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2">
 								<div className="w-full sm:flex-1">
@@ -1390,7 +1388,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 														label:
 															publishers?.find(
 																p =>
-																	p.external_id ===
+																	p.publisher ===
 																	localTrack?.publishers?.[0]?.publisher
 															)?.name || '',
 												  }
@@ -1406,7 +1404,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											}
 										}}
 										options={publishers?.map(p => ({
-											value: p.external_id,
+											value: p.publisher,
 											label: p.name,
 										}))}
 										placeholder="Seleccionar Publisher"
@@ -1496,7 +1494,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 															value: publisher.publisher,
 															label:
 																publishers.find(
-																	p => p.external_id === publisher.publisher
+																	p => p.publisher === publisher.publisher
 																)?.name || '',
 													  }
 													: null
@@ -1513,7 +1511,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												}
 											}}
 											options={publishers.map(p => ({
-												value: p.external_id,
+												value: p.publisher,
 												label: p.name,
 											}))}
 											placeholder="Seleccionar Publisher"
@@ -1608,7 +1606,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								</div>
 							))
 						)}
-					</div> */}
+					</div>
 				</div>
 
 				<div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
@@ -1642,27 +1640,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									formData.append('data', JSON.stringify(localTrack));
 									console.log('localTrack: ', localTrack);
 									// Si tiene external_id, actualizar el track existente
-									const response = await fetch(
-										`/api/admin/updateSingle/${localTrack.external_id}`,
-										{
-											method: 'PUT',
-											body: formData, // Enviar FormData en lugar de JSON
-										}
-									);
+									// const response = await fetch(
+									// 	`/api/admin/updateSingle/${localTrack.external_id}`,
+									// 	{
+									// 		method: 'PUT',
+									// 		body: formData, // Enviar FormData en lugar de JSON
+									// 	}
+									// );
 
-									if (!response.ok) {
-										throw new Error('Error al actualizar el track');
-									}
+									// if (!response.ok) {
+									// 	throw new Error('Error al actualizar el track');
+									// }
 
-									const data = await response.json();
+									// const data = await response.json();
 
-									if (!data.success) {
-										throw new Error(
-											data.error || 'Error al actualizar el track'
-										);
-									}
+									// if (!data.success) {
+									// 	throw new Error(
+									// 		data.error || 'Error al actualizar el track'
+									// 	);
+									// }
 
-									toast.success('Track actualizado correctamente');
+									// toast.success('Track actualizado correctamente');
 								}
 							} catch (error) {
 								console.error('Error al guardar el track:', error);
@@ -1952,30 +1950,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									disabled={isLoading}
 								/>
 							</div>
-							<div>
-								<label className="block text-sm font-medium text-gray-700">
-									Contraseña
-								</label>
-								<input
-									type="password"
-									value={newPublishers.password}
-									onChange={e =>
-										setNewPublishers(prev => ({
-											...prev,
-											password: e.target.value,
-										}))
-									}
-									className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-light focus:ring-brand-light"
-									disabled={isLoading}
-								/>
-							</div>
 						</div>
 
 						<div className="mt-6 flex justify-end gap-3">
 							<button
 								onClick={() => {
 									setIsCreatePublisherModalOpen(false);
-									setNewPublishers({ name: '', email: '', password: '' });
+									setNewPublishers({ name: '', author: '', email: '' });
 									setError('');
 								}}
 								className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
@@ -1984,7 +1965,46 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								Cancelar
 							</button>
 							<button
-								onClick={handleCreatePublisher}
+								onClick={() => {
+									// Crear el nuevo publisher con la estructura requerida
+									const maxOrder = Math.max(
+										...(localTrack?.publishers || []).map(
+											(p: { order: number }) => p.order
+										),
+										...(localTrack?.newPublishers || []).map(
+											(p: { order: number }) => p.order
+										),
+										-1
+									);
+									const newPublisher: NewPublisher = {
+										publisher: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
+										email: newPublishers.email,
+										name: newPublishers.name,
+										author: newPublishers.author,
+										order: maxOrder + 1,
+									};
+
+									setLocalTrack(prev => ({
+										...prev,
+										newPublishers: [
+											...(prev.newPublishers || []),
+											newPublisher,
+										],
+										publishers: [
+											...(prev.publishers || []),
+											{
+												publisher: 0,
+												name: newPublishers.name,
+												author: newPublishers.author,
+												order: maxOrder + 1,
+											},
+										],
+									}));
+
+									// Limpiar el formulario y cerrar el modal
+									setNewPublishers({ name: '', author: '', email: '' });
+									setIsCreatePublisherModalOpen(false);
+								}}
 								className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
 								disabled={isLoading}
 							>

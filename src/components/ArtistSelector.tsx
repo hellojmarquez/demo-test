@@ -1,4 +1,5 @@
-import React from 'react';
+'use client';
+import React, { useState } from 'react';
 import Select, { SingleValue } from 'react-select';
 import { Plus, User, Trash2 } from 'lucide-react';
 import CustomSwitch from './CustomSwitch';
@@ -49,7 +50,7 @@ const ArtistSelector: React.FC<ArtistSelectorProps> = ({
 			onArtistsChange([...artists, newArtist]);
 		}
 	};
-
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	return (
 		<div className="space-y-4 flex flex-col p-2 bg-slate-100">
 			<Select<ArtistOption>
@@ -72,7 +73,12 @@ const ArtistSelector: React.FC<ArtistSelectorProps> = ({
 						</p>
 						{onCreateNewArtist && (
 							<button
-								onClick={() => onCreateNewArtist(inputValue)}
+								onClick={e => {
+									e.preventDefault();
+									e.stopPropagation();
+									onCreateNewArtist(inputValue);
+									setIsMenuOpen(false);
+								}}
 								className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
 							>
 								<Plus className="w-4 h-4 mr-1" />

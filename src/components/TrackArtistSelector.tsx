@@ -1,7 +1,7 @@
-import React from 'react';
+'use client';
+import React, { useState } from 'react';
 import { Trash2, Plus, User } from 'lucide-react';
 import Select from 'react-select';
-import CustomSwitch from './CustomSwitch';
 import {
 	Artist as ReleaseArtist,
 	NewArtist as ReleaseNewArtist,
@@ -49,8 +49,10 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 	onCreateNewArtist,
 	reactSelectStyles,
 }) => {
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+
 	return (
-		<div className="space-y-4 flex flex-col p-2 bg-slate-100">
+		<div className="space-y-4 flex flex-col  p-2 bg-slate-100">
 			<Select<ArtistOption>
 				value={null}
 				onChange={selectedOption => {
@@ -66,6 +68,9 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 						]);
 					}
 				}}
+				onMenuOpen={() => setIsMenuOpen(true)}
+				onMenuClose={() => setIsMenuOpen(false)}
+				menuIsOpen={isMenuOpen}
 				options={artistData.map(artist => ({
 					value: artist.artist,
 					label: artist.name,
@@ -83,7 +88,12 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 						</p>
 						{onCreateNewArtist && (
 							<button
-								onClick={() => onCreateNewArtist(inputValue)}
+								onClick={e => {
+									e.preventDefault();
+									e.stopPropagation();
+									onCreateNewArtist(inputValue);
+									setIsMenuOpen(false);
+								}}
 								className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-neutral-100 hover:text-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
 							>
 								<Plus className="w-4 h-4 mr-1" />
@@ -92,7 +102,7 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 						)}
 					</div>
 				)}
-				className="react-select-container w-72 self-end"
+				className="react-select-container max-w-60 self-end"
 				classNamePrefix="react-select"
 				styles={reactSelectStyles}
 			/>

@@ -24,23 +24,26 @@ export interface GenreData {
 }
 
 interface Artist {
-	external_id: number;
+	artist: number;
+	kind: string;
+	order: number;
 	name: string;
-	role: string;
+	isNew?: boolean;
 }
 
 interface Contributor {
 	contributor: number;
+	role: number;
+	order: number;
 	name: string;
-	role: string;
 	role_name: string;
-	external_id: number;
 }
 
 interface Publisher {
-	external_id: number;
+	publisher: number;
+	author: string;
+	order: number;
 	name: string;
-	role: string;
 }
 
 interface Role {
@@ -61,6 +64,9 @@ export interface TrackFormProps {
 }
 
 interface NewArtistData {
+	artist: number;
+	kind: string;
+	order: number;
 	name: string;
 	email: string;
 	amazon_music_id: string;
@@ -68,7 +74,37 @@ interface NewArtistData {
 	deezer_id: string;
 	spotify_id: string;
 }
-
+interface TrackData {
+	external_id: string | number;
+	order: number;
+	release: string | number;
+	status: string;
+	name: string;
+	artists: Artist[];
+	language: string;
+	vocals: string;
+	sample_start: string;
+	label_share: string | number;
+	copyright_holder: string;
+	copyright_holder_year: string;
+	contributors: Contributor[];
+	publishers: Publisher[];
+	newArtists: NewArtistData[];
+	ISRC: string;
+	generate_isrc: boolean;
+	DA_ISRC: string;
+	genre: number;
+	genre_name: string;
+	subgenre: number;
+	subgenre_name: string;
+	mix_name: string;
+	resource: string | File;
+	dolby_atmos_resource: string | File;
+	album_only: boolean;
+	explicit_content: boolean;
+	track_length: string;
+	available: boolean;
+}
 const customSelectStyles = {
 	control: (provided: any) => ({
 		...provided,
@@ -119,11 +155,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
-	const [localTrack, setLocalTrack] = useState<Partial<Track>>(track || {});
-	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
-	const [isCreatePublisherModalOpen, setIsCreatePublisherModalOpen] =
-		useState(false);
 	const [newArtistData, setNewArtistData] = useState<NewArtistData>({
+		artist: 0,
+		kind: '',
+		order: 0,
 		name: '',
 		email: '',
 		amazon_music_id: '',
@@ -131,6 +166,41 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		deezer_id: '',
 		spotify_id: '',
 	});
+	const [localTrack, setLocalTrack] = useState<TrackData>({
+		order: 0,
+		external_id: track?.external_id || 0,
+		release: track?.release || 0,
+		status: track?.status || '',
+		name: track?.name || '',
+		mix_name: track?.mix_name || '',
+		vocals: track?.vocals || '',
+		language: track?.language || '',
+		artists: track?.artists || [],
+		contributors: track?.contributors || [],
+		publishers: track?.publishers || [],
+		label_share: track?.label_share || '',
+		genre: track?.genre || 0,
+		genre_name: track?.genre_name || '',
+		subgenre: track?.subgenre || 0,
+		subgenre_name: track?.subgenre_name || '',
+		resource: track?.resource || '',
+		dolby_atmos_resource: track?.dolby_atmos_resource || '',
+		copyright_holder: track?.copyright_holder || '',
+		copyright_holder_year: track?.copyright_holder_year || '',
+		album_only: track?.album_only || false,
+		sample_start: track?.sample_start || '',
+		explicit_content: track?.explicit_content || false,
+		ISRC: track?.ISRC || '',
+		generate_isrc: track?.generate_isrc || true,
+		DA_ISRC: track?.DA_ISRC || '',
+		track_length: track?.track_length || '',
+		available: track?.available || true,
+		newArtists: [],
+	});
+	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
+	const [isCreatePublisherModalOpen, setIsCreatePublisherModalOpen] =
+		useState(false);
+
 	const [newPublishers, setNewPublishers] = useState({
 		name: '',
 		email: '',
@@ -138,9 +208,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	});
 
 	// Actualizar el estado local cuando cambia el prop track
-	useEffect(() => {
-		setLocalTrack(track || {});
-	}, [track]);
+	// useEffect(() => {
+	// 	setLocalTrack(track || {});
+	// }, [track]);
 
 	// Efecto para inicializar los subgéneros cuando se carga el componente
 	useEffect(() => {
@@ -1030,7 +1100,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							}))}
 							artistData={
 								artists?.map(a => ({
-									artist: a?.external_id || 0,
+									artist: a?.artist || 0,
 									name: a?.name || '',
 								})) || []
 							}
@@ -1127,7 +1197,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							contributors={localTrack.contributors || []}
 							contributorData={
 								contributors?.map(c => ({
-									external_id: c.external_id,
+									external_id: c.contributor,
 									name: c.name,
 								})) || []
 							}
@@ -1236,7 +1306,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Plus size={20} />
 						</button>
 					</div>
-					<div className="space-y-4 w-full overflow-hidden">
+					{/* <div className="space-y-4 w-full overflow-hidden">
 						{!localTrack?.publishers?.length ? (
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2">
 								<div className="w-full sm:flex-1">
@@ -1466,7 +1536,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								</div>
 							))
 						)}
-					</div>
+					</div> */}
 				</div>
 
 				<div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
@@ -1498,29 +1568,29 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 									// Añadir el resto de los datos del track
 									formData.append('data', JSON.stringify(localTrack));
+									console.log('localTrack: ', localTrack);
+									// // Si tiene external_id, actualizar el track existente
+									// const response = await fetch(
+									// 	`/api/admin/updateSingle/${localTrack.external_id}`,
+									// 	{
+									// 		method: 'PUT',
+									// 		body: formData, // Enviar FormData en lugar de JSON
+									// 	}
+									// );
 
-									// Si tiene external_id, actualizar el track existente
-									const response = await fetch(
-										`/api/admin/updateSingle/${localTrack.external_id}`,
-										{
-											method: 'PUT',
-											body: formData, // Enviar FormData en lugar de JSON
-										}
-									);
+									// if (!response.ok) {
+									// 	throw new Error('Error al actualizar el track');
+									// }
 
-									if (!response.ok) {
-										throw new Error('Error al actualizar el track');
-									}
+									// const data = await response.json();
 
-									const data = await response.json();
+									// if (!data.success) {
+									// 	throw new Error(
+									// 		data.error || 'Error al actualizar el track'
+									// 	);
+									// }
 
-									if (!data.success) {
-										throw new Error(
-											data.error || 'Error al actualizar el track'
-										);
-									}
-
-									toast.success('Track actualizado correctamente');
+									// toast.success('Track actualizado correctamente');
 								}
 							} catch (error) {
 								console.error('Error al guardar el track:', error);
@@ -1559,7 +1629,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								Crear Nuevo Artista
 							</h3>
 							<button
-								onClick={() => setIsCreateArtistModalOpen(false)}
+								onClick={() => {
+									setIsCreateArtistModalOpen(false);
+								}}
 								className="text-gray-400 hover:text-gray-500 p-1 hover:bg-gray-100 rounded-full transition-colors"
 							>
 								<XCircle className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -1732,6 +1804,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 									// Limpiar el formulario y cerrar el modal
 									setNewArtistData({
+										artist: 0,
+										kind: 'main',
+										order: 0,
 										name: '',
 										email: '',
 										amazon_music_id: '',

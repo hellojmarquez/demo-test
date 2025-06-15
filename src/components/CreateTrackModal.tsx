@@ -1516,10 +1516,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Plus size={20} />
 						</button>
 					</div>
-					<div className="space-y-4 w-full overflow-hidden">
+					<div className="space-y-4 overflow-hidden">
 						{!localTrack?.publishers?.length ? (
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2">
-								<div className="w-full sm:flex-1 ">
+								<div className="w-full sm:w-1/2 sm:max-w-[50%]">
 									<Select
 										value={
 											localTrack?.publishers?.[0]?.publisher
@@ -1609,7 +1609,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									/>
 								</div>
 
-								<div className="flex items-center gap-2">
+								<div className="flex w-full max-w-[50%] items-center gap-2">
 									<input
 										type="text"
 										name="author"
@@ -1617,7 +1617,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 											handlePublisherChange(0, 'author', e.target.value);
 										}}
-										className="w-32 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
+										className="w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
 										placeholder="Autor"
 									/>
 								</div>
@@ -1631,7 +1631,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									key={`publisher-row-${index}`}
 									className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2"
 								>
-									<div className="w-full sm:flex-1">
+									<div className="w-full sm:w-1/2 sm:max-w-[50%]">
 										{publisher.publisher === 0 && publisher.name ? (
 											<div className="px-3 py-2 text-sm text-gray-700">
 												{publisher.name}
@@ -1735,14 +1735,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 											/>
 										)}
 									</div>
-									<div className="flex items-center gap-2">
+									<div className="flex w-full max-w-[50%] items-center gap-2">
 										<input
 											type="text"
 											value={publisher?.author || ''}
 											onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 												handlePublisherChange(index, 'author', e.target.value);
 											}}
-											className="w-32 border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
+											className="w-full border-0 border-b border-gray-300 px-2 py-1.5 focus:border-b focus:brand-dark focus:outline-none focus:ring-0"
 											placeholder="Autor"
 										/>
 									</div>

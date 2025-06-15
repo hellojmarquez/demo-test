@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 						}
 					);
 					const uploadTrackRes = await uploadTrackReq.json();
-
+					console.log('uploadTrackRes: ', uploadTrackRes);
 					// Extraer la URL y los campos del objeto firmado
 					const { url: signedUrl, fields: trackFields } =
 						uploadTrackRes.signed_url;

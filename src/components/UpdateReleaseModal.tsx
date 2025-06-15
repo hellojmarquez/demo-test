@@ -113,13 +113,10 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const [isLoading, setIsLoading] = useState(false);
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState<{
-		[key: string]: {
-			total: number;
-			loaded: number;
-			percentage: number;
-			fileName: string;
-		};
-	}>({});
+		total: number;
+		loaded: number;
+		percentage: number;
+	} | null>(null);
 
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [isUploadingTracks, setIsUploadingTracks] = useState(false);
@@ -548,120 +545,55 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			setIsLoading(false);
 		}
 	};
-
 	const handleTracksReady = async (tracks: { file: File; data: any }[]) => {
+		// Cerrar el modal de UploadTrackToRelease inmediatamente
 		setIsUploadModalOpen(false);
-		setIsTracksExpanded(true);
+
+		// Iniciar la carga en segundo plano
 		setIsUploadingTracks(true);
+		setUploadProgress({
+			total: tracks.length,
+			loaded: 0,
+			percentage: 0,
+		});
 		setUploadError('');
 
-		const initialProgress = tracks.reduce(
-			(acc, track) => ({
-				...acc,
-				[track.file.name]: {
-					total: 1,
-					loaded: 0,
-					percentage: 0,
-					fileName: track.file.name,
-				},
-			}),
-			{}
-		);
-		setUploadProgress(initialProgress);
-
 		try {
-			// Crear un array de promesas para subir todos los tracks en paralelo
-			const uploadPromises = tracks.map(async track => {
-				try {
-					const formData = new FormData();
-					formData.append('file', track.file);
-					formData.append('data', JSON.stringify(track.data));
+			for (let i = 0; i < tracks.length; i++) {
+				const track = tracks[i];
+				const formData = new FormData();
+				formData.append('file', track.file);
+				formData.append('data', JSON.stringify(track.data));
 
-					const response = await fetch('/api/admin/createSingle', {
-						method: 'POST',
-						body: formData,
-					});
+				const response = await fetch('/api/admin/createSingle', {
+					method: 'POST',
+					body: formData,
+				});
 
-					const resData = await response.json();
-
-					// Verificar primero si hay error en la respuesta
-					if (resData.error) {
-						toast.error(resData.error);
-						setUploadProgress(prev => ({
-							...prev,
-							[track.file.name]: {
-								total: 1,
-								loaded: 1,
-								percentage: 100,
-								fileName: track.file.name,
-								error: 'Nombre duplicado',
-							},
-						}));
-						return null;
-					}
-
-					// Si no hay error, verificar si la respuesta fue exitosa
-					if (!response.ok || !resData.success) {
-						throw new Error(`Error al subir el track ${track.file.name}`);
-					}
-
-					setUploadProgress(prev => ({
-						...prev,
-						[track.file.name]: {
-							total: 1,
-							loaded: 1,
-							percentage: 100,
-							fileName: track.file.name,
-						},
-					}));
-
-					return response;
-				} catch (error) {
-					setUploadProgress(prev => ({
-						...prev,
-						[track.file.name]: {
-							total: 1,
-							loaded: 1,
-							percentage: 100,
-							fileName: track.file.name,
-							error: 'El track ya existe',
-						},
-					}));
-					return null;
+				if (!response.ok) {
+					throw new Error(`Error al subir el track ${i + 1}`);
 				}
-			});
 
-			// Esperar a que todos los tracks se suban
-			const results = await Promise.all(uploadPromises);
-
-			// Verificar si al menos un track se subió correctamente
-			const successfulUploads = results.filter(result => result !== null);
-
-			if (successfulUploads.length > 0) {
-				// Limpiar los estados después de completar exitosamente
-				setIsUploadingTracks(false);
-				setUploadProgress({});
-
-				// Actualizar los datos del release
-				const verifyResponse = await fetch(
-					`/api/admin/getReleaseById/${release.external_id}`
-				);
-				const res = await verifyResponse.json();
-				if (res.success) {
-					safeRelease.tracks = res.data.tracks;
-					setFormData(prev => ({
-						...prev,
-						tracks: res.data.tracks,
-					}));
-				}
-			} else {
-				setUploadError('Ningún track se pudo subir correctamente');
+				// Actualizar el progreso
+				setUploadProgress({
+					total: tracks.length,
+					loaded: i + 1,
+					percentage: ((i + 1) / tracks.length) * 100,
+				});
 			}
+
+			// Refrescar los datos del release después de subir todos los tracks
+			await fetchReleaseData();
+
+			// Limpiar los estados después de completar exitosamente
+			setIsUploadingTracks(false);
+			setUploadProgress(null);
+			setUploadError('');
 		} catch (err: any) {
 			console.error('Error al subir tracks:', err);
 			setUploadError(err.message || 'Error al subir los tracks');
 			setIsUploadingTracks(false);
-			setUploadProgress({});
+			setUploadProgress(null);
 		}
 	};
 
@@ -1069,37 +1001,26 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</div>
 						)}
 
-						{(Object.keys(uploadProgress).length > 0 || isProcessing) && (
-							<div className="mt-4 space-y-4">
-								{Object.entries(uploadProgress).map(([fileName, progress]) => (
-									<div
-										key={fileName}
-										className="p-4 bg-gray-50 rounded-xl border border-gray-100"
-									>
-										<div className="flex justify-between items-center mb-2">
-											<span className="text-sm font-medium text-gray-700 truncate">
-												{fileName}
-											</span>
-											<span className="text-sm text-gray-500">
-												{progress.percentage}%
-											</span>
-										</div>
-										<div className="w-full bg-gray-200 rounded-full h-2">
-											<div
-												className="bg-brand-dark h-2 rounded-full transition-all duration-300"
-												style={{ width: `${progress.percentage}%` }}
-											></div>
-										</div>
-									</div>
-								))}
-								{isProcessing && (
-									<div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-										<p className="text-sm text-gray-600 flex items-center gap-2">
-											<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-dark border-t-transparent" />
-											<span>Procesando tracks...</span>
-										</p>
+						{(uploadProgress || isProcessing) && (
+							<div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+								{uploadProgress && !isProcessing && (
+									<div className="w-full bg-gray-200 rounded-full h-2">
+										<div
+											className="bg-brand-dark h-2 rounded-full transition-all duration-300"
+											style={{ width: `${uploadProgress.percentage}%` }}
+										></div>
 									</div>
 								)}
+								<p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
+									{isProcessing ? (
+										<>
+											<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-dark border-t-transparent" />
+											<span>Procesando track...</span>
+										</>
+									) : (
+										`Subiendo... ${uploadProgress?.percentage}%`
+									)}
+								</p>
 							</div>
 						)}
 					</div>

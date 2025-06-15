@@ -114,13 +114,13 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					{
 						artist: 1541,
 						kind: 'main',
-						order: 0,
+						order: 5,
 						name: 'Jhon Doe',
 					},
 				],
 				publishers: [
 					{
-						order: 0,
+						order: 3,
 						publisher: 194,
 						name: 'ISLA SOUNDS',
 						author: 'Juan Cisneros',
@@ -128,7 +128,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				],
 				contributors: [
 					{
-						order: 0,
+						order: 3,
 						contributor: 1019,
 						name: 'Jhon Doe',
 						role: 2,
@@ -150,7 +150,6 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				track_lenght: '00:03:00',
 				sample_start: '00:00:00',
 				status: 'Borrador',
-				available: true,
 			};
 
 			return {
@@ -158,14 +157,14 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				data: track,
 			};
 		});
-		console.log(tracksToUpload);
+		console.log('tracksToUpload!!!!!!!!!!!: ', tracksToUpload);
 		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
-		// onTracksReady(tracksToUpload);
-		// onClose();
+		onTracksReady(tracksToUpload);
+		onClose();
 
-		// // Limpiar el formulario
-		// setAssets([]);
-		// setError('');
+		// Limpiar el formulario
+		setAssets([]);
+		setError('');
 	};
 
 	const handleFileButtonClick = (id: number) => {

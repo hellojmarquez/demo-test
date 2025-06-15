@@ -1382,7 +1382,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									-1
 								);
 								const newPublisher: Publisher = {
-									publisher: 0,
+									publisher: 0, // Volvemos a usar 0 para nuevos publishers creados
 									name: '',
 									author: '',
 									order: maxOrder + 1,
@@ -1424,10 +1424,16 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												);
 											}
 										}}
-										options={publishers?.map(p => ({
-											value: p.external_id,
-											label: p.name,
-										}))}
+										options={[
+											...publishers.map(p => ({
+												value: p.external_id,
+												label: p.name,
+											})),
+											...(localTrack?.newPublishers || []).map(p => ({
+												value: p.publisher,
+												label: p.name,
+											})),
+										]}
 										placeholder="Seleccionar Publisher"
 										styles={{
 											...customSelectStyles,
@@ -1498,7 +1504,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 								</div>
 							</div>
 						) : (
-							(localTrack?.publishers || []).map((publisher, index) => (
+							[
+								...(localTrack?.publishers || []),
+								...(localTrack?.newPublishers || []),
+							].map((publisher, index) => (
 								<div
 									key={`publisher-row-${index}`}
 									className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-2"
@@ -1534,10 +1543,16 @@ const TrackForm: React.FC<TrackFormProps> = ({
 														handlePublisherChange(index, 'publisher', 0);
 													}
 												}}
-												options={publishers.map(p => ({
-													value: p.external_id,
-													label: p.name,
-												}))}
+												options={[
+													...publishers.map(p => ({
+														value: p.external_id,
+														label: p.name,
+													})),
+													...(localTrack?.newPublishers || []).map(p => ({
+														value: p.publisher,
+														label: p.name,
+													})),
+												]}
 												placeholder="Seleccionar Publisher"
 												styles={{
 													...customSelectStyles,
@@ -1995,33 +2010,31 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										-1
 									);
 									const newPublisher: NewPublisher = {
-										publisher: 0, // ID temporal que se actualizará cuando se guarde en la base de datos
+										publisher: 0, // Volvemos a usar 0 para nuevos publishers creados
 										email: newPublishers.email,
 										name: newPublishers.name,
 										author: newPublishers.author,
 										order: maxOrder + 1,
 									};
 
-									setLocalTrack(prev => ({
-										...prev,
-										newPublishers: [
-											...(prev.newPublishers || []),
-											newPublisher,
-										],
-										publishers: [
-											...(prev.publishers || []),
-											{
-												publisher: 0,
-												name: newPublishers.name,
-												author: newPublishers.author,
-												order: maxOrder + 1,
-											},
-										],
-									}));
+									console.log('Añadiendo nuevo publisher:', newPublisher);
+
+									setLocalTrack(prev => {
+										const updatedTrack = {
+											...prev,
+											newPublishers: [
+												...(prev.newPublishers || []),
+												newPublisher,
+											],
+										};
+										console.log('localTrack actualizado:', updatedTrack);
+										return updatedTrack;
+									});
 
 									// Limpiar el formulario y cerrar el modal
 									setNewPublishers({ name: '', author: '', email: '' });
 									setIsCreatePublisherModalOpen(false);
+									setError('');
 								}}
 								className="px-4 py-2 text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
 								disabled={isLoading}

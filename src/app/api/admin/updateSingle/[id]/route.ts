@@ -148,6 +148,50 @@ export async function PUT(
 				];
 			}
 		}
+		if (trackData.newPublishers && trackData.newPublishers.length > 0) {
+			const createdUsers = [];
+			for (const user of trackData.newPublishers) {
+				console.log('contributor a crear', user);
+				try {
+					const createUserReq = await fetch(
+						`${req.nextUrl.origin}/api/admin/createPublisherinMedia`,
+						{
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								Cookie: `loginToken=${token}; accessToken=${moveMusicAccessToken}`,
+							},
+							body: JSON.stringify({
+								email: user.email,
+								author: user.author,
+								name: user.name,
+								order: user.order,
+								publisher: user.publisher,
+							}),
+						}
+					);
+
+					const createUserRes = await createUserReq.json();
+
+					if (createUserRes.success && createUserRes.publisher) {
+						// Agregar el artista creado al array de artistas del release
+						createdUsers.push(createUserRes.publisher);
+					} else {
+						console.error('Error al crear artista:', createUserRes);
+					}
+				} catch (error) {
+					console.error('Error en la creación de artista:', error);
+				}
+			}
+
+			// Actualizar el array de publishers del release con los nuevos artistas creados
+			if (createdUsers.length > 0) {
+				trackData.publishers = [
+					...(trackData.publishers || []),
+					...createdUsers,
+				];
+			}
+		}
 		if (file) {
 			const fileName = file.name.replaceAll(' ', '');
 			const uploadTrackReq = await fetch(
@@ -325,6 +369,7 @@ export async function PUT(
 		}
 		delete trackData.newContributors;
 		delete trackData.newArtists;
+		delete trackData.newPublishers;
 		console.log('track a api', {
 			...trackData,
 			resource: file ? track_path : currentTrackFormated,

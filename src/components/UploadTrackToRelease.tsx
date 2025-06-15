@@ -1,6 +1,12 @@
-import React, { useState, useRef } from 'react';
-import { X, Plus, ArrowBigUp, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+'use client';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Plus, ArrowBigUp, Trash2, Import } from 'lucide-react';
+import Select from 'react-select';
+
+interface Track {
+	id: number;
+	name: string;
+}
 
 interface UploadTrackToReleaseProps {
 	isOpen: boolean;
@@ -15,6 +21,7 @@ interface AssetRow {
 	title: string;
 	mixName: string;
 	file: File | null;
+	isImported?: boolean;
 }
 
 const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
@@ -24,9 +31,10 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	existingTracksCount,
 	onTracksReady,
 }) => {
-	const router = useRouter();
 	const [assets, setAssets] = useState<AssetRow[]>([]);
 	const [error, setError] = useState('');
+	const [tracks, setTracks] = useState<Track[]>([]);
+	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 	const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
 	const inputStyles =
@@ -150,14 +158,14 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				data: track,
 			};
 		});
-
+		console.log(tracksToUpload);
 		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
-		onTracksReady(tracksToUpload);
-		onClose();
+		// onTracksReady(tracksToUpload);
+		// onClose();
 
-		// Limpiar el formulario
-		setAssets([]);
-		setError('');
+		// // Limpiar el formulario
+		// setAssets([]);
+		// setError('');
 	};
 
 	const handleFileButtonClick = (id: number) => {
@@ -168,8 +176,37 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 		setAssets(assets.filter(asset => asset.id !== id));
 	};
 
-	if (!isOpen) return null;
+	const handleImportTrack = () => {
+		if (!selectedTrack) {
+			setError('Por favor selecciona un track para importar');
+			return;
+		}
 
+		// Crear un nuevo asset con el track seleccionado
+		const newAsset: AssetRow = {
+			id: Date.now(),
+			title: selectedTrack.name,
+			mixName: '',
+			file: null,
+			isImported: true,
+		};
+
+		setAssets(prev => [...prev, newAsset]);
+		setSelectedTrack(null); // Resetear la selección
+		setError(''); // Limpiar cualquier error previo
+	};
+
+	if (!isOpen) return null;
+	useEffect(() => {
+		const tracksRequest = async () => {
+			const tracks = await fetch(`/api/admin/getAllTracks`);
+			console.log(tracks);
+			const res = await tracks.json();
+			console.log(res);
+			setTracks(res.data.tracks);
+		};
+		tracksRequest();
+	}, []);
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 			<div className="bg-white rounded-lg p-6 w-full max-w-4xl">
@@ -181,6 +218,102 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					>
 						<X className="h-6 w-6" />
 					</button>
+				</div>
+
+				<div className="mb-4 flex justify-end items-center gap-2">
+					<button
+						type="button"
+						className="p-2 text-brand-light hover:text-brand-dark transition-colors"
+						title="Importar track seleccionado"
+						onClick={handleImportTrack}
+					>
+						<Import className="w-5 h-5" />
+					</button>
+					<Select
+						options={tracks.map(track => ({
+							value: track.id,
+							label: track.name,
+						}))}
+						value={
+							selectedTrack
+								? {
+										value: selectedTrack.id,
+										label: selectedTrack.name,
+								  }
+								: null
+						}
+						onChange={option => {
+							if (option) {
+								setSelectedTrack({
+									id: option.value,
+									name: option.label,
+								});
+							} else {
+								setSelectedTrack(null);
+							}
+						}}
+						placeholder="Seleccionar track existente..."
+						className="react-select-container max-w-72"
+						classNamePrefix="react-select"
+						styles={{
+							control: provided => ({
+								...provided,
+								minHeight: '36px',
+								'@media (max-width: 768px)': {
+									minHeight: '42px',
+								},
+							}),
+							placeholder: provided => ({
+								...provided,
+								fontSize: '0.875rem', // 14px
+								color: '#6B7280', // text-gray-500
+							}),
+							container: provided => ({
+								...provided,
+								width: '100%',
+							}),
+							menu: provided => ({
+								...provided,
+								width: '100%',
+								zIndex: 9999,
+							}),
+							valueContainer: provided => ({
+								...provided,
+								padding: '0 8px',
+								'@media (max-width: 768px)': {
+									padding: '0 12px',
+								},
+							}),
+							input: provided => ({
+								...provided,
+								margin: '0',
+								padding: '0',
+							}),
+							indicatorsContainer: provided => ({
+								...provided,
+								padding: '0 8px',
+								'@media (max-width: 768px)': {
+									padding: '0 12px',
+								},
+							}),
+							option: (provided, state) => ({
+								...provided,
+								padding: '6px 12px',
+								'@media (max-width: 768px)': {
+									padding: '8px 12px',
+								},
+								backgroundColor: state.isSelected
+									? '#4B5563'
+									: state.isFocused
+									? '#F3F4F6'
+									: 'white',
+								color: state.isSelected ? 'white' : '#1F2937',
+								'&:hover': {
+									backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
+								},
+							}),
+						}}
+					/>
 				</div>
 
 				<div className="overflow-x-auto">
@@ -227,16 +360,18 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 										/>
 									</td>
 									<td className="px-6 py-2 whitespace-nowrap">
-										<input
-											type="file"
-											ref={(el: HTMLInputElement | null) => {
-												if (el) fileInputRefs.current[asset.id] = el;
-											}}
-											accept=".wav"
-											onChange={e => handleFileChange(asset.id, e)}
-											className="hidden"
-										/>
-										{!asset.file ? (
+										{!asset.isImported && (
+											<input
+												type="file"
+												ref={(el: HTMLInputElement | null) => {
+													if (el) fileInputRefs.current[asset.id] = el;
+												}}
+												accept=".wav"
+												onChange={e => handleFileChange(asset.id, e)}
+												className="hidden"
+											/>
+										)}
+										{!asset.isImported && !asset.file ? (
 											<button
 												type="button"
 												onClick={() => handleFileButtonClick(asset.id)}
@@ -245,7 +380,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 												<ArrowBigUp className="w-6 h-6" />
 												<p className="hover:underline">Añadir archivo</p>
 											</button>
-										) : (
+										) : !asset.isImported && asset.file ? (
 											<div className="flex items-center">
 												<span className="text-sm text-gray-700">
 													{asset.file.name}
@@ -260,6 +395,10 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 													<X size={16} />
 												</button>
 											</div>
+										) : (
+											<span className="text-sm text-gray-500">
+												Track importado
+											</span>
 										)}
 									</td>
 									<td className="px-6 py-2 whitespace-nowrap">

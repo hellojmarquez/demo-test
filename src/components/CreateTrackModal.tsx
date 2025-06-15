@@ -448,7 +448,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					} else {
 						trackPublishers[index] = {
 							...trackPublishers[index],
-							[field]: value,
+							[field]: value as string,
 						};
 					}
 					return {

@@ -157,8 +157,9 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			},
 		];
 		const tracksToUpload = validAssets.map((asset, index) => {
-			console.log('asset antes del objeto: ', asset);
 			const track = {
+				...asset,
+
 				order: existingTracksCount + index,
 				name: asset.title,
 				mix_name: asset.isImported ? asset?.mix_name : '',
@@ -193,14 +194,13 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				sample_start: asset.isImported ? asset?.sample_start : '00:00:00',
 				status: asset.isImported ? asset?.status : 'Borrador',
 			};
-			console.log('track completo: ', track);
+
 			return {
 				file: asset.isImported ? null : (asset.file as File),
 				data: track,
 			};
 		});
 
-		console.log('tracksToUpload!!!!!!!!!!!: ', tracksToUpload);
 		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
 		onTracksReady(tracksToUpload);
 		onClose();
@@ -245,10 +245,10 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 	if (!isOpen) return null;
 	useEffect(() => {
 		const tracksRequest = async () => {
-			const tracks = await fetch(`/api/admin/getAllTracks`);
-			console.log(tracks);
+			const tracks = await fetch(`/api/admin/getAllTracks?all=true`);
+
 			const res = await tracks.json();
-			console.log('res tracks', res);
+			console.log('res tracks', res.data.tracks);
 			setTracks(res.data.tracks);
 		};
 		tracksRequest();
@@ -277,23 +277,21 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					</button>
 					<Select
 						options={tracks.map(track => ({
-							value: track.order,
+							value: track.external_id,
 							label: track.name,
 						}))}
 						value={
 							selectedTrack
 								? {
-										value: selectedTrack.order,
+										value: selectedTrack.external_id,
 										label: selectedTrack.name,
 								  }
 								: null
 						}
 						onChange={option => {
 							if (option) {
-								console.log('option: ', option);
-								const track = tracks.find(t => t.order === option.value);
+								const track = tracks.find(t => t.external_id === option.value);
 								if (track) {
-									console.log('option: ', track);
 									setSelectedTrack(track);
 								}
 							} else {

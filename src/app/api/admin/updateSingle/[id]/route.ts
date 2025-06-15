@@ -5,6 +5,7 @@ import SingleTrack from '@/models/SingleTrack';
 import { jwtVerify } from 'jose';
 import Release from '@/models/ReleaseModel';
 import { createLog } from '@/lib/logger';
+import Log from '@/models/LogModel';
 
 export async function PUT(
 	req: NextRequest,
@@ -51,12 +52,13 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
+		console.log('currentTrack', currentTrack.release);
 
 		const formData = await req.formData();
 		const file = formData.get('file') as File | null;
 		const dolby_file = formData.get('dolby_file') as File | null;
 		const trackData = JSON.parse(formData.get('data') as string);
-		console.log('trackData recibida', trackData);
+		console.log('trackData recibida', trackData.release);
 		if (trackData.newArtists && trackData.newArtists.length > 0) {
 			const createdArtists = [];
 			for (const newArtist of trackData.newArtists) {
@@ -370,28 +372,30 @@ export async function PUT(
 		delete trackData.newContributors;
 		delete trackData.newArtists;
 		delete trackData.newPublishers;
-		console.log('track a api', {
+		if (trackData.isImported) {
+			delete trackData.isImported;
+		}
+		if (trackData.id) {
+			delete trackData.id;
+		}
+		const dataToApi = {
 			...trackData,
 			resource: file ? track_path : currentTrackFormated,
 			dolby_atmos_resource: dolby_file ? dolby_path : currentTrackDolbyFormated,
 			publishers: publisherstoapi,
 			artists: artistsToApi,
 			contributors: contributorsToApi,
-		});
+		};
+		delete dataToApi.qc_feedback;
+		delete dataToApi.file;
+		delete dataToApi.genre_name;
+		delete dataToApi.subgenre_name;
+
 		const trackToApi = await fetch(
 			`${process.env.MOVEMUSIC_API}/tracks/${trackData.external_id}`,
 			{
 				method: 'PUT',
-				body: JSON.stringify({
-					...trackData,
-					resource: file ? track_path : currentTrackFormated,
-					dolby_atmos_resource: dolby_file
-						? dolby_path
-						: currentTrackDolbyFormated,
-					publishers: publisherstoapi,
-					artists: artistsToApi,
-					contributors: contributorsToApi,
-				}),
+				body: JSON.stringify(dataToApi),
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: `JWT ${moveMusicAccessToken}`,
@@ -404,8 +408,9 @@ export async function PUT(
 		const apires = await trackToApi.json();
 
 		if (!apires.id) {
+			console.log('error api', apires);
 			return NextResponse.json(
-				{ success: false, error: apires || 'Error al actualizar el track' },
+				{ success: false, error: apires || 'Error al actualizar' },
 				{ status: 400 }
 			);
 		}
@@ -448,49 +453,74 @@ export async function PUT(
 			trackData,
 			{ new: true }
 		);
+		console.log('updatedTrack', updatedTrack);
 		const dataToRelease = {
 			title: trackData.name,
 			mixName: trackData.mix_name,
 			external_id: trackData.external_id,
-			resource: track_url,
+			resource: track_url.length > 0 ? track_url : currentTrack.resource,
 			available: trackData.available,
 		};
-		const updatedRelease = await Release.findOneAndUpdate(
-			{
-				external_id: trackData.release,
-				'tracks.external_id': trackData.external_id,
-			},
-			{
-				$set: {
-					'tracks.$': dataToRelease,
+		console.log('trackData.release', trackData.release);
+		if (trackData.release === currentTrack.release) {
+			const updatedRelease = await Release.findOneAndUpdate(
+				{
+					external_id: trackData.release,
+					'tracks.external_id': trackData.external_id,
 				},
-			},
-			{ new: true }
-		);
-
-		if (!updatedRelease) {
-			return NextResponse.json(
-				{ success: false, error: 'No se encontró el release para actualizar' },
-				{ status: 404 }
+				{
+					$set: {
+						'tracks.$': dataToRelease,
+					},
+				},
+				{ new: true }
 			);
-		}
-		try {
-			// Crear el log
-			const logData = {
-				action: 'UPDATE' as const,
-				entity: 'PRODUCT' as const,
-				entityId: updatedTrack._id.toString(),
-				userId: verifiedPayload.id as string,
-				userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
-				userRole: verifiedPayload.role as string,
-				details: `Track actualizado: ${updatedTrack.name}`,
-				ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
-			};
 
-			await createLog(logData);
-		} catch (logError) {
-			console.error('Error al crear el log:', logError);
-			// No interrumpimos el flujo si falla el log
+			if (!updatedRelease) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'No se encontró el release para actualizar',
+					},
+					{ status: 404 }
+				);
+			}
+
+			try {
+				await Log.create({
+					action: 'UPDATE',
+					entity: 'TRACK',
+					entityId: trackData.external_id,
+					details: `Track actualizado en el release ${trackData.release}`,
+					user: verifiedPayload.id as string,
+				});
+			} catch (logError) {
+				console.error('Error al crear el log:', logError);
+				// No interrumpimos el flujo si falla el log
+			}
+		} else {
+			// Agregar el track al nuevo release
+			const updatedRelease = await Release.findOneAndUpdate(
+				{
+					external_id: trackData.release,
+				},
+				{
+					$push: {
+						tracks: dataToRelease,
+					},
+				},
+				{ new: true }
+			);
+
+			if (!updatedRelease) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'No se encontró el release para agregar el track',
+					},
+					{ status: 404 }
+				);
+			}
 		}
 		return NextResponse.json({
 			success: true,

@@ -564,40 +564,66 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			for (let i = 0; i < tracks.length; i++) {
 				const track = tracks[i];
 				const formData = new FormData();
+				const updateformData = new FormData();
 
 				// Solo agregar el archivo si existe
 				if (track.file) {
 					formData.append('file', track.file);
 				}
-				formData.append('data', JSON.stringify(track.data));
-				console.log('formData: ', track.data);
-				// const response = await fetch('/api/admin/createSingle', {
-				// 	method: 'POST',
-				// 	body: formData,
-				// });
 
-				// if (!response.ok) {
-				// 	throw new Error(`Error al subir el track ${i + 1}`);
-				// }
+				// Preparar los datos del track
+				if (track.data.isImported) {
+					updateformData.append('data', JSON.stringify(track.data));
+				} else {
+					formData.append('data', JSON.stringify(track.data));
+				}
+				let response;
+				if (track.data.isImported) {
+					// Actualizar track existente
+					response = await fetch(
+						`/api/admin/updateSingle/${track.data.external_id}`,
+						{
+							method: 'PUT',
+							body: updateformData,
+						}
+					);
+				} else {
+					// Crear nuevo track
+					response = await fetch('/api/admin/createSingle', {
+						method: 'POST',
+						body: formData,
+					});
+				}
 
-				// // Actualizar el progreso
-				// setUploadProgress({
-				// 	total: tracks.length,
-				// 	loaded: i + 1,
-				// 	percentage: ((i + 1) / tracks.length) * 100,
-				// });
+				if (!response.ok) {
+					throw new Error(
+						`Error al ${
+							track.data.isImported ? 'actualizar' : 'subir'
+						} el track ${i + 1}`
+					);
+				}
+
+				const data = await response.json();
+				console.log('Respuesta del servidor:', data);
+
+				// Actualizar el progreso
+				setUploadProgress({
+					total: tracks.length,
+					loaded: i + 1,
+					percentage: ((i + 1) / tracks.length) * 100,
+				});
 			}
 
-			// // Refrescar los datos del release después de subir todos los tracks
-			// await fetchReleaseData();
+			// Refrescar los datos del release después de subir todos los tracks
+			await fetchReleaseData();
 
-			// // Limpiar los estados después de completar exitosamente
-			// setIsUploadingTracks(false);
-			// setUploadProgress(null);
-			// setUploadError('');
+			// Limpiar los estados después de completar exitosamente
+			setIsUploadingTracks(false);
+			setUploadProgress(null);
+			setUploadError('');
 		} catch (err: any) {
-			console.error('Error al subir tracks:', err);
-			setUploadError(err.message || 'Error al subir los tracks');
+			console.error('Error al procesar tracks:', err);
+			setUploadError(err.message || 'Error al procesar los tracks');
 			setIsUploadingTracks(false);
 			setUploadProgress(null);
 		}

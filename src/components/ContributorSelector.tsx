@@ -271,7 +271,11 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 									</div>
 								</div>
 								<button
-									onClick={() => onDeleteContributor(index)}
+									onClick={e => {
+										e.preventDefault();
+										e.stopPropagation();
+										onDeleteContributor(index);
+									}}
 									className="p-2 text-gray-400 hover:text-red-600 transition-colors"
 								>
 									<Trash2 size={20} />

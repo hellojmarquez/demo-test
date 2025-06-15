@@ -188,7 +188,11 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 								</div>
 							</div>
 							<button
-								onClick={() => onDeleteArtist(index)}
+								onClick={e => {
+									e.preventDefault();
+									e.stopPropagation();
+									onDeleteArtist(index);
+								}}
 								className="p-2 text-gray-400 hover:text-red-600 transition-colors"
 							>
 								<Trash2 size={20} />

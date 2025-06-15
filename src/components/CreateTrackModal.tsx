@@ -337,17 +337,45 @@ const TrackForm: React.FC<TrackFormProps> = ({
 
 	const handleRemovePublisher = (indexToRemove: number) => {
 		setLocalTrack(prev => {
-			const newPublishers = (prev.publishers || []).filter(
-				(_, index) => index !== indexToRemove
-			);
-			// Reordenar los publishers restantes
-			return {
-				...prev,
-				publishers: newPublishers.map((publisher, index) => ({
+			// Determinar si el índice corresponde a un publisher existente o nuevo
+			const publishersLength = prev.publishers?.length || 0;
+			const isNewPublisher = indexToRemove >= publishersLength;
+
+			if (isNewPublisher) {
+				// Eliminar de newPublishers
+				const newPublishers = (prev.newPublishers || []).filter(
+					(_, index) => index !== indexToRemove - publishersLength
+				);
+				return {
+					...prev,
+					newPublishers: newPublishers.map((publisher, index) => ({
+						...publisher,
+						order: publishersLength + index, // El order continúa desde donde terminó publishers
+					})),
+				};
+			} else {
+				// Eliminar de publishers
+				const publishers = (prev.publishers || []).filter(
+					(_, index) => index !== indexToRemove
+				);
+				// Reordenar publishers existentes
+				const updatedPublishers = publishers.map((publisher, index) => ({
 					...publisher,
 					order: index,
-				})),
-			};
+				}));
+				// Reordenar newPublishers para mantener la secuencia
+				const updatedNewPublishers = (prev.newPublishers || []).map(
+					(publisher, index) => ({
+						...publisher,
+						order: updatedPublishers.length + index,
+					})
+				);
+				return {
+					...prev,
+					publishers: updatedPublishers,
+					newPublishers: updatedNewPublishers,
+				};
+			}
 		});
 	};
 
@@ -1160,7 +1188,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<h3 className="text-lg font-medium text-gray-900">Artistas</h3>
 						<button
 							type="button"
-							onClick={() => setIsCreateArtistModalOpen(true)}
+							onClick={e => {
+								e.preventDefault();
+								e.stopPropagation();
+								setIsCreateArtistModalOpen(true);
+							}}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
 							<Plus size={20} />

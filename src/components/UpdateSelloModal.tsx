@@ -41,7 +41,7 @@ interface BaseOption {
 	label: string;
 }
 interface Asignacion {
-	artista_id: string;
+	artista_id: number;
 	fecha_inicio: string;
 	fecha_fin: string;
 	tipo_contrato: 'exclusivo' | 'no_exclusivo';
@@ -63,8 +63,9 @@ interface YearOption extends BaseOption {
 	value: string;
 }
 
-interface ArtistOption extends BaseOption {
-	value: string;
+interface ArtistOption {
+	value: number;
+	label: string;
 }
 
 interface GenreOption extends BaseOption {
@@ -115,14 +116,14 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const [loadingAsignaciones, setLoadingAsignaciones] = useState(false);
 	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 	const [availableArtists, setAvailableArtists] = useState<
-		Array<{ _id: string; name: string }>
+		Array<{ _id: string; external_id: number; name: string }>
 	>([]);
 	const [newAsignaciones, setNewAsignaciones] = useState<Array<any>>([]);
 	const [removedAsignaciones, setRemovedAsignaciones] = useState<Array<string>>(
 		[]
 	);
 	const [newAsignacion, setNewAsignacion] = useState<Asignacion>({
-		artista_id: '',
+		artista_id: 0,
 		fecha_inicio: '',
 		fecha_fin: '',
 		tipo_contrato: 'exclusivo',
@@ -167,16 +168,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			primary_genre: sello.primary_genre || '',
 		};
 	});
-	useEffect(() => {
-		const fetchAsignaciones = async () => {
-			const response = await fetch(
-				`/api/admin/getAsignaciones?sello_id=${sello._id}`
-			);
-			const data = await response.json();
-			console.log('data', data);
-		};
-		fetchAsignaciones();
-	}, [sello]);
+
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
 		if (!sello.picture) return null;
 		return typeof sello.picture === 'string' ? sello.picture : null;
@@ -393,10 +385,11 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				setLoadingAsignaciones(true);
 				try {
 					const response = await fetch(
-						`/api/admin/getAsignaciones?sello_id=${sello._id}`
+						`/api/admin/getAllAsignaciones/${sello._id}`
 					);
 					if (response.ok) {
 						const data = await response.json();
+						console.log('data', data.data);
 						setAsignaciones(data.data || []);
 					}
 				} catch (error) {
@@ -423,6 +416,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 						.filter((user: any) => user.role === 'artista' && !user.parentId)
 						.map((user: any) => ({
 							_id: user._id,
+							external_id: user.external_id,
 							name: user.name,
 						}));
 					setAvailableArtists(artists);
@@ -548,18 +542,17 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 		// Encontrar el artista seleccionado para mostrar su nombre
 		const artistaSeleccionado = availableArtists.find(
-			a => a._id === newAsignacion.artista_id
+			a => a.external_id === Number(newAsignacion.artista_id)
 		);
 		if (!artistaSeleccionado) return;
 
 		// Agregar la nueva asignación a la lista temporal
-
 		setNewAsignaciones(prev => [
 			...prev,
 			{
 				...newAsignacion,
 				artista_id: {
-					_id: String(artistaSeleccionado._id),
+					external_id: Number(artistaSeleccionado.external_id),
 					name: artistaSeleccionado.name,
 				},
 			},
@@ -567,7 +560,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 		// Limpiar el formulario
 		setNewAsignacion({
-			artista_id: '',
+			artista_id: 0,
 			fecha_inicio: '',
 			fecha_fin: '',
 			tipo_contrato: 'exclusivo',
@@ -991,7 +984,9 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											{/* Current Artists */}
 											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 												{asignaciones
-													.filter(a => !removedAsignaciones.includes(a._id))
+													.filter(
+														a => !removedAsignaciones.includes(a.external_id)
+													)
 													.map(asignacion => (
 														<div
 															key={asignacion._id}
@@ -1093,12 +1088,14 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 																	value={
 																		newAsignacion.artista_id
 																			? {
-																					value: newAsignacion.artista_id,
+																					value: Number(
+																						newAsignacion.artista_id
+																					),
 																					label:
 																						availableArtists.find(
 																							artist =>
-																								artist._id ===
-																								newAsignacion.artista_id
+																								artist.external_id ===
+																								Number(newAsignacion.artista_id)
 																						)?.name || '',
 																			  }
 																			: null
@@ -1109,17 +1106,19 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 																		if (selectedOption) {
 																			setNewAsignacion(prev => ({
 																				...prev,
-																				artista_id: selectedOption.value,
+																				artista_id: Number(
+																					selectedOption.value
+																				),
 																			}));
 																		} else {
 																			setNewAsignacion(prev => ({
 																				...prev,
-																				artista_id: '',
+																				artista_id: 0,
 																			}));
 																		}
 																	}}
 																	options={availableArtists.map(artist => ({
-																		value: artist._id,
+																		value: Number(artist.external_id),
 																		label: artist.name,
 																	}))}
 																	placeholder="Seleccionar artista"

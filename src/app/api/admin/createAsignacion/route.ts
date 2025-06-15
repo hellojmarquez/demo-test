@@ -56,7 +56,10 @@ export async function POST(request: NextRequest) {
 			}
 
 			// Verificar que el artista existe
-			const artista = await User.findOne({ _id: artista_id, role: 'artista' });
+			const artista = await User.findOne({
+				external_id: Number(artista_id),
+				role: 'artista',
+			});
 			if (!artista) {
 				return NextResponse.json(
 					{ success: false, message: 'Artista no encontrado' },
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
 
 			// Verificar si el artista ya tiene un contrato activo
 			const contratoExistente = await SelloArtistaContrato.findOne({
-				artista_id,
+				'artista_id.external_id': Number(artista_id),
 				estado: 'activo',
 			});
 
@@ -108,7 +111,10 @@ export async function POST(request: NextRequest) {
 			// Crear el contrato con las fechas convertidas
 			const contrato = await SelloArtistaContrato.create({
 				sello_id,
-				artista_id,
+				artista_id: {
+					external_id: Number(artista_id),
+					name: artista.name,
+				},
 				fecha_inicio: fechaInicioDate,
 				fecha_fin: fechaFinDate,
 				tipo_contrato,

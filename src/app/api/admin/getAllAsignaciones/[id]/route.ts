@@ -1,11 +1,14 @@
-export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SelloArtistaContrato from '@/models/AsignacionModel';
-import User from '@/models/UserModel';
 import { jwtVerify } from 'jose';
 
-export async function GET(req: NextRequest) {
+export async function GET(
+	req: NextRequest,
+	{ params }: { params: { id: string } }
+) {
+	console.log('get asignations===================');
+	console.log('params', params);
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -31,22 +34,14 @@ export async function GET(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
+
 		await dbConnect();
-		const { searchParams } = new URL(req.url);
-		const sello_id = searchParams.get('sello_id');
 
-		if (!sello_id) {
-			return NextResponse.json(
-				{ success: false, error: 'ID del sello no proporcionado' },
-				{ status: 400 }
-			);
-		}
-
-		// Obtener todos los contratos activos del sello
+		// Obtener todos los contratos activos del sello usando el ID de la ruta
 		const contratos = await SelloArtistaContrato.find({
-			sello_id,
+			sello_id: params.id,
 			estado: 'activo',
-		}).populate('artista_id', 'name picture');
+		});
 
 		return NextResponse.json({
 			success: true,

@@ -2,7 +2,10 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ISelloArtistaContrato extends Document {
 	sello_id: mongoose.Types.ObjectId;
-	artista_id: mongoose.Types.ObjectId;
+	artista_id: {
+		external_id: number;
+		name: string;
+	};
 	fecha_inicio: Date;
 	fecha_fin?: Date;
 	tipo_contrato: 'exclusivo' | 'no_exclusivo';
@@ -22,10 +25,15 @@ const SelloArtistaContratoSchema = new Schema(
 			index: true,
 		},
 		artista_id: {
-			type: Schema.Types.ObjectId,
-			ref: 'User',
-			required: true,
-			index: true,
+			external_id: {
+				type: Number,
+				required: true,
+				index: true,
+			},
+			name: {
+				type: String,
+				required: true,
+			},
 		},
 		fecha_inicio: {
 			type: Date,
@@ -71,19 +79,24 @@ SelloArtistaContratoSchema.index(
 	{ unique: true }
 );
 
-// Middleware para validar que no exista una asignación activa para el mismo artista
+// Middleware para validar que no exista una asignación activa para el mismo artista en el mismo sello
 SelloArtistaContratoSchema.pre('save', async function (next) {
 	if (this.isNew || this.isModified('estado')) {
+		if (!this.artista_id?.external_id) {
+			throw new Error('El artista_id es requerido');
+		}
+
 		const existingContrato = await mongoose
 			.model('SelloArtistaContrato')
 			.findOne({
-				artista_id: this.artista_id,
+				'artista_id.external_id': this.artista_id.external_id,
+				sello_id: this.sello_id,
 				estado: 'activo',
 				_id: { $ne: this._id },
 			});
 
 		if (existingContrato) {
-			throw new Error('El artista ya tiene un contrato activo con otro sello');
+			throw new Error('El artista ya tiene un contrato activo con este sello');
 		}
 	}
 	next();

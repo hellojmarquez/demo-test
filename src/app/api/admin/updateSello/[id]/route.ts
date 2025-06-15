@@ -16,7 +16,7 @@ interface SubAccount {
 // Definir la interfaz para la asignación
 interface Asignacion {
 	artista_id: {
-		_id: string;
+		external_id: number;
 		name: string;
 	};
 	fecha_inicio: string;
@@ -228,7 +228,7 @@ export async function PUT(
 			// Si hay asignaciones, procesarlas
 			if (data.asignaciones) {
 				const asignaciones = JSON.parse(data.asignaciones);
-
+				console.log('asignaciones', asignaciones);
 				// Obtener las asignaciones existentes
 				const existingAsignaciones = await SelloArtistaContrato.find({
 					sello_id: updatedSello._id,
@@ -241,20 +241,23 @@ export async function PUT(
 				);
 
 				// Crear un mapa de las nuevas asignaciones
-				const newMap = new Map<string, Asignacion>(
-					asignaciones.map((asig: Asignacion) => [asig.artista_id._id, asig])
+				const newMap = new Map<number, Asignacion>(
+					asignaciones.map((asig: Asignacion) => [
+						Number(asig.artista_id.external_id),
+						asig,
+					])
 				);
 
-				// Eliminar asignaciones que ya no existen
-				Array.from(existingMap.entries()).forEach(
-					async ([artistaId, asignacion]) => {
-						if (!newMap.has(artistaId)) {
-							await SelloArtistaContrato.findByIdAndUpdate(asignacion._id, {
-								estado: 'inactivo',
-							});
-						}
-					}
-				);
+				// // Eliminar asignaciones que ya no existen
+				// Array.from(existingMap.entries()).forEach(
+				// 	async ([artistaId, asignacion]) => {
+				// 		if (!newMap.has(artistaId)) {
+				// 			await SelloArtistaContrato.findByIdAndUpdate(asignacion._id, {
+				// 				estado: 'inactivo',
+				// 			});
+				// 		}
+				// 	}
+				// );
 
 				// Crear nuevas asignaciones
 				Array.from(newMap.entries()).forEach(
@@ -262,7 +265,7 @@ export async function PUT(
 						if (!existingMap.has(artistaId)) {
 							// Verificar si el artista ya tiene un contrato activo con otro sello
 							const contratoExistente = await SelloArtistaContrato.findOne({
-								artista_id: artistaId,
+								'artista_id.external_id': Number(artistaId),
 								estado: 'activo',
 								sello_id: { $ne: updatedSello._id },
 							});
@@ -276,7 +279,10 @@ export async function PUT(
 							// Crear nueva asignación
 							await SelloArtistaContrato.create({
 								sello_id: updatedSello._id,
-								artista_id: artistaId,
+								artista_id: {
+									external_id: Number(artistaId),
+									name: asignacion.artista_id.name,
+								},
 								fecha_inicio: new Date(asignacion.fecha_inicio),
 								fecha_fin: asignacion.fecha_fin
 									? new Date(asignacion.fecha_fin)

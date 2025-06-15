@@ -40,7 +40,13 @@ interface BaseOption {
 	value: string;
 	label: string;
 }
-
+interface Asignacion {
+	artista_id: string;
+	fecha_inicio: string;
+	fecha_fin: string;
+	tipo_contrato: 'exclusivo' | 'no_exclusivo';
+	porcentaje_distribucion: number;
+}
 interface AccountOption extends BaseOption {
 	value: 'principal' | 'subcuenta';
 }
@@ -102,7 +108,40 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const [selectedSubAccounts, setSelectedSubAccounts] = useState<User[]>([]);
 	const [existingRelationships, setExistingRelationships] = useState<any[]>([]);
 	const [isDeleting, setIsDeleting] = useState<string | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	const [asignaciones, setAsignaciones] = useState<Array<any>>([]);
+	const [loadingAsignaciones, setLoadingAsignaciones] = useState(false);
+	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+	const [availableArtists, setAvailableArtists] = useState<
+		Array<{ _id: string; name: string }>
+	>([]);
+	const [newAsignaciones, setNewAsignaciones] = useState<Array<any>>([]);
+	const [removedAsignaciones, setRemovedAsignaciones] = useState<Array<string>>(
+		[]
+	);
+	const [newAsignacion, setNewAsignacion] = useState<Asignacion>({
+		artista_id: '',
+		fecha_inicio: '',
+		fecha_fin: '',
+		tipo_contrato: 'exclusivo',
+		porcentaje_distribucion: 80,
+	});
+	const [extendedLimit, setExtendedLimit] = useState({
+		limit: 3,
+		endDate: '',
+		paymentDetails: {
+			amount: 0,
+			transactionId: '',
+		},
+	});
+	const [currentLimit, setCurrentLimit] = useState<any>(null);
+	const [genres, setGenres] = useState<Array<{ _id: string; name: string }>>(
+		[]
+	);
+
+	const [error, setError] = useState<string | null>(null);
 	const [formData, setFormData] = useState<SelloFormData>(() => {
 		return {
 			_id: sello._id,
@@ -128,7 +167,16 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			primary_genre: sello.primary_genre || '',
 		};
 	});
-
+	useEffect(() => {
+		const fetchAsignaciones = async () => {
+			const response = await fetch(
+				`/api/admin/getAsignaciones?sello_id=${sello._id}`
+			);
+			const data = await response.json();
+			console.log('data', data);
+		};
+		fetchAsignaciones();
+	}, [sello]);
 	const [imagePreview, setImagePreview] = useState<string | null>(() => {
 		if (!sello.picture) return null;
 		return typeof sello.picture === 'string' ? sello.picture : null;
@@ -210,41 +258,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		value: year.toString(),
 		label: year.toString(),
 	}));
-
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
-
-	const [asignaciones, setAsignaciones] = useState<Array<any>>([]);
-	const [loadingAsignaciones, setLoadingAsignaciones] = useState(false);
-	const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-	const [availableArtists, setAvailableArtists] = useState<
-		Array<{ _id: string; name: string }>
-	>([]);
-	const [newAsignaciones, setNewAsignaciones] = useState<Array<any>>([]);
-	const [removedAsignaciones, setRemovedAsignaciones] = useState<Array<string>>(
-		[]
-	);
-	const [newAsignacion, setNewAsignacion] = useState({
-		artista_id: '',
-		fecha_inicio: '',
-		fecha_fin: '',
-		tipo_contrato: 'exclusivo' as 'exclusivo' | 'no_exclusivo',
-		porcentaje_distribucion: 80,
-	});
-	const [extendedLimit, setExtendedLimit] = useState({
-		limit: 3,
-		endDate: '',
-		paymentDetails: {
-			amount: 0,
-			transactionId: '',
-		},
-	});
-	const [currentLimit, setCurrentLimit] = useState<any>(null);
-	const [genres, setGenres] = useState<Array<{ _id: string; name: string }>>(
-		[]
-	);
-
-	const [error, setError] = useState<string | null>(null);
 
 	const statusOptions: StatusOption[] = [
 		{ value: 'activo', label: 'Activo' },
@@ -540,15 +553,15 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		if (!artistaSeleccionado) return;
 
 		// Agregar la nueva asignación a la lista temporal
+
 		setNewAsignaciones(prev => [
 			...prev,
 			{
 				...newAsignacion,
 				artista_id: {
-					_id: artistaSeleccionado._id,
+					_id: String(artistaSeleccionado._id),
 					name: artistaSeleccionado.name,
 				},
-				_id: `temp_${Date.now()}`, // ID temporal para identificar la asignación
 			},
 		]);
 
@@ -564,6 +577,9 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		setShowSuccessMessage(true);
 		setTimeout(() => setShowSuccessMessage(false), 3000);
 	};
+	useEffect(() => {
+		console.log('newAsignaciones', newAsignaciones);
+	}, [newAsignaciones]);
 
 	const handleRemoveArtist = (asignacionId: string) => {
 		if (asignacionId.startsWith('temp_')) {
@@ -581,6 +597,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		console.log('send', formData);
+
 		setIsSubmitting(true);
 		setError(null);
 
@@ -591,7 +609,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			formDataToSend.append('role', 'sello');
 			formDataToSend.append('_id', formData._id);
 			formDataToSend.append('external_id', sello.external_id.toString());
-
+			formDataToSend.append('asignaciones', JSON.stringify(newAsignaciones));
 			if (formData.password) {
 				formDataToSend.append('password', formData.password);
 			}
@@ -617,7 +635,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				}));
 				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
 			}
-
+			console.log('formDataToSend', formDataToSend);
 			await onSave(formDataToSend);
 			onClose();
 		} catch (error) {

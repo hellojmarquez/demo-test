@@ -5,16 +5,31 @@ import { jwtVerify } from 'jose';
 import { encryptPassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
 import AccountRelationship from '@/models/AccountRelationshipModel';
+import SelloArtistaContrato from '@/models/AsignacionModel';
+
 interface SubAccount {
 	subAccountId: string;
 	status: string;
 	role: string;
 }
 
+// Definir la interfaz para la asignación
+interface Asignacion {
+	artista_id: {
+		_id: string;
+		name: string;
+	};
+	fecha_inicio: string;
+	fecha_fin?: string;
+	tipo_contrato: 'exclusivo' | 'no_exclusivo';
+	porcentaje_distribucion: number;
+}
+
 export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
+	console.log('updateSello');
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -79,6 +94,7 @@ export async function PUT(
 				exclusivity: formData.get('exclusivity'),
 				primary_genre: formData.get('primary_genre'),
 				subAccounts: formData.get('subAccounts'),
+				asignaciones: formData.get('asignaciones'),
 			};
 		} else if (contentType.includes('application/json')) {
 			data = await req.json();
@@ -100,7 +116,7 @@ export async function PUT(
 			status: data.status,
 			logo: '',
 		};
-
+		console.log('data', data);
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
 			const uploadMediaReq = await fetch(
@@ -207,9 +223,88 @@ export async function PUT(
 				{ status: 500 }
 			);
 		}
+		// Después de actualizar el sello y antes de manejar las relaciones de cuentas
+		try {
+			// Si hay asignaciones, procesarlas
+			if (data.asignaciones) {
+				const asignaciones = JSON.parse(data.asignaciones);
 
+				// Obtener las asignaciones existentes
+				const existingAsignaciones = await SelloArtistaContrato.find({
+					sello_id: updatedSello._id,
+					estado: 'activo',
+				});
+
+				// Crear un mapa de las asignaciones existentes
+				const existingMap = new Map(
+					existingAsignaciones.map(asig => [asig.artista_id.toString(), asig])
+				);
+
+				// Crear un mapa de las nuevas asignaciones
+				const newMap = new Map<string, Asignacion>(
+					asignaciones.map((asig: Asignacion) => [asig.artista_id._id, asig])
+				);
+
+				// Eliminar asignaciones que ya no existen
+				Array.from(existingMap.entries()).forEach(
+					async ([artistaId, asignacion]) => {
+						if (!newMap.has(artistaId)) {
+							await SelloArtistaContrato.findByIdAndUpdate(asignacion._id, {
+								estado: 'inactivo',
+							});
+						}
+					}
+				);
+
+				// Crear nuevas asignaciones
+				Array.from(newMap.entries()).forEach(
+					async ([artistaId, asignacion]) => {
+						if (!existingMap.has(artistaId)) {
+							// Verificar si el artista ya tiene un contrato activo con otro sello
+							const contratoExistente = await SelloArtistaContrato.findOne({
+								artista_id: artistaId,
+								estado: 'activo',
+								sello_id: { $ne: updatedSello._id },
+							});
+
+							if (contratoExistente) {
+								throw new Error(
+									`El artista ${asignacion.artista_id.name} ya tiene un contrato activo con otro sello`
+								);
+							}
+
+							// Crear nueva asignación
+							await SelloArtistaContrato.create({
+								sello_id: updatedSello._id,
+								artista_id: artistaId,
+								fecha_inicio: new Date(asignacion.fecha_inicio),
+								fecha_fin: asignacion.fecha_fin
+									? new Date(asignacion.fecha_fin)
+									: null,
+								tipo_contrato: asignacion.tipo_contrato,
+								porcentaje_distribucion: asignacion.porcentaje_distribucion,
+								estado: 'activo',
+							});
+						}
+					}
+				);
+			}
+		} catch (asignacionError) {
+			console.error('Error al manejar las asignaciones:', asignacionError);
+			return NextResponse.json(
+				{
+					success: false,
+					error:
+						asignacionError instanceof Error
+							? asignacionError.message
+							: 'Error al procesar las asignaciones',
+				},
+				{ status: 400 }
+			);
+		}
 		// Manejar las relaciones de cuentas
 		try {
+			console.log('manejar cuentas');
 			// Si hay subcuentas, procesarlas
 			if (data.subAccounts) {
 				const subAccounts = JSON.parse(data.subAccounts) as SubAccount[];

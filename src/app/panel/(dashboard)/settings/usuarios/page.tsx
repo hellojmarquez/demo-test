@@ -503,12 +503,13 @@ export default function UsuariosPage() {
 					exclusivity: formData.get('exclusivity'),
 					primary_genre: formData.get('primary_genre'),
 					subAccounts: formData.get('subAccounts'),
+					asignaciones: formData.get('asignaciones'),
 				};
 
 				headers['Content-Type'] = 'application/json';
 				body = JSON.stringify(data);
 			}
-
+			console.log('body a enviar', body);
 			const external_id = formData.get('external_id');
 
 			const res = await fetch(`/api/admin/updateSello/${external_id}`, {

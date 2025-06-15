@@ -1,7 +1,29 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
+import { Artist } from '@/types/release';
 import { X, Plus, ArrowBigUp, Trash2, Import } from 'lucide-react';
 import Select from 'react-select';
+
+interface ReleaseTrack {
+	_id: string; // MongoDB _id
+	external_id?: string;
+	order: number;
+	name: string;
+	artists: Artist[];
+	ISRC: string;
+	generate_isrc: boolean;
+	DA_ISRC: string;
+	genre: number;
+	genre_name: string;
+	subgenre: number;
+	subgenre_name: string;
+	mix_name: string;
+	resource: string | File;
+	dolby_atmos_resource: string;
+	album_only: boolean;
+	explicit_content: boolean;
+	track_length: string;
+}
 
 interface Track {
 	id: number;
@@ -13,7 +35,7 @@ interface UploadTrackToReleaseProps {
 	releaseId: number;
 	onClose: () => void;
 	existingTracksCount: number;
-	onTracksReady: (tracks: { file: File; data: any }[]) => void;
+	onTracksReady: (tracks: { file: File | null; data: any }[]) => void;
 }
 
 interface AssetRow {
@@ -22,6 +44,7 @@ interface AssetRow {
 	mixName: string;
 	file: File | null;
 	isImported?: boolean;
+	[key: string]: any; // Permite propiedades adicionales
 }
 
 const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
@@ -33,8 +56,8 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 }) => {
 	const [assets, setAssets] = useState<AssetRow[]>([]);
 	const [error, setError] = useState('');
-	const [tracks, setTracks] = useState<Track[]>([]);
-	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+	const [tracks, setTracks] = useState<ReleaseTrack[]>([]);
+	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
 	const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
 	const inputStyles =
@@ -93,70 +116,90 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 		e.preventDefault();
 		setError('');
 
-		// Validar que al menos un asset tenga título y archivo
-		const validAssets = assets.filter(asset => asset.title && asset.file);
+		// Validar que al menos un asset tenga título y archivo, o sea un track importado
+		const validAssets = assets.filter(
+			asset =>
+				(asset.title && asset.file) || // assets normales con archivo
+				(asset.title && asset.isImported) // tracks importados
+		);
 
 		if (validAssets.length === 0) {
-			setError('Por favor agrega al menos un asset con título y archivo');
+			setError(
+				'Por favor agrega al menos un asset con título y archivo o un track importado'
+			);
 			return;
 		}
 
 		// Preparar los tracks para enviar al padre
+		const defaultArtists = [
+			{
+				artist: 1541,
+				kind: 'main',
+				order: 5,
+				name: 'Jhon Doe',
+			},
+		];
+		const defaultPublishers = [
+			{
+				order: 3,
+				publisher: 194,
+				name: 'ISLA SOUNDS',
+				author: 'Juan Cisneros',
+			},
+		];
+		const defaultContributors = [
+			{
+				order: 3,
+				contributor: 1019,
+				name: 'Jhon Doe',
+				role: 2,
+				role_name: 'Composer',
+			},
+		];
 		const tracksToUpload = validAssets.map((asset, index) => {
+			console.log('asset antes del objeto: ', asset);
 			const track = {
 				order: existingTracksCount + index,
 				name: asset.title,
-				mix_name: asset.mixName,
+				mix_name: asset.isImported ? asset?.mix_name : '',
 				release: releaseId,
-				language: 'ES',
-				vocals: 'ZXX',
-				artists: [
-					{
-						artist: 1541,
-						kind: 'main',
-						order: 5,
-						name: 'Jhon Doe',
-					},
-				],
-				publishers: [
-					{
-						order: 3,
-						publisher: 194,
-						name: 'ISLA SOUNDS',
-						author: 'Juan Cisneros',
-					},
-				],
-				contributors: [
-					{
-						order: 3,
-						contributor: 1019,
-						name: 'Jhon Doe',
-						role: 2,
-						role_name: 'Composer',
-					},
-				],
-				label_share: '50',
-				copyright_holder: 'ISLA SOUNDS',
-				copyright_holder_year: '2025',
-				generate_isrc: true,
-				dolby_atmos_resource: '',
-				DA_ISRC: '',
-				genre: 3,
-				genre_name: 'Alternative',
-				subgenre: 90,
-				subgenre_name: 'Alternative',
-				album_only: false,
-				explicit_content: false,
-				track_lenght: '00:03:00',
-				sample_start: '00:00:00',
-				status: 'Borrador',
+				resource: asset.isImported ? asset?.resource : null,
+				language: asset.isImported ? asset?.language : 'ES',
+				vocals: asset.isImported ? asset.vocals : 'ZXX',
+				artists: asset.isImported ? asset?.artists : defaultArtists,
+				publishers: asset.isImported ? asset?.publishers : defaultPublishers,
+				contributors: asset.isImported
+					? asset?.contributors
+					: defaultContributors,
+				label_share: asset.isImported ? asset?.label_share : '50',
+				copyright_holder: asset.isImported
+					? asset?.copyright_holder
+					: 'ISLA SOUNDS',
+				copyright_holder_year: asset.isImported
+					? asset?.copyright_holder_year
+					: '2025',
+				generate_isrc: asset.isImported ? asset?.generate_isrc : true,
+				dolby_atmos_resource: asset.isImported
+					? asset?.dolby_atmos_resource
+					: '',
+				DA_ISRC: asset.isImported ? asset?.DA_ISRC : '',
+				genre: asset.isImported ? asset?.genre : 3,
+				genre_name: asset.isImported ? asset?.genre_name : 'Alternative',
+				subgenre: asset.isImported ? asset?.subgenre : 90,
+				subgenre_name: asset.isImported ? asset?.subgenre_name : 'Alternative',
+				album_only: asset.isImported ? asset?.album_only : false,
+				explicit_content: asset.isImported ? asset?.explicit_content : false,
+				track_length: asset.isImported ? asset?.track_length : '00:03:00',
+				sample_start: asset.isImported ? asset?.sample_start : '00:00:00',
+				status: asset.isImported ? asset?.status : 'Borrador',
 			};
-
+			console.log('track completo: ', track);
 			return {
-				file: asset.file as File,
+				file: asset.isImported ? null : (asset.file as File),
 				data: track,
 			};
 		});
+
 		console.log('tracksToUpload!!!!!!!!!!!: ', tracksToUpload);
 		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
 		onTracksReady(tracksToUpload);
@@ -181,18 +224,22 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			return;
 		}
 
-		// Crear un nuevo asset con el track seleccionado
+		// Crear un nuevo asset con toda la información del track seleccionado
+		const { order, name, mix_name, _id, ...trackData } = selectedTrack;
 		const newAsset: AssetRow = {
-			id: Date.now(),
-			title: selectedTrack.name,
-			mixName: '',
+			id: Date.now(), // id local para el asset
+			title: name,
+			mixName: mix_name,
 			file: null,
 			isImported: true,
+			_id: _id, // guardar el _id de MongoDB
+			// Copiar todas las propiedades del track seleccionado excepto order, name, mix_name y _id
+			...trackData,
 		};
 
 		setAssets(prev => [...prev, newAsset]);
-		setSelectedTrack(null); // Resetear la selección
-		setError(''); // Limpiar cualquier error previo
+		setSelectedTrack(null);
+		setError('');
 	};
 
 	if (!isOpen) return null;
@@ -201,7 +248,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			const tracks = await fetch(`/api/admin/getAllTracks`);
 			console.log(tracks);
 			const res = await tracks.json();
-			console.log(res);
+			console.log('res tracks', res);
 			setTracks(res.data.tracks);
 		};
 		tracksRequest();
@@ -230,23 +277,25 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 					</button>
 					<Select
 						options={tracks.map(track => ({
-							value: track.id,
+							value: track.order,
 							label: track.name,
 						}))}
 						value={
 							selectedTrack
 								? {
-										value: selectedTrack.id,
+										value: selectedTrack.order,
 										label: selectedTrack.name,
 								  }
 								: null
 						}
 						onChange={option => {
 							if (option) {
-								setSelectedTrack({
-									id: option.value,
-									name: option.label,
-								});
+								console.log('option: ', option);
+								const track = tracks.find(t => t.order === option.value);
+								if (track) {
+									console.log('option: ', track);
+									setSelectedTrack(track);
+								}
 							} else {
 								setSelectedTrack(null);
 							}
@@ -306,7 +355,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 									: state.isFocused
 									? '#F3F4F6'
 									: 'white',
-								color: state.isSelected ? 'white' : '#1F2937',
+								color: state.isSelected ? 'black' : '#1F2937',
 								'&:hover': {
 									backgroundColor: state.isSelected ? '#4B5563' : '#F3F4F6',
 								},

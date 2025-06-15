@@ -387,17 +387,70 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			});
 		} else {
 			setLocalTrack(prev => {
-				const newPublishers = [...(prev.publishers || [])];
-				newPublishers[index] = {
-					...newPublishers[index],
-					[field]: value,
-				};
-				return {
-					...prev,
-					publishers: newPublishers,
-				};
+				// Determinar si el índice corresponde a un publisher existente o nuevo
+				const publishersLength = prev.publishers?.length || 0;
+				const isNewPublisher = index >= publishersLength;
+
+				if (isNewPublisher) {
+					// Actualizar newPublishers
+					const newPublishers = [...(prev.newPublishers || [])];
+					const actualIndex = index - publishersLength;
+					newPublishers[actualIndex] = {
+						...newPublishers[actualIndex],
+						[field]: value,
+					};
+					return {
+						...prev,
+						newPublishers,
+					};
+				} else {
+					// Actualizar publishers
+					const trackPublishers = [...(prev.publishers || [])];
+					if (field === 'publisher') {
+						// Si estamos actualizando el publisher, también actualizamos el nombre
+						const selectedPublisher = publishers.find(
+							p => p.external_id === Number(value)
+						);
+						trackPublishers[index] = {
+							...trackPublishers[index],
+							publisher: Number(value),
+							name: selectedPublisher?.name || '',
+							order: index, // Aseguramos que el order sea consistente con el índice
+						};
+					} else {
+						trackPublishers[index] = {
+							...trackPublishers[index],
+							[field]: value,
+						};
+					}
+					return {
+						...prev,
+						publishers: trackPublishers,
+					};
+				}
 			});
 		}
+	};
+
+	// Modificar el botón de agregar publisher para asignar el order correctamente
+	const handleAddPublisher = () => {
+		const maxOrder = Math.max(
+			...(localTrack?.publishers || []).map((p: { order: number }) => p.order),
+			...(localTrack?.newPublishers || []).map(
+				(p: { order: number }) => p.order
+			),
+			-1
+		);
+		const newPublisher: Publisher = {
+			publisher: 0,
+			name: '',
+			author: '',
+			order: maxOrder + 1,
+		};
+		setLocalTrack(prev => ({
+			...prev,
+			publishers: [...(prev.publishers || []), newPublisher],
+		}));
 	};
 
 	const handleChange = (
@@ -1371,27 +1424,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						<h3 className="text-lg font-medium text-gray-900">Publishers</h3>
 						<button
 							type="button"
-							onClick={() => {
-								const maxOrder = Math.max(
-									...(localTrack?.publishers || []).map(
-										(p: { order: number }) => p.order
-									),
-									...(localTrack?.newPublishers || []).map(
-										(p: { order: number }) => p.order
-									),
-									-1
-								);
-								const newPublisher: Publisher = {
-									publisher: 0, // Volvemos a usar 0 para nuevos publishers creados
-									name: '',
-									author: '',
-									order: maxOrder + 1,
-								};
-								setLocalTrack(prev => ({
-									...prev,
-									publishers: [...(prev.publishers || []), newPublisher],
-								}));
-							}}
+							onClick={handleAddPublisher}
 							className="p-2.5 text-brand-light hover:text-brand-dark rounded-full hover:bg-gray-50 transition-colors"
 						>
 							<Plus size={20} />

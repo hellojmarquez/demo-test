@@ -39,6 +39,10 @@ interface Contributor {
 	role_name: string;
 }
 
+interface ContributorData {
+	external_id: number;
+	name: string;
+}
 interface Publisher {
 	[x: string]: any;
 	publisher: number;
@@ -167,10 +171,11 @@ const TrackForm: React.FC<TrackFormProps> = ({
 }) => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [artists, setArtists] = useState<Artist[]>([]);
-	const [contributors, setContributors] = useState<Contributor[]>([]);
+	const [contributors, setContributors] = useState<ContributorData[]>([]);
 	const [publishers, setPublishers] = useState<Publisher[]>([]);
 	const [roles, setRoles] = useState<Role[]>([]);
 	const [error, setError] = useState<string | null>(null);
+	const [artistsError, setArtistsError] = useState<string[]>([]);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [selectedFileDolby, setSelectedFileDolby] = useState<File | null>(null);
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -220,6 +225,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		newContributors: [],
 		newPublishers: [],
 	});
+	const [contributorError, setContributorError] = useState<string[]>([]);
 	const [isCreateArtistModalOpen, setIsCreateArtistModalOpen] = useState(false);
 	const [isCreatePublisherModalOpen, setIsCreatePublisherModalOpen] =
 		useState(false);
@@ -243,11 +249,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	});
 	const [isCreateContributorModalOpen, setIsCreateContributorModalOpen] =
 		useState(false);
-
-	// Actualizar el estado local cuando cambia el prop track
-	// useEffect(() => {
-	// 	setLocalTrack(track || {});
-	// }, [track]);
 
 	// Efecto para inicializar los subgéneros cuando se carga el componente
 	useEffect(() => {
@@ -296,7 +297,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				setIsLoading(true);
 				setError(null);
 
-				const contributorRes = await fetch('/api/admin/getAllContributor');
+				const contributorRes = await fetch(
+					'/api/admin/getAllContributor?all=true'
+				);
 				const contributorData = await contributorRes.json();
 				if (contributorData.success) {
 					setContributors(contributorData.data);
@@ -541,57 +544,94 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			}
 		}
 	};
-
-	// Función para recargar publishers
-	const reloadPublishers = async () => {
+	const handleSave = async (e: any) => {
+		e.preventDefault();
+		setIsLoading(true);
+		console.log('entrnado a save: ');
+		setContributorError([]);
+		setArtistsError([]);
+		console.log('localTrack: ', localTrack);
 		try {
-			const response = await fetch('/api/admin/getAllPublishers');
-			const data = await response.json();
-			if (data.success) {
-				setPublishers(data.data.publishers);
+			if (localTrack?.external_id) {
+				console.log('iniciando: ');
+				// Crear FormData para enviar el archivo
+				const formData = new FormData();
+				console.log('localTrack.artists: ', localTrack.artists);
+				if (localTrack.contributors.some(c => !c.role)) {
+					toast.error('Error en contributors');
+					setContributorError(prev => [
+						...prev,
+						'Todos los Contributors deben de tener un rol seleccionado',
+					]);
+				}
+				if (
+					localTrack.vocals !== 'ZXX' &&
+					!localTrack.contributors.some(c => c.role_name === 'Lyricist')
+				) {
+					toast.error('Error en contributors');
+					setContributorError(prev => [
+						...prev,
+						'Si Vocals no es instrumental, al menos un Contributor debe de tener el rol de Lyricist',
+					]);
+				}
+				if (!localTrack.contributors.some(c => c.role_name === 'Composer')) {
+					toast.error('Error en contributors');
+					setContributorError(prev => [
+						...prev,
+						'Al menos un Contributor debe de tener el rol de Composer',
+					]);
+				}
+				if (!localTrack.artists.some(c => c.kind === 'main')) {
+					toast.error('Error en artists');
+					setArtistsError(prev => [
+						...prev,
+						'Al menos un artista debe de tener el rol de Principal',
+					]);
+				}
+				if (contributorError.length > 0 || artistsError.length > 0) {
+					toast.error('Error: faltan datos');
+					return;
+				}
+				// Añadir el archivo si existe
+				if (selectedFile) {
+					formData.append('file', selectedFile);
+				}
+
+				if (selectedFileDolby) {
+					formData.append('dolby_file', selectedFileDolby);
+				}
+
+				// Añadir el resto de los datos del track
+				formData.append('data', JSON.stringify(localTrack));
+
+				// Si tiene external_id, actualizar el track existente
+				const response = await fetch(
+					`/api/admin/updateSingle/${localTrack.external_id}`,
+					{
+						method: 'PUT',
+						body: formData, // Enviar FormData en lugar de JSON
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error('Error al actualizar el track');
+				}
+
+				const data = await response.json();
+
+				if (!data.success) {
+					throw new Error(data.error || 'Error al actualizar el track');
+				}
+
+				toast.success('Track actualizado correctamente');
 			}
 		} catch (error) {
-			console.error('Error reloading publishers:', error);
+			console.error('Error al guardar el track:', error);
+			toast.error('Error al guardar el track');
+		} finally {
+			setIsLoading(false);
 		}
 	};
-
-	// Función para crear publisher
-	// const handleCreatePublisher = async () => {
-	// 	setIsLoading(true);
-	// 	setError('');
-
-	// 	try {
-	// 		const response = await fetch('/api/admin/createPublisher', {
-	// 			method: 'POST',
-	// 			headers: {
-	// 				'Content-Type': 'application/json',
-	// 			},
-	// 			body: JSON.stringify(newPublishers),
-	// 		});
-
-	// 		const data = await response.json();
-
-	// 		if (!response.ok) {
-	// 			throw new Error(data.error || 'Error al crear el publisher');
-	// 		}
-
-	// 		// Cerrar modal y limpiar formulario
-	// 		setIsCreatePublisherModalOpen(false);
-	// 		setNewPublishers({ name: '', author: '' });
-
-	// 		// Recargar lista de publishers
-	// 		await reloadPublishers();
-
-	// 		// Mostrar mensaje de éxito
-	// 		toast.success('Publisher creado exitosamente');
-	// 	} catch (error: any) {
-	// 		setError(error.message);
-	// 		toast.error(error.message);
-	// 	} finally {
-	// 		setIsLoading(false);
-	// 	}
-	// };
-
 	return (
 		<div className="bg-white rounded-lg md:p-6">
 			<Toaster
@@ -1198,6 +1238,13 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							<Plus size={20} />
 						</button>
 					</div>
+					{artistsError.length > 0 && (
+						<div className="text-red-500 text-sm">
+							{artistsError.map((error, index) => (
+								<p key={index}>{error}</p>
+							))}
+						</div>
+					)}
 					<div className="space-y-4 w-full overflow-hidden">
 						<TrackArtistSelector
 							artists={(localTrack?.artists || []).map(artist => ({
@@ -1313,13 +1360,20 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
 						<h3 className="text-lg font-medium text-gray-900">Contributors</h3>
 					</div>
+					{contributorError.length > 0 && (
+						<div className="text-red-500 text-sm">
+							{contributorError.map((error, index) => (
+								<p key={index}>{error}</p>
+							))}
+						</div>
+					)}
 					<div className="space-y-4 w-full overflow-hidden">
 						<ContributorSelector
 							contributors={localTrack.contributors || []}
 							newContributors={localTrack.newContributors || []}
 							contributorData={
 								contributors?.map(c => ({
-									external_id: c.contributor,
+									external_id: c.external_id,
 									name: c.name,
 								})) || []
 							}
@@ -1717,56 +1771,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 					</button>
 					<button
 						type="button"
-						onClick={async () => {
-							setIsLoading(true);
-
-							try {
-								if (localTrack?.external_id) {
-									// Crear FormData para enviar el archivo
-									const formData = new FormData();
-
-									// Añadir el archivo si existe
-									if (selectedFile) {
-										formData.append('file', selectedFile);
-									}
-
-									if (selectedFileDolby) {
-										formData.append('dolby_file', selectedFileDolby);
-									}
-
-									// Añadir el resto de los datos del track
-									formData.append('data', JSON.stringify(localTrack));
-									console.log('localTrack: ', localTrack);
-									// Si tiene external_id, actualizar el track existente
-									// const response = await fetch(
-									// 	`/api/admin/updateSingle/${localTrack.external_id}`,
-									// 	{
-									// 		method: 'PUT',
-									// 		body: formData, // Enviar FormData en lugar de JSON
-									// 	}
-									// );
-
-									// if (!response.ok) {
-									// 	throw new Error('Error al actualizar el track');
-									// }
-
-									// const data = await response.json();
-
-									// if (!data.success) {
-									// 	throw new Error(
-									// 		data.error || 'Error al actualizar el track'
-									// 	);
-									// }
-
-									// toast.success('Track actualizado correctamente');
-								}
-							} catch (error) {
-								console.error('Error al guardar el track:', error);
-								toast.error('Error al guardar el track');
-							} finally {
-								setIsLoading(false);
-							}
-						}}
+						onClick={e => handleSave(e)}
 						disabled={isLoading}
 						className="w-full sm:w-auto px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-brand-light hover:bg-brand-dark rounded-md disabled:opacity-50"
 					>

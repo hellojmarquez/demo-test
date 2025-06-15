@@ -337,6 +337,7 @@ export async function PUT(
 			dolby_url.length > 0 ? dolby_url : currentTrack.dolby_atmos_resource;
 		if (trackData.ISRC === null) delete trackData.ISRC;
 		let publisherstoapi: any[] = [];
+		console.log('trackData antes de bucle ', trackData);
 		// Asegurar que publishers tenga la estructura correcta
 		if (Array.isArray(trackData.publishers)) {
 			publisherstoapi = trackData.publishers.map((pub: any) => ({
@@ -386,6 +387,7 @@ export async function PUT(
 			artists: artistsToApi,
 			contributors: contributorsToApi,
 		};
+		console.log('dataToApi', dataToApi);
 		delete dataToApi.qc_feedback;
 		delete dataToApi.file;
 		delete dataToApi.genre_name;

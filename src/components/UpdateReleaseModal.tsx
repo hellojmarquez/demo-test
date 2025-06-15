@@ -1699,7 +1699,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							offText=""
 						/>
 						<label className="ml-2 block text-sm text-gray-700">
-							YouTube Declaration
+							Activar distribución a YouTube
 						</label>
 					</div>
 					{!safeFormData?.youtube_declaration && (

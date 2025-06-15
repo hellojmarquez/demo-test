@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Trash2, Plus, User } from 'lucide-react';
 import Select from 'react-select';
 
@@ -145,13 +145,16 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 		<div className="space-y-4 flex flex-col p-2 bg-slate-100 overflow-y-scroll ">
 			<Select
 				value={null}
+				required={true}
 				onChange={selectedOption => {
 					if (selectedOption) {
+						console.log('selectedOption', selectedOption);
 						const maxOrder = Math.max(
 							...contributors.map(c => c.order),
 							...(newContributors || []).map(c => c.order),
 							-1
 						);
+
 						onContributorsChange([
 							...contributors,
 							{

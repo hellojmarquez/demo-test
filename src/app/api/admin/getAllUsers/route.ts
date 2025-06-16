@@ -35,21 +35,15 @@ async function getAllSubAccounts(
 	mainAccountId: string,
 	allSubAccounts: string[] = []
 ) {
-	console.log('Buscando subcuentas para:', mainAccountId);
-
 	// Obtener subcuentas directas
 	const subcuentas = (await AccountRelationship.find({
 		mainAccountId,
 		status: 'activo',
 	}).populate('subAccountId')) as AccountRelationshipDoc[];
 
-	console.log('Subcuentas encontradas:', subcuentas);
-
 	// Agregar IDs de subcuentas directas
 	const subcuentasIds = subcuentas.map(rel => rel.subAccountId._id.toString());
 	allSubAccounts.push(...subcuentasIds);
-
-	console.log('IDs acumulados:', allSubAccounts);
 
 	// Para cada subcuenta, buscar sus propias subcuentas
 	for (const subcuenta of subcuentas) {
@@ -117,14 +111,23 @@ export async function GET(req: NextRequest) {
 			const asignaciones = await SelloArtistaContrato.find({
 				sello_id: verifiedPayload.id,
 				estado: 'activo',
-			}).populate('artista_id');
+			});
 
 			console.log('Asignaciones encontradas:', asignaciones);
 
-			// Obtener los IDs de los artistas
-			const artistasIds = asignaciones.map(asig =>
-				asig.artista_id._id.toString()
-			);
+			// Obtener los external_ids de los artistas
+			const externalIds = asignaciones
+				.filter(asig => asig.artista_id && asig.artista_id.external_id)
+				.map(asig => asig.artista_id.external_id);
+
+			// Buscar los artistas en la colección User para obtener sus _id
+			const artistas = await User.find({
+				external_id: { $in: externalIds },
+				role: 'artista',
+			});
+
+			// Obtener los _id de MongoDB
+			const artistasIds = artistas.map(artista => artista._id.toString());
 			console.log('IDs de artistas:', artistasIds);
 
 			// Obtener todas las subcuentas de los artistas
@@ -194,7 +197,7 @@ export async function GET(req: NextRequest) {
 			.select('-password')
 			.lean();
 
-		console.log('Usuarios encontrados:', users.length);
+		console.log('Usuarios encontrados:', users);
 
 		// Devolver respuesta con datos y metadatos de paginación
 		return NextResponse.json(

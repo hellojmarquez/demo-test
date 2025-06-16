@@ -86,10 +86,12 @@ export async function POST(req: NextRequest) {
 		const isValidPassword = await comparePassword(password, userDB.password);
 		if (isValidPassword) {
 			try {
+				const externa_id = userDB.external_id ? userDB.external_id : 0;
 				const token = await new SignJWT({
 					role: userDB.role,
 					email: userDB.email,
 					id: userDB._id,
+					externa_id,
 					status: userDB.status,
 					name: userDB.name,
 				})

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		const formData = await req.formData();
-
+		console.log('verifiedPayload: ', verifiedPayload);
 		// Parsear campos individuales
 		const picture = formData.get('picture') as File | null;
 
@@ -85,9 +85,15 @@ export async function POST(req: NextRequest) {
 		const subgenre_name = formData.get('subgenre_name') as string;
 
 		const temp_id = uuidv4().substring(0, 3);
+		const label_id =
+			verifiedPayload.role === 'sello'
+				? verifiedPayload.externa_id
+				: verifiedPayload.role === 'admin'
+				? 505
+				: label;
 		let newRelease = {
 			name,
-			label,
+			label: label_id,
 			kind,
 			language: 'ES',
 			countries,
@@ -255,7 +261,7 @@ export async function POST(req: NextRequest) {
 
 		console.log('releaseToSave: ', releaseToSave);
 		const savedRelease = await Release.create(releaseToSave);
-
+		console.log('savedRelease: ', savedRelease);
 		try {
 			// Crear el log
 			const logData = {

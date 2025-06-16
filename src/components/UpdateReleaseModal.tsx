@@ -56,6 +56,7 @@ interface UpdateReleasePageProps {
 	setFormData: React.Dispatch<React.SetStateAction<Release>>;
 	onEditTrack: (track: ReleaseTrack) => void;
 	genres: GenreData[];
+	artistsErrors: string[];
 }
 
 interface ArtistData {
@@ -104,6 +105,7 @@ const RELEASE_TYPES: KindOption[] = [
 const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
 	formData,
+	artistsErrors,
 	setFormData,
 	onEditTrack,
 	genres,
@@ -1644,6 +1646,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					<h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
 						Artistas y YouTube
 					</h3>
+					{artistsErrors.length > 0 && (
+						<div className="flex items-center gap-2 mt-2 text-red-600">
+							<AlertTriangle className="h-5 w-5" />
+							<span className="text-sm">{artistsErrors.join(', ')}</span>
+						</div>
+					)}
 					<div className="space-y-2">
 						<label className="block text-sm font-medium text-gray-700">
 							Artistas

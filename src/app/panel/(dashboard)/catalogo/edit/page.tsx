@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Release, ReleaseResponse, Picture } from '@/types/release';
 import { Track, TrackResponse } from '@/types/track';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '@/context/AuthContext';
 import TrackForm, { GenreData } from '@/components/CreateTrackModal';
 import { Save } from 'lucide-react';
 
@@ -15,7 +16,21 @@ interface ApiError extends Error {
 	info?: any;
 	status?: number;
 }
-
+interface AsignedArtist {
+	artista_id: {
+		external_id: number;
+		name: string;
+	};
+	created_at: string;
+	estado: string;
+	fecha_fin: string;
+	fecha_inicio: string;
+	porcentaje_distribucion: number;
+	sello_id: string;
+	tipo_contrato: string;
+	updated_at: string;
+	_id: string;
+}
 const fetcher = async (url: string) => {
 	const response = await fetch(url);
 	if (!response.ok) {
@@ -29,13 +44,16 @@ const fetcher = async (url: string) => {
 
 export default function EditPage() {
 	const searchParams = useSearchParams();
+	const { user } = useAuth();
 	const router = useRouter();
 	const [activeTab, setActiveTab] = useState('details');
 	const releaseId = searchParams?.get('releaseId') || null;
+	const [asignedArtists, setAsignedArtists] = useState([]);
 	const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 	const [editedTrackData, setEditedTrackData] = useState<Partial<Track> | null>(
 		null
 	);
+	const [artistsErrors, setArtistsErrors] = useState<string[]>([]);
 	const [genres, setGenres] = useState<GenreData[]>([]);
 	const [formData, setFormData] = useState<Release>({
 		name: '',
@@ -104,6 +122,19 @@ export default function EditPage() {
 			setFormData(releaseData.data);
 		}
 	}, [releaseData]);
+	useEffect(() => {
+		const fetchasignations = async () => {
+			if (user) {
+				const response = await fetch(
+					`/api/admin/getAllAsignaciones/${user._id}`
+				);
+				const data = await response.json();
+				console.log('data: ', data);
+				setAsignedArtists(data.data);
+			}
+		};
+		fetchasignations();
+	}, [user]);
 
 	const fetchData = async () => {
 		try {
@@ -126,32 +157,8 @@ export default function EditPage() {
 		fetchData();
 	}, []);
 
-	const handleTrackSave = async (trackData: Track) => {
-		try {
-			const formData = new FormData();
-			formData.append('file', trackData.resource as File);
-			formData.append('data', JSON.stringify(trackData));
-
-			const response = await fetch('/api/admin/createSingle', {
-				method: 'POST',
-				body: formData,
-			});
-
-			if (!response.ok) {
-				throw new Error('Error al guardar el track');
-			}
-
-			// Refrescar los datos del release después de guardar el track
-			await mutateRelease();
-			toast.success('Track guardado correctamente');
-		} catch (error) {
-			console.error('Error al guardar el track:', error);
-			toast.error('Error al guardar el track');
-			throw error;
-		}
-	};
-
 	const handleSave = async (updatedRelease: Release) => {
+		setArtistsErrors([]);
 		setIsLoading(true);
 		console.log('updatedRelease: ', updatedRelease);
 		try {
@@ -176,7 +183,31 @@ export default function EditPage() {
 				// Si es el objeto picture original, mantenerlo como está
 				releaseData.picture = picture;
 			}
+			if (user && user.role !== 'admin') {
+				if (releaseData.artists && releaseData.artists.length > 0) {
+					const allArtists = [
+						...releaseData.artists,
+						...(releaseData.newArtists || []),
+					];
+					console.log('allArtists: ', allArtists);
+					console.log('asignedArtists: ', asignedArtists);
+					const hasAssignedArtist = allArtists.some(artist =>
+						asignedArtists.some(
+							(a: AsignedArtist) => a.artista_id.external_id === artist.artist
+						)
+					);
 
+					if (!hasAssignedArtist) {
+						setArtistsErrors(prev => [
+							...prev,
+							'Debe tener almenos un artista asignado en el Producto',
+						]);
+						toast.error(
+							'Debe tener almenos un artista asignado en el Producto'
+						);
+					}
+				}
+			}
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
 
@@ -308,6 +339,7 @@ export default function EditPage() {
 					<>
 						<div className="w-full overflow-x-auto bg-white sm:mx-0 p-0 md:px-3  sm:px-0">
 							<UpdateReleasePage
+								artistsErrors={artistsErrors}
 								release={formData}
 								formData={formData}
 								setFormData={setFormData}

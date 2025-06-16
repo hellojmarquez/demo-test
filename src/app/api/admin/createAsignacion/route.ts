@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
 				tipo_contrato,
 				porcentaje_distribucion,
 			} = body;
-			console.log('contrato sello-artista: ', body);
 
 			// Convertir las fechas de string a Date
 			const fechaInicioDate = new Date(fecha_inicio);

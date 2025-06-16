@@ -56,7 +56,6 @@ export async function DELETE(
 		);
 		const trackData = await getTrack.json();
 		const track = trackData.data;
-		console.log('TRACK A ELIMINAR: ', track);
 
 		let newresource = '';
 		if (
@@ -69,9 +68,7 @@ export async function DELETE(
 					new URL(track.resource).pathname.slice(1)
 				);
 				newresource = decodedResource.replace('media/', '');
-				console.log('NEW RESOURCE: ', newresource);
 			} catch (error) {
-				console.log('NEW RESOURCE err: ', error);
 				console.error('Error processing resource URL:', error);
 				newresource = '';
 			}

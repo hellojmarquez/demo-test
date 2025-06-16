@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
 		}
 
 		const ddexDeliveryRes = await ddexDeliveryReq.json();
-		console.log('ddexDeliveryRes: ', ddexDeliveryRes);
 		return NextResponse.json({
 			success: true,
 			data: ddexDeliveryRes,

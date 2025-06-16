@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
 					name: 'accessToken',
 					value: moveMusicToken.access,
 					path: '/',
-					maxAge: 2 * 60 * 60, // 2 horas
+					maxAge: 60 * 60 * 24 * 3, // 3 dias
 					httpOnly: true,
 					secure: isProd,
 					sameSite: sameSite,
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
 					name: 'refreshToken',
 					value: moveMusicToken.refresh,
 					path: '/',
-					maxAge: 60 * 60 * 24 * 7, // 7 días
+					maxAge: 60 * 60 * 24 * 3, // 3 días
 					httpOnly: true,
 					secure: isProd,
 					sameSite: sameSite,
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
 					name: 'loginToken',
 					value: token,
 					path: '/',
-					maxAge: 60 * 60 * 24 * 2, // 2 días
+					maxAge: 60 * 60 * 24 * 3, // 3 días
 					httpOnly: true,
 					secure: isProd,
 					sameSite: sameSite,

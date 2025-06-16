@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
 
 		let picture_url = '';
 		let picture_path = '';
-		console.log('contentType: ', contentType);
 		if (contentType.includes('multipart/form-data')) {
 			const formData = await req.formData();
 			const file = formData.get('file') as File | null;
@@ -71,7 +70,6 @@ export async function POST(req: NextRequest) {
 						}
 					);
 					const uploadTrackRes = await uploadTrackReq.json();
-					console.log('uploadTrackRes: ', uploadTrackRes);
 					// Extraer la URL y los campos del objeto firmado
 					const { url: signedUrl, fields: trackFields } =
 						uploadTrackRes.signed_url;
@@ -144,7 +142,6 @@ export async function POST(req: NextRequest) {
 			(track: any) => track.title === trackData.name
 		);
 		if (existingTrack) {
-			console.log('existingTrack: ', existingTrack);
 			return NextResponse.json(
 				{
 					success: false,

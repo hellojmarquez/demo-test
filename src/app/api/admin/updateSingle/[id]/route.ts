@@ -52,13 +52,11 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
-		console.log('currentTrack', currentTrack.release);
 
 		const formData = await req.formData();
 		const file = formData.get('file') as File | null;
 		const dolby_file = formData.get('dolby_file') as File | null;
 		const trackData = JSON.parse(formData.get('data') as string);
-		console.log('trackData recibida', trackData.release);
 		if (trackData.newArtists && trackData.newArtists.length > 0) {
 			const createdArtists = [];
 			for (const newArtist of trackData.newArtists) {
@@ -106,7 +104,6 @@ export async function PUT(
 		if (trackData.newContributors && trackData.newContributors.length > 0) {
 			const createdUsers = [];
 			for (const user of trackData.newContributors) {
-				console.log('contributor a crear', user);
 				try {
 					const createContributorReq = await fetch(
 						`${req.nextUrl.origin}/api/admin/createContributorInMedia`,
@@ -153,7 +150,6 @@ export async function PUT(
 		if (trackData.newPublishers && trackData.newPublishers.length > 0) {
 			const createdUsers = [];
 			for (const user of trackData.newPublishers) {
-				console.log('contributor a crear', user);
 				try {
 					const createUserReq = await fetch(
 						`${req.nextUrl.origin}/api/admin/createPublisherinMedia`,
@@ -337,7 +333,6 @@ export async function PUT(
 			dolby_url.length > 0 ? dolby_url : currentTrack.dolby_atmos_resource;
 		if (trackData.ISRC === null) delete trackData.ISRC;
 		let publisherstoapi: any[] = [];
-		console.log('trackData antes de bucle ', trackData);
 		// Asegurar que publishers tenga la estructura correcta
 		if (Array.isArray(trackData.publishers)) {
 			publisherstoapi = trackData.publishers.map((pub: any) => ({
@@ -387,7 +382,6 @@ export async function PUT(
 			artists: artistsToApi,
 			contributors: contributorsToApi,
 		};
-		console.log('dataToApi', dataToApi);
 		delete dataToApi.qc_feedback;
 		delete dataToApi.file;
 		delete dataToApi.genre_name;
@@ -410,7 +404,6 @@ export async function PUT(
 		const apires = await trackToApi.json();
 
 		if (!apires.id) {
-			console.log('error api', apires);
 			return NextResponse.json(
 				{ success: false, error: apires || 'Error al actualizar' },
 				{ status: 400 }
@@ -455,7 +448,6 @@ export async function PUT(
 			trackData,
 			{ new: true }
 		);
-		console.log('updatedTrack', updatedTrack);
 		const dataToRelease = {
 			title: trackData.name,
 			mixName: trackData.mix_name,
@@ -463,7 +455,6 @@ export async function PUT(
 			resource: track_url.length > 0 ? track_url : currentTrack.resource,
 			available: trackData.available,
 		};
-		console.log('trackData.release', trackData.release);
 		if (trackData.release === currentTrack.release) {
 			const updatedRelease = await Release.findOneAndUpdate(
 				{

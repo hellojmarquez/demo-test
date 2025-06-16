@@ -524,7 +524,7 @@ export default function UsuariosPage() {
 				headers['Content-Type'] = 'application/json';
 				body = JSON.stringify(data);
 			}
-			console.log('body a enviar', body);
+
 			const external_id = formData.get('external_id');
 
 			const res = await fetch(`/api/admin/updateSello/${external_id}`, {

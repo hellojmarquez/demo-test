@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
+	console.log('middleware');
 	// Solo procesar rutas que empiecen con /sello
 	if (!request.nextUrl.pathname.startsWith('/panel')) {
 		return NextResponse.next();
@@ -22,6 +23,7 @@ export async function middleware(request: NextRequest) {
 	const loginToken = request.cookies.get('loginToken')?.value;
 
 	if (!loginToken) {
+		console.log('no loginToken');
 		return NextResponse.redirect(new URL('/panel/login', request.url));
 	}
 
@@ -36,8 +38,63 @@ export async function middleware(request: NextRequest) {
 		if (payload.status === 'banneado') {
 			return NextResponse.redirect(new URL('/panel/banned', request.url));
 		}
+		console.log('pasa prueba de payload');
 
 		// Si no está baneado, permitir el acceso
+
+		const AccessToken = request.cookies.get('accessToken')?.value;
+		const refreshToken = request.cookies.get('refreshToken')?.value;
+		if (!refreshToken && AccessToken) {
+			console.log('no refreshToken y accessToken');
+			return NextResponse.redirect(new URL('/panel/login', request.url));
+		}
+
+		const verifyToken = await fetch(
+			`${process.env.MOVEMUSIC_API}/auth/verify-token/`,
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+					Referer: process.env.MOVEMUSIC_REFERER || '',
+				},
+				body: JSON.stringify({
+					token: AccessToken,
+				}),
+			}
+		);
+
+		if (!verifyToken.ok) {
+			console.log('token expired');
+			const refreshToken = await fetch(
+				`${process.env.MOVEMUSIC_API}/auth/refresh-token/`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+						Referer: process.env.MOVEMUSIC_REFERER || '',
+					},
+					body: JSON.stringify({
+						token: AccessToken,
+					}),
+				}
+			);
+			if (!refreshToken.ok) {
+				console.log('no refreshToken');
+				return NextResponse.redirect(new URL('/panel/login', request.url));
+			}
+			const refreshTokenData = await refreshToken.json();
+			const response = NextResponse.next();
+
+			// Establecer la cookie en la respuesta
+			response.cookies.set({
+				name: 'accessToken',
+				value: refreshTokenData.access,
+				maxAge: 60 * 60 * 24 * 3,
+			});
+			return response;
+		}
 
 		return NextResponse.next();
 	} catch (error) {

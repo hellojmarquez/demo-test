@@ -129,7 +129,6 @@ export default function EditPage() {
 					`/api/admin/getAllAsignaciones/${user._id}`
 				);
 				const data = await response.json();
-				console.log('data: ', data);
 				setAsignedArtists(data.data);
 			}
 		};
@@ -160,7 +159,6 @@ export default function EditPage() {
 	const handleSave = async (updatedRelease: Release) => {
 		setArtistsErrors([]);
 		setIsLoading(true);
-		console.log('updatedRelease: ', updatedRelease);
 		try {
 			const formData = new FormData();
 
@@ -189,8 +187,7 @@ export default function EditPage() {
 						...releaseData.artists,
 						...(releaseData.newArtists || []),
 					];
-					console.log('allArtists: ', allArtists);
-					console.log('asignedArtists: ', asignedArtists);
+
 					const hasAssignedArtist = allArtists.some(artist =>
 						asignedArtists.some(
 							(a: AsignedArtist) => a.artista_id.external_id === artist.artist

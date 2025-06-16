@@ -52,7 +52,6 @@ export async function POST(
 		const release = await Release.findOne({
 			external_id: externalId,
 		}).lean();
-		console.log('release', release);
 		if (!release) {
 			return NextResponse.json(
 				{ success: false, error: 'Release not found' },
@@ -78,7 +77,6 @@ export async function POST(
 		);
 
 		const distributeRes = await distributeReq.json();
-		console.log('distributeRes', distributeRes);
 		if (distributeRes.error) {
 			console.log('distribute ERROR', distributeRes);
 			return NextResponse.json(

@@ -390,7 +390,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 					);
 					if (response.ok) {
 						const data = await response.json();
-						console.log('data', data.data);
 						setAsignaciones(data.data || []);
 					}
 				} catch (error) {
@@ -576,14 +575,12 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	const handleRemoveArtist = (id: string) => {
 		// Si el ID comienza con "new_", es una nueva asignación
 		if (id.startsWith('new_')) {
-			console.log('nueva asignacion', id);
 			setNewAsignaciones(prev => prev.filter(asig => asig._id !== id));
 		} else {
 			// Es una asignación existente, agregarla a removedAsignaciones
 			const asignacion = asignaciones.find(a => a._id === id);
 			if (asignacion) {
 				setRemovedAsignaciones(prev => [...prev, asignacion._id]);
-				console.log('existente asignacion', asignacion._id);
 			}
 		}
 	};
@@ -594,7 +591,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		console.log('send', formData);
 
 		setIsSubmitting(true);
 		setError(null);
@@ -636,7 +632,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				}));
 				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
 			}
-			console.log('formDataToSend', formDataToSend);
+
 			await onSave(formDataToSend);
 			onClose();
 		} catch (error) {

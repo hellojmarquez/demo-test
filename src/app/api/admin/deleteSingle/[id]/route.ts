@@ -85,9 +85,7 @@ export async function DELETE(
 					new URL(track.resource).pathname.slice(1)
 				);
 				newresource = decodedResource.replace('media/', '');
-				console.log('NEW RESOURCE: ', newresource);
 			} catch (error) {
-				console.log('NEW RESOURCE err: ', error);
 				console.error('Error processing resource URL:', error);
 				newresource = '';
 			}

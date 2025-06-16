@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 		);
 
 		const publisherRes = await publisherReq.json();
-		console.log('respuesta api user', publisherRes);
+
 		if (!publisherRes.id) {
 			return NextResponse.json(
 				{

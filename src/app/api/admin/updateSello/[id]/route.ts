@@ -29,7 +29,6 @@ export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
-	console.log('updateSello');
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -116,7 +115,6 @@ export async function PUT(
 			status: data.status,
 			logo: '',
 		};
-		console.log('data', data);
 		// Manejar la imagen si se proporciona una nueva
 		if (file) {
 			const uploadMediaReq = await fetch(
@@ -228,7 +226,7 @@ export async function PUT(
 			// Si hay asignaciones, procesarlas
 			if (data.asignaciones) {
 				const asignaciones = JSON.parse(data.asignaciones);
-				console.log('asignaciones', asignaciones);
+
 				// Obtener las asignaciones existentes
 				const existingAsignaciones = await SelloArtistaContrato.find({
 					sello_id: updatedSello._id,
@@ -250,11 +248,9 @@ export async function PUT(
 
 				// Eliminar asignaciones que ya no existen
 				if (data.removedAsignaciones) {
-					console.log('si existe');
 					const removedAsignaciones = JSON.parse(data.removedAsignaciones);
 					if (data.removedAsignaciones.length > 0) {
 						removedAsignaciones.forEach(async (id: string) => {
-							console.log('asignacion a borrar', id);
 							await SelloArtistaContrato.findByIdAndUpdate(id, {
 								estado: 'inactivo',
 							});
@@ -323,7 +319,6 @@ export async function PUT(
 		}
 		// Manejar las relaciones de cuentas
 		try {
-			console.log('manejar cuentas');
 			// Si hay subcuentas, procesarlas
 			if (data.subAccounts) {
 				const subAccounts = JSON.parse(data.subAccounts) as SubAccount[];

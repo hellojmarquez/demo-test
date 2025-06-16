@@ -50,13 +50,6 @@ export async function POST(request: NextRequest) {
 
 		const { name, email, password, picture } = requestBody;
 
-		console.log('Request data:', {
-			name,
-			email,
-			password: '***',
-			picture: !!picture,
-		});
-
 		// 5. Validar campos requeridos
 		if (!name || !email || !password) {
 			return NextResponse.json(
@@ -132,8 +125,6 @@ export async function POST(request: NextRequest) {
 				{ status: 500 }
 			);
 		}
-
-		console.log('Admin created successfully:', newAdmin._id);
 
 		// 11. Crear el log (opcional, no debe interrumpir el flujo)
 		try {

@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
 			deezer_identifier,
 			spotify_identifier,
 		});
-		console.log('artista creado: ', newArtist);
+
 		try {
 			// Crear el log
 			const logData = {

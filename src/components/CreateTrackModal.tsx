@@ -546,91 +546,87 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	};
 	const handleSave = async (e: any) => {
 		e.preventDefault();
-		// setIsLoading(true);
-		console.log('entrnado a save: ');
+		setIsLoading(true);
 		setContributorError([]);
 		setArtistsError([]);
-		console.log('localTrack: ', localTrack);
-		// try {
-		// 	if (localTrack?.external_id) {
-		// 		console.log('iniciando: ');
-		// 		// Crear FormData para enviar el archivo
-		// 		const formData = new FormData();
-		// 		console.log('localTrack.artists: ', localTrack.artists);
-		// 		if (localTrack.contributors.some(c => !c.role)) {
-		// 			toast.error('Error en contributors');
-		// 			setContributorError(prev => [
-		// 				...prev,
-		// 				'Todos los Contributors deben de tener un rol seleccionado',
-		// 			]);
-		// 		}
-		// 		if (
-		// 			localTrack.vocals !== 'ZXX' &&
-		// 			!localTrack.contributors.some(c => c.role_name === 'Lyricist')
-		// 		) {
-		// 			toast.error('Error en contributors');
-		// 			setContributorError(prev => [
-		// 				...prev,
-		// 				'Si Vocals no es instrumental, al menos un Contributor debe de tener el rol de Lyricist',
-		// 			]);
-		// 		}
-		// 		if (!localTrack.contributors.some(c => c.role_name === 'Composer')) {
-		// 			toast.error('Error en contributors');
-		// 			setContributorError(prev => [
-		// 				...prev,
-		// 				'Al menos un Contributor debe de tener el rol de Composer',
-		// 			]);
-		// 		}
-		// 		if (!localTrack.artists.some(c => c.kind === 'main')) {
-		// 			toast.error('Error en artists');
-		// 			setArtistsError(prev => [
-		// 				...prev,
-		// 				'Al menos un artista debe de tener el rol de Principal',
-		// 			]);
-		// 		}
-		// 		if (contributorError.length > 0 || artistsError.length > 0) {
-		// 			toast.error('Error: faltan datos');
-		// 			return;
-		// 		}
-		// 		// Añadir el archivo si existe
-		// 		if (selectedFile) {
-		// 			formData.append('file', selectedFile);
-		// 		}
+		try {
+			if (localTrack?.external_id) {
+				// Crear FormData para enviar el archivo
+				const formData = new FormData();
+				if (localTrack.contributors.some(c => !c.role)) {
+					toast.error('Error en contributors');
+					setContributorError(prev => [
+						...prev,
+						'Todos los Contributors deben de tener un rol seleccionado',
+					]);
+				}
+				if (
+					localTrack.vocals !== 'ZXX' &&
+					!localTrack.contributors.some(c => c.role_name === 'Lyricist')
+				) {
+					toast.error('Error en contributors');
+					setContributorError(prev => [
+						...prev,
+						'Si Vocals no es instrumental, al menos un Contributor debe de tener el rol de Lyricist',
+					]);
+				}
+				if (!localTrack.contributors.some(c => c.role_name === 'Composer')) {
+					toast.error('Error en contributors');
+					setContributorError(prev => [
+						...prev,
+						'Al menos un Contributor debe de tener el rol de Composer',
+					]);
+				}
+				if (!localTrack.artists.some(c => c.kind === 'main')) {
+					toast.error('Error en artists');
+					setArtistsError(prev => [
+						...prev,
+						'Al menos un artista debe de tener el rol de Principal',
+					]);
+				}
+				if (contributorError.length > 0 || artistsError.length > 0) {
+					toast.error('Error: faltan datos');
+					return;
+				}
+				// Añadir el archivo si existe
+				if (selectedFile) {
+					formData.append('file', selectedFile);
+				}
 
-		// 		if (selectedFileDolby) {
-		// 			formData.append('dolby_file', selectedFileDolby);
-		// 		}
+				if (selectedFileDolby) {
+					formData.append('dolby_file', selectedFileDolby);
+				}
 
-		// 		// Añadir el resto de los datos del track
-		// 		formData.append('data', JSON.stringify(localTrack));
+				// Añadir el resto de los datos del track
+				formData.append('data', JSON.stringify(localTrack));
 
-		// 		// Si tiene external_id, actualizar el track existente
-		// 		const response = await fetch(
-		// 			`/api/admin/updateSingle/${localTrack.external_id}`,
-		// 			{
-		// 				method: 'PUT',
-		// 				body: formData, // Enviar FormData en lugar de JSON
-		// 			}
-		// 		);
+				// Si tiene external_id, actualizar el track existente
+				const response = await fetch(
+					`/api/admin/updateSingle/${localTrack.external_id}`,
+					{
+						method: 'PUT',
+						body: formData, // Enviar FormData en lugar de JSON
+					}
+				);
 
-		// 		if (!response.ok) {
-		// 			throw new Error('Error al actualizar el track');
-		// 		}
+				if (!response.ok) {
+					throw new Error('Error al actualizar el track');
+				}
 
-		// 		const data = await response.json();
+				const data = await response.json();
 
-		// 		if (!data.success) {
-		// 			throw new Error(data.error || 'Error al actualizar el track');
-		// 		}
+				if (!data.success) {
+					throw new Error(data.error || 'Error al actualizar el track');
+				}
 
-		// 		toast.success('Track actualizado correctamente');
-		// 	}
-		// } catch (error) {
-		// 	console.error('Error al guardar el track:', error);
-		// 	toast.error('Error al guardar el track');
-		// } finally {
-		// 	setIsLoading(false);
-		// }
+				toast.success('Track actualizado correctamente');
+			}
+		} catch (error) {
+			console.error('Error al guardar el track:', error);
+			toast.error('Error al guardar el track');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 	return (
 		<div className="bg-white rounded-lg md:p-6">
@@ -2087,8 +2083,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										order: maxOrder + 1,
 									};
 
-									console.log('Añadiendo nuevo publisher:', newPublisher);
-
 									setLocalTrack(prev => {
 										const updatedTrack = {
 											...prev,
@@ -2097,7 +2091,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 												newPublisher,
 											],
 										};
-										console.log('localTrack actualizado:', updatedTrack);
+
 										return updatedTrack;
 									});
 

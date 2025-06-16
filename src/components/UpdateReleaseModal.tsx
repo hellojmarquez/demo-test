@@ -606,7 +606,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}
 
 				const data = await response.json();
-				console.log('Respuesta del servidor:', data);
 
 				// Actualizar el progreso
 				setUploadProgress({

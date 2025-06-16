@@ -121,10 +121,9 @@ export async function GET(req: NextRequest) {
 				{ status: 403 }
 			);
 		}
-		console.log('finalQuery', finalQuery);
+
 		// Obtener el total de documentos que coinciden con la búsqueda
 		const total = await Release.countDocuments(finalQuery);
-		console.log('total', total);
 		// Obtener los releases paginados, filtrados y ordenados
 		const releases = await Release.find(finalQuery)
 			.sort(sort)
@@ -168,9 +167,6 @@ export async function GET(req: NextRequest) {
 
 		// Verificar si se solicitan todos los releases
 
-		releases.forEach(release => {
-			console.log('release', release.name);
-		});
 		return NextResponse.json(
 			{
 				success: true,

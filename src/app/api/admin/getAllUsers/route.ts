@@ -105,15 +105,11 @@ export async function GET(req: NextRequest) {
 
 		// Si el usuario es sello, obtener artistas asignados y sus subcuentas
 		if (verifiedPayload.role === 'sello') {
-			console.log('Buscando artistas para sello:', verifiedPayload.id);
-
 			// Buscar asignaciones activas del sello
 			const asignaciones = await SelloArtistaContrato.find({
 				sello_id: verifiedPayload.id,
 				estado: 'activo',
 			});
-
-			console.log('Asignaciones encontradas:', asignaciones);
 
 			// Obtener los external_ids de los artistas
 			const externalIds = asignaciones
@@ -128,7 +124,6 @@ export async function GET(req: NextRequest) {
 
 			// Obtener los _id de MongoDB
 			const artistasIds = artistas.map(artista => artista._id.toString());
-			console.log('IDs de artistas:', artistasIds);
 
 			// Obtener todas las subcuentas de los artistas
 			const todasLasSubcuentas: string[] = [];
@@ -136,19 +131,16 @@ export async function GET(req: NextRequest) {
 				const subcuentas = await getAllSubAccounts(artistaId);
 				todasLasSubcuentas.push(...subcuentas);
 			}
-			console.log('Todas las subcuentas encontradas:', todasLasSubcuentas);
 
 			// Combinar IDs de artistas y subcuentas
 			const todosLosIds = artistasIds
 				.concat(todasLasSubcuentas)
 				.filter((id, index, self) => self.indexOf(id) === index);
-			console.log('IDs totales (artistas + subcuentas):', todosLosIds);
 
 			// Agregar el filtro de IDs a la consulta
 			finalQuery._id = { $in: todosLosIds };
 			// Remover external_id si existe en la query
 			delete finalQuery.external_id;
-			console.log('Query final para sello:', finalQuery);
 		}
 
 		// Si el usuario es artista, obtener sus subcuentas
@@ -157,34 +149,15 @@ export async function GET(req: NextRequest) {
 			verifiedPayload.role === 'contributor' ||
 			verifiedPayload.role === 'publisher'
 		) {
-			console.log('Buscando subcuentas para artista:', verifiedPayload.id);
-
 			// Obtener todas las subcuentas recursivamente
 			const todasLasSubcuentas = await getAllSubAccounts(verifiedPayload.id);
-			console.log('Todas las subcuentas encontradas:', todasLasSubcuentas);
 
 			// Agregar el filtro de subcuentas a la consulta
 			finalQuery._id = { $in: todasLasSubcuentas };
 			// Remover external_id y role si existen en la query
 			delete finalQuery.external_id;
 			delete finalQuery.role;
-			console.log('Query final para artista:', finalQuery);
 		}
-
-		// Si el usuario es contributor o publisher, retornar array vacío
-		// if (
-		// 	verifiedPayload.role === 'contributor' ||
-		// 	verifiedPayload.role === 'publisher'
-		// ) {
-		// 	return NextResponse.json(
-		// 		{
-		// 			success: false,
-		// 			error: 'Acceso denegado',
-		// 			message: 'No tienes permiso para ver usuarios',
-		// 		},
-		// 		{ status: 403 }
-		// 	);
-		// }
 
 		// Obtener el total de documentos que coinciden con la búsqueda
 		const total = await User.countDocuments(finalQuery);
@@ -197,7 +170,6 @@ export async function GET(req: NextRequest) {
 			.select('-password')
 			.lean();
 
-		console.log('Usuarios encontrados:', users);
 
 		// Devolver respuesta con datos y metadatos de paginación
 		return NextResponse.json(

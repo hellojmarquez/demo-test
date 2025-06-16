@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
 		}
 
 		const formData = await req.formData();
-		console.log('verifiedPayload: ', verifiedPayload);
 		// Parsear campos individuales
 		const picture = formData.get('picture') as File | null;
 
@@ -159,7 +158,6 @@ export async function POST(req: NextRequest) {
 				method: 'POST',
 				body: pictureFormData,
 			});
-			console.log('uploadResponse: ', uploadResponse);
 
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			const picture_path_decoded = decodeURIComponent(
@@ -188,7 +186,7 @@ export async function POST(req: NextRequest) {
 				kind: artist.kind,
 			})),
 		};
-		console.log('releaseToApiData: ', releaseToApiData);
+
 		const releaseToApi = await fetch(`${process.env.MOVEMUSIC_API}/releases`, {
 			method: 'POST',
 			headers: {
@@ -201,7 +199,6 @@ export async function POST(req: NextRequest) {
 		});
 
 		const apiRes = await releaseToApi.json();
-		console.log('apiRes: ', apiRes);
 		if (!apiRes.id) {
 			return NextResponse.json(
 				{
@@ -224,7 +221,6 @@ export async function POST(req: NextRequest) {
 			}
 		);
 		const getReleaseRes = await getRelease.json();
-		console.log('getReleaseRes: ', getReleaseRes);
 		await dbConnect();
 
 		const cleanUrl = (url: string) => {
@@ -259,9 +255,7 @@ export async function POST(req: NextRequest) {
 			ddex_delivery_confirmations: null,
 		};
 
-		console.log('releaseToSave: ', releaseToSave);
 		const savedRelease = await Release.create(releaseToSave);
-		console.log('savedRelease: ', savedRelease);
 		try {
 			// Crear el log
 			const logData = {

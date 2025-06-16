@@ -449,7 +449,7 @@ const SelloProfile = () => {
 		} catch (error) {
 			console.error('Error saving sello:', error);
 		} finally {
-			console.log('finally');
+			setIsSubmitting(false);
 		}
 	};
 	const inputStyles =

@@ -83,7 +83,6 @@ export async function POST(req: NextRequest) {
 		);
 
 		const contributorRes = await contributorReq.json();
-		console.log('contributorRes', contributorRes);
 		if (!contributorRes.id) {
 			return NextResponse.json(
 				{

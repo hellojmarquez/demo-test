@@ -7,10 +7,7 @@ export async function DELETE(
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
-		const token = request.cookies.get('loginToken')?.value;
 		const { id } = params;
-		console.log('Deleting user with ID:', id);
 
 		await connectDB();
 

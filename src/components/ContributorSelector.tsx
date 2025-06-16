@@ -148,7 +148,6 @@ const ContributorSelector: React.FC<ContributorSelectorProps> = ({
 				required={true}
 				onChange={selectedOption => {
 					if (selectedOption) {
-						console.log('selectedOption', selectedOption);
 						const maxOrder = Math.max(
 							...contributors.map(c => c.order),
 							...(newContributors || []).map(c => c.order),

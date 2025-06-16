@@ -13,7 +13,6 @@ export async function GET(
 		const user = await User.findById(new mongoose.Types.ObjectId(userId));
 
 		if (!user) {
-			console.log('no encontrado');
 			return NextResponse.json(
 				{ error: 'Usuario no encontrado' },
 				{ status: 404 }

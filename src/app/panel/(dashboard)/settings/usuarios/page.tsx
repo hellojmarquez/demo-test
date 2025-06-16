@@ -282,11 +282,6 @@ export default function UsuariosPage() {
 		}
 	};
 
-	const handleCancel = () => {
-		setEditingUserId(null);
-		setEditedUser(null);
-	};
-
 	const handleDeleteClick = (user: any) => {
 		setUserToDelete(user);
 		setShowDeleteModal(true);
@@ -520,6 +515,7 @@ export default function UsuariosPage() {
 			});
 
 			const responseData = await res.json();
+			if (res.ok) toast.success('Sello actualizado con éxito');
 			if (responseData.success) {
 				// Recargar la lista de personas después de actualizar un sello
 				const res = await fetch(
@@ -535,6 +531,10 @@ export default function UsuariosPage() {
 				}
 				setShowSelloModal(false);
 				setSelectedSello(null);
+			} else {
+				toast.error(
+					responseData.error || 'Ha habido un erro al actualizar el sello'
+				);
 			}
 		} catch (error) {
 			console.error('Error updating sello:', error);

@@ -572,14 +572,21 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		setTimeout(() => setShowSuccessMessage(false), 3000);
 	};
 
-	const handleRemoveArtist = (asignacionId: string) => {
-		if (asignacionId.startsWith('temp_')) {
-			// Si es una asignación temporal, solo la removemos de newAsignaciones
-			setNewAsignaciones(prev => prev.filter(a => a._id !== asignacionId));
+	const handleRemoveArtist = (id: string) => {
+		// Si el ID comienza con "new_", es una nueva asignación
+		if (id.startsWith('new_')) {
+			console.log('nueva asignacion', id);
+			setNewAsignaciones(prev => prev.filter(asig => asig._id !== id));
 		} else {
-			// Si es una asignación existente, la agregamos a removedAsignaciones
-			setRemovedAsignaciones(prev => [...prev, asignacionId]);
-			console.log('asignacionId', removedAsignaciones);
+			// Es una asignación existente, agregarla a removedAsignaciones
+			const asignacion = asignaciones.find(a => a._id === id);
+			if (asignacion) {
+				setRemovedAsignaciones(prev => [
+					...prev,
+					asignacion.artista_id.external_id,
+				]);
+				console.log('existente asignacion', asignacion.artista_id.external_id);
+			}
 		}
 	};
 
@@ -602,6 +609,10 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			formDataToSend.append('_id', formData._id);
 			formDataToSend.append('external_id', sello.external_id.toString());
 			formDataToSend.append('asignaciones', JSON.stringify(newAsignaciones));
+			formDataToSend.append(
+				'removedAsignaciones',
+				JSON.stringify(removedAsignaciones)
+			);
 			if (formData.password) {
 				formDataToSend.append('password', formData.password);
 			}

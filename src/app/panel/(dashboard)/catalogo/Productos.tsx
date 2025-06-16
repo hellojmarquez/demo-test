@@ -19,6 +19,8 @@ import {
 	BriefcaseBusiness,
 	AlertTriangle,
 	X,
+	Fingerprint,
+	Music2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -34,6 +36,8 @@ interface Release {
 	_id: string;
 	external_id: string;
 	__v: number;
+	ean: string;
+	territory: string;
 	artists: any[];
 	auto_detect_language: boolean;
 	backcatalog: boolean;
@@ -356,6 +360,19 @@ const Productos: React.FC = () => {
 														</span>
 													</div>
 												</div>
+												<div className="flex items-center gap-1">
+													<Hash className="h-4 w-4 text-gray-400 flex-shrink-0" />
+													<span>
+														UPC:{' '}
+														{release.ean ? (
+															release.ean
+														) : (
+															<span className="text-gray-400">
+																No disponible
+															</span>
+														)}
+													</span>
+												</div>
 												<button
 													onClick={() =>
 														router.push(
@@ -410,14 +427,7 @@ const Productos: React.FC = () => {
 																Información Básica
 															</h3>
 															<div className="space-y-3">
-																<p className="flex items-center gap-2">
-																	<span className="text-sm text-gray-500 min-w-[80px]">
-																		ID:
-																	</span>
-																	<span className="text-sm text-gray-700">
-																		{release._id}
-																	</span>
-																</p>
+																<p className="flex items-center gap-2"></p>
 																<p className="flex items-center gap-2">
 																	<span className="text-sm text-gray-500 min-w-[80px]">
 																		Idioma:
@@ -444,14 +454,27 @@ const Productos: React.FC = () => {
 																Configuración
 															</h3>
 															<div className="space-y-3">
-																<p className="flex items-center gap-2">
-																	<span className="text-sm text-gray-500 min-w-[80px]">
-																		Países:
-																	</span>
-																	<span className="text-sm text-gray-700">
-																		{release.countries.join(', ')}
-																	</span>
-																</p>
+																{release.countries &&
+																	release.countries.length > 0 && (
+																		<p className="flex items-center gap-2">
+																			<span className="text-sm text-gray-500 min-w-[80px]">
+																				Países:
+																			</span>
+																			<span className="text-sm text-gray-700">
+																				{release.countries.join(', ')}
+																			</span>
+																		</p>
+																	)}
+																{release.territory === 'worldwide' && (
+																	<p className="flex items-center gap-2">
+																		<span className="text-sm text-gray-500 min-w-[80px]">
+																			Distribución:
+																		</span>
+																		<span className="text-sm text-gray-700">
+																			Mundial
+																		</span>
+																	</p>
+																)}
 																<p className="flex items-center gap-2">
 																	<span className="text-sm text-gray-500 min-w-[80px]">
 																		Dolby Atmos:
@@ -527,6 +550,25 @@ const Productos: React.FC = () => {
 																	No hay artistas asignados
 																</span>
 															)}
+														</div>
+														<div className="flex flex-col gap-2 mt-3">
+															<p className="text-sm text-gray-500 font-bold">
+																Tracks: {release?.tracks.length}
+															</p>
+															<div className="flex flex-col gap-2">
+																{release?.tracks.map((track: any) => (
+																	<div
+																		className="flex items-center gap-2 bg-gray-50 rounded-xl p-2"
+																		key={track._id}
+																	>
+																		<Music2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+																		<span className="font-bold text-gray-500">
+																			Titulo:
+																		</span>{' '}
+																		{track.title}
+																	</div>
+																))}
+															</div>
 														</div>
 													</div>
 												</div>

@@ -160,6 +160,9 @@ export async function GET(req: NextRequest) {
 					release.ddex_delivery_confirmations =
 						releaseData.ddex_delivery_confirmations;
 				}
+				if (releaseData && releaseData.ean) {
+					release.ean = releaseData.ean;
+				}
 			})
 		);
 

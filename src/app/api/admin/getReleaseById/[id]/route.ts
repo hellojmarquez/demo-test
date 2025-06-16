@@ -73,6 +73,7 @@ export async function GET(
 					qc_feedback: releaseData.qc_feedback,
 					acr_alert: releaseData.acr_alert,
 					has_acr_alert: releaseData.has_acr_alert,
+					ean: releaseData.ean,
 				},
 			},
 			{ new: true }

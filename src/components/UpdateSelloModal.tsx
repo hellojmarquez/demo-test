@@ -22,6 +22,7 @@ import {
 	Percent,
 	DollarSign,
 	Music,
+	AlertTriangle,
 } from 'lucide-react';
 import { Sello } from '@/types/sello';
 import { toast } from 'react-hot-toast';
@@ -981,7 +982,13 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 										<Users className="h-5 w-5 text-brand-light" />
 										Artistas Asignados
 									</h3>
-
+									<div>
+										<p className="text-sm bg-yellow-100 text-center text-yellow-700 mb-4 py-2 rounded-lg flex items-center justify-center gap-2">
+											<AlertTriangle className="h-4 w-4" />
+											Si no presiona el botón <strong>Actualizar</strong>las
+											asignaciones no tendrán efecto.
+										</p>
+									</div>
 									{loadingAsignaciones ? (
 										<div className="flex justify-center py-4">
 											<div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-dark"></div>
@@ -1074,6 +1081,19 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 														</div>
 													</div>
 												))}
+
+												{/* Message when no artists are assigned */}
+												{asignaciones.filter(
+													a => !removedAsignaciones.includes(a._id)
+												).length === 0 &&
+													newAsignaciones.length === 0 && (
+														<div className="col-span-2 text-center py-8 bg-gray-50 rounded-lg">
+															<Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+															<p className="text-gray-500">
+																No hay artistas asignados
+															</p>
+														</div>
+													)}
 											</div>
 
 											{/* Add New Artist Form */}

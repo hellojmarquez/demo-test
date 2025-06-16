@@ -248,16 +248,29 @@ export async function PUT(
 					])
 				);
 
-				// // Eliminar asignaciones que ya no existen
-				// Array.from(existingMap.entries()).forEach(
-				// 	async ([artistaId, asignacion]) => {
-				// 		if (!newMap.has(artistaId)) {
-				// 			await SelloArtistaContrato.findByIdAndUpdate(asignacion._id, {
-				// 				estado: 'inactivo',
-				// 			});
-				// 		}
-				// 	}
-				// );
+				// Eliminar asignaciones que ya no existen
+				if (data.removedAsignaciones) {
+					console.log('si existe');
+					const removedAsignaciones = JSON.parse(data.removedAsignaciones);
+					if (data.removedAsignaciones.length > 0) {
+						removedAsignaciones.forEach(async (id: string) => {
+							console.log('asignacion a borrar', id);
+							await SelloArtistaContrato.findByIdAndUpdate(id, {
+								estado: 'inactivo',
+							});
+						});
+					}
+				}
+
+				Array.from(existingMap.entries()).forEach(
+					async ([artistaId, asignacion]) => {
+						if (!newMap.has(artistaId)) {
+							await SelloArtistaContrato.findByIdAndUpdate(asignacion._id, {
+								estado: 'inactivo',
+							});
+						}
+					}
+				);
 
 				// Crear nuevas asignaciones
 				Array.from(newMap.entries()).forEach(

@@ -504,6 +504,7 @@ export default function UsuariosPage() {
 					primary_genre: formData.get('primary_genre'),
 					subAccounts: formData.get('subAccounts'),
 					asignaciones: formData.get('asignaciones'),
+					removedAsignaciones: formData.get('removedAsignaciones'),
 				};
 
 				headers['Content-Type'] = 'application/json';

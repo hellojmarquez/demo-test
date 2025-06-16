@@ -581,11 +581,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			// Es una asignación existente, agregarla a removedAsignaciones
 			const asignacion = asignaciones.find(a => a._id === id);
 			if (asignacion) {
-				setRemovedAsignaciones(prev => [
-					...prev,
-					asignacion.artista_id.external_id,
-				]);
-				console.log('existente asignacion', asignacion.artista_id.external_id);
+				setRemovedAsignaciones(prev => [...prev, asignacion._id]);
+				console.log('existente asignacion', asignacion._id);
 			}
 		}
 	};
@@ -639,8 +636,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
 			}
 			console.log('formDataToSend', formDataToSend);
-			// await onSave(formDataToSend);
-			// onClose();
+			await onSave(formDataToSend);
+			onClose();
 		} catch (error) {
 			console.error('Error saving sello:', error);
 			setError(
@@ -994,9 +991,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											{/* Current Artists */}
 											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 												{asignaciones
-													.filter(
-														a => !removedAsignaciones.includes(a.external_id)
-													)
+													.filter(a => !removedAsignaciones.includes(a._id))
 													.map(asignacion => (
 														<div
 															key={asignacion._id}

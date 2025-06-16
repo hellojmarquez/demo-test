@@ -551,6 +551,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 			...prev,
 			{
 				...newAsignacion,
+				_id: `new_${artistaSeleccionado.external_id}`, // ID temporal único
 				artista_id: {
 					external_id: Number(artistaSeleccionado.external_id),
 					name: artistaSeleccionado.name,
@@ -570,9 +571,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		setShowSuccessMessage(true);
 		setTimeout(() => setShowSuccessMessage(false), 3000);
 	};
-	useEffect(() => {
-		console.log('newAsignaciones', newAsignaciones);
-	}, [newAsignaciones]);
 
 	const handleRemoveArtist = (asignacionId: string) => {
 		if (asignacionId.startsWith('temp_')) {
@@ -581,6 +579,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		} else {
 			// Si es una asignación existente, la agregamos a removedAsignaciones
 			setRemovedAsignaciones(prev => [...prev, asignacionId]);
+			console.log('asignacionId', removedAsignaciones);
 		}
 	};
 
@@ -629,8 +628,8 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
 			}
 			console.log('formDataToSend', formDataToSend);
-			await onSave(formDataToSend);
-			onClose();
+			// await onSave(formDataToSend);
+			// onClose();
 		} catch (error) {
 			console.error('Error saving sello:', error);
 			setError(

@@ -113,7 +113,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
-	const [isUploadModalOpen, setIsUploadModalOpen] = useState(true);
+	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState<{
 		total: number;
 		loaded: number;
@@ -144,7 +144,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		spotify_id: '',
 	});
 	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
-	const [isTracksExpanded, setIsTracksExpanded] = useState(false);
+	const [isTracksExpanded, setIsTracksExpanded] = useState(true);
 	const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
 	const [selectedAction, setSelectedAction] = useState<string | null>(null);
 

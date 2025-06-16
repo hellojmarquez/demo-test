@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 
 interface SearchInputProps {
@@ -15,6 +15,15 @@ const SearchInput: React.FC<SearchInputProps> = ({
 	className = '',
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [localValue, setLocalValue] = useState(value);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			onChange(localValue);
+		}, 500); // Espera 500ms después de que el usuario deje de escribir
+
+		return () => clearTimeout(timer);
+	}, [localValue, onChange]);
 
 	return (
 		<div className={`relative ${className} `}>
@@ -26,12 +35,12 @@ const SearchInput: React.FC<SearchInputProps> = ({
 				<input
 					type="text"
 					placeholder={placeholder}
-					value={value}
-					onChange={e => onChange(e.target.value)}
+					value={localValue}
+					onChange={e => setLocalValue(e.target.value)}
 					className="w-full pl-10 pr-4 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
 					autoFocus
 					onBlur={() => {
-						if (!value) {
+						if (!localValue) {
 							setIsExpanded(false);
 						}
 					}}

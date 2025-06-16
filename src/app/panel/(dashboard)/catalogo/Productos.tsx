@@ -28,6 +28,7 @@ import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
 import { Release as ReleaseType, Picture } from '@/types/release';
 import DDEXDelivery from '@/components/ddex_delivery';
+import AvailableFilter from '@/components/AvailableFilter';
 
 interface Release {
 	_id: string;
@@ -67,6 +68,7 @@ const Productos: React.FC = () => {
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalItems, setTotalItems] = useState(0);
 	const [searchQuery, setSearchQuery] = useState('');
+	const [availableFilter, setAvailableFilter] = useState<boolean | null>(null);
 	const [sortBy, setSortBy] = useState('newest');
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [releaseToDelete, setReleaseToDelete] = useState<Release | null>(null);
@@ -80,7 +82,9 @@ const Productos: React.FC = () => {
 				const res = await fetch(
 					`/api/admin/getAllReleases?page=${currentPage}${
 						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
-					}&sort=${sortBy}`,
+					}&sort=${sortBy}${
+						availableFilter !== null ? `&available=${availableFilter}` : ''
+					}`,
 					{
 						cache: 'no-store',
 						headers: {
@@ -102,7 +106,7 @@ const Productos: React.FC = () => {
 		};
 
 		fetchReleases();
-	}, [currentPage, searchQuery, sortBy]);
+	}, [currentPage, searchQuery, sortBy, availableFilter]);
 
 	const handleToggleExpand = (id: string) => {
 		setExpandedRelease(currentId => (currentId === id ? null : id));
@@ -242,6 +246,11 @@ const Productos: React.FC = () => {
 									{ value: 'newest', label: 'Más recientes' },
 									{ value: 'oldest', label: 'Más antiguos' },
 								]}
+							/>
+							<AvailableFilter
+								value={availableFilter}
+								onChange={setAvailableFilter}
+								className="w-48" // o el ancho que necesites
 							/>
 						</div>
 						<motion.button

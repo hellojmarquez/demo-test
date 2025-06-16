@@ -113,7 +113,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
-	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+	const [isUploadModalOpen, setIsUploadModalOpen] = useState(true);
 	const [uploadProgress, setUploadProgress] = useState<{
 		total: number;
 		loaded: number;

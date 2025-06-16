@@ -46,7 +46,9 @@ export async function GET(req: NextRequest) {
 
 		// Aplicar middleware de búsqueda
 		const searchQuery = searchMiddleware(req, 'name');
-
+		const searchParams = req.nextUrl.searchParams;
+		const available = searchParams.get('available');
+		const getAll = searchParams.get('all') === 'true';
 		// Aplicar middleware de ordenamiento
 		const sortOptions: SortOptions = {
 			newest: { createdAt: -1 as const },
@@ -59,6 +61,9 @@ export async function GET(req: NextRequest) {
 		if (userRole === 'admin') {
 			finalQuery = {
 				...searchQuery,
+				...(available !== null && {
+					available: available === 'true',
+				}),
 			};
 		} else {
 			finalQuery = {
@@ -116,10 +121,10 @@ export async function GET(req: NextRequest) {
 				{ status: 403 }
 			);
 		}
-
+		console.log('finalQuery', finalQuery);
 		// Obtener el total de documentos que coinciden con la búsqueda
 		const total = await Release.countDocuments(finalQuery);
-
+		console.log('total', total);
 		// Obtener los releases paginados, filtrados y ordenados
 		const releases = await Release.find(finalQuery)
 			.sort(sort)
@@ -159,9 +164,10 @@ export async function GET(req: NextRequest) {
 		);
 
 		// Verificar si se solicitan todos los releases
-		const searchParams = req.nextUrl.searchParams;
-		const getAll = searchParams.get('all') === 'true';
 
+		releases.forEach(release => {
+			console.log('release', release.name);
+		});
 		return NextResponse.json(
 			{
 				success: true,

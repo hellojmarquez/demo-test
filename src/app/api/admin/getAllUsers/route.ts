@@ -70,10 +70,23 @@ export async function GET(req: NextRequest) {
 			verifiedPayload.role === 'contributor' ||
 			verifiedPayload.role === 'publisher'
 		) {
-			return NextResponse.json({
-				success: false,
-				error: 'Acceso denegado',
-			});
+			return NextResponse.json(
+				{
+					success: true,
+					data: {
+						users: [],
+						pagination: null,
+					},
+				},
+				{
+					headers: {
+						'Cache-Control':
+							'no-store, no-cache, must-revalidate, proxy-revalidate',
+						Pragma: 'no-cache',
+						Expires: '0',
+					},
+				}
+			);
 		}
 
 		// Si el usuario es sello, obtener solo los artistas asignados

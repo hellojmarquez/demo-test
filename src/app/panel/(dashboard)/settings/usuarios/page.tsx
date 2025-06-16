@@ -11,6 +11,8 @@ import {
 	Mail,
 	KeyRound,
 	Copy,
+	XCircle,
+	Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -168,12 +170,7 @@ export default function UsuariosPage() {
 	const [sortBy, setSortBy] = useState('newest');
 	const [selectedRole, setSelectedRole] = useState<RoleOption | null>(null);
 	const [showInviteModal, setShowInviteModal] = useState(false);
-	const [showCopied, setShowCopied] = useState(false);
-	const [name, setName] = useState('');
-	const [email, setEmail] = useState('');
-	const [password, setPassword] = useState('');
-	const catalogNumRef = useRef<HTMLInputElement>(null);
-	const [isLoading, setIsLoading] = useState(false);
+
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 
@@ -200,6 +197,8 @@ export default function UsuariosPage() {
 
 					setTotalPages(data.data.pagination.totalPages);
 					setTotalItems(data.data.pagination.total);
+				} else {
+					setError(data.error || 'No hay usuarios disponibles');
 				}
 			} catch (error) {
 				console.error('Error fetching users:', error);
@@ -214,6 +213,26 @@ export default function UsuariosPage() {
 		return (
 			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
 				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-dark"></div>
+			</div>
+		);
+	}
+	if (error && error.length > 0) {
+		return (
+			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
+				<div className="text-red-500 flex flex-col items-center gap-4">
+					<XCircle className="h-12 w-12" />
+					<p className="text-lg font-medium">{error}</p>
+				</div>
+			</div>
+		);
+	}
+	if (users.length === 0) {
+		return (
+			<div className="flex justify-center items-center h-[calc(100vh-200px)]">
+				<div className="text-gray-500 flex flex-col items-center gap-4">
+					<Users className="h-12 w-12" />
+					<p className="text-lg font-medium">No hay usuarios disponibles</p>
+				</div>
 			</div>
 		);
 	}

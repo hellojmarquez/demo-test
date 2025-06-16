@@ -617,12 +617,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			}
 
 			// Refrescar los datos del release después de subir todos los tracks
-			await fetchReleaseData();
 
 			// Limpiar los estados después de completar exitosamente
 			setIsUploadingTracks(false);
 			setUploadProgress(null);
 			setUploadError('');
+			router.refresh();
 		} catch (err: any) {
 			console.error('Error al procesar tracks:', err);
 			setUploadError(err.message || 'Error al procesar los tracks');

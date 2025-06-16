@@ -4,49 +4,57 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
 	console.log('middleware');
-	// Solo procesar rutas que empiecen con /
-	if (!request.nextUrl.pathname.startsWith('/panel')) {
+	// Solo procesar rutas que empiecen con /api/admin
+	if (!request.nextUrl.pathname.startsWith('/api/admin')) {
 		return NextResponse.next();
 	}
 
 	// Si es la ruta de login, permitir el acceso sin verificar el token
-	if (request.nextUrl.pathname === '/panel/login') {
+	if (request.nextUrl.pathname === '/api/admin/login') {
 		return NextResponse.next();
 	}
 
-	// Si es la ruta de banned, permitir el acceso
-	if (request.nextUrl.pathname === '/panel/banned') {
-		return NextResponse.next();
+	// Obtener el token del header Authorization
+	const authHeader = request.headers.get('Authorization');
+	if (!authHeader || !authHeader.startsWith('Bearer ')) {
+		return new NextResponse(
+			JSON.stringify({ success: false, error: 'No token provided' }),
+			{
+				status: 401,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
 	}
 
-	// Obtener el token de login
-	const loginToken = request.cookies.get('loginToken')?.value;
-
-	if (!loginToken) {
-		console.log('no loginToken');
-		return NextResponse.redirect(new URL('/panel/login', request.url));
-	}
+	const token = authHeader.split(' ')[1];
 
 	try {
 		// Verificar el token
 		const { payload } = await jwtVerify(
-			loginToken,
+			token,
 			new TextEncoder().encode(process.env.JWT_SECRET)
 		);
 
 		// Verificar si el usuario está baneado
 		if (payload.status === 'banneado') {
-			return NextResponse.redirect(new URL('/panel/banned', request.url));
+			return new NextResponse(
+				JSON.stringify({ success: false, error: 'User is banned' }),
+				{
+					status: 403,
+					headers: { 'Content-Type': 'application/json' },
+				}
+			);
 		}
-		console.log('pasa prueba de payload');
-
-		// Si no está baneado, permitir el acceso
-
 		const AccessToken = request.cookies.get('accessToken')?.value;
 		const refreshToken = request.cookies.get('refreshToken')?.value;
 		if (!refreshToken && AccessToken) {
-			console.log('no refreshToken y accessToken');
-			return NextResponse.redirect(new URL('/panel/login', request.url));
+			return new NextResponse(
+				JSON.stringify({ success: false, error: 'Accesso no autorizado' }),
+				{
+					status: 401,
+					statusText: 'Accesso no autorizado',
+				}
+			);
 		}
 
 		const verifyToken = await fetch(
@@ -82,7 +90,13 @@ export async function middleware(request: NextRequest) {
 			);
 			if (!refreshToken.ok) {
 				console.log('no refreshToken');
-				return NextResponse.redirect(new URL('/panel/login', request.url));
+				return new NextResponse(
+					JSON.stringify({ success: false, error: 'Accesso no autorizado' }),
+					{
+						status: 401,
+						statusText: 'Accesso no autorizado',
+					}
+				);
 			}
 			const refreshTokenData = await refreshToken.json();
 			const response = NextResponse.next();
@@ -95,15 +109,17 @@ export async function middleware(request: NextRequest) {
 			});
 			return response;
 		}
-
 		return NextResponse.next();
 	} catch (error) {
 		console.error('Token verification failed:', error);
-		return NextResponse.redirect(new URL('/panel/login', request.url));
+		return new NextResponse(JSON.stringify({ error: 'Invalid token' }), {
+			status: 401,
+			headers: { 'Content-Type': 'application/json' },
+		});
 	}
 }
 
-// Configurar el matcher para que el middleware se ejecute solo en las rutas de sello
+// Configurar el matcher para que el middleware se ejecute solo en las rutas de api/admin
 export const config = {
-	matcher: ['/panel/:path*'],
+	matcher: ['/api/admin/:path*'],
 };

@@ -80,19 +80,39 @@ const Assets = () => {
 
 	useEffect(() => {
 		const fetchData = async () => {
-			fetch('/api/admin/getAllReleases')
-				.then(res => res.json())
-				.then(response => {
-					if (response.success && response.data) {
-						setReleases(response.data.releases);
+			try {
+				// Fetch releases
+				const releasesRes = await fetch('/api/admin/getAllReleases');
+				if (!releasesRes.ok) {
+					if (releasesRes.status === 401) {
+						// Redirigir al login si no está autorizado
+						window.location.href = '/panel/login';
+						return;
 					}
-				})
-				.catch(error => console.error('Error fetching releases:', error));
-			// Fetch genres
-			const genresRes = await fetch('/api/admin/getAllGenres');
-			const genresData = await genresRes.json();
-			if (genresData.success && Array.isArray(genresData.data)) {
-				setGenres(genresData.data);
+					throw new Error(`HTTP error! status: ${releasesRes.status}`);
+				}
+				const response = await releasesRes.json();
+				if (response.success && response.data) {
+					setReleases(response.data.releases);
+				}
+
+				// Fetch genres
+				const genresRes = await fetch('/api/admin/getAllGenres');
+				if (!genresRes.ok) {
+					if (genresRes.status === 401) {
+						window.location.href = '/panel/login';
+						return;
+					}
+					throw new Error(`HTTP error! status: ${genresRes.status}`);
+				}
+				const genresData = await genresRes.json();
+				if (genresData.success && Array.isArray(genresData.data)) {
+					setGenres(genresData.data);
+				}
+			} catch (error) {
+				console.error('Error fetching data:', error);
+				// Aquí podrías mostrar un mensaje de error al usuario
+				// setError('Error al cargar los datos');
 			}
 		};
 		fetchData();

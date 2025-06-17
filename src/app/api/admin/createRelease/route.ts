@@ -46,18 +46,22 @@ export async function POST(req: NextRequest) {
 		const countries = countriesRaw ? JSON.parse(countriesRaw.toString()) : [];
 
 		// Parsear otros campos normales
-		const name = formData.get('name') as string;
+		let name = formData.get('name') as string;
+		name = name.trim();
 		const label = parseInt(formData.get('label') as string);
-		const label_name = formData.get('label_name') as string;
+		let label_name = formData.get('label_name') as string;
+		label_name = label_name.trim();
 		const kind = formData.get('kind') as string;
 
 		const release_version = formData.get('release_version') as string;
 		const publisher = formData.get('publisher') as string;
 		const available = formData.get('available') === 'true';
-		const publisher_name = formData.get('publisher_name') as string;
+		let publisher_name = formData.get('publisher_name') as string;
+		publisher_name = publisher_name.trim();
 
-		const publisher_year = formData.get('publisher_year') as string;
-		const copyright_holder = formData.get('copyright_holder') as string;
+		let publisher_year = formData.get('publisher_year') as string;
+		let copyright_holder = formData.get('copyright_holder') as string;
+		copyright_holder = copyright_holder.trim();
 
 		const copyright_holder_year = formData.get(
 			'copyright_holder_year'

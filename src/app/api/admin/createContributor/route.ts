@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-
+		name.trim();
+		email.trim();
 		// Crear contributor en MoveMusic
 		const contributorReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/contributors`,
@@ -98,8 +99,8 @@ export async function POST(req: NextRequest) {
 		const contributor = new User({
 			_id: new mongoose.Types.ObjectId(),
 			external_id: contributorRes.id,
-			name: contributorRes.name,
-			email: email,
+			name,
+			email,
 			password: hashedPassword,
 			role: 'contributor',
 		});

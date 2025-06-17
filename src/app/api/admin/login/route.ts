@@ -6,7 +6,7 @@ import { comparePassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
 	try {
-		const { email, password } = await req.json();
+		let { email, password } = await req.json();
 		if (!email || !password) {
 			return NextResponse.json(
 				{ error: 'Se requieren credenciales' },
@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
 		}
 
 		await dbConnect();
-
+		email = email.trim();
+		password = password.trim();
 		const userDB = await User.findOne({ email: email });
 
 		if (!userDB) {

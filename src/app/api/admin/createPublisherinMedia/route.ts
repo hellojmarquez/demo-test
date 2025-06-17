@@ -38,8 +38,11 @@ export async function POST(req: NextRequest) {
 		}
 
 		const body = await req.json();
-		let { name, email, order, author, publisher } = body;
+		let { name, email, order, author } = body;
+		name = name.trim();
+		email = email.trim();
 
+		author = author.trim();
 		// Capitalizar la primera letra de cada palabra
 		name = name
 			.split(' ')

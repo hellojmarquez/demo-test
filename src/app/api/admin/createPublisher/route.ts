@@ -38,7 +38,9 @@ export async function POST(req: NextRequest) {
 
 		const body = await req.json();
 		let { name, email, password } = body;
-
+		name = name.trim();
+		email = email.trim();
+		password = password.trim();
 		// Capitalizar la primera letra de cada palabra
 		name = name
 			.split(' ')

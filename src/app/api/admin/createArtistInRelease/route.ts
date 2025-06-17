@@ -40,12 +40,12 @@ export async function POST(req: NextRequest) {
 		// Extraer los campos del FormData
 		const order = artist.order || 0;
 		const kind = artist.kind;
-		let name = artist.name;
-		let email = artist.email;
-		const amazon_music_identifier = artist.amazon_music_identifier;
-		const apple_identifier = artist.apple_identifier;
-		const deezer_identifier = artist.deezer_identifier;
-		const spotify_identifier = artist.spotify_identifier;
+		let name = artist.name.trim();
+		let email = artist.email.trim();
+		const amazon_music_identifier = artist.amazon_music_identifier.trim();
+		const apple_identifier = artist.apple_identifier.trim();
+		const deezer_identifier = artist.deezer_identifier.trim();
+		const spotify_identifier = artist.spotify_identifier.trim();
 
 		// Validar campos requeridos
 		if (!name) {
@@ -117,7 +117,6 @@ export async function POST(req: NextRequest) {
 			const newArtist = new User(artistData);
 			const savedArtist = await newArtist.save();
 			newId = savedArtist._id.toString();
-		
 		} catch (error) {
 			console.error('Error al crear el artista:', error);
 			return NextResponse.json(

@@ -68,6 +68,8 @@ export async function POST(req: NextRequest) {
 		const password = uuidv4();
 
 		// Crear contributor en MoveMusic
+		name.trim();
+		email.trim();
 		const contributorReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/contributors`,
 			{

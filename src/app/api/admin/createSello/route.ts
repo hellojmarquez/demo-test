@@ -43,10 +43,13 @@ export async function POST(request: NextRequest) {
 
 		// Obtener datos del formulario
 		const formData = await request.formData();
-		const name = formData.get('name') as string;
-		const email = formData.get('email') as string;
+		let name = formData.get('name') as string;
+		name = name.trim();
+		let email = formData.get('email') as string;
+		email = email.trim();
 		const linkLogo = formData.get('logo') as string;
-		const password = formData.get('password') as string;
+		let password = formData.get('password') as string;
+		password = password.trim();
 		const primary_genre = formData.get('primary_genre') as string;
 		const year = formData.get('year') as string;
 		const catalog_num = formData.get('catalog_num') as string;

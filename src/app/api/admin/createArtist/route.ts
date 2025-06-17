@@ -47,15 +47,15 @@ export async function POST(req: NextRequest) {
 
 		// Extraer los campos del FormData
 		let name = formData.get('name') as string;
-		const email = formData.get('email') as string;
-		const password = formData.get('password') as string;
+		let email = formData.get('email') as string;
+		let password = formData.get('password') as string;
 		const hashedPassword = await encryptPassword(password);
-		const amazon_music_identifier = formData.get(
+		let amazon_music_identifier = formData.get(
 			'amazon_music_identifier'
 		) as string;
-		const apple_identifier = formData.get('apple_identifier') as string;
-		const deezer_identifier = formData.get('deezer_identifier') as string;
-		const spotify_identifier = formData.get('spotify_identifier') as string;
+		let apple_identifier = formData.get('apple_identifier') as string;
+		let deezer_identifier = formData.get('deezer_identifier') as string;
+		let spotify_identifier = formData.get('spotify_identifier') as string;
 		const picture = formData.get('picture') as File;
 
 		// Función para convertir File a base64
@@ -90,7 +90,12 @@ export async function POST(req: NextRequest) {
 					word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 			)
 			.join(' ');
-
+		name = name.trim();
+		email = email.trim();
+		amazon_music_identifier = amazon_music_identifier.trim();
+		apple_identifier = apple_identifier.trim();
+		deezer_identifier = deezer_identifier.trim();
+		spotify_identifier = spotify_identifier.trim();
 		const artistToApi = {
 			name,
 			email,
@@ -132,8 +137,8 @@ export async function POST(req: NextRequest) {
 		const newArtist = await User.create({
 			_id: new mongoose.Types.ObjectId(),
 			external_id: artistaRes.id,
-			name,
-			email,
+			name: name,
+			email: email,
 			password: hashedPassword,
 			picture: pictureBase64,
 			role: 'artista',

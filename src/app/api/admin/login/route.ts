@@ -15,8 +15,9 @@ export async function POST(req: NextRequest) {
 		}
 
 		await dbConnect();
-		const userDB = await User.findOne({ email: email });
 
+		const userDB = await User.findOne({ email: email });
+		console.log('userDB', userDB);
 		if (!userDB) {
 			return NextResponse.json(
 				{ error: 'Usuario no encontrado' },
@@ -49,6 +50,10 @@ export async function POST(req: NextRequest) {
 					value: '',
 					expires: new Date(0),
 					path: '/',
+					httpOnly: true,
+					secure: isProd,
+					sameSite: sameSite,
+					domain: cookieDomain,
 				});
 			});
 

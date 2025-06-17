@@ -61,16 +61,24 @@ export default function CreateInitRelease({
 
 		try {
 			const formData = new FormData();
+			const defaultLabelId = process.env.DEFAULT_LABEL_ID;
+			const defaultLabelName = process.env.DEFAULT_LABEL_NAME;
+			const defaultPublisherId = process.env.DEFAULT_PUBLISHER_ID;
+			const defaultPublisherName = process.env.DEFAULT_PUBLISHER_NAME;
+			const defaultGenreId = process.env.DEFAULT_GENRE_ID;
+			const defaultGenreName = process.env.DEFAULT_GENRE_NAME;
+			const defaultSubgenreId = process.env.DEFAULT_SUBGENRE_ID;
+			const defaultSubgenreName = process.env.DEFAULT_SUBGENRE_NAME;
 			formData.append('name', title);
 			formData.append('picture', image);
-			formData.append('label', '505');
-			formData.append('label_name', 'S-Intrtrck');
-			formData.append('publisher', '190');
-			formData.append('publisher_name', 'Santiago Montes');
-			formData.append('genre', '4');
-			formData.append('genre_name', 'New Age');
-			formData.append('subgenre', '108');
-			formData.append('subgenre_name', 'Healing');
+			formData.append('label', defaultLabelId?.toString() || '');
+			formData.append('label_name', defaultLabelName?.toString() || '');
+			formData.append('publisher', defaultPublisherId?.toString() || '');
+			formData.append('publisher_name', defaultPublisherName?.toString() || '');
+			formData.append('genre', defaultGenreId?.toString() || '');
+			formData.append('genre_name', defaultGenreName || '');
+			formData.append('subgenre', defaultSubgenreId?.toString() || '');
+			formData.append('subgenre_name', defaultSubgenreName?.toString() || '');
 			formData.append('artists', JSON.stringify([]));
 			formData.append('publisher_year', '2025');
 			formData.append('copyright_holder', 'Sample value');
@@ -101,7 +109,7 @@ export default function CreateInitRelease({
 			onSubmit({ title, image });
 		} catch (err: any) {
 			setError(err.message || 'Error al crear el lanzamiento');
-			toast.error('Error al crear el producto');
+			toast.error(err.message || 'Error al crear el producto');
 		} finally {
 			setIsLoading(false);
 		}

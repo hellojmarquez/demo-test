@@ -133,27 +133,27 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 		// Preparar los tracks para enviar al padre
 		const defaultArtists = [
 			{
-				artist: 1541,
-				kind: 'main',
-				order: 5,
-				name: 'Jhon Doe',
+				artist: process.env.DEFAULT_ARTIST_ID,
+				kind: process.env.DEFAULT_ARTIST_KIND,
+				order: 0,
+				name: process.env.DEFAULT_ARTIST_NAME,
 			},
 		];
 		const defaultPublishers = [
 			{
-				order: 3,
-				publisher: 194,
-				name: 'ISLA SOUNDS',
-				author: 'Juan Cisneros',
+				order: 0,
+				publisher: process.env.DEFAULT_PUBLISHER_ID,
+				name: process.env.DEFAULT_PUBLISHER_NAME,
+				author: process.env.DEFAULT_PUBLISHER_AUTHOR,
 			},
 		];
 		const defaultContributors = [
 			{
-				order: 3,
-				contributor: 1019,
-				name: 'Jhon Doe',
-				role: 2,
-				role_name: 'Composer',
+				order: 0,
+				contributor: process.env.DEFAULT_CONTRIBUTOR_ID,
+				name: process.env.DEFAULT_CONTRIBUTOR_NAME,
+				role: process.env.DEFAULT_CONTRIBUTOR_ROLE,
+				role_name: process.env.DEFAULT_CONTRIBUTOR_ROLE_NAME,
 			},
 		];
 		const tracksToUpload = validAssets.map((asset, index) => {

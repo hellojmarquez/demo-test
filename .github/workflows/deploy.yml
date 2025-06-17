@@ -1,0 +1,60 @@
+name: Deploy to VPS
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Permite ejecutar manualmente desde GitHub
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: 22
+        timeout: 300s
+        script: |
+          echo "🚀 Starting deployment..."
+          
+          # Ir al directorio del proyecto
+          cd /var/www/html
+          
+          # Hacer backup de la versión actual (opcional)
+          echo "📦 Creating backup..."
+          cp -r /var/www/html /var/www/html-backup-$(date +%Y%m%d-%H%M%S) || true
+          
+          # Obtener los últimos cambios
+          echo "⬇️ Pulling latest changes..."
+          git stash || true
+          git pull origin main
+          
+          # Instalar/actualizar dependencias
+          echo "📋 Installing dependencies..."
+          npm install
+          
+          # Compilar el proyecto
+          echo "🏗️ Building project..."
+          npm run build
+          
+          # Reiniciar la aplicación con PM2
+          echo "🔄 Restarting application..."
+          pm2 restart distro-app || pm2 start npm --name "distro-app" -- start
+          
+          # Verificar que la aplicación esté corriendo
+          echo "✅ Checking application status..."
+          pm2 status
+          
+          echo "🎉 Deployment completed successfully!"
+          
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+        fi

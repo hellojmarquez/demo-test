@@ -61,14 +61,16 @@ export default function CreateInitRelease({
 
 		try {
 			const formData = new FormData();
-			const defaultLabelId = process.env.DEFAULT_LABEL_ID;
-			const defaultLabelName = process.env.DEFAULT_LABEL_NAME;
-			const defaultPublisherId = process.env.DEFAULT_PUBLISHER_ID;
-			const defaultPublisherName = process.env.DEFAULT_PUBLISHER_NAME;
-			const defaultGenreId = process.env.DEFAULT_GENRE_ID;
-			const defaultGenreName = process.env.DEFAULT_GENRE_NAME;
-			const defaultSubgenreId = process.env.DEFAULT_SUBGENRE_ID;
-			const defaultSubgenreName = process.env.DEFAULT_SUBGENRE_NAME;
+			const defaultLabelId = process.env.NEXT_PUBLIC_DEFAULT_LABEL_ID;
+			const defaultLabelName = process.env.NEXT_PUBLIC_DEFAULT_LABEL_NAME;
+
+			const defaultPublisherId = process.env.NEXT_PUBLIC_DEFAULT_PUBLISHER_ID;
+			const defaultPublisherName =
+				process.env.NEXT_PUBLIC_DEFAULT_PUBLISHER_NAME;
+			const defaultGenreId = process.env.NEXT_PUBLIC_DEFAULT_GENRE_ID;
+			const defaultGenreName = process.env.NEXT_PUBLIC_DEFAULT_GENRE_NAME;
+			const defaultSubgenreId = process.env.NEXT_PUBLIC_DEFAULT_SUBGENRE_ID;
+			const defaultSubgenreName = process.env.NEXT_PUBLIC_DEFAULT_SUBGENRE_NAME;
 			formData.append('name', title);
 			formData.append('picture', image);
 			formData.append('label', defaultLabelId?.toString() || '');
@@ -93,7 +95,7 @@ export default function CreateInitRelease({
 			formData.append('territory', 'worldwide');
 			formData.append('available', 'true');
 			formData.append('youtube_declaration', 'true');
-
+			console.log('formData', formData);
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',
 				body: formData,

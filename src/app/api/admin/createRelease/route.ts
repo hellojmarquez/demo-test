@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 			verifiedPayload.role === 'sello'
 				? verifiedPayload.externa_id
 				: verifiedPayload.role === 'admin'
-				? 505
+				? process.env.DEFAULT_LABEL_ID
 				: label;
 		let newRelease = {
 			name,
@@ -199,7 +199,8 @@ export async function POST(req: NextRequest) {
 		});
 
 		const apiRes = await releaseToApi.json();
-		if (!apiRes.id) {
+		if (!releaseToApi.ok) {
+			console.log('apiRes', apiRes);
 			return NextResponse.json(
 				{
 					success: false,

@@ -236,14 +236,14 @@ export async function PUT(
 				body: JSON.stringify(releaseToApiData),
 			}
 		);
-
+		console.log('releaseToApi', releaseToApi);
 		const apiRes = await releaseToApi.json();
-
-		if (!apiRes.id) {
+		console.log('apiRes', apiRes.message);
+		if (!releaseToApi.ok) {
 			return NextResponse.json(
 				{
 					success: false,
-					error: apiRes || 'Error al crear el release',
+					error: apiRes.message || 'Error al actualizar el el producto+',
 				},
 				{ status: 400 }
 			);

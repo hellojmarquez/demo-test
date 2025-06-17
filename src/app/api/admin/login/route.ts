@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
 				.setIssuedAt()
 				.setExpirationTime('1h')
 				.sign(new TextEncoder().encode(process.env.JWT_SECRET));
+			const isProd = process.env.NODE_ENV === 'production';
+			const sameSite = isProd ? 'none' : 'lax';
+			const cookieDomain = isProd ? process.env.COOKIE_DOMAIN : undefined;
 
 			// Establecer el loginToken con el status banned
 			response.cookies.set({
@@ -72,12 +75,9 @@ export async function POST(req: NextRequest) {
 				path: '/',
 				maxAge: 60 * 60 * 24 * 7, // 7 días
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
-				sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-				domain:
-					process.env.NODE_ENV === 'production'
-						? process.env.COOKIE_DOMAIN
-						: undefined,
+				secure: isProd,
+				sameSite: sameSite,
+				domain: cookieDomain,
 			});
 
 			return response;

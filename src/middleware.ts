@@ -26,6 +26,9 @@ export async function middleware(request: NextRequest) {
 		console.log('no loginToken');
 		return NextResponse.redirect(new URL('/panel/login', request.url));
 	}
+	const isProd = process.env.NODE_ENV === 'production';
+	const sameSite = isProd ? 'none' : 'lax';
+	const cookieDomain = isProd ? process.env.COOKIE_DOMAIN : undefined;
 
 	try {
 		// Verificar el token
@@ -92,6 +95,11 @@ export async function middleware(request: NextRequest) {
 				name: 'accessToken',
 				value: refreshTokenData.access,
 				maxAge: 60 * 60 * 24 * 3,
+				httpOnly: true,
+				path: '/',
+				secure: isProd,
+				sameSite: sameSite,
+				domain: cookieDomain,
 			});
 			return response;
 		}

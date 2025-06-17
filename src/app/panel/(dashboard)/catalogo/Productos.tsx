@@ -216,7 +216,7 @@ const Productos: React.FC = () => {
 
 	return (
 		<div className="min-h-screen p-4 sm:p-6 md:p-8">
-			{showSuccessMessage && (
+			{/* {showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -230,7 +230,7 @@ const Productos: React.FC = () => {
 							: 'Producto eliminado exitosamente'}
 					</span>
 				</motion.div>
-			)}
+			)} */}
 			<div className="max-w-7xl mx-auto">
 				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
 					<h1 className="text-xl sm:text-2xl font-bold text-gray-800">

@@ -92,7 +92,7 @@ export async function DELETE(
 		}
 		const dataToApi = {
 			...track,
-			release: 883,
+			release: process.env.DEFAULT_RELEASE_ID,
 			ISRC: newISRC,
 			resource: newresource,
 			artists: track.artists.map(

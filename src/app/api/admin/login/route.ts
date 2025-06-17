@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 		await dbConnect();
 
 		const userDB = await User.findOne({ email: email });
-		console.log('userDB', userDB);
+
 		if (!userDB) {
 			return NextResponse.json(
 				{ error: 'Usuario no encontrado' },

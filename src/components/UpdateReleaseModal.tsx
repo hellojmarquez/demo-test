@@ -185,7 +185,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	// Add default values for formData
 	const safeFormData = {
 		name: formData?.name || '',
-		picture: formData?.picture || ('' as string | File),
+		picture: formData?.picture || '',
 		external_id: formData?.external_id || 0,
 		auto_detect_language: formData?.auto_detect_language || false,
 		generate_ean: formData?.generate_ean || false,
@@ -275,7 +275,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		if (release?.picture) {
 			if (
 				typeof release.picture === 'object' &&
-				'thumb_small' in release.picture
+				'thumb_medium' in release.picture
 			) {
 				setImagePreview(release.picture.thumb_medium);
 			} else if (
@@ -387,6 +387,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			};
 			reader.readAsDataURL(file);
 		}
+		return file;
 	};
 
 	const handleDeleteArtist = (index: number) => {

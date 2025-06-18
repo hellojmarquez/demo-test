@@ -238,12 +238,11 @@ export async function PUT(
 		);
 		console.log('releaseToApi', releaseToApi);
 		const apiRes = await releaseToApi.json();
-		console.log('apiRes', apiRes.message);
 		if (!releaseToApi.ok) {
 			return NextResponse.json(
 				{
 					success: false,
-					error: apiRes.message || 'Error al actualizar el el producto+',
+					error: apiRes || 'Error al actualizar el el producto+',
 				},
 				{ status: 400 }
 			);

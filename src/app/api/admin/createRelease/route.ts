@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
 			original_date,
 			territory,
 		};
-
+		console.log('newRelease: ', newRelease);
 		if (picture) {
 			const uploadArtworkReq = await fetch(
 				`${

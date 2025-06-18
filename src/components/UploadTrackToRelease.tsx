@@ -133,10 +133,10 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 		// Preparar los tracks para enviar al padre
 		const defaultArtists = [
 			{
-				artist: process.env.DEFAULT_ARTIST_ID,
-				kind: process.env.DEFAULT_ARTIST_KIND,
+				artist: process.env.NEXT_PUBLIC_DEFAULT_ARTIST_ID,
+				kind: process.env.NEXT_PUBLIC_DEFAULT_ARTIST_KIND,
 				order: 0,
-				name: process.env.DEFAULT_ARTIST_NAME,
+				name: process.env.NEXT_PUBLIC_DEFAULT_ARTIST_NAME,
 			},
 		];
 		const defaultPublishers = [
@@ -156,6 +156,8 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				role_name: process.env.DEFAULT_CONTRIBUTOR_ROLE_NAME,
 			},
 		];
+		console.log('defaultPublishers: ', defaultPublishers);
+		console.log('validAssets: ', validAssets);
 		const tracksToUpload = validAssets.map((asset, index) => {
 			const track = {
 				...asset,
@@ -194,20 +196,21 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				sample_start: asset.isImported ? asset?.sample_start : '00:00:00',
 				status: asset.isImported ? asset?.status : 'Borrador',
 			};
-
+			console.log('asset: ', asset);
 			return {
 				file: asset.isImported ? null : (asset.file as File),
 				data: track,
 			};
 		});
 
+		console.log('tracksToUpload: ', tracksToUpload);
 		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
-		onTracksReady(tracksToUpload);
-		onClose();
+		// onTracksReady(tracksToUpload);
+		// onClose();
 
-		// Limpiar el formulario
-		setAssets([]);
-		setError('');
+		// // Limpiar el formulario
+		// setAssets([]);
+		// setError('');
 	};
 
 	const handleFileButtonClick = (id: number) => {

@@ -119,6 +119,7 @@ export default function EditPage() {
 
 	useEffect(() => {
 		if (releaseData?.data) {
+			console.log('releaseData: ', releaseData.data);
 			setFormData(releaseData.data);
 		}
 	}, [releaseData]);
@@ -207,54 +208,73 @@ export default function EditPage() {
 			}
 			// Agregar los datos del release
 			formData.append('data', JSON.stringify(releaseData));
+			console.log('releaseData: ', releaseData);
+			// const response = await fetch(
+			// 	`/api/admin/updateRelease/${updatedRelease.external_id}`,
+			// 	{
+			// 		method: 'PUT',
+			// 		body: formData,
+			// 	}
+			// );
+			// if (!response.ok) {
+			// 	const error = await response.json();
+			// 	const errorMessage =
+			// 		typeof error.error === 'object'
+			// 			? Object.entries(error.error)
+			// 					.map(([key, value]) => {
+			// 						if (Array.isArray(value)) {
+			// 							return `${key}: ${value.join(', ')}`;
+			// 						}
+			// 						if (typeof value === 'object' && value !== null) {
+			// 							return `${key}: ${Object.values(value).join(', ')}`;
+			// 						}
+			// 						return `${key}: ${value}`;
+			// 					})
+			// 					.filter(Boolean)
+			// 					.join('\n')
+			// 			: error.error;
+			// 	toast.error(errorMessage);
+			// 	return;
+			// }
+			// const data = await response.json();
+			// if (data.success) {
+			// 	// Si tenemos datos en la respuesta, los usamos
+			// 	if (data.data) {
+			// 		// Asegurarnos de que los datos sean serializables
+			// 		const serializedData = {
+			// 			...data.data,
+			// 			tracks: data.data.tracks || [],
+			// 			artists: data.data.artists || [],
+			// 			newArtists: data.data.newArtists || [],
+			// 		};
+			// 		setFormData(serializedData);
+			// 	} else {
+			// 		// Si no hay datos en la respuesta, mantenemos los datos actuales
+			// 		setFormData(prev => ({
+			// 			...prev,
+			// 		}));
+			// 	}
 
-			const response = await fetch(
-				`/api/admin/updateRelease/${updatedRelease.external_id}`,
-				{
-					method: 'PUT',
-					body: formData,
-				}
-			);
+			// 	toast.success('Release actualizado correctamente');
+			// 	await mutateRelease();
+			// 	router.refresh();
+			// } else {
+			// 	let errorMessage = 'Error al actualizar el release';
 
-			const data = await response.json();
-			if (data.success) {
-				// Si tenemos datos en la respuesta, los usamos
-				if (data.data) {
-					// Asegurarnos de que los datos sean serializables
-					const serializedData = {
-						...data.data,
-						tracks: data.data.tracks || [],
-						artists: data.data.artists || [],
-						newArtists: data.data.newArtists || [],
-					};
-					setFormData(serializedData);
-				} else {
-					// Si no hay datos en la respuesta, mantenemos los datos actuales
-					setFormData(prev => ({
-						...prev,
-					}));
-				}
+			// 	if (typeof data === 'string') {
+			// 		errorMessage = data;
+			// 	} else if (data && typeof data === 'object') {
+			// 		if (Array.isArray(data.error)) {
+			// 			errorMessage = data.error.join('\n');
+			// 		} else if (data.error) {
+			// 			errorMessage = data.error;
+			// 		} else if (data.message) {
+			// 			errorMessage = data.message;
+			// 		}
+			// 	}
 
-				toast.success('Release actualizado correctamente');
-				await mutateRelease();
-				router.refresh();
-			} else {
-				let errorMessage = 'Error al actualizar el release';
-
-				if (typeof data === 'string') {
-					errorMessage = data;
-				} else if (data && typeof data === 'object') {
-					if (Array.isArray(data.error)) {
-						errorMessage = data.error.join('\n');
-					} else if (data.error) {
-						errorMessage = data.error;
-					} else if (data.message) {
-						errorMessage = data.message;
-					}
-				}
-
-				toast.error(errorMessage);
-			}
+			// 	toast.error(errorMessage);
+			// }
 		} catch (error) {
 			console.error('Error updating release:', error);
 			toast.error('Error al actualizar el release');

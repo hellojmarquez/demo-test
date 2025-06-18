@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
-
+		console.log('trackData: ', trackData);
 		const getRelease = await fetch(
 			`${req.nextUrl.origin}/api/admin/getReleaseById/${trackData.release}`,
 			{
@@ -189,19 +189,19 @@ export async function POST(req: NextRequest) {
 			body: JSON.stringify(dataToapi),
 		});
 
+		const trackRes = await trackReq.json();
+		console.log('trackRes: ', trackRes);
 		if (!trackReq.ok) {
 			return NextResponse.json(
 				{
 					success: false,
 					error:
-						trackReq.statusText ||
+						trackRes ||
 						'Ha habido un error, estamos trabajando para arreglarlo',
 				},
 				{ status: 400 }
 			);
 		}
-
-		const trackRes = await trackReq.json();
 
 		// Actualizar trackData con los campos corregidos
 		trackData.external_id = trackRes.id;

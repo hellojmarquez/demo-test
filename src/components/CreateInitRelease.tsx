@@ -67,6 +67,7 @@ export default function CreateInitRelease({
 			const defaultPublisherId = process.env.NEXT_PUBLIC_DEFAULT_PUBLISHER_ID;
 			const defaultPublisherName =
 				process.env.NEXT_PUBLIC_DEFAULT_PUBLISHER_NAME;
+
 			const defaultGenreId = process.env.NEXT_PUBLIC_DEFAULT_GENRE_ID;
 			const defaultGenreName = process.env.NEXT_PUBLIC_DEFAULT_GENRE_NAME;
 			const defaultSubgenreId = process.env.NEXT_PUBLIC_DEFAULT_SUBGENRE_ID;
@@ -95,7 +96,6 @@ export default function CreateInitRelease({
 			formData.append('territory', 'worldwide');
 			formData.append('available', 'true');
 			formData.append('youtube_declaration', 'true');
-			console.log('formData', formData);
 			const response = await fetch('/api/admin/createRelease', {
 				method: 'POST',
 				body: formData,

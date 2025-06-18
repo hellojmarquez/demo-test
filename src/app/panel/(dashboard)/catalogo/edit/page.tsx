@@ -182,8 +182,10 @@ export default function EditPage() {
 
 			// Si la imagen es un archivo, agrégala como 'picture'
 			const picture = updatedRelease.picture;
-			console.log('picture: ', picture);
 			if (picture instanceof File) {
+				if (picture.type && picture.type !== 'image/jpeg') {
+					throw new Error('El archivo debe ser JPEG');
+				}
 				formData.append('picture', picture);
 			} else if (picture && typeof picture === 'object') {
 				// Si es el objeto picture original, mantenerlo como está
@@ -283,8 +285,9 @@ export default function EditPage() {
 				toast.error(errorMessage);
 			}
 		} catch (error) {
-			console.error('Error updating release:', error);
-			toast.error('Error al actualizar el release');
+			toast.error(
+				error instanceof Error ? error.message : 'Error al procesar la imagen'
+			);
 		} finally {
 			setIsLoading(false);
 		}

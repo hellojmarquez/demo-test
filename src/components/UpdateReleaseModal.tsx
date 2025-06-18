@@ -374,7 +374,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	};
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
+		let file = e.target.files?.[0];
 		if (file) {
 			const reader = new FileReader();
 			reader.onloadend = () => {
@@ -386,8 +386,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}));
 			};
 			reader.readAsDataURL(file);
+			console.log('data: ', file);
 		}
-		return file;
 	};
 
 	const handleDeleteArtist = (index: number) => {
@@ -453,20 +453,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			}
 		}
 	};
-	const fetchReleaseData = async () => {
-		try {
-			const response = await fetch(
-				`/api/admin/getReleaseById/${release.external_id}`
-			);
-			if (!response.ok) {
-				throw new Error('Error al obtener los datos del release');
-			}
-			const data = await response.json();
-			setFormData(data);
-		} catch (err) {
-			console.error('Error al obtener los datos del release:', err);
-		}
-	};
+
 	// Efecto para manejar el final de la reproducción y el progreso
 	useEffect(() => {
 		const audio = audioRef.current;

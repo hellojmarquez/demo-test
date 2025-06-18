@@ -56,6 +56,7 @@ export async function PUT(
 			);
 		}
 		if (picture instanceof File) {
+			console.log('picture: ', picture);
 			const uploadArtworkReq = await fetch(
 				`${
 					process.env.MOVEMUSIC_API
@@ -99,11 +100,12 @@ export async function PUT(
 			});
 
 			picture_url = uploadResponse?.headers?.get('location') || '';
+			console.log('picture_url: ', picture_url);
 			const picture_path_decoded = decodeURIComponent(
 				new URL(picture_url).pathname.slice(1)
 			);
 			picture_path = picture_path_decoded.replace('media/', '');
-
+			console.log('picture_path: ', picture_path);
 			if (!uploadResponse.ok) {
 				return NextResponse.json(
 					{

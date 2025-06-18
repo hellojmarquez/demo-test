@@ -204,7 +204,6 @@ export async function POST(req: NextRequest) {
 
 		const apiRes = await releaseToApi.json();
 		if (!releaseToApi.ok) {
-			console.log('apiRes', apiRes);
 			return NextResponse.json(
 				{
 					success: false,

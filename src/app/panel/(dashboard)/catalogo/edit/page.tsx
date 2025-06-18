@@ -372,6 +372,8 @@ export default function EditPage() {
 								setFormData={setFormData}
 								onEditTrack={handleEditTrack}
 								genres={genres}
+								mutateTracks={mutateTracks as () => Promise<void>}
+								onTracksUpdated={mutateTracks as () => Promise<void>}
 							/>
 						</div>
 						<div className="flex justify-end mt-4 sm:mt-6">

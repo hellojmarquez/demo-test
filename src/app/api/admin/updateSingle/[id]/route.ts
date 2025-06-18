@@ -485,7 +485,11 @@ export async function PUT(
 					entity: 'TRACK',
 					entityId: trackData.external_id,
 					details: `Track actualizado en el release ${trackData.release}`,
-					user: verifiedPayload.id as string,
+					userId: verifiedPayload.id as string,
+					userName: (verifiedPayload.name as string) || 'Usuario sin nombre',
+					userRole: verifiedPayload.role as string,
+
+					ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
 				});
 			} catch (logError) {
 				console.error('Error al crear el log:', logError);
@@ -515,6 +519,14 @@ export async function PUT(
 				);
 			}
 		}
+		console.log('track a enviar: ', {
+			track: {
+				external_id: updatedTrack?.external_id,
+				resource: updatedTrack?.resource,
+				title: updatedTrack?.name,
+				mixName: updatedTrack?.mix_name,
+			},
+		});
 		return NextResponse.json({
 			success: true,
 			track: {

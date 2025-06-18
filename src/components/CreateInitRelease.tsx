@@ -103,15 +103,30 @@ export default function CreateInitRelease({
 
 			if (!response.ok) {
 				const error = await response.json();
-				throw new Error(error.message || 'Error al crear el lanzamiento');
+				const errorMessage =
+					typeof error.error === 'object'
+						? Object.entries(error.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										return `${key}: ${value.join(', ')}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										return `${key}: ${Object.values(value).join(', ')}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: error.error;
+				throw new Error(errorMessage || 'Error al crear el lanzamiento');
 			}
 
 			toast.success('¡Producto creado exitosamente!');
 			router.refresh();
 			onSubmit({ title, image });
 		} catch (err: any) {
-			setError(err.message || 'Error al crear el lanzamiento');
-			toast.error(err.message || 'Error al crear el producto');
+			setError(err || 'Error al crear el lanzamiento');
+			toast.error(err || 'Error al crear el producto');
 		} finally {
 			setIsLoading(false);
 		}

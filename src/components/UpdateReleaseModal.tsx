@@ -51,6 +51,8 @@ interface ReleaseTrack {
 }
 
 interface UpdateReleasePageProps {
+	onTracksUpdated: () => Promise<void>;
+	mutateTracks: () => Promise<void>;
 	release: Release;
 	formData: Release;
 	setFormData: React.Dispatch<React.SetStateAction<Release>>;
@@ -105,10 +107,12 @@ const RELEASE_TYPES: KindOption[] = [
 const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
 	formData,
+	mutateTracks,
 	artistsErrors,
 	setFormData,
 	onEditTrack,
 	genres,
+	onTracksUpdated,
 }) => {
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -143,6 +147,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		deezer_id: '',
 		spotify_id: '',
 	});
+
 	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
 	const [isTracksExpanded, setIsTracksExpanded] = useState(true);
 	const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
@@ -540,7 +545,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	) => {
 		// Cerrar el modal de UploadTrackToRelease inmediatamente
 		setIsUploadModalOpen(false);
-
+		setIsTracksExpanded(true);
 		// Iniciar la carga en segundo plano
 		setIsUploadingTracks(true);
 		setUploadProgress({
@@ -567,10 +572,11 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				} else {
 					formData.append('data', JSON.stringify(track.data));
 				}
-				let response;
+				let updateResponse;
+				let createResponse;
 				if (track.data.isImported) {
 					// Actualizar track existente
-					response = await fetch(
+					updateResponse = await fetch(
 						`/api/admin/updateSingle/${track.data.external_id}`,
 						{
 							method: 'PUT',
@@ -579,21 +585,35 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 					);
 				} else {
 					// Crear nuevo track
-					response = await fetch('/api/admin/createSingle', {
+					createResponse = await fetch('/api/admin/createSingle', {
 						method: 'POST',
 						body: formData,
 					});
 				}
 
-				if (!response.ok) {
-					throw new Error(
-						`Error al ${
-							track.data.isImported ? 'actualizar' : 'subir'
-						} el track ${i + 1}`
-					);
+				if (createResponse && !createResponse.ok) {
+					throw new Error('Error al crear el track');
+				}
+				if (updateResponse && !updateResponse.ok) {
+					throw new Error('Error al actualizar el track');
 				}
 
-				const data = await response.json();
+				if (updateResponse) {
+					const data = await updateResponse.json();
+
+					setFormData((prev: any) => ({
+						...prev,
+						tracks: [...(prev.tracks ?? []), data.track],
+					}));
+				}
+				if (createResponse) {
+					const data = await createResponse.json();
+					const newTrack = { ...data.data, title: data.data.name };
+					setFormData((prev: any) => ({
+						...prev,
+						tracks: [...(prev.tracks ?? []), newTrack],
+					}));
+				}
 
 				// Actualizar el progreso
 				setUploadProgress({
@@ -609,7 +629,8 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			setIsUploadingTracks(false);
 			setUploadProgress(null);
 			setUploadError('');
-			router.refresh();
+
+			// window.location.reload();
 		} catch (err: any) {
 			console.error('Error al procesar tracks:', err);
 			setUploadError(err.message || 'Error al procesar los tracks');
@@ -966,14 +987,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 														Dolby:
 													</span>
 													{track.dolby_atmos_resource}
-												</div>
-											)}
-											{track.track_length && (
-												<div className="flex items-center gap-1">
-													<span className="text-xs font-medium text-gray-400">
-														Duración:
-													</span>
-													{track.track_length}
 												</div>
 											)}
 										</div>

@@ -142,22 +142,21 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 		const defaultPublishers = [
 			{
 				order: 0,
-				publisher: process.env.DEFAULT_PUBLISHER_ID,
-				name: process.env.DEFAULT_PUBLISHER_NAME,
-				author: process.env.DEFAULT_PUBLISHER_AUTHOR,
+				publisher: process.env.NEXT_PUBLIC_DEFAULT_PUBLISHER_ID,
+				name: process.env.NEXT_PUBLIC_DEFAULT_PUBLISHER_NAME,
+				author: process.env.NEXT_PUBLIC_DEFAULT_PUBLISHER_AUTHOR,
 			},
 		];
 		const defaultContributors = [
 			{
 				order: 0,
-				contributor: process.env.DEFAULT_CONTRIBUTOR_ID,
-				name: process.env.DEFAULT_CONTRIBUTOR_NAME,
-				role: process.env.DEFAULT_CONTRIBUTOR_ROLE,
-				role_name: process.env.DEFAULT_CONTRIBUTOR_ROLE_NAME,
+				contributor: process.env.NEXT_PUBLIC_DEFAULT_CONTRIBUTOR_ID,
+				name: process.env.NEXT_PUBLIC_DEFAULT_CONTRIBUTOR_NAME,
+				role: process.env.NEXT_PUBLIC_DEFAULT_CONTRIBUTOR_ROLE,
+				role_name: process.env.NEXT_PUBLIC_DEFAULT_CONTRIBUTOR_ROLE_NAME,
 			},
 		];
-		console.log('defaultPublishers: ', defaultPublishers);
-		console.log('validAssets: ', validAssets);
+
 		const tracksToUpload = validAssets.map((asset, index) => {
 			const track = {
 				...asset,
@@ -196,21 +195,20 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 				sample_start: asset.isImported ? asset?.sample_start : '00:00:00',
 				status: asset.isImported ? asset?.status : 'Borrador',
 			};
-			console.log('asset: ', asset);
+
 			return {
 				file: asset.isImported ? null : (asset.file as File),
 				data: track,
 			};
 		});
 
-		console.log('tracksToUpload: ', tracksToUpload);
 		// Enviar los tracks al componente padre y cerrar el modal inmediatamente
-		// onTracksReady(tracksToUpload);
-		// onClose();
+		onTracksReady(tracksToUpload);
+		onClose();
 
-		// // Limpiar el formulario
-		// setAssets([]);
-		// setError('');
+		// Limpiar el formulario
+		setAssets([]);
+		setError('');
 	};
 
 	const handleFileButtonClick = (id: number) => {

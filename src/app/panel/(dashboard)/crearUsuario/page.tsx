@@ -9,8 +9,8 @@ import { CreatePublisherModal } from '@/components/CreatePublisherModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, X, Save, ChevronDown } from 'lucide-react';
-import UpdateSelloModal from '@/components/UpdateSelloModal';
+import { CheckCircle } from 'lucide-react';
+
 import Select, { SingleValue } from 'react-select';
 
 interface AccountOption {
@@ -67,16 +67,7 @@ export default function CrearUsuarioPage() {
 		parentId: '',
 		parentName: '',
 	});
-	const {
-		user,
-		loading,
-		currentAccount,
-		showAccountSelector,
-		setShowAccountSelector,
-	} = useAuth();
-	const [parentAccounts, setParentAccounts] = useState<
-		Array<{ _id: string; name: string }>
-	>([]);
+	const { user } = useAuth();
 
 	const handleChange = (
 		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -87,31 +78,6 @@ export default function CrearUsuarioPage() {
 			[name]: value,
 		}));
 	};
-
-	// Fetch parent accounts when tipo changes to 'subcuenta'
-	useEffect(() => {
-		const fetchParentAccounts = async () => {
-			if (formData.tipo === 'subcuenta') {
-				try {
-					const response = await fetch('/api/admin/getAllUsers');
-					if (response.ok) {
-						const data = await response.json();
-						const mainAccounts = data.users
-							.filter((user: any) => user.tipo === 'principal')
-							.map((user: any) => ({
-								_id: user._id,
-								name: user.name,
-							}));
-						setParentAccounts(mainAccounts);
-					}
-				} catch (error) {
-					console.error('Error fetching parent accounts:', error);
-				}
-			}
-		};
-
-		fetchParentAccounts();
-	}, [formData.tipo]);
 
 	const renderForm = () => {
 		// Si el usuario es un sello, no mostrar el formulario de creación

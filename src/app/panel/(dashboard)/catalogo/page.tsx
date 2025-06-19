@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
-import Productos from './Productos';
-import Assets from './Assets';
-import Sellos from './Sellos';
-import Personas from './Personas';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/context/AuthContext';
+
+// Lazy load de los componentes
+const Productos = dynamic(() => import('./Productos'), {
+	loading: () => <div className="p-4">Cargando Productos...</div>,
+	ssr: false,
+});
+
+const Assets = dynamic(() => import('./Assets'), {
+	loading: () => <div className="p-4">Cargando Assets...</div>,
+	ssr: false,
+});
+
+const Sellos = dynamic(() => import('./Sellos'), {
+	loading: () => <div className="p-4">Cargando Sellos...</div>,
+	ssr: false,
+});
+
+const Personas = dynamic(() => import('./Personas'), {
+	loading: () => <div className="p-4">Cargando Personas...</div>,
+	ssr: false,
+});
 
 export default function Catalogo() {
 	const [selected, setSelected] = useState('PRODUCTOS');
-
 	const { user } = useAuth();
 
 	// Filtrar los items del menú basado en el rol del usuario
@@ -87,8 +102,10 @@ export default function Catalogo() {
 				</nav>
 
 				{/* Contenido */}
-				<div className="bg-white rounded-lg shadow-sm  ">
-					{renderComponent()}
+				<div className="bg-white rounded-lg shadow-sm">
+					<Suspense fallback={<div className="p-4">Cargando contenido...</div>}>
+						{renderComponent()}
+					</Suspense>
 				</div>
 			</div>
 		</div>

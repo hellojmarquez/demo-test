@@ -42,40 +42,20 @@ export default function SelloLogin() {
 				body: JSON.stringify({ email: user, password }),
 			});
 
-			setLoading(false);
 			const data = await res.json();
 
 			if (res.ok) {
 				const userDB = data.user;
-
-				const subAccounts = (userDB.subcuentas || [])
-					.filter((sub: any) => sub.email !== userDB.email)
-					.map((sub: any) => ({
-						id: sub.email,
-						name: sub.name,
-						role: sub.role,
-						type: sub.type,
-						email: sub.email,
-					}));
-
-				const mainAccount = {
-					id: userDB._id,
-					name: userDB.name,
-					role: userDB.role,
-					type: userDB.type,
-					email: userDB.email,
-				};
 
 				const userData = {
 					_id: userDB._id,
 					name: userDB.name,
 					email: userDB.email,
 					role: userDB.role,
-					accounts: [...subAccounts],
+					accounts: [],
 					picture: userDB.picture,
 				};
-
-				login(userData);
+				await login(userData);
 				router.push('/panel');
 			} else {
 				// Si el usuario está baneado, redirigir a la página de baneo

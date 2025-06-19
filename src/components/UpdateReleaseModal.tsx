@@ -540,13 +540,80 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			setIsLoading(false);
 		}
 	};
+
+	const createChunks = (file: File, chunkSize: number = 1024 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
+
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+		console.log('Enviando chunk:', {
+			chunkIndex,
+			totalChunks,
+			isLastChunk: chunkIndex === totalChunks - 1,
+		});
+		const response = await fetch('/api/admin/createSingle', {
+			method: 'POST',
+			body: formData,
+		});
+
+		if (!response.ok) {
+			throw new Error(`Error uploading chunk ${chunkIndex}`);
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (file: File, trackData: any) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name
+			);
+		}
+
+		return lastResponse; // ✅ Devuelve la respuesta del último chunk
+	};
+
 	const handleTracksReady = async (
 		tracks: { file: File | null; data: any }[]
 	) => {
-		// Cerrar el modal de UploadTrackToRelease inmediatamente
 		setIsUploadModalOpen(false);
 		setIsTracksExpanded(true);
-		// Iniciar la carga en segundo plano
 		setIsUploadingTracks(true);
 		setUploadProgress({
 			total: tracks.length,
@@ -558,24 +625,15 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		try {
 			for (let i = 0; i < tracks.length; i++) {
 				const track = tracks[i];
+				console.log('track: ', track);
 				const formData = new FormData();
 				const updateformData = new FormData();
-
-				// Solo agregar el archivo si existe
-				if (track.file) {
-					formData.append('file', track.file);
-				}
-
-				// Preparar los datos del track
+				let updateResponse: Response | null = null;
+				let createResponse: any = null;
 				if (track.data.isImported) {
-					updateformData.append('data', JSON.stringify(track.data));
-				} else {
-					formData.append('data', JSON.stringify(track.data));
-				}
-				let updateResponse;
-				let createResponse;
-				if (track.data.isImported) {
+					console.log('track.data importado: ', track.data.name);
 					// Actualizar track existente
+					updateformData.append('data', JSON.stringify(track.data));
 					updateResponse = await fetch(
 						`/api/admin/updateSingle/${track.data.external_id}`,
 						{
@@ -584,14 +642,16 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						}
 					);
 				} else {
-					// Crear nuevo track
-					createResponse = await fetch('/api/admin/createSingle', {
-						method: 'POST',
-						body: formData,
-					});
-				}
+					console.log('track.data nuevo: ', track.data.isImported);
 
-				if (createResponse && !createResponse.ok) {
+					if (track.file) {
+						console.log('enviando chunk', track);
+						// Subir archivo por chunks
+						createResponse = await uploadFileByChunks(track.file, track.data);
+					}
+				}
+				console.log('createResponse: ', createResponse);
+				if (createResponse && !createResponse.success) {
 					throw new Error('Error al crear el track');
 				}
 				if (updateResponse && !updateResponse.ok) {
@@ -600,39 +660,39 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 				if (updateResponse) {
 					const data = await updateResponse.json();
-
+					console.log('update: ', data);
 					setFormData((prev: any) => ({
 						...prev,
 						tracks: [...(prev.tracks ?? []), data.track],
 					}));
 				}
 				if (createResponse) {
-					const data = await createResponse.json();
-					const newTrack = { ...data.data, title: data.data.name };
+					console.log('create: ', createResponse);
+					const newTrack = {
+						...createResponse.data,
+						title: createResponse.data.name,
+					};
 					setFormData((prev: any) => ({
 						...prev,
 						tracks: [...(prev.tracks ?? []), newTrack],
 					}));
 				}
 
-				// Actualizar el progreso
+				// Actualizar el progreso general
 				setUploadProgress({
 					total: tracks.length,
 					loaded: i + 1,
-					percentage: ((i + 1) / tracks.length) * 100,
+					percentage: Math.floor(((i + 1) / tracks.length) * 100),
 				});
 			}
-
-			// Refrescar los datos del release después de subir todos los tracks
 
 			// Limpiar los estados después de completar exitosamente
 			setIsUploadingTracks(false);
 			setUploadProgress(null);
 			setUploadError('');
-
-			// window.location.reload();
 		} catch (err: any) {
 			console.error('Error al procesar tracks:', err);
+			toast.error(err.message || 'Error al procesar los tracks');
 			setUploadError(err.message || 'Error al procesar los tracks');
 			setIsUploadingTracks(false);
 			setUploadProgress(null);
@@ -780,7 +840,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 						<div className="flex-1 flex flex-col gap-4 relative z-10 w-full md:w-auto mt-4 md:mt-0">
 							<div>
-								<h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
+								<h1 className="text-2xl text-red-400 md:text-4xl font-bold  mb-2">
 									{safeFormData.name || 'Sin nombre'}
 								</h1>
 								<div className="flex flex-wrap items-center gap-2 md:gap-3">
@@ -814,7 +874,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</div>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
 								<div className="p-2 md:p-4 bg-gray-50 rounded-xl border border-gray-100">
-									<div className="text-xs font-medium text-gray-500 mb-1">
+									<div className="text-xs font-medium text-red-500 mb-1">
 										Número de Catálogo
 									</div>
 									<div className="text-xs md:text-sm font-semibold text-gray-900">

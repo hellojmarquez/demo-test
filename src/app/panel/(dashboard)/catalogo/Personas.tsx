@@ -109,13 +109,15 @@ const Personas = () => {
 	const fetchUsers = async (
 		page: number = 1,
 		search: string = '',
-		sort: string = 'newest'
+		sort: string = 'newest',
+		signal?: AbortSignal
 	) => {
 		try {
 			const response = await fetch(
 				`/api/admin/getAllPersonas?page=${page}${
 					search ? `&search=${encodeURIComponent(search)}` : ''
-				}&sort=${sort}`
+				}&sort=${sort}`,
+				{ signal }
 			);
 			if (response.ok) {
 				const data = await response.json();
@@ -126,14 +128,33 @@ const Personas = () => {
 					setCurrentPage(data.data.pagination.page);
 				}
 			}
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			if (response.status === 401) {
+				window.location.href = '/panel/login';
+				return;
+			}
 			setIsLoading(false);
 		} catch (error) {
+			if (error instanceof Error && error.name === 'AbortError') {
+				console.log('Fetch aborted');
+			} else {
+				console.error('Error fetching users:', error);
+			}
 			setIsLoading(false);
 		}
 	};
 
 	useEffect(() => {
-		fetchUsers(currentPage, searchQuery, sortBy);
+		const controller = new AbortController();
+		const signal = controller.signal;
+
+		fetchUsers(currentPage, searchQuery, sortBy, signal);
+
+		return () => {
+			controller.abort(); // Cancela la petición cuando el componente se desmonta
+		};
 	}, [currentPage, searchQuery, sortBy]);
 
 	const handleDelete = async (e: React.MouseEvent, persona: Persona) => {

@@ -6,20 +6,15 @@ import {
 	Music,
 	Calendar,
 	Globe,
-	Tag,
 	Users,
-	Disc,
 	Trash2,
 	CheckCircle,
 	XCircle,
 	Hash,
-	Languages,
-	Archive,
 	Plus,
 	BriefcaseBusiness,
 	AlertTriangle,
 	X,
-	Fingerprint,
 	Music2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,7 +24,6 @@ import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
 import { Release as ReleaseType, Picture } from '@/types/release';
-import DDEXDelivery from '@/components/ddex_delivery';
 import AvailableFilter from '@/components/AvailableFilter';
 
 interface Release {
@@ -80,6 +74,9 @@ const Productos: React.FC = () => {
 	const router = useRouter();
 
 	useEffect(() => {
+		const controller = new AbortController();
+		const signal = controller.signal;
+
 		const fetchReleases = async () => {
 			setLoading(true);
 			try {
@@ -90,10 +87,12 @@ const Productos: React.FC = () => {
 						availableFilter !== null ? `&available=${availableFilter}` : ''
 					}`,
 					{
-						cache: 'no-store',
 						headers: {
-							'Cache-Control': 'no-cache',
+							Accept: 'application/json',
+							'Content-Type': 'application/json',
+							Prefer: 'return=minimal',
 						},
+						signal,
 					}
 				);
 				const data = await res.json();
@@ -103,13 +102,21 @@ const Productos: React.FC = () => {
 					setTotalItems(data.data.pagination.total);
 				}
 			} catch (error) {
-				console.error('Error fetching releases:', error);
+				if (error instanceof Error && error.name === 'AbortError') {
+					console.log('Fetch aborted');
+				} else {
+					console.error('Error fetching releases:', error);
+				}
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		fetchReleases();
+
+		return () => {
+			controller.abort();
+		};
 	}, [currentPage, searchQuery, sortBy, availableFilter]);
 
 	const handleToggleExpand = (id: string) => {

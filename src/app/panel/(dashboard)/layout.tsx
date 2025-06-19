@@ -10,19 +10,10 @@ import { useState } from 'react';
 import {
 	Menu,
 	X,
-	Home,
-	Users,
-	MessageSquare,
 	FileMusic,
-	Settings,
-	Calculator,
 	NotebookPen,
 	ChevronDown,
-	BarChart2,
-	LineChart,
-	Receipt,
 	DollarSign,
-	TrendingUp,
 	TrendingUpDown,
 } from 'lucide-react';
 import Script from 'next/script';
@@ -34,16 +25,9 @@ export default function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const {
-		user,
-		loading,
-		currentAccount,
-		showAccountSelector,
-		setShowAccountSelector,
-	} = useAuth();
+	const { user, loading } = useAuth();
 
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const [statsMenuOpen, setStatsMenuOpen] = useState(false);
 	const [catalogMenuOpen, setCatalogMenuOpen] = useState(false);
 	const pathname = usePathname();
 
@@ -148,6 +132,7 @@ export default function DashboardLayout({
 												{isAdmin && (
 													<Link
 														href="/panel/ddx-delivery"
+														prefetch={false}
 														className="block px-4 py-2 text-white hover:bg-brand-light"
 														onClick={() => setMobileMenuOpen(false)}
 													>
@@ -159,6 +144,7 @@ export default function DashboardLayout({
 									</div>
 									<Link
 										href="/panel/trends"
+										prefetch={false}
 										className={`flex items-center p-2 transition-colors relative group ${
 											isActive('/panel/trends')
 												? 'text-white border-b-2'
@@ -187,6 +173,7 @@ export default function DashboardLayout({
 											</Link>
 											<Link
 												href="/panel/logs"
+												prefetch={false}
 												className={`flex items-center p-2 transition-colors relative group ${
 													isActive('/panel/logs')
 														? 'text-white border-b-2'
@@ -262,6 +249,7 @@ export default function DashboardLayout({
 											{isAdmin && (
 												<Link
 													href="/panel/ddx-delivery"
+													prefetch={false}
 													className={`flex items-center p-3 transition-colors relative group ${
 														isActive('/panel/ddx-delivery')
 															? 'text-white border-l-2 border-white'
@@ -275,6 +263,7 @@ export default function DashboardLayout({
 										</div>
 										<Link
 											href="/panel/trends"
+											prefetch={false}
 											className={`flex items-center p-3 transition-colors relative group ${
 												isActive('/panel/trends')
 													? 'text-white border-l-2 border-white'
@@ -301,6 +290,7 @@ export default function DashboardLayout({
 												</Link>
 												<Link
 													href="/panel/logs"
+													prefetch={false}
 													className={`flex items-center p-3 transition-colors relative group ${
 														isActive('/panel/logs')
 															? 'text-white border-l-2 border-white'

@@ -1,7 +1,6 @@
 'use client';
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 import { fetchWithRefresh } from '@/lib/fetchWithRefresh';
@@ -13,7 +12,6 @@ import {
 	Rocket,
 	FileUp,
 	Clock,
-	Shield,
 	ChevronRight,
 	PlusCircle,
 	Pencil,
@@ -45,14 +43,34 @@ export default function SelloHome() {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		const fetchLogs = async () => {
-			const res = await fetchWithRefresh('/api/admin/getRecientLogs');
-			const data = await res.json();
-			setLogs(data.logs);
-			setLoading(false);
-		};
-		fetchLogs();
-	}, []);
+		if (user?.role === 'admin') {
+			const controller = new AbortController();
+			const signal = controller.signal;
+
+			const fetchLogs = async () => {
+				try {
+					const res = await fetch('/api/admin/getRecientLogs', {
+						signal,
+					});
+					const data = await res.json();
+					setLogs(data.logs);
+					setLoading(false);
+				} catch (error) {
+					if (error instanceof Error && error.name === 'AbortError') {
+						console.log('Fetch aborted');
+					} else {
+						console.error('Error fetching logs:', error);
+					}
+				}
+			};
+
+			fetchLogs();
+
+			return () => {
+				controller.abort(); // Cancela la petición cuando el componente se desmonta
+			};
+		}
+	}, [user?.role]);
 
 	return (
 		<div className="p-6 space-y-8 min-w-full mx-auto">
@@ -180,7 +198,7 @@ export default function SelloHome() {
 	);
 }
 
-function StatCard({
+const StatCard = React.memo(function StatCard({
 	icon,
 	title,
 	value,
@@ -219,9 +237,9 @@ function StatCard({
 			<div className={`h-1 bg-gradient-to-r ${color}`}></div>
 		</motion.div>
 	);
-}
+});
 
-function ActivityItem({
+const ActivityItem = React.memo(function ActivityItem({
 	user,
 	detail,
 	time,
@@ -246,4 +264,4 @@ function ActivityItem({
 			</div>
 		</li>
 	);
-}
+});

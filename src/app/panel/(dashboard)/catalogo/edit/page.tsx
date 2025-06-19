@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
 import TrackForm, { GenreData } from '@/components/CreateTrackModal';
 import { Save } from 'lucide-react';
+import Spinner from '@/components/Spinner';
 
 interface ApiError extends Error {
 	info?: any;
@@ -125,42 +126,63 @@ export default function EditPage() {
 
 	useEffect(() => {
 		if (releaseData?.data) {
-			console.log('releaseData: ', releaseData.data);
 			setFormData(releaseData.data);
 		}
 	}, [releaseData]);
 	useEffect(() => {
+		const controller = new AbortController();
+		const signal = controller.signal;
+
 		const fetchasignations = async () => {
 			if (user) {
-				const response = await fetch(
-					`/api/admin/getAllAsignaciones/${user._id}`
-				);
-				const data = await response.json();
-				setAsignedArtists(data.data);
+				try {
+					const response = await fetch(
+						`/api/admin/getAllAsignaciones/${user._id}`,
+						{ signal }
+					);
+					const data = await response.json();
+					setAsignedArtists(data.data);
+				} catch (error) {
+					if (error instanceof Error && error.name === 'AbortError') {
+						console.log('Fetch aborted');
+					} else {
+						console.error('Error fetching asignations:', error);
+					}
+				}
 			}
 		};
 		fetchasignations();
+
+		return () => {
+			controller.abort(); // Cancela la petición cuando el componente se desmonta
+		};
 	}, [user]);
 
-	const fetchData = async () => {
-		try {
-			// Fetch genres
-			const genresRes = await fetch('/api/admin/getAllGenres');
-			const genresData = await genresRes.json();
-			if (genresData.success && Array.isArray(genresData.data)) {
-				setGenres(genresData.data);
-			}
-
-			// Fetch publishers for logging
-			const publishersRes = await fetch('/api/admin/getAllPublishers');
-			const publishersData = await publishersRes.json();
-		} catch (error) {
-			console.error('Error fetching data:', error);
-		}
-	};
-
 	useEffect(() => {
+		const controller = new AbortController();
+		const signal = controller.signal;
+
+		const fetchData = async () => {
+			try {
+				// Fetch genres
+				const genresRes = await fetch('/api/admin/getAllGenres', { signal });
+				const genresData = await genresRes.json();
+				if (genresData.success && Array.isArray(genresData.data)) {
+					setGenres(genresData.data);
+				}
+			} catch (error) {
+				if (error instanceof Error && error.name === 'AbortError') {
+					console.log('Fetch aborted');
+				} else {
+					console.error('Error fetching data:', error);
+				}
+			}
+		};
 		fetchData();
+
+		return () => {
+			controller.abort(); // Cancela la petición cuando el componente se desmonta
+		};
 	}, []);
 
 	const handleSave = async (updatedRelease: Release) => {
@@ -410,5 +432,9 @@ export default function EditPage() {
 		);
 	}
 
-	return <div>Cargando...</div>;
+	return (
+		<div className="flex justify-center items-center h-screen">
+			<Spinner />
+		</div>
+	);
 }

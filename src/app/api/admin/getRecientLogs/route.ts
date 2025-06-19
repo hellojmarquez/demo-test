@@ -7,7 +7,7 @@ import dbConnect from '@/lib/dbConnect';
 export async function GET(request: NextRequest) {
 	try {
 		// Verificar el token JWT
-		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
+
 		const token = request.cookies.get('loginToken')?.value;
 		let userRole;
 

@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Settings, LogOut, User, ChevronDown, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { storage } from '@/lib/storage';
 
 export default function AccountSwitchButton({
 	onMenuClose,
@@ -57,7 +58,7 @@ export default function AccountSwitchButton({
 			logout();
 
 			// Limpiar nextauth.message
-			localStorage.removeItem('nextauth.message');
+			storage.remove('nextauth.message');
 
 			// Luego hacer la llamada al API
 			const response = await fetch('/api/auth/logout', {

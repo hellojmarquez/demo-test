@@ -14,7 +14,7 @@ export default function SelloLogin() {
 	const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 	const router = useRouter();
 	const { login } = useAuth();
-
+	console.log('test: ', process.env);
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!password) {

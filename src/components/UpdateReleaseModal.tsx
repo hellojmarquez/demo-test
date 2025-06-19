@@ -780,7 +780,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 						<div className="flex-1 flex flex-col gap-4 relative z-10 w-full md:w-auto mt-4 md:mt-0">
 							<div>
-								<h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
+								<h1 className="text-2xl md:text-4xl font-bold text-green-300 mb-2">
 									{safeFormData.name || 'Sin nombre'}
 								</h1>
 								<div className="flex flex-wrap items-center gap-2 md:gap-3">

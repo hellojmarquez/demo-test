@@ -26,5 +26,7 @@ You can use the following demo credentials to log in and explore the platform:
 - **Frontend:** React / Next.js  
 - **Backend/API:** MoveMusic Distribution API (REST)  
 - **Styling:** Tailwind CSS  
+- **Database:** MongoDB  
 - **Authentication:** JWT + Secure Cookies  
-
+- **Deployment:** Vercel  
+- **AI-Assisted Development:** Cursor IDE + Claude (generative AI)

@@ -743,11 +743,11 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		try {
 			for (let i = 0; i < tracks.length; i++) {
 				const track = tracks[i];
-
 				const updateformData = new FormData();
 				let updateResponse: Response | null = null;
 				let createResponse: any = null;
 				if (track.data.isImported) {
+					console.log('track.data importado: ', track.data.name);
 					// Actualizar track existente
 					updateformData.append('data', JSON.stringify(track.data));
 					updateResponse = await fetch(

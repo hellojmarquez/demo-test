@@ -27,4 +27,4 @@ You can use the following demo credentials to log in and explore the platform:
 - **Backend/API:** MoveMusic Distribution API (REST)  
 - **Styling:** Tailwind CSS  
 - **Authentication:** JWT + Secure Cookies  
-- **Deployment:** Vercel (brand-specific environments supported)
+

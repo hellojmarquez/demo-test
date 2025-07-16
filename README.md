@@ -1,7 +1,7 @@
 # 🎵 MoveMusic White Label App
 
 **White Label** application for digital music distribution, built on top of the **official MoveMusic Distribution API**. This platform allows record labels, aggregators, and music distributors to manage artists, releases, tracks, and more from a fully customizable interface.
-
+DEPLOY: https://demo-test-lake.vercel.app/
 ## 🚀 Key Features
 
 - Artist, album, and track management  

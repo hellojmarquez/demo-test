@@ -64,6 +64,13 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
 	useEffect(() => {
 		setSelectedValue(propValue);
 	}, [propValue]);
@@ -86,7 +93,76 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 		}
 		return error || 'Error al enviar la declaración';
 	};
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
 
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+
+		const response = await fetch(`/api/admin/releaseUserDeclaration`, {
+			method: 'POST',
+			body: formData,
+		});
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (file: File, trackData: any) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name
+			);
+		}
+
+		return lastResponse;
+	};
 	const handleSubmit = async () => {
 		if (selectedValue === 4) {
 			if (!selectedFile) {
@@ -97,27 +173,72 @@ export const ReleaseUserDeclaration: React.FC<ReleaseUserDeclarationProps> = ({
 
 		setIsLoading(true);
 		setError(null);
-		const formData = new FormData();
-		if (selectedValue !== null) {
-			formData.append('user_declaration', selectedValue.toString());
-		}
-		formData.append('release', propValue.toString());
 
-		if (selectedFile) {
-			formData.append('file', selectedFile);
+		const userDeclaration = {
+			user_declaration: '',
+			release: propValue.toString(),
+		};
+		if (selectedValue !== null) {
+			userDeclaration.user_declaration = selectedValue.toString();
 		}
 
 		try {
-			const response = await fetch('/api/admin/releaseUserDeclaration', {
-				method: 'POST',
-				body: formData,
-			});
-
-			const data = await response.json();
-
-			if (!response.ok) {
-				const errorMessage = formatErrorMessage(data.error);
-				throw new Error(errorMessage);
+			if (selectedFile) {
+				const res = await uploadFileByChunks(selectedFile, userDeclaration);
+				if (!res.success) {
+					const errorMessage =
+						typeof res.error === 'object'
+							? Object.entries(res.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: res.error;
+					setError(errorMessage);
+					throw new Error(errorMessage);
+				}
 			}
 		} catch (error) {
 			console.error('el error es:', error);

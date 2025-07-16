@@ -37,6 +37,10 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 	const [formData, setFormData] = useState<Admin>({ ...admin });
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
+	const [passwordError, setPasswordError] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -91,7 +95,26 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
+		setNameError(null);
+		setEmailError(null);
+		setPasswordError(null);
+		setError(null);
+		let hasError = false;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+		if (!formData.name || formData.name.length === 0) {
+			setNameError('El nombre es requerido');
+			hasError = true;
+		}
+		if (!formData.email || !emailRegex.test(formData.email)) {
+			setEmailError('El email es requerido y debe tener el formato correcto');
+			hasError = true;
+		}
+		if (hasError) {
+			setError('Por favor, corrige los errores en el formulario');
+			setIsSubmitting(false);
+			return;
+		}
 		try {
 			await onSave(formData);
 		} catch (error) {
@@ -134,7 +157,7 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-6">
+						<form className="p-6">
 							<div className="space-y-2 mb-6">
 								<label className="block text-sm font-medium text-gray-700">
 									Foto de Perfil
@@ -195,6 +218,11 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 											className={inputStyles}
 											required
 										/>
+										{nameError && (
+											<p className="text-red-500 text-[9px] mt-1">
+												{nameError}
+											</p>
+										)}
 									</div>
 								</div>
 
@@ -217,6 +245,9 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 											required
 										/>
 									</div>
+									{emailError && (
+										<p className="text-red-500 text-[9px] mt-1">{emailError}</p>
+									)}
 								</div>
 
 								<div className="relative">
@@ -239,7 +270,11 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 									</div>
 								</div>
 							</div>
-
+							{error && error.length > 0 && (
+								<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{error}
+								</div>
+							)}
 							<div className="flex justify-end space-x-3 mt-6">
 								<button
 									type="button"
@@ -252,6 +287,7 @@ const UpdateAdminModal: React.FC<UpdateAdminModalProps> = ({
 								</button>
 								<button
 									type="submit"
+									onClick={handleSubmit}
 									disabled={isSubmitting}
 									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>

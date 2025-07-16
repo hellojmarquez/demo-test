@@ -6,20 +6,15 @@ import {
 	Music,
 	Calendar,
 	Globe,
-	Tag,
 	Users,
-	Disc,
 	Trash2,
 	CheckCircle,
 	XCircle,
 	Hash,
-	Languages,
-	Archive,
 	Plus,
 	BriefcaseBusiness,
 	AlertTriangle,
 	X,
-	Fingerprint,
 	Music2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,7 +24,6 @@ import Pagination from '@/components/Pagination';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
 import { Release as ReleaseType, Picture } from '@/types/release';
-import DDEXDelivery from '@/components/ddex_delivery';
 import AvailableFilter from '@/components/AvailableFilter';
 
 interface Release {
@@ -80,6 +74,9 @@ const Productos: React.FC = () => {
 	const router = useRouter();
 
 	useEffect(() => {
+		const controller = new AbortController();
+		const signal = controller.signal;
+
 		const fetchReleases = async () => {
 			setLoading(true);
 			try {
@@ -90,10 +87,12 @@ const Productos: React.FC = () => {
 						availableFilter !== null ? `&available=${availableFilter}` : ''
 					}`,
 					{
-						cache: 'no-store',
 						headers: {
-							'Cache-Control': 'no-cache',
+							Accept: 'application/json',
+							'Content-Type': 'application/json',
+							Prefer: 'return=minimal',
 						},
+						signal,
 					}
 				);
 				const data = await res.json();
@@ -103,13 +102,21 @@ const Productos: React.FC = () => {
 					setTotalItems(data.data.pagination.total);
 				}
 			} catch (error) {
-				console.error('Error fetching releases:', error);
+				if (error instanceof Error && error.name === 'AbortError') {
+					console.log('Fetch aborted');
+				} else {
+					console.error('Error fetching releases:', error);
+				}
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		fetchReleases();
+
+		return () => {
+			controller.abort();
+		};
 	}, [currentPage, searchQuery, sortBy, availableFilter]);
 
 	const handleToggleExpand = (id: string) => {
@@ -236,8 +243,8 @@ const Productos: React.FC = () => {
 					<h1 className="text-xl sm:text-2xl font-bold text-gray-800">
 						Catálogo de Lanzamientos
 					</h1>
-					<div className="flex justify-end gap-4 w-full sm:w-auto">
-						<div className="flex items-center gap-x-10 justify-center gap-4">
+					<div className="flex flex-col sm:flex-row justify-end gap-4 w-full">
+						<div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-x-10 px-4 justify-center">
 							<SearchInput
 								value={searchQuery}
 								onChange={setSearchQuery}
@@ -254,14 +261,14 @@ const Productos: React.FC = () => {
 							<AvailableFilter
 								value={availableFilter}
 								onChange={setAvailableFilter}
-								className="w-48" // o el ancho que necesites
+								className="w-full sm:w-48" // Responsive width
 							/>
 						</div>
 						<motion.button
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
 							onClick={() => setIsModalOpen(true)}
-							className="w-auto flex items-center justify-center gap-2 px-6 py-3 md:px-6 md:py-2 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group"
+							className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 md:px-6 md:py-2 bg-white text-brand-light rounded-xl hover:bg-brand-dark hover:text-white transition-all duration-200 shadow-md group"
 						>
 							<Plus className="h-4 w-4" />
 							<span className="font-medium text-sm">Crear</span>

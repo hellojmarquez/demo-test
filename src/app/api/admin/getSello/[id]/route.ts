@@ -45,10 +45,13 @@ export async function GET(
 			success: true,
 			data: sello,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error getting sello:', error);
 		return NextResponse.json(
-			{ error: 'Error al obtener el sello' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

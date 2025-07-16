@@ -42,40 +42,20 @@ export default function SelloLogin() {
 				body: JSON.stringify({ email: user, password }),
 			});
 
-			setLoading(false);
 			const data = await res.json();
 
 			if (res.ok) {
 				const userDB = data.user;
-
-				const subAccounts = (userDB.subcuentas || [])
-					.filter((sub: any) => sub.email !== userDB.email)
-					.map((sub: any) => ({
-						id: sub.email,
-						name: sub.name,
-						role: sub.role,
-						type: sub.type,
-						email: sub.email,
-					}));
-
-				const mainAccount = {
-					id: userDB._id,
-					name: userDB.name,
-					role: userDB.role,
-					type: userDB.type,
-					email: userDB.email,
-				};
 
 				const userData = {
 					_id: userDB._id,
 					name: userDB.name,
 					email: userDB.email,
 					role: userDB.role,
-					accounts: [...subAccounts],
+					accounts: [],
 					picture: userDB.picture,
 				};
-
-				login(userData);
+				await login(userData);
 				router.push('/panel');
 			} else {
 				// Si el usuario está baneado, redirigir a la página de baneo
@@ -83,12 +63,14 @@ export default function SelloLogin() {
 					router.push('/panel/banned');
 					return;
 				}
+
 				setError(data.error || 'Login failed. Please try again.');
 			}
 		} catch (err) {
 			console.error(err);
-			setLoading(false);
 			setError('Unexpected error. Please try again.');
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -194,7 +176,7 @@ export default function SelloLogin() {
 			<div className="min-h-screen flex items-center justify-center bg-gray-100">
 				<div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
 					<img
-						src="/isla_sounds_logo.png"
+						src="/logo.png"
 						alt="Isla Sounds"
 						className="w-8/12 mx-auto mb-6"
 					/>

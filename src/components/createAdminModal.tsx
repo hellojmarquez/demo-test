@@ -28,6 +28,9 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
+	const [passwordError, setPasswordError] = useState<string | null>(null);
 
 	const handleChange = (
 		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -64,7 +67,32 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
+		setNameError(null);
+		setEmailError(null);
+		setPasswordError(null);
 		setError(null);
+
+		let hasError = false;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+		if (!formData.name || formData.name.length === 0) {
+			setNameError('El nombre es requerido');
+			hasError = true;
+		}
+		if (!formData.email || !emailRegex.test(formData.email)) {
+			setEmailError('El email es requerido y debe tener el formato correcto');
+			hasError = true;
+		}
+		if (!formData.password || formData.password.length === 0) {
+			setPasswordError('La contraseña es requerida');
+			hasError = true;
+		}
+
+		if (hasError) {
+			setIsSubmitting(false);
+			setError('Por favor, corrige los errores en el formulario');
+			return;
+		}
 
 		try {
 			await onSave(formData);
@@ -113,7 +141,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-6 overflow-y-auto">
+						<form className="p-6 overflow-y-auto">
 							<div className="space-y-4">
 								<div className="space-y-2">
 									<label className="block text-sm font-medium text-gray-700">
@@ -172,6 +200,9 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 										className={inputStyles}
 										required
 									/>
+									{nameError && (
+										<p className="text-red-500 text-[9px] mt-1">{nameError}</p>
+									)}
 								</div>
 
 								<div>
@@ -190,12 +221,15 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 										className={inputStyles}
 										required
 									/>
+									{emailError && (
+										<p className="text-red-500 text-[9px] mt-1">{emailError}</p>
+									)}
 								</div>
 
 								<div>
 									<label
 										htmlFor="password"
-										className="block text-sm font-medium text-gray-700 mb-1"
+										className="block text-[9px] font-medium text-gray-700 mb-1"
 									>
 										Contraseña
 									</label>
@@ -208,9 +242,14 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 										className={inputStyles}
 										required
 									/>
+									{passwordError && (
+										<p className="text-red-500 text-[9px] mt-1">
+											{passwordError}
+										</p>
+									)}
 								</div>
 
-								{error && (
+								{error && error.length > 0 && (
 									<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
 										{error}
 									</div>
@@ -230,6 +269,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 								<button
 									type="submit"
 									disabled={isSubmitting}
+									onClick={handleSubmit}
 									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									{isSubmitting ? (

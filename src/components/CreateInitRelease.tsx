@@ -20,6 +20,13 @@ export default function CreateInitRelease({
 	const [preview, setPreview] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
 	const router = useRouter();
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,20 +54,100 @@ export default function CreateInitRelease({
 			reader.readAsDataURL(file);
 		}
 	};
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
 
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+
+		const response = await fetch('/api/admin/createRelease', {
+			method: 'POST',
+			body: formData,
+		});
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (
+		file: File,
+		trackData: any,
+		fileName: string
+	) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				fileName
+			);
+		}
+
+		return lastResponse;
+	};
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setError(null);
 		setIsLoading(true);
-
+		setUploadProgress(null);
 		if (!image) {
 			setError('Debes seleccionar una imagen');
 			setIsLoading(false);
 			return;
 		}
+		const totalChunks = image ? Math.ceil(image.size / (250 * 1024)) : 0;
 
+		setUploadProgress({
+			total: image ? 1 : 0, // 1 archivo
+			loaded: 0,
+			percentage: 0,
+			totalChunks: totalChunks,
+			filesCompleted: 0, // Empezar en 0, no en 1
+		});
 		try {
-			const formData = new FormData();
 			const defaultLabelId = process.env.NEXT_PUBLIC_DEFAULT_LABEL_ID;
 			const defaultLabelName = process.env.NEXT_PUBLIC_DEFAULT_LABEL_NAME;
 
@@ -72,52 +159,91 @@ export default function CreateInitRelease({
 			const defaultGenreName = process.env.NEXT_PUBLIC_DEFAULT_GENRE_NAME;
 			const defaultSubgenreId = process.env.NEXT_PUBLIC_DEFAULT_SUBGENRE_ID;
 			const defaultSubgenreName = process.env.NEXT_PUBLIC_DEFAULT_SUBGENRE_NAME;
-			formData.append('name', title);
-			formData.append('picture', image);
-			formData.append('label', defaultLabelId?.toString() || '');
-			formData.append('label_name', defaultLabelName?.toString() || '');
-			formData.append('publisher', defaultPublisherId?.toString() || '');
-			formData.append('publisher_name', defaultPublisherName?.toString() || '');
-			formData.append('genre', defaultGenreId?.toString() || '');
-			formData.append('genre_name', defaultGenreName || '');
-			formData.append('subgenre', defaultSubgenreId?.toString() || '');
-			formData.append('subgenre_name', defaultSubgenreName?.toString() || '');
-			formData.append('artists', JSON.stringify([]));
-			formData.append('publisher_year', '2025');
-			formData.append('copyright_holder', 'Sample value');
-			formData.append('copyright_holder_year', '2025');
-			formData.append('generate_ean', 'true');
-			formData.append('kind', 'single');
-			formData.append('catalogue_number', 'islasounds');
-			formData.append('is_new_release', '1');
-			formData.append('official_date', '2025-10-10');
-			formData.append('original_date', '2025-10-10');
-			formData.append('release_version', '');
-			formData.append('territory', 'worldwide');
-			formData.append('available', 'true');
-			formData.append('youtube_declaration', 'true');
-			const response = await fetch('/api/admin/createRelease', {
-				method: 'POST',
-				body: formData,
-			});
+			const data = {
+				name: title,
+				picture: 'image',
+				label: defaultLabelId || 0,
+				label_name: defaultLabelName || '',
+				publisher: defaultPublisherId || 0,
+				publisher_name: defaultPublisherName || '',
+				genre: defaultGenreId || 0,
+				genre_name: defaultGenreName || '',
+				subgenre: defaultSubgenreId || 0,
+				subgenre_name: defaultSubgenreName || '',
+				artists: [],
+				publisher_year: '2025',
+				copyright_holder: 'Sample value',
+				copyright_holder_year: '2025',
+				generate_ean: true,
+				kind: 'single',
+				catalogue_number: 'islasounds',
+				is_new_release: 1,
+				official_date: '2025-10-10',
+				original_date: '2025-10-10',
+				release_version: '',
+				territory: 'worldwide',
+				available: true,
+				backcatalog: false,
+				youtube_declaration: true,
+			};
+			const timestamp = Date.now();
+			const fileExtension = image.name.split('.').pop(); // Obtiene la extensión
+			const imageName =
+				'cover_' + title + '_' + timestamp + '.' + fileExtension;
+			const createResponse = await uploadFileByChunks(image, data, imageName);
 
-			if (!response.ok) {
-				const error = await response.json();
+			if (!createResponse.success) {
 				const errorMessage =
-					typeof error.error === 'object'
-						? Object.entries(error.error)
+					typeof createResponse.error === 'object'
+						? Object.entries(createResponse.error)
 								.map(([key, value]) => {
 									if (Array.isArray(value)) {
-										return `${key}: ${value.join(', ')}`;
+										// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+										const arrayErrors = value
+											.map((item, index) => {
+												if (typeof item === 'object' && item !== null) {
+													return Object.entries(item)
+														.map(([nestedKey, nestedValue]) => {
+															if (Array.isArray(nestedValue)) {
+																return `${nestedKey}: ${nestedValue.join(
+																	', '
+																)}`;
+															}
+															return `${nestedKey}: ${nestedValue}`;
+														})
+														.join(', ');
+												}
+												return String(item);
+											})
+											.join(', ');
+										return `${key}: ${arrayErrors}`;
 									}
 									if (typeof value === 'object' && value !== null) {
-										return `${key}: ${Object.values(value).join(', ')}`;
+										// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+										const nestedErrors = Object.entries(value)
+											.map(([nestedKey, nestedValue]) => {
+												if (Array.isArray(nestedValue)) {
+													return `${nestedKey}: ${nestedValue.join(', ')}`;
+												}
+												if (
+													typeof nestedValue === 'object' &&
+													nestedValue !== null
+												) {
+													return `${nestedKey}: ${Object.values(nestedValue)
+														.flat()
+														.join(', ')}`;
+												}
+												return `${nestedKey}: ${nestedValue}`;
+											})
+											.join(', ');
+										return `${key}: ${nestedErrors}`;
 									}
 									return `${key}: ${value}`;
 								})
 								.filter(Boolean)
 								.join('\n')
-						: error.error;
+						: createResponse.error;
+				setError(errorMessage);
 				throw new Error(errorMessage || 'Error al crear el lanzamiento');
 			}
 
@@ -125,8 +251,9 @@ export default function CreateInitRelease({
 			router.refresh();
 			onSubmit({ title, image });
 		} catch (err: any) {
-			setError(err || 'Error al crear el lanzamiento');
-			toast.error(err || 'Error al crear el producto');
+			toast.error(
+				err instanceof Error ? err.message : 'Error al crear el lanzamiento'
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -146,7 +273,7 @@ export default function CreateInitRelease({
 					</div>
 				</div>
 			)}
-			<form onSubmit={handleSubmit} className="space-y-6">
+			<form className="space-y-6">
 				<div>
 					<h1 className="block text-lg font-medium text-gray-500 mb-1">
 						Crear lanzamiento
@@ -238,7 +365,8 @@ export default function CreateInitRelease({
 						<span className="group-hover:text-brand-dark">Cancelar</span>
 					</button>
 					<button
-						type="submit"
+						type="button"
+						onClick={handleSubmit}
 						className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						<Save className="h-4 w-4 group-hover:text-brand-dark" />

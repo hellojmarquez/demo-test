@@ -55,6 +55,8 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 	});
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -107,8 +109,28 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+		setNameError(null);
+		setEmailError(null);
 		setError(null);
+		let hasError = false;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+		if (!formData.name.trim() || !nameRegex.test(formData.name)) {
+			setNameError(
+				'El nombre es requerido y no debe tener caracteres especiales ni números'
+			);
+			hasError = true;
+		}
 
+		if (!formData.email.trim() || !emailRegex.test(formData.email)) {
+			setEmailError('El email es requerido y el formato debe ser correcto');
+			hasError = true;
+		}
+		if (hasError) {
+			setError('Por favor, corrige los errores en el formulario');
+			setIsLoading(false);
+			return;
+		}
 		try {
 			if (!publisher.external_id) {
 				throw new Error('No se encontró el ID del publisher');
@@ -147,7 +169,24 @@ export const UpdatePublisherModal: React.FC<UpdatePublisherModalProps> = ({
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Error al actualizar el publisher');
+				const errorMessage =
+					typeof data.error === 'object'
+						? Object.entries(data.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										return `${key}: ${value.join(', ')}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										return `${key}: ${Object.values(value).join(', ')}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: data.error;
+				toast.error(errorMessage);
+				setError(errorMessage);
+				return;
 			}
 
 			toast.success('Publisher actualizado con éxito');

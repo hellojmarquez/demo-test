@@ -20,6 +20,9 @@ export function CreatePublisherModal({
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -27,7 +30,27 @@ export function CreatePublisherModal({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
-
+		setNameError(null);
+		setEmailError(null);
+		setError(null);
+		let hasError = false;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+		if (!name || !nameRegex.test(name)) {
+			setNameError(
+				'El nombre es requerido y no debe tener caracteres especiales ni números'
+			);
+			hasError = true;
+		}
+		if (!email || !emailRegex.test(email)) {
+			setEmailError('El email es requerido y el formato debe ser correcto');
+			hasError = true;
+		}
+		if (hasError) {
+			setError('Por favor, corrige los errores en el formulario');
+			setIsLoading(false);
+			return;
+		}
 		try {
 			const response = await fetch('/api/admin/createPublisher', {
 				method: 'POST',
@@ -40,7 +63,58 @@ export function CreatePublisherModal({
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Error al crear el publisher');
+				const errorMessage =
+					typeof data.error === 'object'
+						? Object.entries(data.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+										const arrayErrors = value
+											.map((item, index) => {
+												if (typeof item === 'object' && item !== null) {
+													return Object.entries(item)
+														.map(([nestedKey, nestedValue]) => {
+															if (Array.isArray(nestedValue)) {
+																return `${nestedKey}: ${nestedValue.join(
+																	', '
+																)}`;
+															}
+															return `${nestedKey}: ${nestedValue}`;
+														})
+														.join(', ');
+												}
+												return String(item);
+											})
+											.join(', ');
+										return `${key}: ${arrayErrors}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+										const nestedErrors = Object.entries(value)
+											.map(([nestedKey, nestedValue]) => {
+												if (Array.isArray(nestedValue)) {
+													return `${nestedKey}: ${nestedValue.join(', ')}`;
+												}
+												if (
+													typeof nestedValue === 'object' &&
+													nestedValue !== null
+												) {
+													return `${nestedKey}: ${Object.values(nestedValue)
+														.flat()
+														.join(', ')}`;
+												}
+												return `${nestedKey}: ${nestedValue}`;
+											})
+											.join(', ');
+										return `${key}: ${nestedErrors}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: data.error;
+				setError(errorMessage);
+				throw new Error(errorMessage);
 			}
 
 			toast.success('Publisher creado con éxito');
@@ -86,7 +160,7 @@ export function CreatePublisherModal({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-6">
+						<form className="p-6">
 							<div className="space-y-4">
 								<div>
 									<label
@@ -100,10 +174,13 @@ export function CreatePublisherModal({
 										type="text"
 										value={name}
 										onChange={e => setName(e.target.value)}
-										placeholder="Nombre del publisher"
+										placeholder="Nombre y apellido"
 										required
 										className={inputStyles}
 									/>
+									{nameError && (
+										<p className="text-red-500 text-[9px] mt-1">{nameError}</p>
+									)}
 								</div>
 
 								<div>
@@ -117,11 +194,15 @@ export function CreatePublisherModal({
 										type="email"
 										id="email"
 										name="email"
+										placeholder="nombre@email.com"
 										value={email}
 										onChange={e => setEmail(e.target.value)}
 										className={inputStyles}
 										required
 									/>
+									{emailError && (
+										<p className="text-red-500 text-[9px] mt-1">{emailError}</p>
+									)}
 								</div>
 
 								<div>
@@ -142,7 +223,11 @@ export function CreatePublisherModal({
 									/>
 								</div>
 							</div>
-
+							{error && error.length > 0 && (
+								<div className="mb-4 p-4 bg-red-200 text-red-700 rounded-md">
+									{error}
+								</div>
+							)}
 							<div className="mt-6 flex justify-end space-x-3">
 								<button
 									type="button"
@@ -154,7 +239,8 @@ export function CreatePublisherModal({
 									<span className="group-hover:text-brand-dark">Cancelar</span>
 								</button>
 								<button
-									type="submit"
+									type="button"
+									onClick={handleSubmit}
 									disabled={isLoading}
 									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
 		// 6. Validar formato de email
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(email)) {
+		if (!email || !emailRegex.test(email)) {
 			return NextResponse.json(
 				{ success: false, message: 'Formato de email inválido' },
 				{ status: 400 }
@@ -82,9 +82,16 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		if (existingAdmin) {
+		if (
+			existingAdmin &&
+			existingAdmin.email === email &&
+			existingAdmin.role === verifiedPayload.role
+		) {
 			return NextResponse.json(
-				{ success: false, message: 'El email ya está registrado' },
+				{
+					success: false,
+					error: 'El admin con este email ya está registrado',
+				},
 				{ status: 400 }
 			);
 		}
@@ -105,7 +112,7 @@ export async function POST(request: NextRequest) {
 		const userData = {
 			_id: new mongoose.Types.ObjectId(),
 			name: name.trim(),
-			email: email.toLowerCase().trim(),
+			email: email.trim(),
 			password: hashedPassword,
 			picture: picture?.base64 || '',
 			role: 'admin',
@@ -163,16 +170,9 @@ export async function POST(request: NextRequest) {
 			{ status: 201 }
 		);
 	} catch (error: any) {
-		console.error('Unexpected error in POST /admin:', error);
-
 		return NextResponse.json(
 			{
-				success: false,
-				error: 'Internal Server Error',
-				message:
-					process.env.NODE_ENV === 'development'
-						? error.message
-						: 'Ha ocurrido un error interno',
+				error: error.message || 'Error interno del servidor',
 				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 			},
 			{ status: 500 }

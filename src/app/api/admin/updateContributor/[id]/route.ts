@@ -115,14 +115,14 @@ export async function PUT(
 					},
 				}
 			);
-
+			const res = await externalApiRes.json();
 			if (!externalApiRes.ok) {
 				return NextResponse.json(
 					{
 						success: false,
-						error: externalApiRes.statusText || 'Error en API externa',
+						error: res || 'Error en API externa',
 					},
-					{ status: externalApiRes.status }
+					{ status: 400 }
 				);
 			}
 		} catch (apiError: any) {
@@ -140,7 +140,7 @@ export async function PUT(
 			{ external_id: id },
 			{ $set: updatedDataToDDBB },
 			{ new: true }
-		);
+		).select('-password');
 
 		if (!updatedContributor) {
 			return NextResponse.json(
@@ -174,10 +174,13 @@ export async function PUT(
 			message: 'Contribuidor actualizado exitosamente',
 			contributor: updatedContributor,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error updating contributor:', error);
 		return NextResponse.json(
-			{ error: 'Error al actualizar el contribuidor' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

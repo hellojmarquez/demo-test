@@ -11,8 +11,6 @@ import {
 	Mail,
 	UserRoundCheck,
 	Lock,
-	Plus,
-	Edit,
 	Trash2,
 } from 'lucide-react';
 import Select from 'react-select';
@@ -31,6 +29,7 @@ interface UpdateArtistaModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onSave: (data: FormData | Artista) => Promise<void>;
+	err: string | null;
 }
 
 const statusOptions = [
@@ -43,7 +42,9 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	artista,
 	isOpen,
 	onClose,
+	err,
 	onSave,
+
 }) => {
 	const [formData, setFormData] = useState<Artista>({
 		...artista,
@@ -54,8 +55,6 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [users, setUsers] = useState<User[]>([]);
 	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-	const [mainAccount, setMainAccount] = useState<User | null>(null);
-	const [isLoadingRelations, setIsLoadingRelations] = useState(false);
 	const [selectedMainAccount, setSelectedMainAccount] = useState<User | null>(
 		null
 	);
@@ -75,6 +74,9 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 		}
 		return null;
 	});
+
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	// Obtener usuarios al abrir el modal
@@ -144,84 +146,84 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
-			const reader = new FileReader();
-			reader.onloadend = () => {
-				const base64String = reader.result as string;
-				setImagePreview(base64String);
-				const base64Data = base64String.split(',')[1];
-				setFormData(prev => ({
-					...prev,
-					picture: base64Data,
-				}));
-			};
-			reader.readAsDataURL(file);
+			// Crear URL para vista previa
+			const previewUrl = URL.createObjectURL(file);
+			setImagePreview(previewUrl);
+
+			// Guardar el archivo directamente
+			setFormData(prev => ({
+				...prev,
+				picture: file, // Guardar como File, no como base64
+			}));
 		}
 	};
+
+	// Función para subir un chunk
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
+		setNameError(null);
+		setEmailError(null);
 		setError(null);
-
+		let hasError = false;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		try {
-			const formDataToSend = new FormData();
-			formDataToSend.append('name', formData.name);
-			formDataToSend.append('email', formData.email);
-			formDataToSend.append('role', 'artista');
-			formDataToSend.append('_id', formData._id);
-			formDataToSend.append(
-				'external_id',
-				artista.external_id?.toString() || ''
-			);
-
-			formDataToSend.append('status', formData.status || 'activo');
-
-			if (formData.password) {
-				formDataToSend.append('password', formData.password);
+			if (!formData.name || formData.name.length === 0) {
+				setNameError('El nombre es requerido');
+				hasError = true;
 			}
-
-			formDataToSend.append(
-				'amazon_music_identifier',
-				formData.amazon_music_identifier || ''
-			);
-			formDataToSend.append(
-				'apple_identifier',
-				formData.apple_identifier || ''
-			);
-			formDataToSend.append(
-				'deezer_identifier',
-				formData.deezer_identifier || ''
-			);
-			formDataToSend.append(
-				'spotify_identifier',
-				formData.spotify_identifier || ''
-			);
-
-			if (formData.picture instanceof File) {
-				formDataToSend.append('picture', formData.picture);
-			} else if (typeof formData.picture === 'string') {
-				formDataToSend.append('picture', formData.picture);
+			if (!formData.email || !emailRegex.test(formData.email)) {
+				setEmailError('El email es requerido y debe tener el formato correcto');
+				hasError = true;
 			}
-
-			// Agregar datos de relaciones con información adicional
-			if (selectedMainAccount) {
-				formDataToSend.append('mainAccountId', selectedMainAccount._id);
-				formDataToSend.append('relationshipStatus', 'activo'); // Estado por defecto de la relación
+			if (hasError) {
+				setError('Por favor, corrige los errores en el formulario');
+				setIsSubmitting(false);
+				return;
 			}
-
-			// Para las subcuentas, enviamos un array de objetos con la información completa de la relación
-			if (selectedSubAccounts.length > 0) {
-				const subAccountsData = selectedSubAccounts.map(account => ({
+			const dataToSend = new FormData();
+			let formDataToSend = {
+				name: formData.name,
+				email: formData.email,
+				role: 'artista',
+				_id: formData._id,
+				external_id: artista.external_id?.toString() || '',
+				status: formData.status || 'activo',
+				amazon_music_identifier: formData.amazon_music_identifier || '',
+				apple_identifier: formData.apple_identifier || '',
+				deezer_identifier: formData.deezer_identifier || '',
+				spotify_identifier: formData.spotify_identifier || '',
+				password: formData.password || '',
+				mainAccountId: selectedMainAccount?._id || '',
+				subAccounts: selectedSubAccounts.map(account => ({
 					subAccountId: account._id,
-					status: 'activo', // Estado por defecto de la relación
-					role: account.role, // Incluimos el rol para referencia
-				}));
+					status: 'activo',
+					role: account.role,
+				})),
+				relationshipStatus: 'activo',
+			};
 
-				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
+			// Solo agrega la contraseña si existe
+			dataToSend.append('data', JSON.stringify(formDataToSend));
+			if (formData.picture instanceof File) {
+				if (
+					formData.picture.type === 'image/jpeg' ||
+					formData.picture.type === 'image/jpg' ||
+					formData.picture.type === 'image/png'
+				) {
+					dataToSend.append('picture', formData.picture);
+				} else {
+					setError('El formato de imagen debe de ser jpg o png');
+					throw new Error('Formato de imagen no soportado');
+				}
 			}
-
-			await onSave(formDataToSend);
-			onClose();
+			await onSave(dataToSend);
+			if (err) {
+				return;
+			} else {
+				onClose();
+			}
 		} catch (error) {
 			console.error('Error saving artista:', error);
 			setError(
@@ -301,13 +303,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-6">
-							{error && (
-								<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-									{error}
-								</div>
-							)}
-
+						<form className="p-6">
 							<div className="space-y-4">
 								<div className="space-y-4">
 									<label className="block text-sm font-medium text-gray-700">
@@ -369,6 +365,11 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											required
 											disabled={isSubmitting}
 										/>
+										{nameError && (
+											<p className="text-red-500 text-[9px] mt-1">
+												{nameError}
+											</p>
+										)}
 									</div>
 								</div>
 								<div>
@@ -390,6 +391,11 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 											required
 											disabled={isSubmitting}
 										/>
+										{emailError && (
+											<p className="text-red-500 text-[9px] mt-1">
+												{emailError}
+											</p>
+										)}
 									</div>
 								</div>
 								<div>
@@ -661,7 +667,16 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 									</div>
 								</div>
 							</div>
-
+							{error && (
+								<div className=" mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{error}
+								</div>
+							)}
+							{err && (
+								<div className=" mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{err}
+								</div>
+							)}
 							<div className="mt-6 flex justify-end space-x-3">
 								<button
 									type="button"
@@ -674,6 +689,7 @@ const UpdateArtistaModal: React.FC<UpdateArtistaModalProps> = ({
 								</button>
 								<button
 									type="submit"
+									onClick={handleSubmit}
 									disabled={isSubmitting}
 									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>

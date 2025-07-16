@@ -6,11 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { jwtVerify } from 'jose';
 import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
-	console.log('create ARTISTA DEESDE RELEASE request received');
-
 	const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 	const token = req.cookies.get('loginToken')?.value;
-
+	const spotify_token = req.cookies.get('stkn')?.value;
 	if (!token) {
 		return NextResponse.json(
 			{ success: false, error: 'Not authenticated' },
@@ -56,12 +54,49 @@ export async function POST(req: NextRequest) {
 		}
 		// Verificar si el email ya existe
 		const existingUser = await User.findOne({ email });
-		if (existingUser) {
+		if (
+			existingUser &&
+			existingUser.email === email &&
+			existingUser.role === verifiedPayload.role
+		) {
 			return NextResponse.json(
 				{ message: 'El email ya está registrado' },
 				{ status: 400 }
 			);
 		}
+		let platform_response: any = {};
+		const reqData = await fetch(
+			`${process.env.DEEZER_API}/user/${deezer_identifier}`,
+			{
+				method: 'GET',
+			}
+		);
+		const dezzerRes = await reqData.json();
+
+		if (dezzerRes.error) {
+			platform_response.dezzer = 'Error en ID de Deezer';
+		}
+		const spotifyReq = await fetch(
+			`${process.env.SPOTIFY_API}/artists/${spotify_identifier}`,
+			{
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${spotify_token}}`,
+				},
+			}
+		);
+		if (!spotifyReq.ok) {
+			console.log('error al obtener el artista de Spotify');
+			platform_response.spotify = 'Error en ID de spotify';
+		}
+
+		if (Object.keys(platform_response).length > 0) {
+			return NextResponse.json(
+				{ success: false, error: platform_response },
+				{ status: 400 }
+			);
+		}
+
 		name = name
 			.split(' ')
 			.map(
@@ -155,9 +190,12 @@ export async function POST(req: NextRequest) {
 				name,
 			},
 		});
-	} catch (error) {
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

@@ -6,10 +6,9 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
-	console.log('create publisher received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -38,9 +37,36 @@ export async function POST(req: NextRequest) {
 
 		const body = await req.json();
 		let { name, email, password } = body;
+		let hashedPassword = '';
+		if (!name || !email) {
+			return NextResponse.json(
+				{ success: false, error: 'Todos los campos son requeridos' },
+				{ status: 400 }
+			);
+		}
+		await dbConnect();
+		const existingUser = await User.findOne({ email });
+		if (email) {
+			if (
+				existingUser &&
+				existingUser.email === email &&
+				existingUser.role === verifiedPayload.role
+			) {
+				return NextResponse.json(
+					{ error: 'El contributor con este email ya está registrado' },
+					{ status: 400 }
+				);
+			}
+		}
 		name = name.trim();
 		email = email.trim();
-		password = password.trim();
+		if (password) {
+			password = password.trim();
+			hashedPassword = await encryptPassword(password);
+		} else {
+			const temp_pass = uuidv4();
+			hashedPassword = await encryptPassword(temp_pass);
+		}
 		// Capitalizar la primera letra de cada palabra
 		name = name
 			.split(' ')
@@ -66,7 +92,7 @@ export async function POST(req: NextRequest) {
 		);
 
 		const publisherRes = await publisherReq.json();
-		if (!publisherRes.id) {
+		if (!publisherReq.ok) {
 			return NextResponse.json(
 				{
 					success: false,
@@ -76,9 +102,6 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Conectar a la base de datos local
-		await dbConnect();
-		const hashedPassword = await encryptPassword(password);
 		// Crear y guardar el publisher en la base de datos local
 
 		const publisher = new User({
@@ -112,10 +135,12 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({
 			success: true,
 		});
-	} catch (error) {
-		console.error('Error creating publisher:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

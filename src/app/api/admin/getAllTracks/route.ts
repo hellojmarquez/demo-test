@@ -120,10 +120,13 @@ export async function GET(req: NextRequest) {
 				},
 			},
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error in getAllTracks:', error);
 		return NextResponse.json(
-			{ success: false, error: 'Error al obtener los tracks' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

@@ -7,8 +7,6 @@ import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
-	console.log('crear contributors received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -38,7 +36,7 @@ export async function POST(req: NextRequest) {
 		const body = await req.json();
 		let { name, email, password } = body;
 
-		if (!name || !email || !password) {
+		if (!name || !email) {
 			return NextResponse.json(
 				{ success: false, error: 'Todos los campos son requeridos' },
 				{ status: 400 }
@@ -57,11 +55,17 @@ export async function POST(req: NextRequest) {
 		// Verificar si el email ya existe
 		await dbConnect();
 		const existingUser = await User.findOne({ email });
-		if (existingUser) {
-			return NextResponse.json(
-				{ success: false, error: 'El email ya está registrado' },
-				{ status: 400 }
-			);
+		if (email) {
+			if (
+				existingUser &&
+				existingUser.email === email &&
+				existingUser.role === verifiedPayload.role
+			) {
+				return NextResponse.json(
+					{ error: 'El contributor con este email ya está registrado' },
+					{ status: 400 }
+				);
+			}
 		}
 		name.trim();
 		email.trim();
@@ -82,11 +86,11 @@ export async function POST(req: NextRequest) {
 
 		const contributorRes = await contributorReq.json();
 
-		if (!contributorRes.id) {
+		if (!contributorReq.ok) {
 			return NextResponse.json(
 				{
 					success: false,
-					error: contributorRes,
+					error: contributorRes || 'Error al crear el contributor',
 				},
 				{ status: 400 }
 			);
@@ -104,6 +108,7 @@ export async function POST(req: NextRequest) {
 			password: hashedPassword,
 			role: 'contributor',
 		});
+		const { password: _, ...artistWithoutPassword } = contributor.toObject();
 		await contributor.save();
 
 		if (!contributor.external_id) {
@@ -140,10 +145,12 @@ export async function POST(req: NextRequest) {
 			},
 			{ status: 201 }
 		);
-	} catch (error) {
-		console.error('Error creating contributor:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

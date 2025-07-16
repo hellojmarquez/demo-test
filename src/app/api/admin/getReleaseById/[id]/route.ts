@@ -31,6 +31,7 @@ export async function GET(
 			{ status: 401 }
 		);
 	}
+
 	try {
 		await dbConnect();
 		const releaseId = params.id;
@@ -70,17 +71,29 @@ export async function GET(
 			{
 				$set: {
 					status: releaseData.status,
-					qc_feedback: releaseData.qc_feedback,
-					acr_alert: releaseData.acr_alert,
-					has_acr_alert: releaseData.has_acr_alert,
+					qc_feedback: releaseData.qc_feedback ? releaseData.qc_feedback : null,
+					acr_alert: releaseData.acr_alert ? releaseData.acr_alert : null,
+					has_acr_alert: releaseData.has_acr_alert
+						? releaseData.has_acr_alert
+						: null,
 					ean: releaseData.ean,
 				},
 			},
-			{ new: true }
+			{ new: true, lean: true }
 		);
+		if (!updatedRelease) {
+			return NextResponse.json(
+				{ success: false, error: 'No se pudo actualizar en la base de datos' },
+				{ status: 404 }
+			);
+		}
+		const releaseToSend = {
+			...updatedRelease,
+			status: releaseData.status,
+		};
 		return NextResponse.json({
 			success: true,
-			data: release,
+			data: releaseToSend,
 		});
 	} catch (error: any) {
 		console.error('Error getting release:', error);

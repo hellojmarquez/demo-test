@@ -5,13 +5,14 @@ import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
 import { createLog } from '@/lib/logger';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
-	console.log('create artist request received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
+		const spotify_token = req.cookies.get('stkn')?.value;
+
 		if (!token) {
 			return NextResponse.json(
 				{ success: false, error: 'Not authenticated' },
@@ -49,7 +50,6 @@ export async function POST(req: NextRequest) {
 		let name = formData.get('name') as string;
 		let email = formData.get('email') as string;
 		let password = formData.get('password') as string;
-		const hashedPassword = await encryptPassword(password);
 		let amazon_music_identifier = formData.get(
 			'amazon_music_identifier'
 		) as string;
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 		let deezer_identifier = formData.get('deezer_identifier') as string;
 		let spotify_identifier = formData.get('spotify_identifier') as string;
 		const picture = formData.get('picture') as File;
-
+		let hashedPassword = '';
 		// Función para convertir File a base64
 		const fileToBase64 = async (file: File): Promise<string> => {
 			const buffer = await file.arrayBuffer();
@@ -66,16 +66,27 @@ export async function POST(req: NextRequest) {
 		};
 
 		// Validar campos requeridos
-		if (!name || !email || !password) {
+		if (!name || !email) {
 			return NextResponse.json(
-				{ message: 'Nombre, email y contraseña son requeridos' },
+				{ message: 'Faltan los campos obligatorios son requeridos' },
 				{ status: 400 }
 			);
 		}
+		name = name.trim();
+		email = email.trim();
+		amazon_music_identifier = amazon_music_identifier.trim();
+		apple_identifier = apple_identifier.trim();
+		deezer_identifier = deezer_identifier.trim();
+		spotify_identifier = spotify_identifier.trim();
+
 		await dbConnect();
 		// Verificar si el email ya existe
 		const existingUser = await User.findOne({ email });
-		if (existingUser) {
+		if (
+			existingUser &&
+			existingUser.email === email &&
+			existingUser.role === verifiedPayload.role
+		) {
 			return NextResponse.json(
 				{ success: false, error: 'El email ya está registrado' },
 
@@ -90,12 +101,7 @@ export async function POST(req: NextRequest) {
 					word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 			)
 			.join(' ');
-		name = name.trim();
-		email = email.trim();
-		amazon_music_identifier = amazon_music_identifier.trim();
-		apple_identifier = apple_identifier.trim();
-		deezer_identifier = deezer_identifier.trim();
-		spotify_identifier = spotify_identifier.trim();
+
 		const artistToApi = {
 			name,
 			email,
@@ -115,17 +121,16 @@ export async function POST(req: NextRequest) {
 			},
 			body: JSON.stringify(artistToApi),
 		});
+		const artistaRes = await artistaReq.json();
 		if (!artistaReq.ok) {
 			return NextResponse.json(
 				{
 					success: false,
-					error: artistaReq.statusText || 'Error al crear el artista',
+					error: artistaRes || 'Error al crear el artista',
 				},
 				{ status: artistaReq.status }
 			);
 		}
-
-		const artistaRes = await artistaReq.json();
 
 		// Convertir la imagen a base64 si existe
 		let pictureBase64 = '';
@@ -133,6 +138,12 @@ export async function POST(req: NextRequest) {
 			pictureBase64 = await fileToBase64(picture);
 		}
 
+		if (password && password.length > 0) {
+			hashedPassword = await encryptPassword(password);
+		} else {
+			const temp_password = uuidv4();
+			hashedPassword = await encryptPassword(temp_password);
+		}
 		// Crear el nuevo artista
 		const newArtist = await User.create({
 			_id: new mongoose.Types.ObjectId(),
@@ -149,6 +160,7 @@ export async function POST(req: NextRequest) {
 			deezer_identifier,
 			spotify_identifier,
 		});
+		const { password: _, ...artistWithoutPassword } = newArtist.toObject();
 
 		try {
 			// Crear el log
@@ -171,11 +183,14 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
-			artist: newArtist,
+			artist: [],
 		});
-	} catch (error) {
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

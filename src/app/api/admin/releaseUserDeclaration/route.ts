@@ -3,7 +3,11 @@ import dbConnect from '@/lib/dbConnect';
 import Release from '@/models/ReleaseModel';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
-
+import nodeFetch from 'node-fetch';
+import fs from 'fs/promises';
+import path from 'path';
+import FormData from 'form-data';
+import { createReadStream } from 'fs';
 import { createLog } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
@@ -33,30 +37,66 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const formData = await req.formData();
+		const formD = await req.formData();
 
+		const { user_declaration, release } = JSON.parse(
+			formD.get('data') as string
+		);
 		// Parsear campos individuales
-		const doc = formData.get('file') as File | null;
-		const user_declaration = Number(formData.get('user_declaration')) || null;
-		const release = Number(formData.get('release')) || null;
+		const fileName = formD.get('fileName') as string;
+		const data = JSON.parse(formD.get('data') as string);
+		const chunk = formD.get('chunk') as Blob;
+		const chunkIndex = parseInt(formD.get('chunkIndex') as string);
+		const totalChunks = parseInt(formD.get('totalChunks') as string);
+		const fileType = formD.get('fileType') as string;
+		let tempFilePath: string | null = null;
+		let picture_path = '';
+		let picture_url = '';
+		let tempDir: string | null = null;
+		let safeFileName: string | null = null;
 		let file_path = '';
 		let file_url = '';
-		let dataToApi = {
-			release,
-			user_declaration,
-			release_license: '',
-		};
 
-		if (doc) {
-			if (doc.type !== 'application/pdf') {
+		if (fileName && fileName.length > 0) {
+			if (isNaN(chunkIndex) || isNaN(totalChunks)) {
+				console.log('Datos de chunk inválidos');
 				return NextResponse.json(
-					{ success: false, error: 'El archivo debe ser formato PDF' },
+					{ success: false, error: 'Datos de chunk inválidos' },
 					{ status: 400 }
 				);
 			}
-			const fileName = doc.name.replaceAll(' ', '');
-			const uploadFileReq = await fetch(
-				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${fileName}&filetype=${doc.type}&upload_type=release.license`,
+			const tempDir = path.join(process.cwd(), 'temp_uploads');
+			await fs.mkdir(tempDir, { recursive: true });
+
+			// Define el nombre del archivo temporal. ESTO DEBE ESTAR FUERA DEL IF.
+			const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+			const tempFileName = `upload_${safeFileName}.tmp`;
+			tempFilePath = path.join(tempDir, tempFileName);
+			const chunkBuffer = Buffer.from(await chunk.arrayBuffer());
+			await fs.appendFile(tempFilePath, chunkBuffer);
+
+			if (chunkIndex < totalChunks - 1) {
+				return NextResponse.json({
+					success: true,
+					message: `Chunk ${chunkIndex} recibido`,
+				});
+			}
+
+			const extension = path.extname(fileName);
+
+			if (extension.toLowerCase() !== '.pdf') {
+				console.log('extension no soportado');
+				await fs.unlink(tempFilePath);
+				return NextResponse.json(
+					{ success: false, error: 'Formato de archivo no soportado!' },
+					{ status: 400 }
+				);
+			}
+			const fixedname = fileName.replaceAll(' ', '_');
+
+			const safeName = fixedname;
+			const uploadMediaReq = await fetch(
+				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${safeName}&filetype=application/pdf&upload_type=release.license`,
 				{
 					method: 'GET',
 					headers: {
@@ -67,52 +107,47 @@ export async function POST(req: NextRequest) {
 					},
 				}
 			);
-			const uploadFileRes = await uploadFileReq.json();
-
-			// Extraer la URL y los campos del objeto firmado
-			const { url: signedUrl, fields: resFields } = uploadFileRes.signed_url;
-			// Crear un objeto FormData y agregar los campos y el archivo
-			const fileFormData = new FormData();
-			Object.entries(resFields).forEach(([key, value]) => {
-				if (typeof value === 'string' || value instanceof Blob) {
-					fileFormData.append(key, value);
-				} else {
-					console.warn(
-						`El valor de '${key}' no es un tipo válido para FormData:`,
-						value
-					);
-				}
-			});
-
-			fileFormData.append('file', doc);
-
-			// Realizar la solicitud POST a la URL firmada
-			const S3Response = await fetch(signedUrl, {
-				method: 'POST',
-				body: fileFormData,
-			});
-
-			if (!S3Response.ok) {
+			if (!uploadMediaReq) {
+				console.log('Error al obtener la url firmada');
 				return NextResponse.json(
-					{
-						success: false,
-						error:
-							S3Response.statusText ||
-							'Error al subir el archivo de archivo a S3',
-					},
-					{ status: S3Response.status || 400 }
+					{ error: 'Error al obtener la url firmada' },
+					{ status: 400 }
 				);
 			}
+			const uploadMediaRes = await uploadMediaReq.json();
+			const { url: signedUrl, fields: mediaFields } = uploadMediaRes.signed_url;
+			const mediaFormData = new FormData();
+			Object.entries(mediaFields).forEach(([key, value]) => {
+				if (typeof value === 'string' || value instanceof Blob) {
+					mediaFormData.append(key, value);
+				}
+			});
+			const { size: fileSize } = await fs.stat(tempFilePath);
+			const fileStream = createReadStream(tempFilePath);
+			mediaFormData.append('file', fileStream, {
+				filename: safeName,
+				contentType: 'application/pdf',
+				knownLength: fileSize,
+			});
+			const uploadResponse = await nodeFetch(signedUrl, {
+				method: 'POST',
+				body: mediaFormData,
+				headers: mediaFormData.getHeaders(),
+			});
 
-			file_url = S3Response?.headers?.get('location') || '';
+			await fs.unlink(tempFilePath);
+			picture_url = uploadResponse?.headers?.get('location') || '';
 			const picture_path_decoded = decodeURIComponent(
-				new URL(file_url).pathname.slice(1)
+				new URL(picture_url).pathname.slice(1)
 			);
-			file_path = picture_path_decoded.replace('media/', '');
+			picture_path = picture_path_decoded.replace('media/', '');
 		}
-		if (file_path.length > 0) {
-			dataToApi.release_license = file_path;
-		}
+		let dataToApi = {
+			release,
+			user_declaration,
+			release_license: picture_path.length > 0 ? picture_path : '',
+		};
+
 		const uploadDataReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/release-user-declaration/`,
 			{
@@ -127,8 +162,9 @@ export async function POST(req: NextRequest) {
 			}
 		);
 
-		const apiRes = await uploadDataReq.json();
-		if (!apiRes.release) {
+		if (!uploadDataReq.ok) {
+			const apiRes = await uploadDataReq.json();
+
 			return NextResponse.json(
 				{
 					success: false,
@@ -137,6 +173,7 @@ export async function POST(req: NextRequest) {
 				{ status: uploadDataReq.status || 400 }
 			);
 		}
+		const apiRes = await uploadDataReq.json();
 
 		if (file_url.length > 0) {
 			const updatedRelease = await Release.findOneAndUpdate(
@@ -165,10 +202,12 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({
 			success: true,
 		});
-	} catch (error) {
-		console.error('Error creating release:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Error al crear el release' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

@@ -295,7 +295,7 @@ export async function POST(req: NextRequest) {
 
 		// Enviar el correo
 		const info = await transporter.sendMail({
-			from: `"ISLA SOUNDS" <soporte@islasounds.com>`,
+			from: `"White label" <hello.jmarquez@gmail.com>`,
 			to: email,
 			subject: 'Invitación a la plataforma',
 			html: emailContent,
@@ -305,11 +305,12 @@ export async function POST(req: NextRequest) {
 			success: true,
 			message: 'Usuario invitado y correo enviado exitosamente',
 		});
-	} catch (error) {
-		console.error('Error al invitar usuario:', error);
-
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Error al procesar la invitación' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

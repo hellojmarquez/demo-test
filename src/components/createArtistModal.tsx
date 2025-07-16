@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Image as ImageIcon, XCircle, Upload } from 'lucide-react';
 import Select from 'react-select';
+import toast from 'react-hot-toast';
+import AsyncSelect from './ui/AsyncSelect';
 
 interface CreateArtistModalProps {
 	isOpen: boolean;
@@ -26,7 +28,14 @@ interface ParentOption {
 	value: string;
 	label: string;
 }
-
+interface PlatformOption {
+	value: string;
+	label: string;
+	id?: string;
+	image?: string;
+	followers?: number;
+	popularity?: number;
+}
 function CreateArtistModal({
 	isOpen,
 	onClose,
@@ -51,7 +60,10 @@ function CreateArtistModal({
 	const [availableParents, setAvailableParents] = useState<
 		Array<{ _id: string; name: string }>
 	>([]);
-
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
+	const [spotifyOoptions, setSpotifyOoptions] = useState<PlatformOption[]>([]);
+	const [deezerOoptions, setDeezerOoptions] = useState<PlatformOption[]>([]);
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
@@ -120,7 +132,14 @@ function CreateArtistModal({
 			}));
 		}
 	};
-
+	const handlePlatformArtistChange = (fieldName: string) => (option: any) => {
+		if (option) {
+			setFormData(prev => ({
+				...prev,
+				[fieldName]: option.value,
+			}));
+		}
+	};
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
@@ -145,6 +164,27 @@ function CreateArtistModal({
 		e.preventDefault();
 		setIsSubmitting(true);
 		setError('');
+		setNameError(null);
+		setEmailError(null);
+		let hasError = false;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+		if (!formData.name.trim() || !nameRegex.test(formData.name)) {
+			setNameError(
+				'El nombre es requerido y no debe tener caracteres especiales ni números'
+			);
+			hasError = true;
+		}
+		if (!formData.email.trim() || !emailRegex.test(formData.email)) {
+			setEmailError('El email es requerido y el formato debe ser correcto');
+			hasError = true;
+		}
+
+		if (hasError) {
+			setError('Por favor, corrige los errores en el formulario');
+			setIsSubmitting(false);
+			return;
+		}
 
 		try {
 			const formDataToSend = new FormData();
@@ -211,13 +251,62 @@ function CreateArtistModal({
 				method: 'POST',
 				body: formDataToSend,
 			});
-
+			const data = await response.json();
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Error al crear el artista');
+				const errorMessage =
+					typeof data.error === 'object'
+						? Object.entries(data.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+										const arrayErrors = value
+											.map((item, index) => {
+												if (typeof item === 'object' && item !== null) {
+													return Object.entries(item)
+														.map(([nestedKey, nestedValue]) => {
+															if (Array.isArray(nestedValue)) {
+																return `${nestedKey}: ${nestedValue.join(
+																	', '
+																)}`;
+															}
+															return `${nestedKey}: ${nestedValue}`;
+														})
+														.join(', ');
+												}
+												return String(item);
+											})
+											.join(', ');
+										return `${key}: ${arrayErrors}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+										const nestedErrors = Object.entries(value)
+											.map(([nestedKey, nestedValue]) => {
+												if (Array.isArray(nestedValue)) {
+													return `${nestedKey}: ${nestedValue.join(', ')}`;
+												}
+												if (
+													typeof nestedValue === 'object' &&
+													nestedValue !== null
+												) {
+													return `${nestedKey}: ${Object.values(nestedValue)
+														.flat()
+														.join(', ')}`;
+												}
+												return `${nestedKey}: ${nestedValue}`;
+											})
+											.join(', ');
+										return `${key}: ${nestedErrors}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: data.error;
+				setError(errorMessage);
+				throw new Error(errorMessage);
 			}
 
-			const data = await response.json();
 			await onSave(data.artist);
 			onClose();
 		} catch (err: any) {
@@ -242,7 +331,7 @@ function CreateArtistModal({
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0.9, opacity: 0 }}
 						transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-						className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+						className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
 						onClick={e => e.stopPropagation()}
 					>
 						<div className="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -257,7 +346,7 @@ function CreateArtistModal({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-4">
+						<form className="p-4">
 							<div className="space-y-4">
 								<div className="space-y-3">
 									<div className="space-y-2">
@@ -301,7 +390,7 @@ function CreateArtistModal({
 										</div>
 									</div>
 
-									<div className="grid grid-cols-2 gap-3">
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 										<div>
 											<label
 												htmlFor="name"
@@ -312,12 +401,18 @@ function CreateArtistModal({
 											<input
 												type="text"
 												id="name"
+												placeholder="Nombre y apellido"
 												name="name"
 												value={formData.name}
 												onChange={handleChange}
 												className={inputStyles}
 												required
 											/>
+											{nameError && (
+												<p className="text-red-500 text-[9px] mt-1">
+													{nameError}
+												</p>
+											)}
 										</div>
 
 										<div>
@@ -336,6 +431,59 @@ function CreateArtistModal({
 												className={inputStyles}
 												required
 											/>
+											{emailError && (
+												<p className="text-red-500 text-[9px] mt-1">
+													{emailError}
+												</p>
+											)}
+										</div>
+									</div>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+										<div>
+											<label
+												htmlFor="name"
+												className="block text-sm font-medium text-gray-700 mb-1"
+											>
+												Nombre
+											</label>
+											<input
+												type="text"
+												id="name"
+												placeholder="Nombre y apellido"
+												name="name"
+												value={formData.name}
+												onChange={handleChange}
+												className={inputStyles}
+												required
+											/>
+											{nameError && (
+												<p className="text-red-500 text-[9px] mt-1">
+													{nameError}
+												</p>
+											)}
+										</div>
+
+										<div>
+											<label
+												htmlFor="email"
+												className="block text-sm font-medium text-gray-700 mb-1"
+											>
+												Email
+											</label>
+											<input
+												type="email"
+												id="email"
+												name="email"
+												value={formData.email}
+												onChange={handleChange}
+												className={inputStyles}
+												required
+											/>
+											{emailError && (
+												<p className="text-red-500 text-[9px] mt-1">
+													{emailError}
+												</p>
+											)}
 										</div>
 									</div>
 
@@ -357,11 +505,11 @@ function CreateArtistModal({
 										/>
 									</div>
 
-									<div className="grid grid-cols-2 gap-3">
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 										<div>
 											<label
 												htmlFor="amazon_music_identifier"
-												className="block text-sm font-medium text-gray-700 mb-1"
+												className="text-center md:text-left block text-sm font-medium text-gray-700 mb-1"
 											>
 												ID Amazon Music
 											</label>
@@ -378,53 +526,134 @@ function CreateArtistModal({
 										<div>
 											<label
 												htmlFor="apple_identifier"
-												className="block text-sm font-medium text-gray-700 mb-1"
+												className="text-center md:text-left block text-sm font-medium text-gray-700 mb-1"
 											>
 												ID Apple Music
 											</label>
-											<input
-												type="text"
-												id="apple_identifier"
-												name="apple_identifier"
-												value={formData.apple_identifier}
-												onChange={handleChange}
-												className={inputStyles}
+											<AsyncSelect
+												loadOptions={async searchTerm => {
+													if (!searchTerm.trim() || searchTerm.length < 2) {
+														return;
+													}
+													const spotifyReq = await fetch(
+														`/api/admin/getAppleArtists`,
+														{
+															method: 'POST',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ query: searchTerm }),
+														}
+													);
+													console.log('haciendo fetch');
+													if (!spotifyReq.ok) {
+														setSpotifyOoptions([]);
+														return [];
+													}
+													const spotifyRes = await spotifyReq.json();
+													return spotifyRes.data.map((artist: any) => ({
+														value: artist.id,
+														label: artist.label,
+														image: artist.image,
+														url: artist.url,
+														followers: artist.followers,
+														popularity: artist.popularity,
+													}));
+												}}
+												placeholder="Buscar..."
+												onChange={handlePlatformArtistChange(
+													'apple_identifier'
+												)}
 											/>
 										</div>
 									</div>
 
-									<div className="grid grid-cols-2 gap-3">
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 										<div>
 											<label
 												htmlFor="deezer_identifier"
-												className="block text-sm font-medium text-gray-700 mb-1"
+												className="text-center md:text-left block text-sm font-medium text-gray-700 mb-1"
 											>
 												ID Deezer
 											</label>
-											<input
-												type="text"
-												id="deezer_identifier"
-												name="deezer_identifier"
-												value={formData.deezer_identifier}
-												onChange={handleChange}
-												className={inputStyles}
+											<AsyncSelect
+												loadOptions={async searchTerm => {
+													if (!searchTerm.trim() || searchTerm.length < 2) {
+														return;
+													}
+													const spotifyReq = await fetch(
+														`/api/admin/getDezeerArtists`,
+														{
+															method: 'POST',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ query: searchTerm }),
+														}
+													);
+													console.log('haciendo fetch');
+													if (!spotifyReq.ok) {
+														setSpotifyOoptions([]);
+														return [];
+													}
+													const spotifyRes = await spotifyReq.json();
+													return spotifyRes.data.map((artist: any) => ({
+														value: artist.id,
+														label: artist.label,
+														image: artist.image,
+														url: artist.url,
+														followers: artist.followers,
+														popularity: artist.popularity,
+													}));
+												}}
+												placeholder="Buscar..."
+												onChange={handlePlatformArtistChange(
+													'deezer_identifier'
+												)}
 											/>
 										</div>
 
 										<div>
 											<label
 												htmlFor="spotify_identifier"
-												className="block text-sm font-medium text-gray-700 mb-1"
+												className="text-center md:text-left block text-sm font-medium text-gray-700 mb-1"
 											>
 												ID Spotify
 											</label>
-											<input
-												type="text"
-												id="spotify_identifier"
-												name="spotify_identifier"
-												value={formData.spotify_identifier}
-												onChange={handleChange}
-												className={inputStyles}
+											<AsyncSelect
+												loadOptions={async searchTerm => {
+													if (!searchTerm.trim() || searchTerm.length < 2) {
+														return;
+													}
+													const spotifyReq = await fetch(
+														`/api/admin/getSpotifyArtists`,
+														{
+															method: 'POST',
+															headers: {
+																'Content-Type': 'application/json',
+															},
+															body: JSON.stringify({ query: searchTerm }),
+														}
+													);
+													console.log('haciendo fetch');
+													if (!spotifyReq.ok) {
+														setSpotifyOoptions([]);
+														return [];
+													}
+													const spotifyRes = await spotifyReq.json();
+													return spotifyRes.data.map((artist: any) => ({
+														value: artist.id,
+														label: artist.label,
+														image: artist.image,
+														url: artist.url,
+														followers: artist.followers,
+														popularity: artist.popularity,
+													}));
+												}}
+												placeholder="Buscar..."
+												onChange={handlePlatformArtistChange(
+													'spotify_identifier'
+												)}
 											/>
 										</div>
 									</div>
@@ -489,7 +718,11 @@ function CreateArtistModal({
 									)}
 								</div>
 							</div>
-
+							{error && (
+								<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{error}
+								</div>
+							)}
 							<div className="flex justify-end space-x-3 mt-6">
 								<button
 									type="button"
@@ -501,7 +734,8 @@ function CreateArtistModal({
 									<span className="group-hover:text-brand-dark">Cancelar</span>
 								</button>
 								<button
-									type="submit"
+									type="button"
+									onClick={handleSubmit}
 									disabled={isSubmitting}
 									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>

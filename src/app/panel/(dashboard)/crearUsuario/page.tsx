@@ -9,8 +9,8 @@ import { CreatePublisherModal } from '@/components/CreatePublisherModal';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, X, Save, ChevronDown } from 'lucide-react';
-import UpdateSelloModal from '@/components/UpdateSelloModal';
+import { CheckCircle } from 'lucide-react';
+
 import Select, { SingleValue } from 'react-select';
 
 interface AccountOption {
@@ -67,16 +67,7 @@ export default function CrearUsuarioPage() {
 		parentId: '',
 		parentName: '',
 	});
-	const {
-		user,
-		loading,
-		currentAccount,
-		showAccountSelector,
-		setShowAccountSelector,
-	} = useAuth();
-	const [parentAccounts, setParentAccounts] = useState<
-		Array<{ _id: string; name: string }>
-	>([]);
+	const { user } = useAuth();
 
 	const handleChange = (
 		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -87,31 +78,6 @@ export default function CrearUsuarioPage() {
 			[name]: value,
 		}));
 	};
-
-	// Fetch parent accounts when tipo changes to 'subcuenta'
-	useEffect(() => {
-		const fetchParentAccounts = async () => {
-			if (formData.tipo === 'subcuenta') {
-				try {
-					const response = await fetch('/api/admin/getAllUsers');
-					if (response.ok) {
-						const data = await response.json();
-						const mainAccounts = data.users
-							.filter((user: any) => user.tipo === 'principal')
-							.map((user: any) => ({
-								_id: user._id,
-								name: user.name,
-							}));
-						setParentAccounts(mainAccounts);
-					}
-				} catch (error) {
-					console.error('Error fetching parent accounts:', error);
-				}
-			}
-		};
-
-		fetchParentAccounts();
-	}, [formData.tipo]);
 
 	const renderForm = () => {
 		// Si el usuario es un sello, no mostrar el formulario de creación
@@ -134,12 +100,28 @@ export default function CrearUsuarioPage() {
 									},
 									body: JSON.stringify(adminData),
 								});
+								const res = await response.json();
 
 								if (!response.ok) {
-									const error = await response.json();
-									throw new Error(
-										error.message || 'Error al crear el administrador'
-									);
+									const errorMessage =
+										typeof res.error === 'object'
+											? Object.entries(res.error)
+													.map(([key, value]) => {
+														if (Array.isArray(value)) {
+															return `${key}: ${value.join(', ')}`;
+														}
+														if (typeof value === 'object' && value !== null) {
+															return `${key}: ${Object.values(value).join(
+																', '
+															)}`;
+														}
+														return `${key}: ${value}`;
+													})
+													.filter(Boolean)
+													.join('\n')
+											: res.error;
+									toast.error(errorMessage);
+									throw new Error(errorMessage);
 								}
 
 								toast.success('Administrador creado exitosamente');
@@ -171,7 +153,8 @@ export default function CrearUsuarioPage() {
 						onClose={() => setUserType('')}
 						onSave={async selloData => {
 							try {
-								setShowSuccessMessage(true);
+								toast.success('Sello creado exitosamente');
+								setSuccessUserType('sello');
 								setTimeout(() => {
 									setShowSuccessMessage(false);
 									setUserType('');
@@ -207,9 +190,10 @@ export default function CrearUsuarioPage() {
 								toast.error(
 									error instanceof Error
 										? error.message
+										: typeof error === 'string'
+										? error
 										: 'Error al crear el artista'
 								);
-								throw error;
 							}
 						}}
 					/>

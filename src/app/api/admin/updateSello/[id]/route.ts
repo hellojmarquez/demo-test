@@ -6,6 +6,11 @@ import { encryptPassword } from '@/utils/auth';
 import { createLog } from '@/lib/logger';
 import AccountRelationship from '@/models/AccountRelationshipModel';
 import SelloArtistaContrato from '@/models/AsignacionModel';
+import FormData from 'form-data';
+import nodeFetch from 'node-fetch';
+import fs from 'fs/promises';
+import path from 'path';
+import sharp from 'sharp';
 
 interface SubAccount {
 	subAccountId: string;
@@ -56,6 +61,7 @@ export async function PUT(
 		}
 
 		const { id } = params;
+
 		await dbConnect();
 		// Obtener el sello actual para comparar cambios
 		const currentSello = await User.findOne({ external_id: id });
@@ -67,58 +73,100 @@ export async function PUT(
 			);
 		}
 
-		let data: any;
-		let file: File | null = null;
+		const formD = await req.formData();
 
+		let data: any = {};
+		data = formD.get('data') as string;
+		data = JSON.parse(data);
+
+		const fileName = formD.get('fileName') as string;
+		const chunk = formD.get('chunk') as Blob;
+		const chunkIndex = parseInt(formD.get('chunkIndex') as string);
+		const totalChunks = parseInt(formD.get('totalChunks') as string);
+		const fileType = formD.get('fileType') as string;
+		let tempFilePath: string | null = null;
+
+		let tempDir: string | null = null;
+		let safeFileName: string | null = null;
 		let picture_url = '';
 		let picture_path = '';
 
-		// Determinar si la solicitud es FormData o JSON
-		const contentType = req.headers.get('content-type') || '';
-		if (contentType.includes('multipart/form-data')) {
-			const formData = await req.formData();
-			file = formData.get('file') as File;
-
-			// Extraer todos los campos del FormData
-			data = {
-				name: formData.get('name'),
-				email: formData.get('email'),
-				password: formData.get('password'),
-				role: formData.get('role'),
-				external_id: Number(formData.get('external_id')),
-				_id: formData.get('_id'),
-				status: formData.get('status'),
-				catalog_num: formData.get('catalog_num'),
-				year: formData.get('year'),
-				exclusivity: formData.get('exclusivity'),
-				primary_genre: formData.get('primary_genre'),
-				subAccounts: formData.get('subAccounts'),
-				asignaciones: formData.get('asignaciones'),
-			};
-		} else if (contentType.includes('application/json')) {
-			data = await req.json();
-		}
-
 		if (!data) {
+			console.log('No se recibieron datos para actualizar');
 			return NextResponse.json(
 				{ error: 'No se recibieron datos para actualizar' },
 				{ status: 400 }
 			);
 		}
 
-		// Preparar los datos para la actualización
 		let updateData: any = {
 			name: data.name,
 			primary_genre: data.primary_genre,
-			year: parseInt(data.year),
-			catalog_num: parseInt(data.catalog_num),
-			status: data.status,
+			year: parseInt(data.year as string),
+			catalog_num: parseInt(data.catalog_num as string),
 			logo: '',
 		};
+
 		// Manejar la imagen si se proporciona una nueva
-		if (file) {
+		if (fileName && fileName.length > 0) {
+			if (isNaN(chunkIndex) || isNaN(totalChunks)) {
+				return NextResponse.json(
+					{ success: false, error: 'Datos de chunk inválidos' },
+					{ status: 400 }
+				);
+			}
+			const tempDir = path.join(process.cwd(), 'temp_uploads');
+			await fs.mkdir(tempDir, { recursive: true });
+
+			// Define el nombre del archivo temporal. ESTO DEBE ESTAR FUERA DEL IF.
+			const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+			const tempFileName = `upload_${safeFileName}.tmp`;
+			tempFilePath = path.join(tempDir, tempFileName);
+			const chunkBuffer = Buffer.from(await chunk.arrayBuffer());
+			await fs.appendFile(tempFilePath, chunkBuffer);
+
+			if (chunkIndex < totalChunks - 1) {
+				return NextResponse.json({
+					success: true,
+					message: `Chunk ${chunkIndex} recibido`,
+				});
+			}
+
+			const { size: fileSize } = await fs.stat(tempFilePath);
+			const fileBuffer = await fs.readFile(tempFilePath);
+			const metadata = await sharp(fileBuffer).metadata();
+			const sizeInMB = fileSize / 1024 / 1024;
+
+			if (
+				metadata.width !== 1000 ||
+				metadata.height !== 1000 ||
+				(metadata.format !== 'jpeg' && metadata.format !== 'jpg') ||
+				(metadata.space !== 'srgb' && metadata.space !== 'rgb')
+			) {
+				await fs.unlink(tempFilePath);
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'La imagen no tiene el formato o características soportadas',
+					},
+					{ status: 400 }
+				);
+			}
+			if (sizeInMB > 4) {
+				await fs.unlink(tempFilePath);
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'La imagen es debe pesar máximo 4MB',
+					},
+					{ status: 400 }
+				);
+			}
+			const fixedname = fileName.replaceAll(' ', '_');
+
+			const safeName = fixedname;
 			const uploadMediaReq = await fetch(
-				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${file.name}&filetype=${file.type}&upload_type=label.logo`,
+				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${safeName}&filetype=image/jpeg&upload_type=label.logo`,
 				{
 					method: 'GET',
 					headers: {
@@ -129,6 +177,13 @@ export async function PUT(
 					},
 				}
 			);
+			if (!uploadMediaReq) {
+				console.log('Error al obtener la url firmada');
+				return NextResponse.json(
+					{ error: 'Error al obtener la url firmada' },
+					{ status: 400 }
+				);
+			}
 			const uploadMediaRes = await uploadMediaReq.json();
 			const { url: signedUrl, fields: mediaFields } = uploadMediaRes.signed_url;
 			const mediaFormData = new FormData();
@@ -137,11 +192,19 @@ export async function PUT(
 					mediaFormData.append(key, value);
 				}
 			});
-			mediaFormData.append('file', file);
-			const uploadResponse = await fetch(signedUrl, {
+
+			mediaFormData.append('file', fileBuffer, {
+				filename: safeName,
+				contentType: 'image/jpeg',
+				knownLength: fileSize,
+			});
+			const uploadResponse = await nodeFetch(signedUrl, {
 				method: 'POST',
 				body: mediaFormData,
+				headers: mediaFormData.getHeaders(),
 			});
+
+			await fs.unlink(tempFilePath);
 			picture_url = uploadResponse?.headers?.get('location') || '';
 			const picture_path_decoded = decodeURIComponent(
 				new URL(picture_url).pathname.slice(1)
@@ -149,7 +212,8 @@ export async function PUT(
 			picture_path = picture_path_decoded.replace('media/', '');
 			updateData.logo = picture_path;
 		}
-		if (picture_path.length > 0) {
+
+		if (picture_path && picture_path.length > 0) {
 			updateData.logo = picture_path;
 		} else {
 			const decoded_logo = decodeURIComponent(
@@ -159,7 +223,7 @@ export async function PUT(
 		}
 
 		const externalApiRes = await fetch(
-			`${process.env.MOVEMUSIC_API}/labels/${data.external_id}`,
+			`${process.env.MOVEMUSIC_API}/labels/${id}`,
 			{
 				method: 'PUT',
 				body: JSON.stringify(updateData),
@@ -172,33 +236,34 @@ export async function PUT(
 			}
 		);
 
-		const externalApiResJson = await externalApiRes.json();
+		if (!externalApiRes.ok) {
+			const externalApiResJson = await externalApiRes.json();
 
-		if (!externalApiResJson.id) {
 			return NextResponse.json(
 				{
 					success: false,
 					error:
-						externalApiRes.statusText ||
+						externalApiResJson ||
 						'Ha habido un error, estamos trabajando en ello',
 				},
 				{ status: 400 }
 			);
 		}
 
-		if (data.password) {
-			data.password = await encryptPassword(data.password);
-		}
 		delete updateData.logo;
-		const dataToBBDD = {
-			...updateData,
-			isMainAccount: true,
-			email: data.email,
-			password: data.password,
 
-			picture: picture_path.length > 0 ? picture_path : currentSello.picture,
+		let dataToBBDD = {
+			...updateData,
+			email: data.email,
+			role: data.role,
+			external_id: data.external_id,
+			isMainAccount: true,
+			status: data.status,
+			picture: picture_url.length > 0 ? picture_url : currentSello.picture,
 		};
-		file && (dataToBBDD.picture = picture_url);
+		if (data.password) {
+			dataToBBDD.password = await encryptPassword(data.password);
+		}
 
 		// Actualizar el sello
 		const updatedSello = await Sello.findOneAndUpdate(
@@ -213,8 +278,7 @@ export async function PUT(
 				new: true,
 				runValidators: true,
 			}
-		);
-
+		).select('-password');
 		if (!updatedSello) {
 			return NextResponse.json(
 				{ error: 'Error al actualizar el sello' },
@@ -225,14 +289,13 @@ export async function PUT(
 		try {
 			// Si hay asignaciones, procesarlas
 			if (data.asignaciones) {
-				const asignaciones = JSON.parse(data.asignaciones);
+				const asignaciones = data.asignaciones;
 
 				// Obtener las asignaciones existentes
 				const existingAsignaciones = await SelloArtistaContrato.find({
 					sello_id: updatedSello._id,
 					estado: 'activo',
 				});
-
 				// Crear un mapa de las asignaciones existentes
 				const existingMap = new Map(
 					existingAsignaciones.map(asig => [asig.artista_id.toString(), asig])
@@ -248,7 +311,7 @@ export async function PUT(
 
 				// Eliminar asignaciones que ya no existen
 				if (data.removedAsignaciones) {
-					const removedAsignaciones = JSON.parse(data.removedAsignaciones);
+					const removedAsignaciones = data.removedAsignaciones;
 					if (data.removedAsignaciones.length > 0) {
 						removedAsignaciones.forEach(async (id: string) => {
 							await SelloArtistaContrato.findByIdAndUpdate(id, {
@@ -321,7 +384,7 @@ export async function PUT(
 		try {
 			// Si hay subcuentas, procesarlas
 			if (data.subAccounts) {
-				const subAccounts = JSON.parse(data.subAccounts) as SubAccount[];
+				const subAccounts = data.subAccounts as SubAccount[];
 
 				// Obtener las relaciones existentes
 				const existingRelationships = await AccountRelationship.find({
@@ -383,10 +446,13 @@ export async function PUT(
 			success: true,
 			data: updatedSello,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error updating sello:', error);
 		return NextResponse.json(
-			{ error: 'Error al actualizar el sello' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

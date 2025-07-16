@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Settings, LogOut, User, ChevronDown, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { storage } from '@/lib/storage';
 
 export default function AccountSwitchButton({
 	onMenuClose,
@@ -57,7 +58,7 @@ export default function AccountSwitchButton({
 			logout();
 
 			// Limpiar nextauth.message
-			localStorage.removeItem('nextauth.message');
+			storage.remove('nextauth.message');
 
 			// Luego hacer la llamada al API
 			const response = await fetch('/api/auth/logout', {
@@ -97,14 +98,6 @@ export default function AccountSwitchButton({
 			className="flex flex-row gap-x-2 w-full relative items-center justify-center "
 			ref={dropdownRef}
 		>
-			<span className="my-auto -mt-2 md:m-0">
-				<a
-					href="https://isla-sounds.zendesk.com/hc/en-us/requests/new"
-					target="_blank"
-				>
-					<HelpCircle className=" text-white w-5 h-5" />
-				</a>
-			</span>
 			<button
 				onClick={() => setIsOpen(!isOpen)}
 				className="text-sm bg-gray-50/10 hover:bg-gray-50/20 text-white p-2 rounded-full transition flex items-center  space-x-2 md:space-x-3"

@@ -39,9 +39,7 @@ export const initSocket = (res: NextApiResponseWithSocket) => {
 
 			socket.on('ticket-updated', ({ ticketId, ticket }) => {});
 
-			socket.on('disconnect', () => {
-				console.log('Cliente desconectado:', socket.id);
-			});
+			socket.on('disconnect', () => {});
 		});
 
 		res.socket.server.io = io;

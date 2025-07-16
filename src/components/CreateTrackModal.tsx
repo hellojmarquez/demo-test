@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, XCircle, Plus, Trash2, Upload, Image } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 import 'react-clock/dist/Clock.css';
+import { useRouter } from 'next/navigation';
 import Cleave from 'cleave.js/react';
 import 'cleave.js/dist/addons/cleave-phone.us';
 import Select, { SingleValue } from 'react-select';
@@ -13,6 +14,7 @@ import type { TrackArtist, TrackNewArtist } from './TrackArtistSelector';
 import NextImage from 'next/image';
 import ContributorSelector from './ContributorSelector';
 import { toast, Toaster } from 'react-hot-toast';
+import AsyncSelect from './ui/AsyncSelect';
 
 export interface GenreData {
 	id: number;
@@ -129,6 +131,14 @@ interface NewContributor {
 	role_name: string;
 	order: number;
 }
+interface PlatformOption {
+	value: string;
+	label: string;
+	id?: string;
+	image?: string;
+	followers?: number;
+	popularity?: number;
+}
 
 const customSelectStyles = {
 	control: (provided: any) => ({
@@ -169,7 +179,10 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	onClose,
 	isAsset,
 }) => {
+	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
+	const [spotifyOoptions, setSpotifyOoptions] = useState<PlatformOption[]>([]);
+	const [deezerOoptions, setDeezerOoptions] = useState<PlatformOption[]>([]);
 	const [artists, setArtists] = useState<Artist[]>([]);
 	const [contributors, setContributors] = useState<ContributorData[]>([]);
 	const [publishers, setPublishers] = useState<Publisher[]>([]);
@@ -178,7 +191,14 @@ const TrackForm: React.FC<TrackFormProps> = ({
 	const [artistsError, setArtistsError] = useState<string[]>([]);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [selectedFileDolby, setSelectedFileDolby] = useState<File | null>(null);
-	const [uploadProgress, setUploadProgress] = useState<number>(0);
+	const [isProcessing, setIsProcessing] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
 	const [subgenres, setSubgenres] = useState<Subgenre[]>([]);
 	const [newArtistData, setNewArtistData] = useState<NewArtistData>({
@@ -315,10 +335,8 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				const artistsData = await artistsRes.json();
 				if (artistsData.success) {
 					// Filter artists to only include those with role 'artista'
-					const filteredArtists = artistsData.data.filter(
-						(user: any) => user.role === 'artista'
-					);
-					setArtists(filteredArtists);
+
+					setArtists(artistsData.data);
 				}
 
 				// Fetch roles
@@ -523,8 +541,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		if (file) {
 			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
 				setSelectedFile(file);
-
-				setUploadProgress(0);
 			} else {
 				alert('Por favor, selecciona un archivo WAV válido');
 				e.target.value = '';
@@ -536,12 +552,97 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		if (file) {
 			if (file.type === 'audio/wav' || file.name.endsWith('.wav')) {
 				setSelectedFileDolby(file);
-
-				setUploadProgress(0);
 			} else {
 				alert('Por favor, selecciona un archivo WAV válido');
 				e.target.value = '';
 			}
+		}
+	};
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
+
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string,
+		fileType: 'file' | 'dolby_file'
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+		formData.append('fileType', fileType);
+
+		const response = await fetch(
+			`/api/admin/updateSingle/${localTrack.external_id}`,
+			{
+				method: 'PUT',
+				body: formData,
+			}
+		);
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (
+		file: File,
+		trackData: any,
+		fileType: 'file' | 'dolby_file'
+	) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name,
+				fileType
+			);
+		}
+
+		return lastResponse;
+	};
+	const handlePlatformArtistChange = (fieldName: string) => (option: any) => {
+		if (option) {
+			setNewArtistData(prev => ({
+				...prev,
+				[fieldName]: option.value,
+			}));
 		}
 	};
 	const handleSave = async (e: any) => {
@@ -549,6 +650,26 @@ const TrackForm: React.FC<TrackFormProps> = ({
 		setIsLoading(true);
 		setContributorError([]);
 		setArtistsError([]);
+		setIsProcessing(true);
+
+		const tracks = [];
+		if (selectedFileDolby) tracks.push(selectedFileDolby);
+		if (selectedFile) tracks.push(selectedFile);
+		const totalChunks = tracks.reduce((sum, file) => {
+			if (file) {
+				return sum + Math.ceil(file.size / (250 * 1024)); // 250KB por chunk
+			}
+			return sum;
+		}, 0);
+		let lastSuccessfulResponse = null;
+		setUploadProgress({
+			total: tracks.length,
+			loaded: 0,
+			percentage: 0,
+			totalChunks: totalChunks,
+			filesCompleted: 0,
+		});
+
 		try {
 			if (localTrack?.external_id) {
 				// Crear FormData para enviar el archivo
@@ -592,39 +713,192 @@ const TrackForm: React.FC<TrackFormProps> = ({
 				if (selectedFile) {
 					formData.append('file', selectedFile);
 				}
-
 				if (selectedFileDolby) {
 					formData.append('dolby_file', selectedFileDolby);
 				}
-
 				// Añadir el resto de los datos del track
 				formData.append('data', JSON.stringify(localTrack));
 
-				// Si tiene external_id, actualizar el track existente
-				const response = await fetch(
-					`/api/admin/updateSingle/${localTrack.external_id}`,
-					{
-						method: 'PUT',
-						body: formData, // Enviar FormData en lugar de JSON
+				let mainFileSuccess = true;
+				let dolbyFileSuccess = true;
+				if (!selectedFile && !selectedFileDolby) {
+					const response = await fetch(
+						`/api/admin/updateSingle/${localTrack.external_id}`,
+						{
+							method: 'PUT',
+							body: formData,
+						}
+					);
+					const data = await response.json();
+
+					if (!response.ok) {
+						const errorMessage =
+							typeof data.error === 'object'
+								? Object.entries(data.error)
+										.map(([key, value]) => {
+											if (Array.isArray(value)) {
+												// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+												const arrayErrors = value
+													.map((item, index) => {
+														if (typeof item === 'object' && item !== null) {
+															return Object.entries(item)
+																.map(([nestedKey, nestedValue]) => {
+																	if (Array.isArray(nestedValue)) {
+																		return `${nestedKey}: ${nestedValue.join(
+																			', '
+																		)}`;
+																	}
+																	return `${nestedKey}: ${nestedValue}`;
+																})
+																.join(', ');
+														}
+														return String(item);
+													})
+													.join(', ');
+												return `${key}: ${arrayErrors}`;
+											}
+											if (typeof value === 'object' && value !== null) {
+												// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+												const nestedErrors = Object.entries(value)
+													.map(([nestedKey, nestedValue]) => {
+														if (Array.isArray(nestedValue)) {
+															return `${nestedKey}: ${nestedValue.join(', ')}`;
+														}
+														if (
+															typeof nestedValue === 'object' &&
+															nestedValue !== null
+														) {
+															return `${nestedKey}: ${Object.values(nestedValue)
+																.flat()
+																.join(', ')}`;
+														}
+														return `${nestedKey}: ${nestedValue}`;
+													})
+													.join(', ');
+												return `${key}: ${nestedErrors}`;
+											}
+											return `${key}: ${value}`;
+										})
+										.filter(Boolean)
+										.join('\n')
+								: data.error;
+						setError(errorMessage);
+						throw new Error(errorMessage);
 					}
-				);
+					toast.success('Track actualizado correctamente');
+					return;
+				} else {
+					// Con archivos
+					if (selectedFile) {
+						try {
+							const res = await uploadFileByChunks(
+								selectedFile,
+								localTrack,
+								'file'
+							);
+							lastSuccessfulResponse = res;
+							setUploadProgress(prev => {
+								if (!prev) return prev;
+								return {
+									...prev,
+									filesCompleted: prev.filesCompleted + 1,
+								};
+							});
+						} catch (error) {
+							mainFileSuccess = false;
+							toast.error('Error al subir archivo principal');
+						}
+					}
 
-				if (!response.ok) {
-					throw new Error('Error al actualizar el track');
+					if (selectedFileDolby) {
+						try {
+							const res = await uploadFileByChunks(
+								selectedFileDolby,
+								localTrack,
+								'dolby_file'
+							);
+							lastSuccessfulResponse = res;
+							setUploadProgress(prev => {
+								if (!prev) return prev;
+								return {
+									...prev,
+									filesCompleted: prev.filesCompleted + 1,
+								};
+							});
+						} catch (error) {
+							dolbyFileSuccess = false;
+							toast.error('Error al subir archivo Dolby Atmos');
+						}
+					}
 				}
-
-				const data = await response.json();
-				console.log(data);
-				if (!data.success) {
-					throw new Error(data.error || 'Error al actualizar el track');
+				if (!lastSuccessfulResponse.success) {
+					const errorMessage =
+						typeof lastSuccessfulResponse.error === 'object'
+							? Object.entries(lastSuccessfulResponse.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: lastSuccessfulResponse.error;
+					setError(errorMessage);
+					throw new Error(errorMessage);
 				}
-
 				toast.success('Track actualizado correctamente');
 			}
 		} catch (error) {
 			console.error('Error al guardar el track:', error);
-			toast.error('Error al guardar el track');
+			toast.error(
+				error instanceof Error ? error.message : 'Error al guardar el track'
+			);
 		} finally {
+			setSelectedFile(null);
+			setError(null);
+			setUploadProgress(null);
+			setContributorError([]);
+			setArtistsError([]);
+			setIsProcessing(false);
 			setIsLoading(false);
 		}
 	};
@@ -653,7 +927,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 			</div>
 
 			{error && (
-				<div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
+				<div className="mb-4 p-4 bg-red-200 text-red-700 rounded-md">
 					{error}
 				</div>
 			)}
@@ -672,8 +946,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									<div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
 										<Upload className="w-10 h-10 md:w-12 md:h-12 mb-2 md:mb-3 text-gray-400 group-hover:text-brand-light transition-colors duration-200" />
 										<p className="mb-1 md:mb-2 text-sm text-gray-500">
-											<span className="font-semibold">Click para subir</span> o
-											arrastra y suelta
+											<span className="font-semibold">Click para subir</span>
 										</p>
 										<p className="text-xs text-gray-500">WAV (MAX. 800MB)</p>
 									</div>
@@ -686,21 +959,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									/>
 								</div>
 							</div>
-
-							{uploadProgress > 0 && uploadProgress < 100 && (
-								<div className="mt-4">
-									<div className="flex justify-between text-sm text-gray-600 mb-1">
-										<span>Subiendo archivo...</span>
-										<span>{uploadProgress}%</span>
-									</div>
-									<div className="w-full bg-gray-200 rounded-full h-2">
-										<div
-											className="bg-brand-light h-2 rounded-full transition-all duration-300 ease-in-out"
-											style={{ width: `${uploadProgress}%` }}
-										></div>
-									</div>
-								</div>
-							)}
 
 							{(selectedFile || track?.resource) && (
 								<div className="mt-4 p-3 md:p-4 w-1/2 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -744,8 +1002,7 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									<div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
 										<Upload className="w-10 h-10 md:w-12 md:h-12 mb-2 md:mb-3 text-gray-400 group-hover:text-brand-light transition-colors duration-200" />
 										<p className="mb-1 md:mb-2 text-sm text-gray-500">
-											<span className="font-semibold">Click para subir</span> o
-											arrastra y suelta
+											<span className="font-semibold">Click para subir</span>
 										</p>
 										<p className="text-xs text-gray-500">WAV (MAX. 800MB)</p>
 									</div>
@@ -758,21 +1015,6 @@ const TrackForm: React.FC<TrackFormProps> = ({
 									/>
 								</div>
 							</div>
-
-							{uploadProgress > 0 && uploadProgress < 100 && (
-								<div className="mt-4">
-									<div className="flex justify-between text-sm text-gray-600 mb-1">
-										<span>Subiendo archivo...</span>
-										<span>{uploadProgress}%</span>
-									</div>
-									<div className="w-full bg-gray-200 rounded-full h-2">
-										<div
-											className="bg-brand-light h-2 rounded-full transition-all duration-300 ease-in-out"
-											style={{ width: `${uploadProgress}%` }}
-										></div>
-									</div>
-								</div>
-							)}
 
 							{(selectedFileDolby || track?.dolby_atmos_resource) && (
 								<div className="mt-4 p-3 md:p-4 w-1/2 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -1249,9 +1491,9 @@ const TrackForm: React.FC<TrackFormProps> = ({
 							}))}
 							newArtists={localTrack?.newArtists || []}
 							artistData={
-								artists?.map(a => ({
-									artist: a?.artist || 0,
-									name: a?.name || '',
+								artists?.map((a: any) => ({
+									artist: a.external_id || 0,
+									name: a.name || '',
 								})) || []
 							}
 							onArtistsChange={(newArtists: TrackArtist[]) => {
@@ -1756,7 +1998,27 @@ const TrackForm: React.FC<TrackFormProps> = ({
 						)}
 					</div>
 				</div>
-
+				{error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+				{(uploadProgress || isProcessing) && (
+					<div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+						{uploadProgress && (
+							<div className="w-full bg-gray-200 rounded-full h-2">
+								<div
+									className="bg-brand-dark h-2 rounded-full transition-all duration-300"
+									style={{ width: `${uploadProgress.percentage}%` }}
+								></div>
+							</div>
+						)}
+						<div className="text-sm text-gray-600 mt-2 flex items-center gap-2">
+							<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-dark border-t-transparent" />
+							<span>
+								{uploadProgress
+									? `Subiendo: ${uploadProgress.filesCompleted}/${uploadProgress.total} archivos (${uploadProgress.percentage}%)`
+									: 'Procesando track...'}
+							</span>
+						</div>
+					</div>
+				)}
 				<div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
 					<button
 						type="button"
@@ -1879,16 +2141,39 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										</div>
 										ID Apple Music
 									</label>
-									<input
-										type="text"
-										value={newArtistData.apple_identifier}
-										onChange={e =>
-											setNewArtistData(prev => ({
-												...prev,
-												apple_identifier: e.target.value,
-											}))
-										}
-										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									<AsyncSelect
+										loadOptions={async searchTerm => {
+											if (!searchTerm.trim() || searchTerm.length < 2) {
+												return;
+											}
+											const spotifyReq = await fetch(
+												`/api/admin/getAppleArtists`,
+												{
+													method: 'POST',
+													headers: {
+														'Content-Type': 'application/json',
+													},
+													body: JSON.stringify({ query: searchTerm }),
+												}
+											);
+
+											if (!spotifyReq.ok) {
+												setSpotifyOoptions([]);
+												return [];
+											}
+											const spotifyRes = await spotifyReq.json();
+
+											return spotifyRes.data.map((artist: any) => ({
+												value: artist.id,
+												label: artist.label,
+												image: artist.image,
+												url: artist.url,
+												followers: artist.followers,
+												popularity: artist.popularity,
+											}));
+										}}
+										placeholder="Buscar..."
+										onChange={handlePlatformArtistChange('apple_identifier')}
 									/>
 								</div>
 
@@ -1905,16 +2190,38 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										</div>
 										ID Deezer
 									</label>
-									<input
-										type="text"
-										value={newArtistData.deezer_identifier}
-										onChange={e =>
-											setNewArtistData(prev => ({
-												...prev,
-												deezer_identifier: e.target.value,
-											}))
-										}
-										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									<AsyncSelect
+										loadOptions={async searchTerm => {
+											if (!searchTerm.trim() || searchTerm.length < 2) {
+												return;
+											}
+											const spotifyReq = await fetch(
+												`/api/admin/getDezeerArtists`,
+												{
+													method: 'POST',
+													headers: {
+														'Content-Type': 'application/json',
+													},
+													body: JSON.stringify({ query: searchTerm }),
+												}
+											);
+
+											if (!spotifyReq.ok) {
+												setDeezerOoptions([]);
+												return [];
+											}
+											const spotifyRes = await spotifyReq.json();
+											return spotifyRes.data.map((artist: any) => ({
+												value: artist.id,
+												label: artist.label,
+												image: artist.image,
+												url: artist.url,
+												followers: artist.followers,
+												popularity: artist.popularity,
+											}));
+										}}
+										placeholder="Buscar..."
+										onChange={handlePlatformArtistChange('deezer_identifier')}
 									/>
 								</div>
 
@@ -1931,16 +2238,39 @@ const TrackForm: React.FC<TrackFormProps> = ({
 										</div>
 										ID Spotify
 									</label>
-									<input
-										type="text"
-										value={newArtistData.spotify_identifier}
-										onChange={e =>
-											setNewArtistData(prev => ({
-												...prev,
-												spotify_identifier: e.target.value,
-											}))
-										}
-										className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									<AsyncSelect
+										loadOptions={async searchTerm => {
+											if (!searchTerm.trim() || searchTerm.length < 2) {
+												return;
+											}
+											const spotifyReq = await fetch(
+												`/api/admin/getSpotifyArtists`,
+												{
+													method: 'POST',
+													headers: {
+														'Content-Type': 'application/json',
+													},
+													body: JSON.stringify({ query: searchTerm }),
+												}
+											);
+
+											if (!spotifyReq.ok) {
+												setSpotifyOoptions([]);
+												return [];
+											}
+											const spotifyRes = await spotifyReq.json();
+
+											return spotifyRes.data.map((artist: any) => ({
+												value: artist.id,
+												label: artist.label,
+												image: artist.image,
+												url: artist.url,
+												followers: artist.followers,
+												popularity: artist.popularity,
+											}));
+										}}
+										placeholder="Buscar..."
+										onChange={handlePlatformArtistChange('spotify_identifier')}
 									/>
 								</div>
 							</div>

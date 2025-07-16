@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XCircle, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface CreateContributorModalProps {
 	isOpen: boolean;
@@ -24,6 +25,8 @@ export default function CreateContributorModal({
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -39,19 +42,37 @@ export default function CreateContributorModal({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		setIsSubmitting(true);
+		setError(null);
+		setNameError(null);
+		setEmailError(null);
+		let hasError = false;
 		if (
 			!formData.name.trim() ||
 			!formData.email.trim() ||
 			!formData.password.trim()
 		) {
 			setError('Todos los campos son requeridos');
+			hasError = true;
+			return;
+		}
+		const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+		const regexName = /^[a-zA-Z\s]+$/;
+		if (!regex.test(formData.email)) {
+			setEmailError('El email no es válido');
+			hasError = true;
+		}
+		if (!regexName.test(formData.name)) {
+			setNameError('El nombre no es válido');
+			hasError = true;
+		}
+		if (hasError) {
+			setIsSubmitting(false);
+			setError('Por favor, corrige los errores en el formulario');
 			return;
 		}
 
 		try {
-			setIsSubmitting(true);
-			setError(null);
-
 			const response = await fetch('/api/admin/createContributor', {
 				method: 'POST',
 				headers: {
@@ -63,7 +84,58 @@ export default function CreateContributorModal({
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Error al crear el contribuidor');
+				const errorMessage =
+					typeof data.error === 'object'
+						? Object.entries(data.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+										const arrayErrors = value
+											.map((item, index) => {
+												if (typeof item === 'object' && item !== null) {
+													return Object.entries(item)
+														.map(([nestedKey, nestedValue]) => {
+															if (Array.isArray(nestedValue)) {
+																return `${nestedKey}: ${nestedValue.join(
+																	', '
+																)}`;
+															}
+															return `${nestedKey}: ${nestedValue}`;
+														})
+														.join(', ');
+												}
+												return String(item);
+											})
+											.join(', ');
+										return `${key}: ${arrayErrors}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+										const nestedErrors = Object.entries(value)
+											.map(([nestedKey, nestedValue]) => {
+												if (Array.isArray(nestedValue)) {
+													return `${nestedKey}: ${nestedValue.join(', ')}`;
+												}
+												if (
+													typeof nestedValue === 'object' &&
+													nestedValue !== null
+												) {
+													return `${nestedKey}: ${Object.values(nestedValue)
+														.flat()
+														.join(', ')}`;
+												}
+												return `${nestedKey}: ${nestedValue}`;
+											})
+											.join(', ');
+										return `${key}: ${nestedErrors}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: data.error;
+				setError(errorMessage);
+				throw new Error(errorMessage);
 			}
 
 			await onSave(data.contributor);
@@ -108,7 +180,7 @@ export default function CreateContributorModal({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="space-y-4">
+						<form className="space-y-4">
 							<div>
 								<label
 									htmlFor="name"
@@ -120,11 +192,15 @@ export default function CreateContributorModal({
 									type="text"
 									id="name"
 									name="name"
+									placeholder="Nombre y apellido"
 									value={formData.name}
 									onChange={handleChange}
 									className={inputStyles}
 									required
 								/>
+								{nameError && nameError.length > 0 && (
+									<p className="text-red-500 text-[9px] mt-1">{nameError}</p>
+								)}
 							</div>
 
 							<div>
@@ -143,6 +219,9 @@ export default function CreateContributorModal({
 									className={inputStyles}
 									required
 								/>
+								{emailError && emailError.length > 0 && (
+									<p className="text-red-500 text-[9px] mt-1">{emailError}</p>
+								)}
 							</div>
 
 							<div>
@@ -180,7 +259,8 @@ export default function CreateContributorModal({
 									<span className="group-hover:text-brand-dark">Cancelar</span>
 								</button>
 								<button
-									type="submit"
+									type="button"
+									onClick={handleSubmit}
 									disabled={isSubmitting}
 									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>

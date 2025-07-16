@@ -45,9 +45,12 @@ export async function GET(request: NextRequest) {
 			data: ddexDeliveryRes,
 		});
 	} catch (error: any) {
-		console.error('Error en DDX-Delivery:', error);
+	
 		return NextResponse.json(
-			{ success: false, message: error.message },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

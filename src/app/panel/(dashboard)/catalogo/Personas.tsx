@@ -24,6 +24,7 @@ import SortSelect from '@/components/SortSelect';
 import { Sello } from '@/types/sello';
 import { Artista } from '@/types/artista';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 // Tipo base para todas las personas
 interface BasePersona {
@@ -97,6 +98,14 @@ const Personas = () => {
 	const [selectedPublisher, setSelectedPublisher] = useState<Persona | null>(
 		null
 	);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
+
 	const [showContributorModal, setShowContributorModal] = useState(false);
 	const [selectedContributor, setSelectedContributor] =
 		useState<Persona | null>(null);
@@ -105,17 +114,19 @@ const Personas = () => {
 	const [showSelloModal, setShowSelloModal] = useState(false);
 	const [selectedSello, setSelectedSello] = useState<Persona | null>(null);
 	const [expandedUser, setExpandedUser] = useState<string | null>(null);
-
+	const [error, setError] = useState<string | null>(null);
 	const fetchUsers = async (
 		page: number = 1,
 		search: string = '',
-		sort: string = 'newest'
+		sort: string = 'newest',
+		signal?: AbortSignal
 	) => {
 		try {
 			const response = await fetch(
 				`/api/admin/getAllPersonas?page=${page}${
 					search ? `&search=${encodeURIComponent(search)}` : ''
-				}&sort=${sort}`
+				}&sort=${sort}`,
+				{ signal }
 			);
 			if (response.ok) {
 				const data = await response.json();
@@ -126,14 +137,33 @@ const Personas = () => {
 					setCurrentPage(data.data.pagination.page);
 				}
 			}
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			if (response.status === 401) {
+				window.location.href = '/panel/login';
+				return;
+			}
 			setIsLoading(false);
 		} catch (error) {
+			if (error instanceof Error && error.name === 'AbortError') {
+				console.log('Fetch aborted');
+			} else {
+				console.error('Error fetching users:', error);
+			}
 			setIsLoading(false);
 		}
 	};
 
 	useEffect(() => {
-		fetchUsers(currentPage, searchQuery, sortBy);
+		const controller = new AbortController();
+		const signal = controller.signal;
+
+		fetchUsers(currentPage, searchQuery, sortBy, signal);
+
+		return () => {
+			controller.abort(); // Cancela la petición cuando el componente se desmonta
+		};
 	}, [currentPage, searchQuery, sortBy]);
 
 	const handleDelete = async (e: React.MouseEvent, persona: Persona) => {
@@ -257,53 +287,214 @@ const Personas = () => {
 		// Recargar la lista de personas después de actualizar un contribuidor
 		fetchUsers(currentPage, searchQuery, sortBy);
 	};
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string,
+		url: string
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+		formData.append('fileType', fileName.split('.').pop() || '');
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+
+		const response = await fetch(url, {
+			method: 'PUT',
+			body: formData,
+		});
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
+
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (
+		file: File,
+		trackData: any,
+		url: string
+	) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name,
+				url
+			);
+		}
+
+		return lastResponse;
+	};
 
 	const handleArtistaUpdate = async (data: FormData | Artista) => {
 		try {
+			const URL = `/api/admin/updateArtist/${selectedArtista?.external_id}`;
 			// Determinar si es FormData o JSON
 			const isFormData = data instanceof FormData;
-			const headers: HeadersInit = {};
-			let body: string | FormData;
-
+			let picture = false;
 			if (isFormData) {
-				// Si es FormData, no establecer Content-Type (el navegador lo hará automáticamente)
-				body = data;
-			} else {
-				// Si es JSON, establecer Content-Type y convertir a string
-				headers['Content-Type'] = 'application/json';
-				body = JSON.stringify({
-					...data,
-					role: 'artista',
-				});
-			}
+				const fil = data.get('picture');
+				picture = fil instanceof File;
+				const file = data.get('picture') as File;
+				if (picture) {
+					const dataString = data.get('data') as string;
+					const userData = JSON.parse(dataString);
+					const dat = await uploadFileByChunks(file, userData, URL);
+					if (!dat) {
+						const errorMessage =
+							typeof dat.error === 'object'
+								? Object.entries(dat.error)
+										.map(([key, value]) => {
+											if (Array.isArray(value)) {
+												// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+												const arrayErrors = value
+													.map((item, index) => {
+														if (typeof item === 'object' && item !== null) {
+															return Object.entries(item)
+																.map(([nestedKey, nestedValue]) => {
+																	if (Array.isArray(nestedValue)) {
+																		return `${nestedKey}: ${nestedValue.join(
+																			', '
+																		)}`;
+																	}
+																	return `${nestedKey}: ${nestedValue}`;
+																})
+																.join(', ');
+														}
+														return String(item);
+													})
+													.join(', ');
+												return `${key}: ${arrayErrors}`;
+											}
+											if (typeof value === 'object' && value !== null) {
+												// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+												const nestedErrors = Object.entries(value)
+													.map(([nestedKey, nestedValue]) => {
+														if (Array.isArray(nestedValue)) {
+															return `${nestedKey}: ${nestedValue.join(', ')}`;
+														}
+														if (
+															typeof nestedValue === 'object' &&
+															nestedValue !== null
+														) {
+															return `${nestedKey}: ${Object.values(nestedValue)
+																.flat()
+																.join(', ')}`;
+														}
+														return `${nestedKey}: ${nestedValue}`;
+													})
+													.join(', ');
+												return `${key}: ${nestedErrors}`;
+											}
+											return `${key}: ${value}`;
+										})
+										.filter(Boolean)
+										.join('\n')
+								: dat.error;
+						setError(errorMessage);
+						throw new Error(errorMessage);
+					}
+					router.refresh();
+					toast.success('Artista actualizado correctamente');
+				} else {
+					const res = await fetch(URL, {
+						method: 'PUT',
+						body: data,
+					});
+					if (!res.ok) {
+						const err = await res.json();
+						const errorMessage =
+							typeof err.error === 'object'
+								? Object.entries(err.error)
+										.map(([key, value]) => {
+											if (Array.isArray(value)) {
+												// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+												const arrayErrors = value
+													.map((item, index) => {
+														if (typeof item === 'object' && item !== null) {
+															return Object.entries(item)
+																.map(([nestedKey, nestedValue]) => {
+																	if (Array.isArray(nestedValue)) {
+																		return `${nestedKey}: ${nestedValue.join(
+																			', '
+																		)}`;
+																	}
+																	return `${nestedKey}: ${nestedValue}`;
+																})
+																.join(', ');
+														}
+														return String(item);
+													})
+													.join(', ');
+												return `${key}: ${arrayErrors}`;
+											}
+											if (typeof value === 'object' && value !== null) {
+												// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+												const nestedErrors = Object.entries(value)
+													.map(([nestedKey, nestedValue]) => {
+														if (Array.isArray(nestedValue)) {
+															return `${nestedKey}: ${nestedValue.join(', ')}`;
+														}
+														if (
+															typeof nestedValue === 'object' &&
+															nestedValue !== null
+														) {
+															return `${nestedKey}: ${Object.values(nestedValue)
+																.flat()
+																.join(', ')}`;
+														}
+														return `${nestedKey}: ${nestedValue}`;
+													})
+													.join(', ');
+												return `${key}: ${nestedErrors}`;
+											}
+											return `${key}: ${value}`;
+										})
+										.filter(Boolean)
+										.join('\n')
+								: err.error;
+						setError(errorMessage);
+						throw new Error(errorMessage);
+					}
 
-			// Obtener el external_id del artista
-			const external_id = isFormData
-				? data.get('external_id')?.toString()
-				: data.external_id?.toString();
-
-			if (!external_id) {
-				throw new Error('No se encontró el external_id del artista');
-			}
-
-			const res = await fetch(`/api/admin/updateArtist/${external_id}`, {
-				method: 'PUT',
-				headers,
-				body,
-			});
-
-			if (!res.ok) {
-				const errorData = await res.json();
-				throw new Error(errorData.error || 'Error al actualizar el artista');
-			}
-
-			const responseData = await res.json();
-
-			if (responseData.success) {
-				// Recargar la lista de personas después de actualizar un artista
-				fetchUsers(currentPage, searchQuery, sortBy);
-				setShowArtistaModal(false);
-				setSelectedArtista(null);
+					toast.success('Artista actualizado correctamente');
+				}
 			}
 		} catch (error) {
 			console.error('Error updating artist:', error);
@@ -393,7 +584,7 @@ const Personas = () => {
 				</div>
 			</div>
 
-			{showSuccessMessage && (
+			{/* {showSuccessMessage && (
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -402,7 +593,7 @@ const Personas = () => {
 				>
 					<span className="text-sm sm:text-base">Operación exitosa</span>
 				</motion.div>
-			)}
+			)} */}
 
 			<div className="overflow-x-auto">
 				<table className="min-w-full divide-y divide-gray-400">
@@ -796,7 +987,8 @@ const Personas = () => {
 							onClose={() => {
 								setSelectedArtista(null);
 							}}
-							onSave={async (data: FormData | Artista) => {
+							err={error}
+							onSave={async (data: any) => {
 								await handleArtistaUpdate(data);
 							}}
 						/>

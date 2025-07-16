@@ -52,10 +52,13 @@ export async function GET(req: NextRequest) {
 			success: true,
 			data: personasWithBase64,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error fetching contributor roles:', error);
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

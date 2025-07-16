@@ -83,10 +83,12 @@ export async function DELETE(
 			{ success: true, message: 'Release deleted successfully' },
 			{ status: 200 }
 		);
-	} catch (error) {
-		console.error('Error deleting release:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, message: 'Error deleting release' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

@@ -4,6 +4,11 @@ import User from '@/models/UserModel';
 import { encryptPassword } from '@/utils/auth';
 import { jwtVerify } from 'jose';
 import { createLog } from '@/lib/logger';
+import FormData from 'form-data';
+import nodeFetch from 'node-fetch';
+import fs from 'fs/promises';
+import path from 'path';
+import sharp from 'sharp';
 
 export async function POST(request: NextRequest) {
 	try {
@@ -42,111 +47,181 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Obtener datos del formulario
-		const formData = await request.formData();
-		let name = formData.get('name') as string;
-		name = name.trim();
-		let email = formData.get('email') as string;
-		email = email.trim();
-		const linkLogo = formData.get('logo') as string;
-		let password = formData.get('password') as string;
-		password = password.trim();
-		const primary_genre = formData.get('primary_genre') as string;
-		const year = formData.get('year') as string;
-		const catalog_num = formData.get('catalog_num') as string;
-		const picture = formData.get('picture') as File | null;
-		const isSubaccount = formData.get('isSubaccount') === 'true';
-		const parentUserId = formData.get('parentUserId') as string;
-		const parentName = formData.get('parentName') as string;
-		let logo = '';
-		if (linkLogo) {
-			logo = decodeURIComponent(new URL(linkLogo).pathname.slice(1));
-		}
-		let picture_url = '';
-		let picture_path = '';
-		// Validar campos requeridos
-		// if (!name || !primary_genre || !year || !catalog_num) {
-		// 	return NextResponse.json(
-		// 		{ error: 'Todos los campos son requeridos' },
-		// 		{ status: 400 }
-		// 	);
-		// }
-		await dbConnect();
-
-		// Validar que el email no exista
-		const existingUser = await User.findOne({ email: email.toLowerCase() });
-		if (existingUser) {
+		const formD = await request.formData();
+		const data = JSON.parse(formD.get('data') as string);
+		const {
+			name,
+			email,
+			password,
+			primary_genre,
+			year,
+			catalog_num,
+			isSubaccount,
+			parentUserId,
+			parentName,
+		} = data;
+		if (!data) {
 			return NextResponse.json(
-				{ error: 'El email ya está registrado' },
+				{ error: 'No se recibieron datos para actualizar' },
 				{ status: 400 }
 			);
 		}
 
-		if (picture && picture instanceof File) {
-			try {
-				const uploadPictureReq = await fetch(
-					`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${picture.name}&filetype=image/jpeg&upload_type=label.logo`,
-					{
-						method: 'GET',
-						headers: {
-							'Content-Type': 'application/json',
-							Authorization: `JWT ${moveMusicAccessToken}`,
-							'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-							Referer: process.env.MOVEMUSIC_REFERER || '',
-						},
-					}
-				);
-				const uploadPictureRes = await uploadPictureReq.json();
+		const picture = formD.get('picture');
+		const fileName = formD.get('fileName') as string;
+		const chunk = formD.get('chunk') as Blob;
+		const chunkIndex = parseInt(formD.get('chunkIndex') as string);
+		const totalChunks = parseInt(formD.get('totalChunks') as string);
+		const fileType = formD.get('fileType') as string;
+		let tempFilePath: string | null = null;
 
-				// Extraer la URL y los campos del objeto firmado
-				const { url: signedUrl, fields: dataFields } =
-					uploadPictureRes.signed_url;
-				// Crear un objeto FormData y agregar los campos y el archivo
-				const labelFormData = new FormData();
-				Object.entries(dataFields).forEach(([key, value]) => {
-					if (typeof value === 'string' || value instanceof Blob) {
-						labelFormData.append(key, value);
-					} else {
-						console.warn(
-							`El valor de '${key}' no es un tipo válido para FormData:`,
-							value
-						);
-					}
-				});
+		let tempDir: string | null = null;
+		let safeFileName: string | null = null;
+		let picture_url = '';
+		let picture_path = '';
+		// Validar campos requeridos
+		if (!name || !primary_genre || !year || !catalog_num) {
+			return NextResponse.json(
+				{ success: false, error: 'Todos los campos son requeridos' },
+				{ status: 400 }
+			);
+		}
+		await dbConnect();
 
-				labelFormData.append('file', picture);
-
-				// Realizar la solicitud POST a la URL firmada
-				const uploadResponse = await fetch(signedUrl, {
-					method: 'POST',
-					body: labelFormData,
-				});
-
-				picture_url = uploadResponse?.headers?.get('location') || '';
-				const picture_path_decoded = decodeURIComponent(
-					new URL(picture_url).pathname.slice(1)
-				);
-				picture_path = picture_path_decoded.replace('media/', '');
-
-				if (!uploadResponse.ok) {
-					return NextResponse.json(
-						{ message: 'Error al subir la imagen a S3' },
-						{ status: 500 }
-					);
-				}
-			} catch (error) {
-				console.error('Error al procesar la imagen:', error);
+		// Validar que el email no exista
+		const existingUser = await User.findOne({ email: email });
+		if (email) {
+			if (
+				existingUser === email &&
+				existingUser.role === verifiedPayload.role
+			) {
 				return NextResponse.json(
-					{ message: 'Error al procesar la imagen' },
+					{ error: 'El sello con este email ya está registrado' },
 					{ status: 400 }
 				);
 			}
+		}
+		let updateData: any = {
+			name: data.name,
+			primary_genre: data.primary_genre,
+			year: parseInt(data.year as string),
+			catalog_num: parseInt(data.catalog_num as string),
+			logo: '',
+		};
+		if (fileName && fileName.length > 0) {
+			if (isNaN(chunkIndex) || isNaN(totalChunks)) {
+				return NextResponse.json(
+					{ success: false, error: 'Datos de chunk inválidos' },
+					{ status: 400 }
+				);
+			}
+			const tempDir = path.join(process.cwd(), 'temp_uploads');
+			await fs.mkdir(tempDir, { recursive: true });
+
+			// Define el nombre del archivo temporal. ESTO DEBE ESTAR FUERA DEL IF.
+			const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+			const tempFileName = `upload_${safeFileName}.tmp`;
+			tempFilePath = path.join(tempDir, tempFileName);
+			const chunkBuffer = Buffer.from(await chunk.arrayBuffer());
+			await fs.appendFile(tempFilePath, chunkBuffer);
+
+			if (chunkIndex < totalChunks - 1) {
+				return NextResponse.json({
+					success: true,
+					message: `Chunk ${chunkIndex} recibido`,
+				});
+			}
+
+			const { size: fileSize } = await fs.stat(tempFilePath);
+			const fileBuffer = await fs.readFile(tempFilePath);
+			const metadata = await sharp(fileBuffer).metadata();
+			const sizeInMB = fileSize / 1024 / 1024;
+
+			if (
+				metadata.width !== 1000 ||
+				metadata.height !== 1000 ||
+				(metadata.format !== 'jpeg' && metadata.format !== 'jpg') ||
+				(metadata.space !== 'srgb' && metadata.space !== 'rgb')
+			) {
+				await fs.unlink(tempFilePath);
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'La imagen no tiene el formato o características soportadas',
+					},
+					{ status: 400 }
+				);
+			}
+			if (sizeInMB > 4) {
+				await fs.unlink(tempFilePath);
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'La imagen es debe pesar máximo 4MB',
+					},
+					{ status: 400 }
+				);
+			}
+			const fixedname = fileName.replaceAll(' ', '_');
+
+			const safeName = fixedname;
+			const uploadMediaReq = await fetch(
+				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${safeName}&filetype=image/jpeg&upload_type=label.logo`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `JWT ${moveMusicAccessToken}`,
+						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+						Referer: process.env.MOVEMUSIC_REFERER || '',
+					},
+				}
+			);
+			if (!uploadMediaReq) {
+				console.log('Error al obtener la url firmada');
+				return NextResponse.json(
+					{ error: 'Error al obtener la url firmada' },
+					{ status: 400 }
+				);
+			}
+			const uploadMediaRes = await uploadMediaReq.json();
+			const { url: signedUrl, fields: mediaFields } = uploadMediaRes.signed_url;
+			const mediaFormData = new FormData();
+			Object.entries(mediaFields).forEach(([key, value]) => {
+				if (typeof value === 'string' || value instanceof Blob) {
+					mediaFormData.append(key, value);
+				}
+			});
+
+			mediaFormData.append('file', fileBuffer, {
+				filename: safeName,
+				contentType: 'image/jpeg',
+				knownLength: fileSize,
+			});
+			const uploadResponse = await nodeFetch(signedUrl, {
+				method: 'POST',
+				body: mediaFormData,
+				headers: mediaFormData.getHeaders(),
+			});
+
+			await fs.unlink(tempFilePath);
+			picture_url = uploadResponse?.headers?.get('location') || '';
+			const picture_path_decoded = decodeURIComponent(
+				new URL(picture_url).pathname.slice(1)
+			);
+			picture_path = picture_path_decoded.replace('media/', '');
+			updateData.logo = picture_path;
+		}
+
+		if (picture_path && picture_path.length > 0) {
+			updateData.logo = picture_path;
 		}
 
 		// Crear sello en API externa solo si no es subcuenta
 		let external_id = null;
 
 		const labelToApi = {
-			logo: picture_path.length > 0 ? picture_path : logo,
+			logo: picture_path,
 			name,
 			year: parseInt(year),
 			catalog_num: parseInt(catalog_num),
@@ -164,6 +239,15 @@ export async function POST(request: NextRequest) {
 		});
 
 		const createLabelRes = await createLabelReq.json();
+		if (!createLabelReq.ok) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: createLabelRes || 'Error al crear el sello en la API externa',
+				},
+				{ status: 400 }
+			);
+		}
 
 		if (!createLabelRes.id) {
 			return NextResponse.json({ success: false, error: createLabelRes });
@@ -176,15 +260,15 @@ export async function POST(request: NextRequest) {
 			: null;
 
 		// Crear el nuevo usuario
-		const newUser = new User({
+		const newUser = await User.create({
 			external_id,
 			name,
-			email: !isSubaccount ? email.toLowerCase() : '',
+			email: !isSubaccount ? email : '',
 			password: hashedPassword,
 			role: 'sello',
 			status: 'activo',
 			permissions: ['sello'],
-			picture: picture_path.length > 0 ? picture_path : linkLogo,
+			picture: picture_url,
 			tipo: isSubaccount ? 'subcuenta' : 'principal',
 			parentId: isSubaccount ? parentUserId : null,
 			parentName: isSubaccount ? parentName : null,

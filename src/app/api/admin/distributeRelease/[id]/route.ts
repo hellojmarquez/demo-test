@@ -48,7 +48,7 @@ export async function POST(
 		}
 		const externalId = params.id;
 		const { action } = await req.json();
-		console.log('action', action);
+
 		const release = await Release.findOne({
 			external_id: externalId,
 		}).lean();
@@ -77,12 +77,11 @@ export async function POST(
 		);
 
 		const distributeRes = await distributeReq.json();
-		if (distributeRes.error) {
-			console.log('distribute ERROR', distributeRes);
+		if (!distributeRes.ok) {
 			return NextResponse.json(
 				{
 					success: false,
-					message: distributeRes.message,
+					error: distributeRes || 'ha habido un error al distribuir',
 				},
 				{ status: 400 }
 			);

@@ -11,7 +11,7 @@ const rubik = Rubik({
 });
 
 export const metadata: Metadata = {
-	title: 'Isla Sounds',
+	title: 'White label',
 	description: 'Plataforma de música y colaboración',
 };
 

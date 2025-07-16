@@ -14,7 +14,6 @@ import {
 	UserRoundCheck,
 } from 'lucide-react';
 import Select from 'react-select';
-import Image from 'next/image';
 
 interface UpdateContributorModalProps {
 	contributor: {
@@ -46,6 +45,8 @@ export function UpdateContributorModal({
 	const [password, setPassword] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
 
 	const inputStyles =
 		'w-full px-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -92,7 +93,24 @@ export function UpdateContributorModal({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+		setNameError(null);
+		setEmailError(null);
 		setError(null);
+		let hasError = false;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!name || name.length === 0) {
+			setNameError('El nombre es requerido');
+			hasError = true;
+		}
+		if (!email || !emailRegex.test(email)) {
+			setEmailError('El email es requerido y debe tener el formato correcto');
+			hasError = true;
+		}
+		if (hasError) {
+			setError('Por favor, corrige los errores en el formulario');
+			setIsLoading(false);
+			return;
+		}
 
 		try {
 			const res = await fetch(
@@ -160,13 +178,7 @@ export function UpdateContributorModal({
 							</button>
 						</div>
 
-						<form onSubmit={handleSubmit} className="p-6">
-							{error && (
-								<div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-									{error}
-								</div>
-							)}
-
+						<form className="p-6">
 							<div className="space-y-4">
 								<div>
 									<label
@@ -188,6 +200,9 @@ export function UpdateContributorModal({
 											disabled={isLoading}
 										/>
 									</div>
+									{nameError && (
+										<p className="text-red-500 text-[9px] mt-1">{nameError}</p>
+									)}
 								</div>
 								<div>
 									<label
@@ -209,6 +224,9 @@ export function UpdateContributorModal({
 											disabled={isLoading}
 										/>
 									</div>
+									{emailError && (
+										<p className="text-red-500 text-[9px] mt-1">{emailError}</p>
+									)}
 								</div>
 								<div>
 									<label
@@ -273,7 +291,11 @@ export function UpdateContributorModal({
 									)}
 								</div>
 							</div>
-
+							{error && (
+								<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+									{error}
+								</div>
+							)}
 							<div className="mt-6 flex justify-end space-x-3">
 								<button
 									type="button"
@@ -286,6 +308,7 @@ export function UpdateContributorModal({
 								</button>
 								<button
 									type="submit"
+									onClick={handleSubmit}
 									disabled={isLoading}
 									className="px-4 py-2 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 								>

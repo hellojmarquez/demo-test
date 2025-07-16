@@ -53,7 +53,7 @@ export async function PUT(
 		const updatedUser = await Admin.findByIdAndUpdate(params.id, body, {
 			new: true,
 			runValidators: true,
-		});
+		}).select('-password');
 
 		if (!updatedUser) {
 			return NextResponse.json(
@@ -66,10 +66,13 @@ export async function PUT(
 			{ success: true, user: updatedUser },
 			{ status: 200 }
 		);
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error actualizando usuario:', error);
 		return NextResponse.json(
-			{ success: false, message: 'Error interno del servidor' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

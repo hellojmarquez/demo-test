@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Trash2, Plus, User } from 'lucide-react';
 import Select from 'react-select';
 import {
@@ -62,7 +62,7 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 
 	return (
 		<div className="space-y-4 flex flex-col p-2 bg-slate-100">
-			<Select<ArtistOption>
+			<Select
 				value={null}
 				onChange={selectedOption => {
 					if (selectedOption) {
@@ -86,9 +86,9 @@ const TrackArtistSelector: React.FC<TrackArtistSelectorProps> = ({
 				onMenuOpen={() => setIsMenuOpen(true)}
 				onMenuClose={() => setIsMenuOpen(false)}
 				menuIsOpen={isMenuOpen}
-				options={artistData.map(artist => ({
-					value: artist.artist,
-					label: artist.name,
+				options={artistData.map((artist: any) => ({
+					value: artist.artist || 0,
+					label: artist.name || '',
 				}))}
 				placeholder={
 					<div className="flex items-center gap-2">

@@ -44,10 +44,13 @@ export async function GET(
 			success: true,
 			data: contratos,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error al obtener contratos:', error);
 		return NextResponse.json(
-			{ success: false, error: 'Error interno del servidor' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

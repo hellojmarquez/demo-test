@@ -6,24 +6,16 @@ import AccountSwitchButton from '@/components/AccountSwitchButton';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
 	Menu,
 	X,
-	Home,
-	Users,
-	MessageSquare,
 	FileMusic,
-	Settings,
-	Calculator,
 	NotebookPen,
 	ChevronDown,
-	BarChart2,
-	LineChart,
-	Receipt,
 	DollarSign,
-	TrendingUp,
 	TrendingUpDown,
+	HelpCircle,
 } from 'lucide-react';
 import Script from 'next/script';
 
@@ -34,16 +26,9 @@ export default function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const {
-		user,
-		loading,
-		currentAccount,
-		showAccountSelector,
-		setShowAccountSelector,
-	} = useAuth();
+	const { user, loading } = useAuth();
 
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const [statsMenuOpen, setStatsMenuOpen] = useState(false);
 	const [catalogMenuOpen, setCatalogMenuOpen] = useState(false);
 	const pathname = usePathname();
 
@@ -72,6 +57,16 @@ export default function DashboardLayout({
 		);
 	};
 
+	// Initialize Zoho SalesIQ
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			(window as any).$zoho = (window as any).$zoho || {};
+			(window as any).$zoho.salesiq = (window as any).$zoho.salesiq || {
+				ready: function () {},
+			};
+		}
+	}, []);
+
 	const isAdmin = user?.role === 'admin';
 
 	if (loading) {
@@ -92,11 +87,6 @@ export default function DashboardLayout({
 
 	return (
 		<>
-			<Script
-				id="ze-snippet"
-				src="https://static.zdassets.com/ekr/snippet.js?key=fcddf08a-ccb3-42ac-8dcc-cbb79fb87082"
-				strategy="afterInteractive"
-			/>
 			<AccountSelector />
 			<div className="min-h-screen flex flex-col items-center bg-white ">
 				{/* Header with Navigation */}
@@ -106,11 +96,7 @@ export default function DashboardLayout({
 						<div className="flex  justify-between md:justify-start px-6 items-center md:space-x-10 py-4">
 							<div className="flex items-center">
 								<Link href="/panel">
-									<img
-										src="/logo_white.png"
-										alt="Isla Sounds"
-										className="h-3"
-									/>
+									<img src="/logo_white.png" alt="" className="h-3" />
 								</Link>
 							</div>
 
@@ -148,6 +134,7 @@ export default function DashboardLayout({
 												{isAdmin && (
 													<Link
 														href="/panel/ddx-delivery"
+														prefetch={false}
 														className="block px-4 py-2 text-white hover:bg-brand-light"
 														onClick={() => setMobileMenuOpen(false)}
 													>
@@ -159,6 +146,7 @@ export default function DashboardLayout({
 									</div>
 									<Link
 										href="/panel/trends"
+										prefetch={false}
 										className={`flex items-center p-2 transition-colors relative group ${
 											isActive('/panel/trends')
 												? 'text-white border-b-2'
@@ -187,6 +175,7 @@ export default function DashboardLayout({
 											</Link>
 											<Link
 												href="/panel/logs"
+												prefetch={false}
 												className={`flex items-center p-2 transition-colors relative group ${
 													isActive('/panel/logs')
 														? 'text-white border-b-2'
@@ -262,6 +251,7 @@ export default function DashboardLayout({
 											{isAdmin && (
 												<Link
 													href="/panel/ddx-delivery"
+													prefetch={false}
 													className={`flex items-center p-3 transition-colors relative group ${
 														isActive('/panel/ddx-delivery')
 															? 'text-white border-l-2 border-white'
@@ -275,6 +265,7 @@ export default function DashboardLayout({
 										</div>
 										<Link
 											href="/panel/trends"
+											prefetch={false}
 											className={`flex items-center p-3 transition-colors relative group ${
 												isActive('/panel/trends')
 													? 'text-white border-l-2 border-white'
@@ -301,6 +292,7 @@ export default function DashboardLayout({
 												</Link>
 												<Link
 													href="/panel/logs"
+													prefetch={false}
 													className={`flex items-center p-3 transition-colors relative group ${
 														isActive('/panel/logs')
 															? 'text-white border-l-2 border-white'
@@ -311,6 +303,11 @@ export default function DashboardLayout({
 													<NotebookPen size={18} className="mr-2" />
 													<span>Logs</span>
 												</Link>
+												<span
+													className={`flex items-center p-3 transition-colors relative space-x-2 `}
+												>
+													<HelpCircle className=" text-white w-5 h-5" />
+												</span>
 											</>
 										)}
 									</div>

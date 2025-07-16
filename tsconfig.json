@@ -36,7 +36,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/app/(auth)/(analiticas)/analiticas"
-  ],
+, "src/asddad"  ],
   "exclude": [
     "node_modules"
   ]

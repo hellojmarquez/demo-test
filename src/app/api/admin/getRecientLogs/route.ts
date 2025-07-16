@@ -7,7 +7,7 @@ import dbConnect from '@/lib/dbConnect';
 export async function GET(request: NextRequest) {
 	try {
 		// Verificar el token JWT
-		const moveMusicAccessToken = request.cookies.get('accessToken')?.value;
+
 		const token = request.cookies.get('loginToken')?.value;
 		let userRole;
 
@@ -57,10 +57,13 @@ export async function GET(request: NextRequest) {
 			success: true,
 			logs,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error al obtener logs recientes:', error);
 		return NextResponse.json(
-			{ success: false, error: 'Error al obtener los logs recientes' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

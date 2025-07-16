@@ -29,6 +29,7 @@ import CustomSwitch from './CustomSwitch';
 import ArtistSelector, { NewArtist } from './ArtistSelector';
 import ReleaseUserDeclaration from './ui/ReleaseUserDeclaration';
 import DDEXDelivery from './ddex_delivery';
+import AsyncSelect from './ui/AsyncSelect';
 
 interface ReleaseTrack {
 	external_id?: string;
@@ -87,7 +88,14 @@ interface GenreData {
 		name: string;
 	}>;
 }
-
+interface PlatformOption {
+	value: string;
+	label: string;
+	id?: string;
+	image?: string;
+	followers?: number;
+	popularity?: number;
+}
 interface SubgenreOption {
 	value: number;
 	label: string;
@@ -107,12 +115,10 @@ const RELEASE_TYPES: KindOption[] = [
 const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 	release,
 	formData,
-	mutateTracks,
 	artistsErrors,
 	setFormData,
 	onEditTrack,
 	genres,
-	onTracksUpdated,
 }) => {
 	const router = useRouter();
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -122,15 +128,19 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		total: number;
 		loaded: number;
 		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
 	} | null>(null);
-
+	const [spotifyOoptions, setSpotifyOoptions] = useState<PlatformOption[]>([]);
+	const [deezerOoptions, setDeezerOoptions] = useState<PlatformOption[]>([]);
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [isUploadingTracks, setIsUploadingTracks] = useState(false);
 	const [uploadError, setUploadError] = useState('');
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [artistData, setArtistData] = useState<ArtistData[]>([]);
 	const [playingTrack, setPlayingTrack] = useState<string | null>(null);
-
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [commitMessage, setCommitMessage] = useState<string>('');
 	const [progress, setProgress] = useState<number>(0);
 	const [labels, setLabels] = useState<LabelOption[]>([]);
 	const [labelsData, setLabelsData] = useState<any[]>([]);
@@ -147,12 +157,14 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 		deezer_id: '',
 		spotify_id: '',
 	});
-
+	const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] =
+		useState(false);
+	const [trackToDelete, setTrackToDelete] = useState<number | null>(null);
 	const [selectedTrack, setSelectedTrack] = useState<ReleaseTrack | null>(null);
 	const [isTracksExpanded, setIsTracksExpanded] = useState(true);
 	const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
 	const [selectedAction, setSelectedAction] = useState<string | null>(null);
-
+	const [distributeError, setDistributeError] = useState<string | null>(null);
 	// Add the common input styles at the top of the component
 	const inputStyles =
 		'w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
@@ -315,7 +327,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				// Fetch labels
 				const labelsRes = await fetch('/api/admin/getAllSellos');
 				const labelsData = await labelsRes.json();
-				console;
 				setLabelsData(labelsData.data.sellos);
 				setLabels(
 					labelsData.data.sellos.map((label: any) => ({
@@ -391,7 +402,6 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}));
 			};
 			reader.readAsDataURL(file);
-			console.log('data: ', file);
 		}
 	};
 
@@ -401,15 +411,40 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			artists: prev.artists?.filter((_, i: number) => i !== index) || [],
 		}));
 	};
+	const handlePlatformArtistChange = (fieldName: string) => (option: any) => {
+		if (option) {
+			setFormData(prev => ({
+				...prev,
+				[fieldName]: option.value,
+			}));
+		}
+	};
+	const handleOpenDeleteConfirmModal = (index: number) => {
+		setTrackToDelete(index);
+		setIsDeleteConfirmModalOpen(true);
+	};
+	const handleConfirmDelete = async () => {
+		if (trackToDelete === null) return;
+		setIsDeleting(true); // Activar estado de carga
 
+		try {
+			await handleDeleteTrack(trackToDelete);
+			toast.success('Track eliminado exitosamente');
+		} catch (error) {
+			// El error ya se maneja en handleDeleteTrack
+		} finally {
+			setIsDeleting(false); // Desactivar estado de carga
+			setIsDeleteConfirmModalOpen(false);
+			setTrackToDelete(null);
+		}
+	};
+	const handleCancelDelete = () => {
+		setIsDeleteConfirmModalOpen(false);
+		setTrackToDelete(null);
+	};
 	const handleDeleteTrack = async (index: number) => {
 		const track = formData.tracks?.[index];
-		if (!track?.external_id) {
-			// Si no tiene external_id, solo lo eliminamos del estado local
-			setFormData((prev: Release) => ({
-				...prev,
-				tracks: prev.tracks?.filter((_, i: number) => i !== index) || [],
-			}));
+		if (!track) {
 			return;
 		}
 
@@ -421,21 +456,17 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}
 			);
 
-			if (!response.ok) {
-				throw new Error('Error al eliminar el track');
+			const res = await response.json();
+
+			if (!res.success) {
+				throw new Error(res.message || 'Error al eliminar el track');
 			}
 
-			const data = await response.json();
-			if (data.success) {
-				// Actualizar el estado local después de eliminar exitosamente
-				setFormData((prev: Release) => ({
-					...prev,
-					tracks: prev.tracks?.filter((_, i: number) => i !== index) || [],
-				}));
-				toast.success('Track eliminado exitosamente');
-			} else {
-				throw new Error(data.message || 'Error al eliminar el track');
-			}
+			// Actualizar el estado local después de eliminar exitosamente
+			setFormData((prev: Release) => ({
+				...prev,
+				tracks: prev.tracks?.filter((_, i: number) => i !== index) || [],
+			}));
 		} catch (error) {
 			console.error('Error al eliminar track:', error);
 			toast.error('Error al eliminar el track');
@@ -528,6 +559,61 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 				}
 			);
 			const data = await response.json();
+			if (!response.ok) {
+				const errorMessage =
+					typeof data.error === 'object'
+						? Object.entries(data.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+										const arrayErrors = value
+											.map((item, index) => {
+												if (typeof item === 'object' && item !== null) {
+													return Object.entries(item)
+														.map(([nestedKey, nestedValue]) => {
+															if (Array.isArray(nestedValue)) {
+																return `${nestedKey}: ${nestedValue.join(
+																	', '
+																)}`;
+															}
+															return `${nestedKey}: ${nestedValue}`;
+														})
+														.join(', ');
+												}
+												return String(item);
+											})
+											.join(', ');
+										return `${key}: ${arrayErrors}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+										const nestedErrors = Object.entries(value)
+											.map(([nestedKey, nestedValue]) => {
+												if (Array.isArray(nestedValue)) {
+													return `${nestedKey}: ${nestedValue.join(', ')}`;
+												}
+												if (
+													typeof nestedValue === 'object' &&
+													nestedValue !== null
+												) {
+													return `${nestedKey}: ${Object.values(nestedValue)
+														.flat()
+														.join(', ')}`;
+												}
+												return `${nestedKey}: ${nestedValue}`;
+											})
+											.join(', ');
+										return `${key}: ${nestedErrors}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: data.error;
+
+				setDistributeError(errorMessage);
+				throw new Error(errorMessage);
+			}
 			if (data.success) {
 				toast.success(data.message);
 			} else {
@@ -535,47 +621,135 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			}
 		} catch (error) {
 			console.error('Error:', error);
-			toast.error(`Error: ${error}`);
+			toast.error(
+				error instanceof Error ? error.message : 'Error al distribuir'
+			);
 		} finally {
 			setIsLoading(false);
 		}
 	};
+
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
+
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string,
+		sessionId: string,
+		isTemporary: boolean = true
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+		formData.append('sessionId', sessionId); // ← Agregar
+		formData.append('isTemporary', isTemporary.toString()); // ← Agregar
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+
+		const response = await fetch('/api/admin/createSingle', {
+			method: 'POST',
+			body: formData,
+		});
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (
+		file: File,
+		trackData: any,
+		sessionId: string,
+		isTemporary: boolean = true
+	) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name,
+				sessionId,
+				isTemporary
+			);
+		}
+
+		return lastResponse;
+	};
+
 	const handleTracksReady = async (
 		tracks: { file: File | null; data: any }[]
 	) => {
-		// Cerrar el modal de UploadTrackToRelease inmediatamente
+		setCommitMessage('');
 		setIsUploadModalOpen(false);
 		setIsTracksExpanded(true);
-		// Iniciar la carga en segundo plano
 		setIsUploadingTracks(true);
+		setUploadError('');
+
+		const sessionId = `session_${Date.now()}_${Math.random()
+			.toString(36)
+			.substr(2, 9)}`;
+
+		const totalChunks = tracks.reduce((sum, track) => {
+			if (track.file) {
+				return sum + Math.ceil(track.file.size / (250 * 1024)); // 250KB por chunk
+			}
+			return sum;
+		}, 0);
+
 		setUploadProgress({
 			total: tracks.length,
 			loaded: 0,
 			percentage: 0,
+			totalChunks: totalChunks,
+			filesCompleted: 0,
 		});
+
 		setUploadError('');
 
 		try {
 			for (let i = 0; i < tracks.length; i++) {
 				const track = tracks[i];
-				const formData = new FormData();
+
 				const updateformData = new FormData();
-
-				// Solo agregar el archivo si existe
-				if (track.file) {
-					formData.append('file', track.file);
-				}
-
-				// Preparar los datos del track
-				if (track.data.isImported) {
-					updateformData.append('data', JSON.stringify(track.data));
-				} else {
-					formData.append('data', JSON.stringify(track.data));
-				}
-				let updateResponse;
-				let createResponse;
+				let updateResponse: Response | null = null;
+				let createResponse: any = null;
 				if (track.data.isImported) {
 					// Actualizar track existente
+					updateformData.append('data', JSON.stringify(track.data));
 					updateResponse = await fetch(
 						`/api/admin/updateSingle/${track.data.external_id}`,
 						{
@@ -583,56 +757,115 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							body: updateformData,
 						}
 					);
+					if (updateResponse && !updateResponse.ok) {
+						throw new Error('Error al actualizar el track');
+					}
+
+					if (updateResponse) {
+						const data = await updateResponse.json();
+
+						setFormData((prev: any) => ({
+							...prev,
+							tracks: [...(prev.tracks ?? []), data.track],
+						}));
+						setUploadProgress(prev => {
+							if (!prev) return prev;
+
+							return {
+								...prev,
+								filesCompleted: prev.filesCompleted + 1,
+							};
+						});
+					}
 				} else {
-					// Crear nuevo track
-					createResponse = await fetch('/api/admin/createSingle', {
-						method: 'POST',
-						body: formData,
-					});
-				}
+					if (track.file) {
+						// Subir archivo por chunks
+						createResponse = await uploadFileByChunks(
+							track.file,
+							track.data,
+							sessionId,
+							true
+						);
 
-				if (createResponse && !createResponse.ok) {
-					throw new Error('Error al crear el track');
-				}
-				if (updateResponse && !updateResponse.ok) {
-					throw new Error('Error al actualizar el track');
-				}
+						if (!createResponse || !createResponse.success) {
+							throw new Error('Error al crear el track');
+						}
 
-				if (updateResponse) {
-					const data = await updateResponse.json();
+						const newTrack = {
+							...createResponse.data,
+							title: createResponse.data.name,
+						};
+						setFormData((prev: any) => ({
+							...prev,
+							tracks: [...(prev.tracks ?? []), newTrack],
+						}));
+						setUploadProgress(prev => {
+							if (!prev) return prev;
 
-					setFormData((prev: any) => ({
-						...prev,
-						tracks: [...(prev.tracks ?? []), data.track],
-					}));
+							return {
+								...prev,
+								filesCompleted: prev.filesCompleted + 1,
+							};
+						});
+					}
 				}
-				if (createResponse) {
-					const data = await createResponse.json();
-					const newTrack = { ...data.data, title: data.data.name };
-					setFormData((prev: any) => ({
-						...prev,
-						tracks: [...(prev.tracks ?? []), newTrack],
-					}));
-				}
+			}
+			// ✅ FASE 2: Hacer commit de todos los tracks
 
-				// Actualizar el progreso
-				setUploadProgress({
-					total: tracks.length,
-					loaded: i + 1,
-					percentage: ((i + 1) / tracks.length) * 100,
-				});
+			const commitResponse = await fetch('/api/admin/commitTracks', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ sessionId, action: 'commit' }),
+			});
+			setCommitMessage('Guardando tracks, No cierre la ventana');
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				return {
+					...prev,
+					percentage: 95,
+				};
+			});
+			if (!commitResponse.ok) {
+				const errorData = await commitResponse.json();
+				throw new Error(
+					errorData.error || 'Error al hacer commit de los tracks'
+				);
 			}
 
-			// Refrescar los datos del release después de subir todos los tracks
+			const commitData = await commitResponse.json();
 
+			// ✅ Actualizar formData con todos los tracks procesados
+			if (commitData.data && Array.isArray(commitData.data)) {
+				const newTracks = commitData.data.map((track: any) => ({
+					...track,
+					title: track.name,
+				}));
+
+				setFormData((prev: any) => ({
+					...prev,
+					tracks: [...(prev.tracks ?? []), ...newTracks],
+				}));
+			}
 			// Limpiar los estados después de completar exitosamente
 			setIsUploadingTracks(false);
 			setUploadProgress(null);
 			setUploadError('');
-
-			// window.location.reload();
+			await router.refresh();
 		} catch (err: any) {
 			console.error('Error al procesar tracks:', err);
+
+			// ✅ Hacer rollback si hay error
+			try {
+				await fetch('/api/admin/commitTracks', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ sessionId, action: 'rollback' }),
+				});
+			} catch (rollbackError) {
+				console.error('Error al hacer rollback:', rollbackError);
+			}
+			setCommitMessage('');
+			toast.error(err.message || 'Error al procesar los tracks');
 			setUploadError(err.message || 'Error al procesar los tracks');
 			setIsUploadingTracks(false);
 			setUploadProgress(null);
@@ -641,26 +874,69 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 	return (
 		<div className="container mx-auto md:px-4 py-8">
+			{distributeError && distributeError.length > 0 && (
+				<div className="mb-4 p-4 bg-red-200 text-center text-red-700 rounded-md">
+					{distributeError}
+				</div>
+			)}
+			{isDeleteConfirmModalOpen && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+						<h3 className="text-lg font-semibold mb-4">
+							Confirmar eliminación
+						</h3>
+						<p className="text-gray-600 mb-6">
+							¿Estás seguro de que quieres eliminar este track? Esta acción no
+							se puede deshacer.
+						</p>
+						<div className="flex justify-end gap-3">
+							<button
+								onClick={handleCancelDelete}
+								className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+							>
+								Cancelar
+							</button>
+							<button
+								onClick={handleConfirmDelete}
+								disabled={isDeleting}
+								className={`px-4 py-2 text-white rounded transition-colors ${
+									isDeleting
+										? 'bg-gray-400 cursor-not-allowed'
+										: 'bg-red-600 hover:bg-red-700'
+								}`}
+							>
+								{isDeleting ? (
+									<>
+										<div className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+										Eliminando...
+									</>
+								) : (
+									'Eliminar'
+								)}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 			<audio ref={audioRef} />
 			<div className="flex justify-end">
-				{release.status === 'ready' && (
-					<button
-						onClick={() => handleDistribute('distribute')}
-						disabled={isLoading}
-						className={`bg-black text-white font-bold px-6 py-2 flex items-center justify-center min-w-[120px] ${
-							isLoading ? 'opacity-70 cursor-not-allowed' : ''
-						}`}
-					>
-						{isLoading ? (
-							<>
-								<Loader2 className="animate-spin h-5 w-5 text-white" />
-								Procesando...
-							</>
-						) : (
-							'Distribuir'
-						)}
-					</button>
-				)}
+				<button
+					onClick={() => handleDistribute('distribute')}
+					disabled={isLoading}
+					className={`bg-gradient-to-r from-brand-dark to-brand-light rounded-3xl text-white font-bold px-6 py-2 flex items-center justify-center min-w-[120px] ${
+						isLoading ? 'opacity-70 cursor-not-allowed' : ''
+					}`}
+				>
+					{isLoading ? (
+						<>
+							<Loader2 className="animate-spin h-5 w-5 text-white" />
+							Procesando...
+						</>
+					) : (
+						'Distribuir'
+					)}
+				</button>
+
 				{release.status === 'distributed' && (
 					<div className="flex gap-2">
 						<div className="relative w-[200px]">
@@ -780,7 +1056,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 
 						<div className="flex-1 flex flex-col gap-4 relative z-10 w-full md:w-auto mt-4 md:mt-0">
 							<div>
-								<h1 className="text-2xl md:text-4xl font-bold text-green-300 mb-2">
+								<h1 className="text-2xl text-gray-900 md:text-4xl font-bold  mb-2">
 									{safeFormData.name || 'Sin nombre'}
 								</h1>
 								<div className="flex flex-wrap items-center gap-2 md:gap-3">
@@ -814,7 +1090,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 							</div>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
 								<div className="p-2 md:p-4 bg-gray-50 rounded-xl border border-gray-100">
-									<div className="text-xs font-medium text-gray-500 mb-1">
+									<div className="text-xs font-medium text-gray-600 mb-1">
 										Número de Catálogo
 									</div>
 									<div className="text-xs md:text-sm font-semibold text-gray-900">
@@ -838,6 +1114,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									</div>
 									<div className="text-xs md:text-sm font-semibold text-gray-900">
 										{safeFormData.genre_name || 'Sin género'}
+									</div>
+									<div className="text-xs font-medium text-gray-500 mb-1">
+										UPC
+									</div>
+									<div className="text-xs md:text-sm font-semibold text-gray-900">
+										{safeFormData.ean || 'No disponible'}
 									</div>
 								</div>
 
@@ -911,122 +1193,124 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 						}`}
 					>
 						{safeRelease.tracks?.map((track, index) => {
-							return (
-								<div
-									key={index}
-									className="flex items-center gap-4 group hover:bg-gray-50/50 transition-all duration-200 rounded-xl p-4 border border-gray-100 shadow-sm"
-								>
-									<div className="flex flex-col items-center gap-2">
-										<button
-											onClick={() => handlePlayPause(index, track.resource)}
-											className="p-2.5 text-brand-dark hover:text-brand-light transition-all duration-200 bg-white rounded-full shadow-sm hover:shadow-md hover:scale-105"
-										>
-											{playingTrack === index.toString() ? (
-												<Pause size={18} />
-											) : (
-												<Play size={18} />
-											)}
-										</button>
-									</div>
-									<div className="flex-1">
-										<div className="flex items-center gap-3">
-											<div className="text-base font-medium text-gray-900">
-												{track.title || 'Track sin nombre'}
-											</div>
-											{track.mix_name && (
-												<span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-													{track.mix_name}
-												</span>
-											)}
+							if (track) {
+								return (
+									<div
+										key={index}
+										className="flex items-center gap-4 group hover:bg-gray-50/50 transition-all duration-200 rounded-xl p-4 border border-gray-100 shadow-sm"
+									>
+										<div className="flex flex-col items-center gap-2">
+											<button
+												onClick={() => handlePlayPause(index, track.resource)}
+												className="p-2.5 text-brand-dark hover:text-brand-light transition-all duration-200 bg-white rounded-full shadow-sm hover:shadow-md hover:scale-105"
+											>
+												{playingTrack === index.toString() ? (
+													<Pause size={18} />
+												) : (
+													<Play size={18} />
+												)}
+											</button>
 										</div>
-										{playingTrack === index.toString() && (
-											<div className="mt-2 w-full bg-gray-100 rounded-full h-1">
-												<div
-													className="bg-brand-dark h-1 rounded-full transition-all duration-300"
-													style={{ width: `${progress}%` }}
-												></div>
+										<div className="flex-1">
+											<div className="flex items-center gap-3">
+												<div className="text-base font-medium text-gray-900">
+													{track.title || 'Track sin nombre'}
+												</div>
+												{track.mix_name && (
+													<span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+														{track.mix_name}
+													</span>
+												)}
 											</div>
-										)}
-										<div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-500">
-											{track.ISRC && (
-												<div className="flex items-center gap-1">
-													<span className="text-xs font-medium text-gray-400">
-														ISRC:
-													</span>
-													{track.ISRC}
+											{playingTrack === index.toString() && (
+												<div className="mt-2 w-full bg-gray-100 rounded-full h-1">
+													<div
+														className="bg-brand-dark h-1 rounded-full transition-all duration-300"
+														style={{ width: `${progress}%` }}
+													></div>
 												</div>
 											)}
-											{track.resource && (
-												<div className="flex items-center gap-2">
-													<button
-														type="button"
-														onClick={() => {
-															navigator.clipboard.writeText(track.resource);
-															setCopiedTrackId(track.external_id || null);
-															setTimeout(() => setCopiedTrackId(null), 2000);
-														}}
-														className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
-													>
-														{copiedTrackId === track.external_id ? (
-															<>
-																<Check className="h-3.5 w-3.5" />
-																Copiado
-															</>
-														) : (
-															<>
-																<Link className="h-3.5 w-3.5" />
-																Copiar enlace
-															</>
-														)}
-													</button>
-												</div>
-											)}
-											{track.dolby_atmos_resource && (
-												<div className="flex items-center gap-1">
-													<span className="text-xs font-medium text-gray-400">
-														Dolby:
-													</span>
-													{track.dolby_atmos_resource}
-												</div>
-											)}
+											<div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-500">
+												{track.ISRC && (
+													<div className="flex items-center gap-1">
+														<span className="text-xs font-medium text-gray-400">
+															ISRC:
+														</span>
+														{track.ISRC}
+													</div>
+												)}
+												{track.resource && (
+													<div className="flex items-center gap-2">
+														<button
+															type="button"
+															onClick={() => {
+																navigator.clipboard.writeText(track.resource);
+																setCopiedTrackId(track.external_id || null);
+																setTimeout(() => setCopiedTrackId(null), 2000);
+															}}
+															className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+														>
+															{copiedTrackId === track.external_id ? (
+																<>
+																	<Check className="h-3.5 w-3.5" />
+																	Copiado
+																</>
+															) : (
+																<>
+																	<Link className="h-3.5 w-3.5" />
+																	Copiar enlace
+																</>
+															)}
+														</button>
+													</div>
+												)}
+												{track.dolby_atmos_resource && (
+													<div className="flex items-center gap-1">
+														<span className="text-xs font-medium text-gray-400">
+															Dolby:
+														</span>
+														{track.dolby_atmos_resource}
+													</div>
+												)}
+											</div>
+										</div>
+										<div className="flex items-center gap-2">
+											<button
+												onClick={() =>
+													handleEditTrack({
+														...track,
+														title: track.title,
+														mix_name: track.mix_name,
+														resource: track.resource,
+														dolby_atmos_resource: track.dolby_atmos_resource,
+														ISRC: track.ISRC,
+														DA_ISRC: track.DA_ISRC,
+														genre: track.genre,
+														genre_name: track.genre_name || '',
+														subgenre: track.subgenre,
+														subgenre_name: track.subgenre_name || '',
+														album_only: track.album_only,
+														explicit_content: track.explicit_content,
+														track_length: track.track_length,
+														generate_isrc: track.generate_isrc,
+														artists: track.artists,
+														order: track.order,
+													})
+												}
+												className="p-2 text-gray-400 hover:text-brand-dark opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
+											>
+												<Pencil size={18} />
+											</button>
+											<button
+												onClick={() => handleOpenDeleteConfirmModal(index)}
+												className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
+											>
+												<Trash2 size={18} />
+											</button>
 										</div>
 									</div>
-									<div className="flex items-center gap-2">
-										<button
-											onClick={() =>
-												handleEditTrack({
-													...track,
-													title: track.title,
-													mix_name: track.mix_name,
-													resource: track.resource,
-													dolby_atmos_resource: track.dolby_atmos_resource,
-													ISRC: track.ISRC,
-													DA_ISRC: track.DA_ISRC,
-													genre: track.genre,
-													genre_name: track.genre_name || '',
-													subgenre: track.subgenre,
-													subgenre_name: track.subgenre_name || '',
-													album_only: track.album_only,
-													explicit_content: track.explicit_content,
-													track_length: track.track_length,
-													generate_isrc: track.generate_isrc,
-													artists: track.artists,
-													order: track.order,
-												})
-											}
-											className="p-2 text-gray-400 hover:text-brand-dark opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
-										>
-											<Pencil size={18} />
-										</button>
-										<button
-											onClick={() => handleDeleteTrack(index)}
-											className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 rounded-lg"
-										>
-											<Trash2 size={18} />
-										</button>
-									</div>
-								</div>
-							);
+								);
+							}
 						})}
 
 						{(!safeRelease.tracks || safeRelease.tracks.length === 0) && (
@@ -1049,10 +1333,12 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 									{isProcessing ? (
 										<>
 											<div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-dark border-t-transparent" />
-											<span>Procesando track...</span>
+											<span className="text-sm bg-yellow-200 text-yellow-600">
+												{commitMessage || 'Procesando track...'}
+											</span>
 										</>
 									) : (
-										`Subiendo... ${uploadProgress?.percentage}%`
+										`Subiendo: ${uploadProgress?.filesCompleted}/${uploadProgress?.total} archivos (${uploadProgress?.percentage}%)`
 									)}
 								</p>
 							</div>
@@ -1733,7 +2019,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 			)}
 			{isCreateArtistModalOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-					<div className="bg-white rounded-lg p-6 w-full max-w-md">
+					<div className="bg-white rounded-lg p-6 w-full max-w-3xl">
 						<div className="flex justify-between items-center mb-4">
 							<h3 className="text-lg font-medium text-gray-900">
 								Crear Nuevo Artista
@@ -1781,7 +2067,7 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								/>
 							</div>
 
-							<div className="grid grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
 									<label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
 										<div className="h-6 w-6 flex items-center">
@@ -1809,29 +2095,53 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 								</div>
 
 								<div>
-									<label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
-										<div className="h-6 w-6 flex items-center">
-											<Image
-												src="/icons/ITunes_logo.svg"
-												alt="Apple Music"
-												width={24}
-												height={24}
-												className="object-contain"
-											/>
-										</div>
-										ID Apple Music
-									</label>
-									<input
-										type="text"
-										value={newArtistData.apple_music_id}
-										onChange={e =>
-											setNewArtistData(prev => ({
-												...prev,
-												apple_music_id: e.target.value,
-											}))
-										}
-										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
-									/>
+									<div>
+										<label className=" text-sm font-medium text-gray-700 flex items-center gap-2">
+											<div className="h-6 w-6 flex items-center">
+												<Image
+													src="/icons/ITunes_logo.svg"
+													alt="Apple Music"
+													width={24}
+													height={24}
+													className="object-contain"
+												/>
+											</div>
+											ID Apple Music
+										</label>
+										<AsyncSelect
+											loadOptions={async searchTerm => {
+												if (!searchTerm.trim() || searchTerm.length < 2) {
+													return;
+												}
+												const spotifyReq = await fetch(
+													`/api/admin/getAppleArtists`,
+													{
+														method: 'POST',
+														headers: {
+															'Content-Type': 'application/json',
+														},
+														body: JSON.stringify({ query: searchTerm }),
+													}
+												);
+
+												if (!spotifyReq.ok) {
+													setSpotifyOoptions([]);
+													return [];
+												}
+												const spotifyRes = await spotifyReq.json();
+												return spotifyRes.data.map((artist: any) => ({
+													value: artist.id,
+													label: artist.label,
+													image: artist.image,
+													url: artist.url,
+													followers: artist.followers,
+													popularity: artist.popularity,
+												}));
+											}}
+											placeholder="Buscar..."
+											onChange={handlePlatformArtistChange('apple_identifier')}
+										/>
+									</div>
 								</div>
 
 								<div>
@@ -1847,17 +2157,37 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										</div>
 										ID Deezer
 									</label>
-									<input
-										type="text"
-										value={newArtistData.deezer_id}
-										onChange={e =>
-											setNewArtistData(prev => ({
-												...prev,
-												deezer_id: e.target.value,
-											}))
-										}
-										className="w-full px-3 py-2 border-b
-										 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									<AsyncSelect
+										loadOptions={async searchTerm => {
+											if (!searchTerm.trim() || searchTerm.length < 2) {
+												return;
+											}
+											const spotifyReq = await fetch(
+												`/api/admin/getDezeerArtists`,
+												{
+													method: 'POST',
+													headers: {
+														'Content-Type': 'application/json',
+													},
+													body: JSON.stringify({ query: searchTerm }),
+												}
+											);
+
+											if (!spotifyReq.ok) {
+												setDeezerOoptions([]);
+												return [];
+											}
+											const spotifyRes = await spotifyReq.json();
+											return spotifyRes.data.map((artist: any) => ({
+												value: artist.id,
+												label: artist.label,
+												image: artist.image,
+												followers: artist.followers,
+												popularity: artist.popularity,
+											}));
+										}}
+										placeholder="Buscar..."
+										onChange={handlePlatformArtistChange('deezer_identifier')}
 									/>
 								</div>
 
@@ -1874,16 +2204,38 @@ const UpdateReleasePage: React.FC<UpdateReleasePageProps> = ({
 										</div>
 										ID Spotify
 									</label>
-									<input
-										type="text"
-										value={newArtistData.spotify_id}
-										onChange={e =>
-											setNewArtistData(prev => ({
-												...prev,
-												spotify_id: e.target.value,
-											}))
-										}
-										className="w-full px-3 py-2 border-b border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent"
+									<AsyncSelect
+										loadOptions={async searchTerm => {
+											if (!searchTerm.trim() || searchTerm.length < 2) {
+												return;
+											}
+											const spotifyReq = await fetch(
+												`/api/admin/getSpotifyArtists`,
+												{
+													method: 'POST',
+													headers: {
+														'Content-Type': 'application/json',
+													},
+													body: JSON.stringify({ query: searchTerm }),
+												}
+											);
+
+											if (!spotifyReq.ok) {
+												setSpotifyOoptions([]);
+												return [];
+											}
+											const spotifyRes = await spotifyReq.json();
+											return spotifyRes.data.map((artist: any) => ({
+												value: artist.id,
+												label: artist.label,
+												image: artist.image,
+												url: artist.url,
+												followers: artist.followers,
+												popularity: artist.popularity,
+											}));
+										}}
+										placeholder="Buscar..."
+										onChange={handlePlatformArtistChange('spotify_identifier')}
 									/>
 								</div>
 							</div>

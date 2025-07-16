@@ -5,6 +5,11 @@ import dbConnect from '@/lib/mongodb';
 import { Artista } from '@/models/UserModel';
 import AccountRelationship from '@/models/AccountRelationshipModel';
 import { encryptPassword } from '@/utils/auth';
+import nodeFetch from 'node-fetch';
+import fs from 'fs/promises';
+import path from 'path';
+import FormData from 'form-data';
+import { createReadStream } from 'fs';
 import { createLog } from '@/lib/logger';
 
 interface SubAccount {
@@ -55,74 +60,111 @@ export async function PUT(
 				{ status: 401 }
 			);
 		}
-
-		const contentType = req.headers.get('content-type');
-		let body: UpdateArtistBody;
-		if (contentType?.includes('multipart/form-data')) {
-			const formData = await req.formData();
-			const password = formData.get('password') as string;
-			const subAccounts = formData.get('subAccounts') as string;
-
-			body = {
-				name: formData.get('name') as string,
-				email: formData.get('email') as string,
-				amazon_music_identifier: formData.get(
-					'amazon_music_identifier'
-				) as string,
-				apple_identifier: formData.get('apple_identifier') as string,
-				deezer_identifier: formData.get('deezer_identifier') as string,
-				spotify_identifier: formData.get('spotify_identifier') as string,
-				role: 'artista',
-			};
-
-			// Procesar subcuentas si existen
-			if (subAccounts) {
-				try {
-					body.subAccounts = JSON.parse(subAccounts);
-				} catch (error) {
-					console.error('Error al parsear subcuentas:', error);
-				}
-			}
-
-			// Solo encriptar password si se proporcionó uno
-			if (password) {
-				const encryptedPassword = await encryptPassword(password);
-				body.password = encryptedPassword;
-			}
-
-			// Procesar la imagen si existe
-			const picture = formData.get('picture') as string | null;
-			if (picture) {
-				body.picture = picture;
-			}
-		} else {
-			body = await req.json();
-			body.role = 'artista';
-
-			// Si hay password en el JSON, encriptarlo
-			if (body.password) {
-				body.password = await encryptPassword(body.password);
-			}
-		}
-
-		// Validar datos requeridos
-		if (!body.name || !body.email) {
+		const formD = await req.formData();
+		const fileName = formD.get('fileName') as string;
+		const data = JSON.parse(formD.get('data') as string);
+		const chunk = formD.get('chunk') as Blob;
+		const chunkIndex = parseInt(formD.get('chunkIndex') as string);
+		const totalChunks = parseInt(formD.get('totalChunks') as string);
+		const fileType = formD.get('fileType') as string;
+		let tempFilePath: string | null = null;
+		let picture_url = '';
+		if (!data) {
 			return NextResponse.json(
-				{ success: false, error: 'Name and email are required' },
+				{ error: 'No se recibieron datos para actualizar' },
 				{ status: 400 }
 			);
 		}
+		const {
+			name,
+			email,
+			role,
+			_id,
+			external_id,
+			status,
+			amazon_music_identifier,
+			apple_identifier,
+			deezer_identifier,
+			spotify_identifier,
+			password,
+			mainAccountId,
+			subAccounts,
+			relationshipStatus,
+		} = data;
+		const curerentUser = await Artista.findOne({ external_id: external_id });
+		if (!curerentUser) {
+			return NextResponse.json(
+				{ success: false, error: 'Artista no encontrado' },
+				{ status: 404 }
+			);
+		}
 
-		// Actualizar artista en la API externa
+		if (fileName && fileName.length > 0) {
+			if (isNaN(chunkIndex) || isNaN(totalChunks)) {
+				return NextResponse.json(
+					{ success: false, error: 'Datos de chunk inválidos' },
+					{ status: 400 }
+				);
+			}
+			const tempDir = path.join(process.cwd(), 'temp_uploads');
+			await fs.mkdir(tempDir, { recursive: true });
+
+			// Define el nombre del archivo temporal
+			const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+			const tempFileName = `upload_${safeFileName}.tmp`;
+			tempFilePath = path.join(tempDir, tempFileName);
+			const chunkBuffer = Buffer.from(await chunk.arrayBuffer());
+			await fs.appendFile(tempFilePath, chunkBuffer);
+
+			if (chunkIndex < totalChunks - 1) {
+				return NextResponse.json({
+					success: true,
+					message: `Chunk ${chunkIndex} recibido`,
+				});
+			}
+
+			const extension = path.extname(fileName);
+
+			if (
+				extension.toLowerCase() !== '.jpg' &&
+				extension.toLowerCase() !== '.jpeg' &&
+				extension.toLowerCase() !== '.png'
+			) {
+				await fs.unlink(tempFilePath);
+				return NextResponse.json(
+					{ success: false, error: 'La imagen debe ser: jpg o Png' },
+					{ status: 400 }
+				);
+			}
+
+			try {
+				// Convertir a base64 cuando el archivo está completo
+				const fileBuffer = await fs.readFile(tempFilePath);
+				picture_url = fileBuffer.toString('base64');
+			} catch (fileError) {
+				console.error('Error al procesar el archivo:', fileError);
+				// await fs.unlink(tempFilePath);
+				return NextResponse.json(
+					{ success: false, error: 'Error al procesar el archivo' },
+					{ status: 500 }
+				);
+			} finally {
+				// Limpiar archivo temporal
+				try {
+					await fs.unlink(tempFilePath);
+				} catch (cleanupError) {
+					console.error('Error al limpiar archivo temporal:', cleanupError);
+				}
+			}
+		}
 		const artistToApi = {
-			name: body.name,
-			amazon_music_identifier: body.amazon_music_identifier || '',
-			apple_identifier: body.apple_identifier || '',
-			deezer_identifier: body.deezer_identifier || '',
-			spotify_identifier: body.spotify_identifier || '',
-			email: body.email,
+			name,
+			email,
+			amazon_music_identifier,
+			apple_identifier,
+			deezer_identifier,
+			spotify_identifier,
 		};
-
 		const artistReq = await fetch(
 			`${process.env.MOVEMUSIC_API}/artists/${params.id}`,
 			{
@@ -136,28 +178,34 @@ export async function PUT(
 				body: JSON.stringify(artistToApi),
 			}
 		);
-		const artistRes = await artistReq.json();
-		if (!artistRes.id) {
+
+		if (!artistReq.ok) {
+			const artistRes = await artistReq.json();
+
 			return NextResponse.json(
 				{
 					success: false,
-					error: artistRes || 'Failed to update artist in external API',
+					error: artistRes || 'error al actualizar el artista',
 				},
 				{ status: artistReq.status }
 			);
 		}
-
+		const artistRes = await artistReq.json();
 		// Conectar a la base de datos local
 		await dbConnect();
 
 		// Preparar el objeto de actualización
-		const updateData = {
-			...body,
-			// Asegurarnos de que los identificadores vacíos sean strings vacíos
-			amazon_music_identifier: body.amazon_music_identifier || '',
-			apple_identifier: body.apple_identifier || '',
-			deezer_identifier: body.deezer_identifier || '',
-			spotify_identifier: body.spotify_identifier || '',
+		let updateData = {
+			...artistToApi,
+			picture:
+				picture_url && picture_url.length > 0
+					? picture_url
+					: curerentUser.picture,
+			role,
+			status,
+			external_id,
+			...(password &&
+				password.length > 0 && { password: await encryptPassword(password) }),
 		};
 
 		// Actualizar el usuario en la base de datos local
@@ -165,7 +213,7 @@ export async function PUT(
 			{ external_id: params.id },
 			{ $set: updateData },
 			{ new: true, runValidators: true }
-		);
+		).select('-password');
 
 		if (!updatedArtist) {
 			return NextResponse.json(
@@ -173,13 +221,12 @@ export async function PUT(
 				{ status: 404 }
 			);
 		}
-		delete body.picture;
 
 		// Manejar las relaciones de cuentas
 		try {
 			// Si hay subcuentas, procesarlas
-			if (body.subAccounts) {
-				const subAccounts = body.subAccounts as SubAccount[];
+			if (subAccounts) {
+				const subAccos = subAccounts as SubAccount[];
 
 				// Eliminar relaciones existentes para este mainAccount
 				await AccountRelationship.deleteMany({
@@ -187,8 +234,8 @@ export async function PUT(
 				});
 
 				// Crear nuevas relaciones
-				if (subAccounts.length > 0) {
-					const relationships = subAccounts.map(subAccount => ({
+				if (subAccos.length > 0) {
+					const relationships = subAccounts.map((subAccount: any) => ({
 						mainAccountId: updatedArtist._id,
 						subAccountId: subAccount.subAccountId,
 						role: subAccount.role,

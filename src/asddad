@@ -1,0 +1,17 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
+
+export async function middleware(request: NextRequest) {
+	console.log('middleware');
+	const response = NextResponse.next();
+	const isProd = process.env.NODE_ENV === 'production';
+	const sameSite = isProd ? 'none' : 'lax';
+	const cookieDomain = isProd ? process.env.COOKIE_DOMAIN : undefined;
+	// Solo procesar rutas que empiecen con /api/admin
+}
+
+// Configurar el matcher para que el middleware se ejecute solo en las rutas de api/admin
+export const config = {
+	matcher: ['/api/admin/:path*'],
+};

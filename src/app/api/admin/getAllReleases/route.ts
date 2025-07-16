@@ -130,40 +130,45 @@ export async function GET(req: NextRequest) {
 			.skip(skip)
 			.limit(limit)
 			.lean();
-		await Promise.all(
-			releases.map(async release => {
-				const releaseGet = await fetch(
-					`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
-					{
-						headers: {
-							Authorization: `JWT ${moveMusicAccessToken}`,
-							'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
-							Referer: process.env.MOVEMUSIC_REFERER || '',
-						},
-					}
-				);
-				const releaseData = await releaseGet.json();
-				if (releaseData && releaseData.status) {
-					release.status = releaseData.status;
+
+		const data = [];
+		for (const release of releases) {
+			const releaseGet = await fetch(
+				`${process.env.MOVEMUSIC_API}/releases/${release.external_id}`,
+				{
+					headers: {
+						Authorization: `JWT ${moveMusicAccessToken}`,
+						'x-api-key': process.env.MOVEMUSIC_X_APY_KEY || '',
+						Referer: process.env.MOVEMUSIC_REFERER || '',
+					},
 				}
-				if (releaseData && releaseData.qc_feedback) {
-					release.qc_feedback = releaseData.qc_feedback;
-				}
-				if (releaseData && releaseData.acr_alert) {
-					release.acr_alert = releaseData.acr_alert;
-				}
-				if (releaseData && releaseData.has_acr_alert) {
-					release.has_acr_alert = releaseData.has_acr_alert;
-				}
-				if (releaseData && releaseData.ddex_delivery_confirmations) {
-					release.ddex_delivery_confirmations =
-						releaseData.ddex_delivery_confirmations;
-				}
-				if (releaseData && releaseData.ean) {
-					release.ean = releaseData.ean;
-				}
-			})
-		);
+			);
+			if (!releaseGet.ok) {
+				continue;
+			}
+			const releaseData = await releaseGet.json();
+
+			if (releaseData && releaseData.status) {
+				release.status = releaseData.status;
+			}
+			if (releaseData && releaseData.qc_feedback) {
+				release.qc_feedback = releaseData.qc_feedback;
+			}
+			if (releaseData && releaseData.acr_alert) {
+				release.acr_alert = releaseData.acr_alert;
+			}
+			if (releaseData && releaseData.has_acr_alert) {
+				release.has_acr_alert = releaseData.has_acr_alert;
+			}
+			if (releaseData && releaseData.ddex_delivery_confirmations) {
+				release.ddex_delivery_confirmations =
+					releaseData.ddex_delivery_confirmations;
+			}
+			if (releaseData && releaseData.ean) {
+				release.ean = releaseData.ean;
+			}
+			data.push(release);
+		}
 
 		// Verificar si se solicitan todos los releases
 
@@ -171,7 +176,7 @@ export async function GET(req: NextRequest) {
 			{
 				success: true,
 				data: {
-					releases,
+					releases: data,
 					pagination: getAll
 						? null
 						: {

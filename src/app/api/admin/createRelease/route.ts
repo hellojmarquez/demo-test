@@ -4,11 +4,14 @@ import Release from '@/models/ReleaseModel';
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import FormData from 'form-data';
+import nodeFetch from 'node-fetch';
+import fs from 'fs/promises';
+import path from 'path';
+import sharp from 'sharp';
 import { createLog } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-	console.log('Create release request received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -36,57 +39,40 @@ export async function POST(req: NextRequest) {
 		}
 
 		const formData = await req.formData();
-		// Parsear campos individuales
-		const picture = formData.get('picture') as File | null;
-
-		// Parsear campos complejos que vienen como stringified JSON
-		const artistsRaw = formData.get('artists');
-		const artists = artistsRaw ? JSON.parse(artistsRaw.toString()) : [];
-		const countriesRaw = formData.get('countries');
-		const countries = countriesRaw ? JSON.parse(countriesRaw.toString()) : [];
-
-		// Parsear otros campos normales
-		let name = formData.get('name') as string;
+		const data = formData.get('data') as string;
+		const dataJson = JSON.parse(data);
+		let {
+			name,
+			label,
+			label_name,
+			publisher,
+			publisher_name,
+			genre,
+			genre_name,
+			subgenre,
+			subgenre_name,
+			artists,
+			publisher_year,
+			copyright_holder,
+			copyright_holder_year,
+			generate_ean,
+			kind,
+			catalogue_number,
+			backcatalog,
+			is_new_release,
+			official_date,
+			original_date,
+			release_version,
+			territory,
+			available,
+			youtube_declaration,
+		} = dataJson;
 		name = name.trim();
-		const label = parseInt(formData.get('label') as string);
-		let label_name = formData.get('label_name') as string;
 		label_name = label_name.trim();
-		const kind = formData.get('kind') as string;
-
-		const release_version = formData.get('release_version') as string;
-		const publisher = formData.get('publisher') as string;
-		const available = formData.get('available') === 'true';
-		let publisher_name = formData.get('publisher_name') as string;
 		publisher_name = publisher_name.trim();
-
-		let publisher_year = formData.get('publisher_year') as string;
-		let copyright_holder = formData.get('copyright_holder') as string;
 		copyright_holder = copyright_holder.trim();
-
-		const copyright_holder_year = formData.get(
-			'copyright_holder_year'
-		) as string;
-
-		const official_date = formData.get('official_date') as string;
-		const original_date = formData.get('original_date') as string;
-		const territory = formData.get('territory') as string;
-
-		// Parsear campos booleanos
-		const dolby_atmos = formData.get('dolby_atmos') === 'true';
-		const backcatalog = formData.get('backcatalog') === 'true';
-		const auto_detect_language =
-			formData.get('auto_detect_language') === 'true';
-		const generate_ean = formData.get('generate_ean');
-		const youtube_declaration = formData.get('youtube_declaration') === 'true';
 		let picture_url = '';
 		let picture_path = '';
-		// Parsear género y subgénero
-		const genre = formData.get('genre') as string;
-		const genre_name = formData.get('genre_name') as string;
-
-		const subgenre = formData.get('subgenre') as string;
-		const subgenre_name = formData.get('subgenre_name') as string;
-
 		const temp_id = uuidv4().substring(0, 3);
 		const label_id =
 			verifiedPayload.role === 'sello'
@@ -99,11 +85,12 @@ export async function POST(req: NextRequest) {
 			label: label_id,
 			kind,
 			language: 'ES',
-			countries,
+			countries: [],
 			tracks: [],
-			dolby_atmos,
+			is_new_release,
+			dolby_atmos: false,
 			backcatalog,
-			auto_detect_language,
+			auto_detect_language: true,
 			generate_ean,
 			genre: Number(genre),
 			subgenre: Number(subgenre),
@@ -114,20 +101,74 @@ export async function POST(req: NextRequest) {
 			catalogue_number: 'IS' + temp_id,
 			copyright_holder,
 			copyright_holder_year,
-			is_new_release: 1,
 			official_date,
 			original_date,
 			territory,
 		};
-		console.log('newRelease: ', newRelease);
-		if (picture) {
+		const fileName = formData.get('fileName') as string;
+		let tempFilePath: string | null = null;
+		const chunk = formData.get('chunk') as Blob;
+		const chunkIndex = parseInt(formData.get('chunkIndex') as string);
+		const totalChunks = parseInt(formData.get('totalChunks') as string);
+
+		if (isNaN(chunkIndex) || isNaN(totalChunks)) {
+			return NextResponse.json(
+				{ success: false, error: 'Datos de chunk inválidos' },
+				{ status: 400 }
+			);
+		}
+		const tempDir = path.join(process.cwd(), 'temp_uploads');
+		await fs.mkdir(tempDir, { recursive: true });
+
+		// Define el nombre del archivo temporal. ESTO DEBE ESTAR FUERA DEL IF.
+		const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+		const tempFileName = `upload_${safeFileName}.tmp`;
+		tempFilePath = path.join(tempDir, tempFileName);
+		const chunkBuffer = Buffer.from(await chunk.arrayBuffer());
+		await fs.appendFile(tempFilePath, chunkBuffer);
+
+		if (chunkIndex < totalChunks - 1) {
+			return NextResponse.json({
+				success: true,
+				message: `Chunk ${chunkIndex} recibido`,
+			});
+		}
+		if (!tempFilePath) {
+			return NextResponse.json(
+				{ success: false, error: 'Archivo de audio requerido' },
+				{ status: 400 }
+			);
+		}
+		const { size: fileSize } = await fs.stat(tempFilePath);
+		const fileBuffer = await fs.readFile(tempFilePath);
+		const metadata = await sharp(fileBuffer).metadata();
+		const sizeInMB = fileSize / 1024 / 1024;
+
+		if (
+			metadata.width !== 3000 ||
+			metadata.height !== 3000 ||
+			(metadata.format !== 'jpeg' && metadata.format !== 'jpg') ||
+			(metadata.space !== 'srgb' && metadata.space !== 'rgb') ||
+			sizeInMB > 4
+		) {
+			await fs.unlink(tempFilePath);
+			return NextResponse.json(
+				{
+					success: false,
+					error: 'El archivo no tiene el formato o características soportadas',
+				},
+				{ status: 400 }
+			);
+		}
+		const modifiedBuffer = await sharp(fileBuffer)
+			.withMetadata({ density: 72 })
+			.toBuffer();
+
+		if (tempFilePath) {
+			const fixedname = fileName.replaceAll(' ', '_');
+			const safeName = fixedname;
 			const uploadArtworkReq = await fetch(
-				`${
-					process.env.MOVEMUSIC_API
-				}/obtain-signed-url-for-upload/?filename=${picture.name.replaceAll(
-					' ',
-					''
-				)}&filetype=${picture.type}&upload_type=release.artwork`,
+				`${process.env.MOVEMUSIC_API}/obtain-signed-url-for-upload/?filename=${safeName}&filetype=image/jpeg&upload_type=release.artwork`,
 				{
 					method: 'GET',
 					headers: {
@@ -138,6 +179,15 @@ export async function POST(req: NextRequest) {
 					},
 				}
 			);
+			if (!uploadArtworkReq.ok) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: 'Error al obtener la URL de subida',
+					},
+					{ status: 400 }
+				);
+			}
 			const uploadArtworkRes = await uploadArtworkReq.json();
 
 			// Extraer la URL y los campos del objeto firmado
@@ -155,12 +205,15 @@ export async function POST(req: NextRequest) {
 				}
 			});
 
-			pictureFormData.append('file', picture);
-
-			// Realizar la solicitud POST a la URL firmada
-			const uploadResponse = await fetch(signedUrl, {
+			pictureFormData.append('file', modifiedBuffer, {
+				filename: safeName,
+				contentType: 'image/jpeg',
+				knownLength: fileSize,
+			});
+			const uploadResponse = await nodeFetch(signedUrl, {
 				method: 'POST',
 				body: pictureFormData,
+				headers: pictureFormData.getHeaders(),
 			});
 
 			picture_url = uploadResponse?.headers?.get('location') || '';
@@ -202,8 +255,8 @@ export async function POST(req: NextRequest) {
 			body: JSON.stringify(releaseToApiData),
 		});
 
-		const apiRes = await releaseToApi.json();
 		if (!releaseToApi.ok) {
+			const apiRes = await releaseToApi.json();
 			return NextResponse.json(
 				{
 					success: false,
@@ -212,6 +265,8 @@ export async function POST(req: NextRequest) {
 				{ status: 400 }
 			);
 		}
+		const apiRes = await releaseToApi.json();
+
 		const getRelease = await fetch(
 			`${process.env.MOVEMUSIC_API}/releases/${apiRes.id}`,
 			{
@@ -224,7 +279,18 @@ export async function POST(req: NextRequest) {
 				},
 			}
 		);
+		if (!getRelease.ok) {
+			const getReleaseRes = await getRelease.json();
+			return NextResponse.json(
+				{
+					success: false,
+					error: getReleaseRes || 'Error al obtener el release',
+				},
+				{ status: 400 }
+			);
+		}
 		const getReleaseRes = await getRelease.json();
+
 		await dbConnect();
 
 		const cleanUrl = (url: string) => {
@@ -282,10 +348,12 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({
 			success: true,
 		});
-	} catch (error) {
-		console.error('Error creating release:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Error al crear el release' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

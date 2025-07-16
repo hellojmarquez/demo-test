@@ -170,7 +170,6 @@ export async function GET(req: NextRequest) {
 			.select('-password')
 			.lean();
 
-
 		// Devolver respuesta con datos y metadatos de paginación
 		return NextResponse.json(
 			{
@@ -196,10 +195,13 @@ export async function GET(req: NextRequest) {
 				},
 			}
 		);
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error in getAllUsers:', error);
 		return NextResponse.json(
-			{ success: false, error: 'Error al obtener los usuarios' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

@@ -4,17 +4,13 @@ import mongoose from 'mongoose';
 // Esquema base común para todos los usuarios
 const baseUserSchema = new mongoose.Schema(
 	{
-		_id: {
-			type: mongoose.Schema.Types.ObjectId || '',
-			required: false,
-		},
 		name: {
 			type: String,
 			required: true,
 		},
 		email: {
 			type: String,
-			unique: true,
+			unique: false,
 			required: true,
 		},
 		password: {

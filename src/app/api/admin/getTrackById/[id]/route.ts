@@ -42,9 +42,9 @@ export async function GET(
 			userRole === 'admin'
 				? { external_id: externalId }
 				: { external_id: externalId, available: true };
-		const track = await SingleTrack.findOne(query)
+		let track = (await SingleTrack.findOne(query)
 			.select('+genre +subgenre +qc_feedback +available')
-			.lean(); // Forzar la inclusión de estos campos
+			.lean()) as any;
 
 		if (!track) {
 			return NextResponse.json(
@@ -52,6 +52,7 @@ export async function GET(
 				{ status: 404 }
 			);
 		}
+
 		// Type assertion to ensure track has available property
 		const typedTrack = track as Track;
 		if (userRole !== 'admin' && !typedTrack.available) {
@@ -72,7 +73,10 @@ export async function GET(
 			}
 		);
 		const trackData = await getTrack.json();
-
+		track.qc_feedback = trackData.qc_feedback;
+		track.ISRC = trackData.ISRC;
+		track.generate_isrc = trackData.generate_isrc;
+		
 		// Actualizar usando updateOne
 		const updateResult = await SingleTrack.findOneAndUpdate(
 			{ external_id: externalId },
@@ -90,14 +94,13 @@ export async function GET(
 
 		return NextResponse.json({
 			success: true,
-			data: updateResult,
+			data: track,
 		});
 	} catch (error: any) {
 		console.error('Error getting track:', error);
 		return NextResponse.json(
 			{
-				success: false,
-				error: error.message || 'Internal Server Error',
+				error: error.message || 'Error interno del servidor',
 				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 			},
 			{ status: 500 }

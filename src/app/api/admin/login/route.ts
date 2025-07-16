@@ -210,10 +210,12 @@ export async function POST(req: NextRequest) {
 				{ status: 401 }
 			);
 		}
-	} catch (error) {
-		console.error('Error en la solicitud de login:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ error: 'Error interno del servidor' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

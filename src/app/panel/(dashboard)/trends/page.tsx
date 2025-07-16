@@ -150,7 +150,7 @@ const TrendsPage = () => {
 	const [selectedStore, setSelectedStore] = useState('');
 	const [selectedRelease, setSelectedRelease] = useState('');
 	const [selectedPeriod, setSelectedPeriod] = useState('');
-	const processedData = processData(data.results);
+	const processedData = processData(data?.results || []);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [releases, setReleases] = useState([]);
@@ -165,9 +165,15 @@ const TrendsPage = () => {
 					...(selectedPeriod && { period: selectedPeriod }),
 				});
 
-				const response = await fetch(`/trends/?${params.toString()}`);
+				const response = await fetch(`/api/admin/trends/?${params.toString()}`);
 				const newData = await response.json();
-				setData(newData);
+
+				if (newData.success) {
+					setData(newData.data);
+				} else {
+					console.error('Error fetching trends:', newData.error);
+					// Mantener los datos mock en caso de error
+				}
 			} catch (error) {
 				console.error('Error fetching trends:', error);
 			}
@@ -183,19 +189,26 @@ const TrendsPage = () => {
 	]);
 	useEffect(() => {
 		const fetchReleases = async () => {
-			const response = await fetch('/api/admin/getAllReleases?all=true');
-			const data = await response.json();
-
-			if (!data.success) {
-				setError(data.error);
-				return;
+			try {
+				const response = await fetch('/api/admin/getAllReleases?all=true');
+				if (!response.ok) {
+					console.error('Error fetching releases:', response);
+					return;
+				}
+				const data = await response.json();
+				if (!data.success) {
+					setError(data.error);
+					return;
+				}
+				setReleases(
+					data.data.releases.map((release: any) => ({
+						label: release.name,
+						value: String(release.external_id),
+					}))
+				);
+			} catch (error) {
+				console.error('Error en fetchReleases:', error);
 			}
-			setReleases(
-				data.data.releases.map((release: any) => ({
-					label: release.name,
-					value: String(release.external_id),
-				}))
-			);
 		};
 		fetchReleases();
 	}, []);

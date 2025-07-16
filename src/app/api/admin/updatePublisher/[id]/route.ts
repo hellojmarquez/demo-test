@@ -38,6 +38,27 @@ export async function PUT(
 
 		const body = await req.json();
 		const { name, email, password, status } = body;
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+		if (!name.trim() || !nameRegex.test(name)) {
+			return NextResponse.json(
+				{
+					success: false,
+					error:
+						'El nombre es requerido y no debe tener caracteres especiales ni números',
+				},
+				{ status: 400 }
+			);
+		}
+		if (!email.trim() || !emailRegex.test(email)) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: 'El email es requerido y el formato debe ser correcto',
+				},
+				{ status: 400 }
+			);
+		}
 
 		// Actualizar publisher en la API externa
 		const publisherReq = await fetch(
@@ -55,6 +76,15 @@ export async function PUT(
 		);
 
 		const publisherRes = await publisherReq.json();
+		if (!publisherReq.ok) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: publisherRes || 'Error al actualizar publisher',
+				},
+				{ status: 400 }
+			);
+		}
 
 		// Conectar a la base de datos local
 		await dbConnect();
@@ -78,7 +108,7 @@ export async function PUT(
 			{ external_id: params.id },
 			{ $set: updateData },
 			{ new: true }
-		);
+		).select('-password');
 
 		if (!updatedPublisher) {
 			return NextResponse.json(
@@ -108,10 +138,12 @@ export async function PUT(
 			success: true,
 			publisher: updatedPublisher,
 		});
-	} catch (error) {
-		console.error('Error updating publisher:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

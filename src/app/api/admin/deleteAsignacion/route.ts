@@ -56,9 +56,11 @@ export async function DELETE(request: NextRequest) {
 			message: 'Contrato terminado exitosamente',
 		});
 	} catch (error: any) {
-		console.error('Error terminando contrato:', error);
 		return NextResponse.json(
-			{ success: false, message: error.message },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

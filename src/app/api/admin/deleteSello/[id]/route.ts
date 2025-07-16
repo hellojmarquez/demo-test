@@ -82,10 +82,13 @@ export async function DELETE(
 			{ success: true, message: 'Sello eliminado exitosamente' },
 			{ status: 200 }
 		);
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error eliminado sello', error);
 		return NextResponse.json(
-			{ success: false, message: 'Error eliminado sello' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

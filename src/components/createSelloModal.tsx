@@ -7,8 +7,10 @@ import {
 	XCircle,
 	Upload,
 	Hash,
+	AlertTriangle,
 } from 'lucide-react';
 import Select from 'react-select';
+import toast from 'react-hot-toast';
 
 interface CreateSelloModalProps {
 	isOpen: boolean;
@@ -20,9 +22,7 @@ interface CreateSelloModalProps {
 		primary_genre: string;
 		year: number;
 		catalog_num: number;
-		picture?: {
-			base64: string;
-		};
+		picture?: File | null;
 		isSubaccount?: boolean;
 		parentUserId?: string;
 	}) => Promise<void>;
@@ -81,7 +81,24 @@ function CreateSelloModal({
 	const [genres, setGenres] = useState<Array<{ _id: string; name: string }>>(
 		[]
 	);
-
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [emailError, setEmailError] = useState<string | null>(null);
+	const [passwordError, setPasswordError] = useState<string | null>(null);
+	const [primaryGenreError, setPrimaryGenreError] = useState<string | null>(
+		null
+	);
+	const [yearError, setYearError] = useState<string | null>(null);
+	const [catalogNumberError, setCatalogNumberError] = useState<string | null>(
+		null
+	);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
+	const [imageErr, setimageErr] = useState<string | null>(null);
 	const inputStyles =
 		'w-full pl-10 pr-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
 
@@ -178,109 +195,240 @@ function CreateSelloModal({
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
-			const reader = new FileReader();
-			reader.onloadend = () => {
-				const base64String = reader.result as string;
-				// Mantener el prefijo data:image/jpeg;base64, para la vista previa
-				setImagePreview(base64String);
+			// Crear URL para vista previa
+			const previewUrl = URL.createObjectURL(file);
+			setImagePreview(previewUrl);
 
-				// Para enviar a la API, usar solo la parte base64 sin el prefijo
-				const base64Data = base64String.split(',')[1];
-				setFormData(prev => ({
-					...prev,
-					picture: { base64: base64Data },
-				}));
-			};
-			reader.readAsDataURL(file);
+			// Guardar el archivo directamente
+			setFormData((prev: any) => ({
+				...prev,
+				picture: file, // Guardar como File, no como base64
+			}));
 		}
 	};
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
 
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+
+		const response = await fetch(`/api/admin/createSello`, {
+			method: 'POST',
+			body: formData,
+		});
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (file: File, trackData: any) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name
+			);
+		}
+
+		return lastResponse;
+	};
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsSubmitting(true);
+		setNameError(null);
+		setEmailError(null);
+		setPasswordError(null);
+		setPrimaryGenreError(null);
+		setYearError(null);
+		setCatalogNumberError(null);
+		setimageErr(null);
 		setError('');
+		let hasErrors = false;
 
 		try {
-			const formDataToSend = new FormData();
-			formDataToSend.append('name', formData.name);
-			formDataToSend.append('email', formData.email);
-			formDataToSend.append('password', formData.password);
-			formDataToSend.append('primary_genre', formData.primary_genre);
-			formDataToSend.append(
-				'year',
-				formData.year ? parseInt(formData.year).toString() : ''
-			);
-			formDataToSend.append(
-				'catalog_num',
-				formData.catalog_number
-					? parseInt(formData.catalog_number).toString()
-					: ''
-			);
-			formDataToSend.append('isSubaccount', formData.isSubaccount.toString());
-			formDataToSend.append(
-				'tipo',
-				formData.isSubaccount ? 'subcuenta' : 'principal'
-			);
-			if (formData.isSubaccount && formData.parentUserId) {
-				formDataToSend.append('parentUserId', formData.parentUserId);
-				const selectedParent = availableParents.find(
-					parent => parent._id === formData.parentUserId
+			const dataToSend = {
+				name: formData.name,
+				email: formData.email,
+				password: formData.password,
+				primary_genre: formData.primary_genre,
+				year: formData.year ? parseInt(formData.year) : '',
+				catalog_num: formData.catalog_number
+					? parseInt(formData.catalog_number)
+					: '',
+				isSubaccount: formData.isSubaccount,
+				tipo: formData.isSubaccount ? 'subcuenta' : 'principal',
+				// Agregar campos de parent si es subcuenta
+				...(formData.isSubaccount &&
+					formData.parentUserId && {
+						parentUserId: formData.parentUserId,
+						parentName: availableParents.find(
+							parent => parent._id === formData.parentUserId
+						)?.name,
+					}),
+			};
+
+			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+			if (!formData.name || formData.name.length === 0) {
+				setNameError('El nombre es requerido');
+				hasErrors = true;
+			}
+			if (formData.email.length === 0 || !emailRegex.test(formData.email)) {
+				setEmailError('El email es requerido y debe tener el formato correcto');
+				hasErrors = true;
+			}
+			if (formData.password.length === 0) {
+				setPasswordError(
+					'La contraseña es requerida y debe tener al menos 8 caracteres'
 				);
-				if (selectedParent) {
-					formDataToSend.append('parentName', selectedParent.name);
-				}
+				hasErrors = true;
 			}
-
-			if (formData.picture?.base64) {
-				// Convertir base64 a Blob
-				const base64Data = formData.picture.base64;
-				const byteCharacters = atob(base64Data);
-				const byteArrays = [];
-
-				for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-					const slice = byteCharacters.slice(offset, offset + 512);
-					const byteNumbers = new Array(slice.length);
-
-					for (let i = 0; i < slice.length; i++) {
-						byteNumbers[i] = slice.charCodeAt(i);
-					}
-
-					const byteArray = new Uint8Array(byteNumbers);
-					byteArrays.push(byteArray);
-				}
-
-				const blob = new Blob(byteArrays, { type: 'image/jpeg' });
-				const file = new File([blob], 'sello-picture.jpg', {
-					type: 'image/jpeg',
-				});
-				formDataToSend.append('picture', file);
+			if (formData.primary_genre.length === 0) {
+				setPrimaryGenreError('El género principal es requerido');
+				hasErrors = true;
 			}
-
-			const response = await fetch('/api/admin/createSello', {
-				method: 'POST',
-				body: formDataToSend,
-			});
-
-			const data = await response.json();
-
-			if (!data.success) {
-				let errorMessage = 'Error al crear el sello';
-
-				if (data.error) {
-					if (Array.isArray(data.error)) {
-						errorMessage = data.error.join(', ');
-					} else if (typeof data.error === 'object') {
-						errorMessage = JSON.stringify(data.error);
-					} else {
-						errorMessage = data.error;
-					}
+			if (!formData.year || formData.year.length === 0) {
+				setYearError('El año es requerido');
+				hasErrors = true;
+			}
+			if (formData.catalog_number.length === 0) {
+				setCatalogNumberError('El número de catálogo es requerido');
+				hasErrors = true;
+			}
+			if (!formData.picture) {
+				setimageErr('La imagen es requerida');
+				hasErrors = true;
+			}
+			if (formData.picture instanceof File) {
+				if (
+					formData.picture.type !== 'image/jpeg' ||
+					formData.picture.type !== 'image/jpeg'
+				) {
+					setimageErr('El formato de la imagen debe ser JPG');
+					hasErrors = true;
 				}
+			} else {
+				setimageErr('La imagen es requerida');
 
-				setError(errorMessage);
+				hasErrors = true;
+			}
+			if (hasErrors) {
+				setError('Por favor, corrige los errores antes de continuar');
+				setIsSubmitting(false);
 				return;
 			}
+			if (formData.picture instanceof File) {
+				const res = await uploadFileByChunks(formData.picture, dataToSend);
+				if (!res.success) {
+					const errorMessage =
+						typeof res.error === 'object'
+							? Object.entries(res.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: res.error;
+					setError(errorMessage);
+					throw new Error(errorMessage);
+				}
+			}
 
-			await onSave(data.sello);
+			await onSave({
+				name: formData.name,
+				email: formData.email,
+				password: formData.password,
+				primary_genre: formData.primary_genre,
+				year: parseInt(formData.year),
+				catalog_num: parseInt(formData.catalog_number),
+				picture: formData.picture instanceof File ? formData.picture : null,
+				isSubaccount: formData.isSubaccount,
+				parentUserId: formData.parentUserId,
+			});
 			onClose();
 		} catch (err: any) {
 			console.error('Error al crear el sello:', err);
@@ -310,7 +458,7 @@ function CreateSelloModal({
 					>
 						<div className="p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
 							<h2 className="text-xl font-semibold text-gray-800">
-								Crear Sello
+								Crear Sellod
 							</h2>
 							<button
 								onClick={onClose}
@@ -320,27 +468,56 @@ function CreateSelloModal({
 							</button>
 						</div>
 
-						<form
-							onSubmit={handleSubmit}
-							className="flex-1 flex flex-col min-h-0"
-						>
+						<form className="flex-1 flex flex-col min-h-0">
 							<div className="p-4 space-y-4 overflow-y-auto flex-1">
 								<div className="space-y-3">
 									<div className="space-y-2">
 										<label className="block text-sm font-medium text-gray-700">
 											Logo del Sello
 										</label>
-										<div className="flex items-center gap-3">
-											<div className="w-24 h-24 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+										<div className="flex flex-col md:flex-row items-center gap-4">
+											<div className="w-32 h-32 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden relative group">
 												{imagePreview ? (
-													<img
-														src={imagePreview}
-														alt="Preview"
-														className="w-full h-full object-cover"
-													/>
+													<>
+														<input
+															type="file"
+															ref={fileInputRef}
+															onChange={handleImageChange}
+															accept="image/*"
+															className="hidden"
+														/>
+														<button
+															type="button"
+															onClick={() => fileInputRef.current?.click()}
+															className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+														>
+															<Upload className="h-6 w-6 mb-1" />
+															<span className="text-sm">Cambiar imagen</span>
+														</button>
+														<img
+															src={imagePreview}
+															alt="Preview"
+															className="absolute w-full h-full object-cover"
+														/>
+													</>
 												) : (
 													<div className="text-center">
-														<ImageIcon className="mx-auto h-6 w-6 text-gray-400" />
+														<input
+															type="file"
+															ref={fileInputRef}
+															onChange={handleImageChange}
+															accept="image/*"
+															className="hidden"
+														/>
+														<button
+															type="button"
+															onClick={() => fileInputRef.current?.click()}
+															className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+														>
+															<Upload className="h-6 w-6 mb-1" />
+															<span className="text-sm">Cambiar imagen</span>
+														</button>
+														<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
 														<span className="mt-1 block text-xs text-gray-500">
 															Sin imagen
 														</span>
@@ -348,23 +525,32 @@ function CreateSelloModal({
 												)}
 											</div>
 											<div>
-												<input
-													type="file"
-													ref={fileInputRef}
-													onChange={handleImageChange}
-													accept="image/*"
-													className="hidden"
-												/>
-												<button
-													type="button"
-													onClick={() => fileInputRef.current?.click()}
-													className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-												>
-													<Upload className="h-4 w-4 mr-2" />
-													Subir imagen
-												</button>
+												<p className="text-xs text-gray-500">
+													<strong>Formato:</strong> JPG
+												</p>
+												<p className="text-xs text-gray-500">
+													<strong>Resolución:</strong> 3000 X 3000 px
+												</p>
+												<p className="text-xs text-gray-500">
+													<strong>Peso máximo:</strong> 4MB
+												</p>
+												<p className="text-xs text-gray-500">
+													<strong>Colores:</strong> RGB
+												</p>
+												<div className="bg-yellow-100 p-2 rounded-md">
+													<div className="flex items-center gap-2">
+														<AlertTriangle className="h-4 w-4 text-yellow-600" />
+														<p className="text-[9px] md:text-xs text-yellow-800">
+															No seguir estas indicaciones puede causar{' '}
+															<strong>error</strong> en la subida
+														</p>
+													</div>
+												</div>
 											</div>
 										</div>
+										{imageErr && imageErr.length > 0 && (
+											<p className="text-[9px] text-red-500">* {imageErr}</p>
+										)}
 									</div>
 
 									<div className="grid grid-cols-2 gap-3">
@@ -379,11 +565,15 @@ function CreateSelloModal({
 												type="text"
 												id="name"
 												name="name"
+												placeholder="Nombre del sello"
 												value={formData.name}
 												onChange={handleInputChange}
 												className={inputStyles}
 												required
 											/>
+											{nameError && nameError.length > 0 && (
+												<p className="text-[9px] text-red-500">* {nameError}</p>
+											)}
 										</div>
 
 										<div>
@@ -396,12 +586,18 @@ function CreateSelloModal({
 											<input
 												type="email"
 												id="email"
+												placeholder="ej:sello@mail.com"
 												name="email"
 												value={formData.email}
 												onChange={handleInputChange}
 												className={inputStyles}
 												required
 											/>
+											{emailError && emailError.length > 0 && (
+												<p className="text-[9px] text-red-500">
+													* {emailError}
+												</p>
+											)}
 										</div>
 									</div>
 
@@ -416,11 +612,17 @@ function CreateSelloModal({
 											type="password"
 											id="password"
 											name="password"
+											placeholder="Contraseña"
 											value={formData.password}
 											onChange={handleInputChange}
 											className={inputStyles}
 											required
 										/>
+										{passwordError && passwordError.length > 0 && (
+											<p className="text-[9px] text-red-500">
+												* {passwordError}
+											</p>
+										)}
 									</div>
 
 									<div className="grid grid-cols-2 gap-3">
@@ -459,6 +661,11 @@ function CreateSelloModal({
 												isClearable
 												required
 											/>
+											{primaryGenreError && primaryGenreError.length > 0 && (
+												<p className="text-[9px] text-red-500">
+													* {primaryGenreError}
+												</p>
+											)}
 										</div>
 
 										<div>
@@ -499,6 +706,9 @@ function CreateSelloModal({
 												isClearable
 												required
 											/>
+											{yearError && yearError.length > 0 && (
+												<p className="text-[9px] text-red-500">* {yearError}</p>
+											)}
 										</div>
 									</div>
 
@@ -522,9 +732,14 @@ function CreateSelloModal({
 												required
 											/>
 										</div>
+										{catalogNumberError && catalogNumberError.length > 0 && (
+											<p className="text-[9px] text-red-500">
+												* {catalogNumberError}
+											</p>
+										)}
 									</div>
 
-									<div className="flex items-center space-x-2">
+									{/* <div className="flex items-center space-x-2">
 										<input
 											type="checkbox"
 											id="isSubaccount"
@@ -539,9 +754,9 @@ function CreateSelloModal({
 										>
 											Crear como subcuenta
 										</label>
-									</div>
+									</div> */}
 
-									{formData.isSubaccount && (
+									{/* {formData.isSubaccount && (
 										<div>
 											<label
 												htmlFor="parentUserId"
@@ -581,7 +796,7 @@ function CreateSelloModal({
 												required
 											/>
 										</div>
-									)}
+									)} */}
 								</div>
 							</div>
 
@@ -608,8 +823,9 @@ function CreateSelloModal({
 										</span>
 									</button>
 									<button
-										type="submit"
+										type="button"
 										disabled={isSubmitting}
+										onClick={handleSubmit}
 										className="px-3 py-1.5 text-brand-light rounded-md flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										{isSubmitting ? (

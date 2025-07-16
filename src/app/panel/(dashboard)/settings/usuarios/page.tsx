@@ -28,7 +28,6 @@ import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
 import RoleFilter, { RoleOption } from '@/components/RoleFilter';
 import Select from 'react-select';
-import { Artista } from '@/types/artista';
 
 interface User {
 	_id: string;
@@ -172,6 +171,14 @@ export default function UsuariosPage() {
 	const [showInviteModal, setShowInviteModal] = useState(false);
 
 	const [error, setError] = useState<string | null>(null);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
+
 	const router = useRouter();
 
 	useEffect(() => {
@@ -305,7 +312,83 @@ export default function UsuariosPage() {
 		setUserToDelete(user);
 		setShowDeleteModal(true);
 	};
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
 
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string,
+		url: string
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+		formData.append('fileType', fileName.split('.').pop() || '');
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+
+		const ex_ID = selectedSello?.external_id;
+		const response = await fetch(url, {
+			method: 'PUT',
+			body: formData,
+		});
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (
+		file: File,
+		trackData: any,
+		url: string
+	) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name,
+				url
+			);
+		}
+
+		return lastResponse;
+	};
 	const handleConfirmDelete = async () => {
 		if (!userToDelete) return;
 		setIsDeleting(true);
@@ -373,9 +456,59 @@ export default function UsuariosPage() {
 			const updateData = await updateResponse.json();
 
 			if (!updateResponse.ok) {
-				throw new Error(
-					updateData.error || 'Error al actualizar el contribuidor'
-				);
+				const errorMessage =
+					typeof updateData.error === 'object'
+						? Object.entries(updateData.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+										const arrayErrors = value
+											.map((item, index) => {
+												if (typeof item === 'object' && item !== null) {
+													return Object.entries(item)
+														.map(([nestedKey, nestedValue]) => {
+															if (Array.isArray(nestedValue)) {
+																return `${nestedKey}: ${nestedValue.join(
+																	', '
+																)}`;
+															}
+															return `${nestedKey}: ${nestedValue}`;
+														})
+														.join(', ');
+												}
+												return String(item);
+											})
+											.join(', ');
+										return `${key}: ${arrayErrors}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+										const nestedErrors = Object.entries(value)
+											.map(([nestedKey, nestedValue]) => {
+												if (Array.isArray(nestedValue)) {
+													return `${nestedKey}: ${nestedValue.join(', ')}`;
+												}
+												if (
+													typeof nestedValue === 'object' &&
+													nestedValue !== null
+												) {
+													return `${nestedKey}: ${Object.values(nestedValue)
+														.flat()
+														.join(', ')}`;
+												}
+												return `${nestedKey}: ${nestedValue}`;
+											})
+											.join(', ');
+										return `${key}: ${nestedErrors}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: updateData.error;
+				toast.error(errorMessage);
+				setError(errorMessage);
+				throw new Error(errorMessage);
 			}
 
 			// Si la actualización fue exitosa, recargamos la lista de usuarios
@@ -417,6 +550,61 @@ export default function UsuariosPage() {
 				}`
 			);
 			const data = await res.json();
+			if (!res.ok) {
+				const errorMessage =
+					typeof data.error === 'object'
+						? Object.entries(data.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+										const arrayErrors = value
+											.map((item, index) => {
+												if (typeof item === 'object' && item !== null) {
+													return Object.entries(item)
+														.map(([nestedKey, nestedValue]) => {
+															if (Array.isArray(nestedValue)) {
+																return `${nestedKey}: ${nestedValue.join(
+																	', '
+																)}`;
+															}
+															return `${nestedKey}: ${nestedValue}`;
+														})
+														.join(', ');
+												}
+												return String(item);
+											})
+											.join(', ');
+										return `${key}: ${arrayErrors}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+										const nestedErrors = Object.entries(value)
+											.map(([nestedKey, nestedValue]) => {
+												if (Array.isArray(nestedValue)) {
+													return `${nestedKey}: ${nestedValue.join(', ')}`;
+												}
+												if (
+													typeof nestedValue === 'object' &&
+													nestedValue !== null
+												) {
+													return `${nestedKey}: ${Object.values(nestedValue)
+														.flat()
+														.join(', ')}`;
+												}
+												return `${nestedKey}: ${nestedValue}`;
+											})
+											.join(', ');
+										return `${key}: ${nestedErrors}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: data.error;
+				toast.error(errorMessage);
+				setError(errorMessage);
+				throw new Error(errorMessage);
+			}
 			if (data.success) {
 				setUsers(data.data.users);
 				setTotalPages(data.data.pagination.totalPages);
@@ -428,63 +616,140 @@ export default function UsuariosPage() {
 
 	const handleArtistSave = async (updatedArtist: any) => {
 		try {
-			// Asegurarse de que el artista tenga el rol 'artista' y el external_id
-			const artistToSave = {
-				...updatedArtist,
-				role: 'artista',
-				external_id:
-					updatedArtist.external_id ||
-					selectedArtist?.external_id ||
-					updatedArtist._id,
-				isMainAccount: updatedArtist.isMainAccount || false,
-				createdAt: new Date(updatedArtist.createdAt),
-				updatedAt: new Date(updatedArtist.updatedAt),
-			};
-
-			// Verificar que tenemos un external_id válido
-			if (!artistToSave.external_id) {
-				throw new Error('No se encontró el external_id del artista');
-			}
-
+			const URL = `/api/admin/updateArtist/${selectedArtist?.external_id}`;
 			// Determinar si es FormData o JSON
 			const isFormData = updatedArtist instanceof FormData;
-			const headers: HeadersInit = {};
-			let body: string | FormData;
 
+			let picture = false;
 			if (isFormData) {
-				// Si es FormData, no establecer Content-Type (el navegador lo hará automáticamente)
-				body = updatedArtist;
-			} else {
-				// Si es JSON, establecer Content-Type y convertir a string
-				headers['Content-Type'] = 'application/json';
-				body = JSON.stringify(artistToSave);
-			}
-
-			const res = await fetch(
-				`/api/admin/updateArtist/${artistToSave.external_id}`,
-				{
-					method: 'PUT',
-					headers,
-					body,
+				const fil = updatedArtist.get('picture');
+				picture = fil instanceof File;
+				const file = updatedArtist.get('picture') as File;
+				if (picture) {
+					const dataToUpdate = JSON.parse(updatedArtist.get('data') as string);
+					const dat = await uploadFileByChunks(file, dataToUpdate, URL);
+					if (!dat) {
+						const errorMessage =
+							typeof dat.error === 'object'
+								? Object.entries(dat.error)
+										.map(([key, value]) => {
+											if (Array.isArray(value)) {
+												// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+												const arrayErrors = value
+													.map((item, index) => {
+														if (typeof item === 'object' && item !== null) {
+															return Object.entries(item)
+																.map(([nestedKey, nestedValue]) => {
+																	if (Array.isArray(nestedValue)) {
+																		return `${nestedKey}: ${nestedValue.join(
+																			', '
+																		)}`;
+																	}
+																	return `${nestedKey}: ${nestedValue}`;
+																})
+																.join(', ');
+														}
+														return String(item);
+													})
+													.join(', ');
+												return `${key}: ${arrayErrors}`;
+											}
+											if (typeof value === 'object' && value !== null) {
+												// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+												const nestedErrors = Object.entries(value)
+													.map(([nestedKey, nestedValue]) => {
+														if (Array.isArray(nestedValue)) {
+															return `${nestedKey}: ${nestedValue.join(', ')}`;
+														}
+														if (
+															typeof nestedValue === 'object' &&
+															nestedValue !== null
+														) {
+															return `${nestedKey}: ${Object.values(nestedValue)
+																.flat()
+																.join(', ')}`;
+														}
+														return `${nestedKey}: ${nestedValue}`;
+													})
+													.join(', ');
+												return `${key}: ${nestedErrors}`;
+											}
+											return `${key}: ${value}`;
+										})
+										.filter(Boolean)
+										.join('\n')
+								: dat.error;
+						setError(errorMessage);
+						console.log('errorMessage', errorMessage);
+						throw new Error(errorMessage);
+					}
+					toast.success('Artista actualizado correctamente');
+				} else {
+					const res = await fetch(URL, {
+						method: 'PUT',
+						body: updatedArtist,
+					});
+					if (!res.ok) {
+						const err = await res.json();
+						const errorMessage =
+							typeof err.error === 'object'
+								? Object.entries(err.error)
+										.map(([key, value]) => {
+											if (Array.isArray(value)) {
+												// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+												const arrayErrors = value
+													.map((item, index) => {
+														if (typeof item === 'object' && item !== null) {
+															return Object.entries(item)
+																.map(([nestedKey, nestedValue]) => {
+																	if (Array.isArray(nestedValue)) {
+																		return `${nestedKey}: ${nestedValue.join(
+																			', '
+																		)}`;
+																	}
+																	return `${nestedKey}: ${nestedValue}`;
+																})
+																.join(', ');
+														}
+														return String(item);
+													})
+													.join(', ');
+												return `${key}: ${arrayErrors}`;
+											}
+											if (typeof value === 'object' && value !== null) {
+												// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+												const nestedErrors = Object.entries(value)
+													.map(([nestedKey, nestedValue]) => {
+														if (Array.isArray(nestedValue)) {
+															return `${nestedKey}: ${nestedValue.join(', ')}`;
+														}
+														if (
+															typeof nestedValue === 'object' &&
+															nestedValue !== null
+														) {
+															return `${nestedKey}: ${Object.values(nestedValue)
+																.flat()
+																.join(', ')}`;
+														}
+														return `${nestedKey}: ${nestedValue}`;
+													})
+													.join(', ');
+												return `${key}: ${nestedErrors}`;
+											}
+											return `${key}: ${value}`;
+										})
+										.filter(Boolean)
+										.join('\n')
+								: err.error;
+						setError(errorMessage);
+						throw new Error(errorMessage);
+					}
+					toast.success('Artista actualizado correctamente');
 				}
-			);
-
-			if (!res.ok) {
-				const errorData = await res.json();
-				throw new Error(errorData.error || 'Error al actualizar el artista');
-			}
-
-			const data = await res.json();
-			if (data.success) {
-				setUsers(
-					users.map(u => (u._id === artistToSave._id ? artistToSave : u))
-				);
-				setShowArtistModal(false);
-				setSelectedArtist(null);
 			}
 		} catch (error) {
 			console.error('Error updating artist:', error);
-			alert(
+			toast.error(
 				error instanceof Error
 					? error.message
 					: 'Error al actualizar el artista'
@@ -494,49 +759,72 @@ export default function UsuariosPage() {
 
 	const handleSelloSave = async (formData: FormData) => {
 		try {
-			// Determinar si hay una imagen para enviar
-			const hasImage = formData.has('picture');
-			const headers: HeadersInit = {};
-			let body: string | FormData;
+			const picture = formData.get('picture');
 
-			if (hasImage) {
-				// Si hay imagen, enviar como FormData
-				body = formData;
-			} else {
-				// Si no hay imagen, enviar como JSON
-				const data = {
-					name: formData.get('name'),
-					email: formData.get('email'),
-					password: formData.get('password'),
-					role: 'sello',
-					_id: formData.get('_id'),
-					external_id: formData.get('external_id'),
-					status: formData.get('status'),
-					catalog_num: formData.get('catalog_num'),
-					year: formData.get('year'),
-					exclusivity: formData.get('exclusivity'),
-					primary_genre: formData.get('primary_genre'),
-					subAccounts: formData.get('subAccounts'),
-					asignaciones: formData.get('asignaciones'),
-					removedAsignaciones: formData.get('removedAsignaciones'),
-				};
+			const URL = `/api/updateSello/${selectedSello?.external_id}`;
+			if (picture instanceof File) {
+				const dataString = formData.get('data') as string;
+				let dat = {};
 
-				headers['Content-Type'] = 'application/json';
-				body = JSON.stringify(data);
-			}
-
-			const external_id = formData.get('external_id');
-
-			const res = await fetch(`/api/admin/updateSello/${external_id}`, {
-				method: 'PUT',
-				headers,
-				body,
-			});
-
-			const responseData = await res.json();
-			if (res.ok) toast.success('Sello actualizado con éxito');
-			if (responseData.success) {
-				// Recargar la lista de personas después de actualizar un sello
+				if (dataString) {
+					dat = JSON.parse(dataString);
+				}
+				const createResponse = await uploadFileByChunks(picture, dat, URL);
+				if (!createResponse.success) {
+					const errorMessage =
+						typeof createResponse.error === 'object'
+							? Object.entries(createResponse.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: createResponse.error;
+					setError(errorMessage);
+					console.log('errorMessage: ', errorMessage);
+					throw new Error(errorMessage || 'Error al crear el lanzamiento');
+				}
 				const res = await fetch(
 					`/api/admin/getAllUsers?page=${currentPage}${
 						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
@@ -550,14 +838,142 @@ export default function UsuariosPage() {
 				}
 				setShowSelloModal(false);
 				setSelectedSello(null);
+				toast.success('Sello actualizado correctamente');
 			} else {
-				toast.error(
-					responseData.error || 'Ha habido un erro al actualizar el sello'
+				const res = await fetch(URL, {
+					method: 'PUT',
+					body: formData,
+				});
+				if (!res.ok) {
+					const createResponse = await res.json();
+					const errorMessage =
+						typeof createResponse.error === 'object'
+							? Object.entries(createResponse.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: createResponse.error;
+					setError(errorMessage);
+					throw new Error(errorMessage || 'Error al crear el lanzamiento');
+				}
+				const response = await fetch(
+					`/api/admin/getAllUsers?page=${currentPage}${
+						searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+					}&sort=${sortBy}`
 				);
+				if (!response.ok) {
+					const createResponse = await response.json();
+					const errorMessage =
+						typeof createResponse.error === 'object'
+							? Object.entries(createResponse.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: createResponse.error;
+					setError(errorMessage);
+					throw new Error(errorMessage || 'Error al crear el lanzamiento');
+				}
+				const data = await response.json();
+				if (data.success) {
+					setUsers(data.data.users);
+					setTotalPages(data.data.pagination.totalPages);
+					setTotalItems(data.data.pagination.total);
+					setShowSelloModal(false);
+					setSelectedSello(null);
+					toast.success('Sello actualizado correctamente');
+				}
 			}
 		} catch (error) {
 			console.error('Error updating sello:', error);
-			alert('Error al actualizar el sello');
+			toast.error(
+				error instanceof Error ? error.message : 'Error al actualizar el sello'
+			);
 		}
 	};
 
@@ -569,6 +985,25 @@ export default function UsuariosPage() {
 				body: JSON.stringify(updatedAdmin),
 			});
 			const data = await res.json();
+			if (!res.ok) {
+				const errorMessage =
+					typeof data.error === 'object'
+						? Object.entries(data.error)
+								.map(([key, value]) => {
+									if (Array.isArray(value)) {
+										return `${key}: ${value.join(', ')}`;
+									}
+									if (typeof value === 'object' && value !== null) {
+										return `${key}: ${Object.values(value).join(', ')}`;
+									}
+									return `${key}: ${value}`;
+								})
+								.filter(Boolean)
+								.join('\n')
+						: data.error;
+				toast.error(errorMessage);
+				return;
+			}
 			if (data.success) {
 				// Mantener los campos originales del usuario y actualizar con los nuevos datos
 				setUsers(
@@ -587,8 +1022,9 @@ export default function UsuariosPage() {
 				setSelectedAdmin(null);
 			}
 		} catch (error) {
-			console.error('Error updating admin:', error);
-			alert('Error al actualizar el administrador');
+			toast.error(
+				error instanceof Error ? error.message : 'Error al crear administrador'
+			);
 		}
 	};
 
@@ -1118,6 +1554,7 @@ export default function UsuariosPage() {
 							deezer_identifier: selectedArtist.deezer_identifier,
 							spotify_identifier: selectedArtist.spotify_identifier,
 						}}
+						err={error}
 						isOpen={showArtistModal}
 						onClose={() => {
 							setShowArtistModal(false);

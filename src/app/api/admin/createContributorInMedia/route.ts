@@ -8,8 +8,6 @@ import { encryptPassword } from '@/utils/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { createLog } from '@/lib/logger';
 export async function POST(req: NextRequest) {
-	console.log('crear contributors received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -58,11 +56,16 @@ export async function POST(req: NextRequest) {
 		// Verificar si el email ya existe
 		await dbConnect();
 		const existingUser = await User.findOne({ email });
-		if (existingUser) {
-			return NextResponse.json(
-				{ success: false, error: 'El email ya está registrado' },
-				{ status: 400 }
-			);
+		if (email) {
+			if (
+				existingUser === email &&
+				existingUser.role === verifiedPayload.role
+			) {
+				return NextResponse.json(
+					{ error: 'El contributor con este email ya está registrado' },
+					{ status: 400 }
+				);
+			}
 		}
 
 		const password = uuidv4();
@@ -89,7 +92,7 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json(
 				{
 					success: false,
-					contributor: contributorRes,
+					contributor: contributorRes || 'Error al crear el contributor',
 				},
 				{ status: 400 }
 			);
@@ -149,10 +152,12 @@ export async function POST(req: NextRequest) {
 			},
 			{ status: 201 }
 		);
-	} catch (error) {
-		console.error('Error creating contributor:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

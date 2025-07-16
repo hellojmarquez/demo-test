@@ -5,12 +5,13 @@ import UpdateReleasePage from '@/components/UpdateReleaseModal';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { Release, ReleaseResponse, Picture } from '@/types/release';
+import { Release, ReleaseResponse } from '@/types/release';
 import { Track, TrackResponse } from '@/types/track';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
 import TrackForm, { GenreData } from '@/components/CreateTrackModal';
 import { Save } from 'lucide-react';
+import Spinner from '@/components/Spinner';
 
 interface ApiError extends Error {
 	info?: any;
@@ -53,6 +54,7 @@ export default function EditPage() {
 	const [editedTrackData, setEditedTrackData] = useState<Partial<Track> | null>(
 		null
 	);
+	const [isProcessing, setIsProcessing] = useState(false);
 	const [artistsErrors, setArtistsErrors] = useState<string[]>([]);
 	const [genres, setGenres] = useState<GenreData[]>([]);
 	const [formData, setFormData] = useState<Release>({
@@ -96,6 +98,14 @@ export default function EditPage() {
 		createdAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 	});
+	const [error, setError] = useState<string | null>(null);
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
 
 	const {
 		data: releaseData,
@@ -125,51 +135,146 @@ export default function EditPage() {
 
 	useEffect(() => {
 		if (releaseData?.data) {
-			console.log('releaseData: ', releaseData.data);
 			setFormData(releaseData.data);
 		}
 	}, [releaseData]);
 	useEffect(() => {
+		const controller = new AbortController();
+		const signal = controller.signal;
+
 		const fetchasignations = async () => {
 			if (user) {
-				const response = await fetch(
-					`/api/admin/getAllAsignaciones/${user._id}`
-				);
-				const data = await response.json();
-				setAsignedArtists(data.data);
+				try {
+					const response = await fetch(
+						`/api/admin/getAllAsignaciones/${user._id}`,
+						{ signal }
+					);
+					const data = await response.json();
+					setAsignedArtists(data.data);
+				} catch (error) {
+					if (error instanceof Error && error.name === 'AbortError') {
+						console.log('Fetch aborted');
+					} else {
+						console.error('Error fetching asignations:', error);
+					}
+				}
 			}
 		};
 		fetchasignations();
+
+		return () => {
+			controller.abort(); // Cancela la petición cuando el componente se desmonta
+		};
 	}, [user]);
 
-	const fetchData = async () => {
-		try {
-			// Fetch genres
-			const genresRes = await fetch('/api/admin/getAllGenres');
-			const genresData = await genresRes.json();
-			if (genresData.success && Array.isArray(genresData.data)) {
-				setGenres(genresData.data);
-			}
-
-			// Fetch publishers for logging
-			const publishersRes = await fetch('/api/admin/getAllPublishers');
-			const publishersData = await publishersRes.json();
-		} catch (error) {
-			console.error('Error fetching data:', error);
-		}
-	};
-
 	useEffect(() => {
+		const controller = new AbortController();
+		const signal = controller.signal;
+
+		const fetchData = async () => {
+			try {
+				// Fetch genres
+				const genresRes = await fetch('/api/admin/getAllGenres', { signal });
+				const genresData = await genresRes.json();
+				if (genresData.success && Array.isArray(genresData.data)) {
+					setGenres(genresData.data);
+				}
+			} catch (error) {
+				if (error instanceof Error && error.name === 'AbortError') {
+					console.log('Fetch aborted');
+				} else {
+					console.error('Error fetching data:', error);
+				}
+			}
+		};
 		fetchData();
+
+		return () => {
+			controller.abort(); // Cancela la petición cuando el componente se desmonta
+		};
 	}, []);
 
-	const handleSave = async (updatedRelease: Release) => {
+	const createChunks = (file: File, chunkSize: number = 250 * 1024) => {
+		const chunks = [];
+		const totalChunks = Math.ceil(file.size / chunkSize);
+
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * chunkSize;
+			const end = Math.min(start + chunkSize, file.size);
+			chunks.push({
+				chunk: file.slice(start, end),
+				index: i,
+				total: totalChunks,
+			});
+		}
+
+		return chunks;
+	};
+
+	// Función para subir un chunk
+	const uploadChunk = async (
+		chunk: Blob,
+		chunkIndex: number,
+		totalChunks: number,
+		trackData: any,
+		fileName: string
+	) => {
+		const formData = new FormData();
+		formData.append('chunk', chunk);
+		formData.append('chunkIndex', chunkIndex.toString());
+		formData.append('totalChunks', totalChunks.toString());
+
+		formData.append('data', JSON.stringify(trackData));
+		formData.append('fileName', fileName);
+		const ex_ID = releaseData?.data?.external_id;
+		const response = await fetch(`/api/admin/updateRelease/${ex_ID}`, {
+			method: 'PUT',
+			body: formData,
+		});
+		if (response.ok) {
+			setUploadProgress(prev => {
+				if (!prev) return prev;
+				const newLoaded = prev.loaded + 1;
+				return {
+					...prev,
+					loaded: newLoaded,
+					percentage: Math.floor((newLoaded / prev.totalChunks) * 100),
+				};
+			});
+		}
+
+		return response.json();
+	};
+
+	// Función para subir archivo completo por chunks
+	const uploadFileByChunks = async (file: File, trackData: any) => {
+		const chunks = createChunks(file);
+		let lastResponse = null;
+
+		for (let i = 0; i < chunks.length; i++) {
+			const { chunk, index, total } = chunks[i];
+			lastResponse = await uploadChunk(
+				chunk,
+				index,
+				total,
+				trackData,
+				file.name
+			);
+		}
+
+		return lastResponse;
+	};
+	const handleSave = async (e: any, updatedRelease: Release) => {
+		e.preventDefault();
 		setArtistsErrors([]);
+		setError(null);
 		setIsLoading(true);
+		setUploadProgress(null);
+		setIsLoading(true);
+		setIsProcessing(true);
+
 		try {
 			const formData = new FormData();
-
-			// Preparar los datos del release manteniendo la estructura original de tracks[]
 
 			const releaseData = {
 				...updatedRelease,
@@ -182,15 +287,6 @@ export default function EditPage() {
 
 			// Si la imagen es un archivo, agrégala como 'picture'
 			const picture = updatedRelease.picture;
-			if (picture instanceof File) {
-				if (picture.type && picture.type !== 'image/jpeg') {
-					throw new Error('El archivo debe ser JPEG');
-				}
-				formData.append('picture', picture);
-			} else if (picture && typeof picture === 'object') {
-				// Si es el objeto picture original, mantenerlo como está
-				releaseData.picture = picture;
-			}
 			if (user && user.role !== 'admin') {
 				if (releaseData.artists && releaseData.artists.length > 0) {
 					const allArtists = [
@@ -215,81 +311,202 @@ export default function EditPage() {
 					}
 				}
 			}
-			// Agregar los datos del release
-			formData.append('data', JSON.stringify(releaseData));
-
-			const response = await fetch(
-				`/api/admin/updateRelease/${updatedRelease.external_id}`,
-				{
-					method: 'PUT',
-					body: formData,
+			if (picture instanceof File) {
+				if (picture.type && picture.type !== 'image/jpeg') {
+					throw new Error('El archivo debe ser JPEG');
 				}
-			);
-			if (!response.ok) {
-				const error = await response.json();
-				const errorMessage =
-					typeof error.error === 'object'
-						? Object.entries(error.error)
-								.map(([key, value]) => {
-									if (Array.isArray(value)) {
-										return `${key}: ${value.join(', ')}`;
-									}
-									if (typeof value === 'object' && value !== null) {
-										return `${key}: ${Object.values(value).join(', ')}`;
-									}
-									return `${key}: ${value}`;
-								})
-								.filter(Boolean)
-								.join('\n')
-						: error.error;
-				toast.error(errorMessage);
-				return;
-			}
-			const data = await response.json();
-			if (data.success) {
-				// Si tenemos datos en la respuesta, los usamos
-				if (data.data) {
-					// Asegurarnos de que los datos sean serializables
-					const serializedData = {
-						...data.data,
-						tracks: data.data.tracks || [],
-						artists: data.data.artists || [],
-						newArtists: data.data.newArtists || [],
-					};
-					setFormData(serializedData);
+
+				const totalChunks = picture
+					? Math.ceil(picture.size / (250 * 1024))
+					: 0;
+
+				setUploadProgress({
+					total: picture ? 1 : 0, // 1 archivo
+					loaded: 0,
+					percentage: 0,
+					totalChunks: totalChunks,
+					filesCompleted: 0, // Empezar en 0, no en 1
+				});
+
+				const createResponse = await uploadFileByChunks(picture, releaseData);
+				if (!createResponse.success) {
+					const errorMessage =
+						typeof createResponse.error === 'object'
+							? Object.entries(createResponse.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: createResponse.error;
+					setError(errorMessage);
+					throw new Error(errorMessage || 'Error al crear el lanzamiento');
 				} else {
-					// Si no hay datos en la respuesta, mantenemos los datos actuales
-					setFormData(prev => ({
-						...prev,
-					}));
+					toast.success('Release actualizado correctamente');
+					return;
 				}
+			}
+			if (picture && typeof picture === 'object') {
+				// Si es el objeto picture original, mantenerlo como está
+				releaseData.picture = picture;
 
-				toast.success('Release actualizado correctamente');
-				await mutateRelease();
-				router.refresh();
-			} else {
-				let errorMessage = 'Error al actualizar el release';
+				// Agregar los datos del release
+				formData.append('data', JSON.stringify(releaseData));
 
-				if (typeof data === 'string') {
-					errorMessage = data;
-				} else if (data && typeof data === 'object') {
-					if (Array.isArray(data.error)) {
-						errorMessage = data.error.join('\n');
-					} else if (data.error) {
-						errorMessage = data.error;
-					} else if (data.message) {
-						errorMessage = data.message;
+				const response = await fetch(
+					`/api/admin/updateRelease/${updatedRelease.external_id}`,
+					{
+						method: 'PUT',
+						body: formData,
 					}
+				);
+				const data = await response.json();
+				if (!response.ok) {
+					const errorMessage =
+						typeof data.error === 'object'
+							? Object.entries(data.error)
+									.map(([key, value]) => {
+										if (Array.isArray(value)) {
+											// Manejar arrays de objetos como artists: [{ artist: ['error'] }]
+											const arrayErrors = value
+												.map((item, index) => {
+													if (typeof item === 'object' && item !== null) {
+														return Object.entries(item)
+															.map(([nestedKey, nestedValue]) => {
+																if (Array.isArray(nestedValue)) {
+																	return `${nestedKey}: ${nestedValue.join(
+																		', '
+																	)}`;
+																}
+																return `${nestedKey}: ${nestedValue}`;
+															})
+															.join(', ');
+													}
+													return String(item);
+												})
+												.join(', ');
+											return `${key}: ${arrayErrors}`;
+										}
+										if (typeof value === 'object' && value !== null) {
+											// Manejar estructuras anidadas como { artists: [{ artist: ['error'] }] }
+											const nestedErrors = Object.entries(value)
+												.map(([nestedKey, nestedValue]) => {
+													if (Array.isArray(nestedValue)) {
+														return `${nestedKey}: ${nestedValue.join(', ')}`;
+													}
+													if (
+														typeof nestedValue === 'object' &&
+														nestedValue !== null
+													) {
+														return `${nestedKey}: ${Object.values(nestedValue)
+															.flat()
+															.join(', ')}`;
+													}
+													return `${nestedKey}: ${nestedValue}`;
+												})
+												.join(', ');
+											return `${key}: ${nestedErrors}`;
+										}
+										return `${key}: ${value}`;
+									})
+									.filter(Boolean)
+									.join('\n')
+							: data.error;
+					setError(errorMessage);
+					throw new Error(errorMessage);
 				}
 
-				toast.error(errorMessage);
+				if (data.success) {
+					// Si tenemos datos en la respuesta, los usamos
+					if (data.data) {
+						// Asegurarnos de que los datos sean serializables
+						const serializedData = {
+							...data.data,
+							tracks: data.data.tracks || [],
+							artists: data.data.artists || [],
+							newArtists: data.data.newArtists || [],
+						};
+						setFormData(serializedData);
+					} else {
+						// Si no hay datos en la respuesta, mantenemos los datos actuales
+						setFormData(prev => ({
+							...prev,
+						}));
+					}
+
+					toast.success('Release actualizado correctamente');
+					await mutateRelease();
+					router.refresh();
+				} else {
+					let errorMessage = 'Error al actualizar el release';
+
+					if (typeof data === 'string') {
+						errorMessage = data;
+					} else if (data && typeof data === 'object') {
+						if (Array.isArray(data.error)) {
+							errorMessage = data.error.join('\n');
+						} else if (data.error) {
+							errorMessage = data.error;
+						} else if (data.message) {
+							errorMessage = data.message;
+						}
+					}
+
+					toast.error(errorMessage);
+				}
 			}
 		} catch (error) {
+			console.log('CATCH error: ', error);
 			toast.error(
 				error instanceof Error ? error.message : 'Error al procesar la imagen'
 			);
 		} finally {
 			setIsLoading(false);
+			setArtistsErrors([]);
+			setError(null);
+			setUploadProgress(null);
+			setIsProcessing(false);
 		}
 	};
 
@@ -376,10 +593,16 @@ export default function EditPage() {
 								onTracksUpdated={mutateTracks as () => Promise<void>}
 							/>
 						</div>
+						{error && error.length > 0 && (
+							<div className="mb-4 p-4 bg-red-200 text-red-700 rounded-md">
+								{error}
+							</div>
+						)}
+
 						<div className="flex justify-end mt-4 sm:mt-6">
 							<button
 								type="button"
-								onClick={() => handleSave(formData)}
+								onClick={e => handleSave(e, formData)}
 								disabled={isLoading}
 								className="w-full sm:w-auto px-4 py-2.5 text-brand-light rounded-md flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium hover:bg-gray-50"
 							>
@@ -410,5 +633,9 @@ export default function EditPage() {
 		);
 	}
 
-	return <div>Cargando...</div>;
+	return (
+		<div className="flex justify-center items-center h-screen">
+			<Spinner />
+		</div>
+	);
 }

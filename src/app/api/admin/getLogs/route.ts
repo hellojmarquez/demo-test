@@ -97,10 +97,13 @@ export async function GET(request: NextRequest) {
 				totalPages: Math.ceil(total / limit),
 			},
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error al obtener logs:', error);
 		return NextResponse.json(
-			{ error: 'Error al obtener los logs' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

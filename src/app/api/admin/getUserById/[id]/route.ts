@@ -23,10 +23,12 @@ export async function GET(
 			success: true,
 			data: user,
 		});
-	} catch (error) {
-		console.error('Error al obtener usuario:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ error: 'Error al obtener usuario' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

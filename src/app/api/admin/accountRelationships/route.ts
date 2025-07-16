@@ -123,9 +123,12 @@ export async function DELETE(req: NextRequest) {
 			message: 'Relación eliminada exitosamente',
 			deletedCount: result.deletedCount,
 		});
-	} catch (error) {
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Error al eliminar la relación' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

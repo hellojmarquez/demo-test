@@ -174,6 +174,13 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		if (!sello.picture) return null;
 		return typeof sello.picture === 'string' ? sello.picture : null;
 	});
+	const [uploadProgress, setUploadProgress] = useState<{
+		total: number;
+		loaded: number;
+		percentage: number;
+		totalChunks: number;
+		filesCompleted: number;
+	} | null>(null);
 
 	// Funciones para la gestión de cuentas
 	const fetchUsers = async () => {
@@ -256,11 +263,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 		{ value: 'activo', label: 'Activo' },
 		{ value: 'inactivo', label: 'Inactivo' },
 		{ value: 'banneado', label: 'Baneado' },
-	];
-
-	const exclusivityOptions: ExclusivityOption[] = [
-		{ value: 'exclusivo', label: 'Exclusivo' },
-		{ value: 'no_exclusivo', label: 'No Exclusivo' },
 	];
 
 	const baseSelectStyles = {
@@ -364,11 +366,6 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 	// Update the input styles to accommodate icons
 	const inputStyles =
 		'w-full pl-10 pr-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent';
-	const selectInputStyles =
-		'w-full pl-10 pr-3 py-2 border-b-2 border-brand-light rounded-none focus:outline-none focus:border-brand-dark focus:ring-0 bg-transparent appearance-none cursor-pointer relative pr-8';
-
-	// Add a custom select wrapper style
-	const selectWrapperStyles = 'relative';
 
 	// Actualizar la previsualización cuando cambia el sello seleccionado
 	useEffect(() => {
@@ -594,44 +591,39 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 
 		setIsSubmitting(true);
 		setError(null);
-
+		const formDataToSend = new FormData();
 		try {
-			const formDataToSend = new FormData();
-			formDataToSend.append('name', formData.name);
-			formDataToSend.append('email', formData.email);
-			formDataToSend.append('role', 'sello');
-			formDataToSend.append('_id', formData._id);
-			formDataToSend.append('external_id', sello.external_id.toString());
-			formDataToSend.append('asignaciones', JSON.stringify(newAsignaciones));
-			formDataToSend.append(
-				'removedAsignaciones',
-				JSON.stringify(removedAsignaciones)
-			);
-			if (formData.password) {
-				formDataToSend.append('password', formData.password);
-			}
-
-			formDataToSend.append('status', formData.status || 'activo');
-			formDataToSend.append('catalog_num', formData.catalog_num.toString());
-			formDataToSend.append('year', formData.year.toString());
-			formDataToSend.append('exclusivity', formData.exclusivity);
-			formDataToSend.append('primary_genre', formData.primary_genre);
+			let data = {
+				name: formData.name,
+				email: formData.email,
+				role: 'sello',
+				_id: formData._id,
+				picture: '',
+				external_id: sello.external_id.toString(),
+				asignaciones: newAsignaciones,
+				removedAsignaciones: removedAsignaciones,
+				password: formData.password.length > 0 ? formData.password : null,
+				status: formData.status || 'activo',
+				catalog_num: formData.catalog_num.toString(),
+				year: formData.year.toString(),
+				exclusivity: formData.exclusivity,
+				primary_genre: formData.primary_genre,
+				subAccounts:
+					selectedSubAccounts.length > 0
+						? selectedSubAccounts.map(account => ({
+								subAccountId: account._id,
+								status: 'activo',
+								role: account.role,
+						  }))
+						: undefined,
+			};
 
 			if (formData.picture instanceof File) {
 				formDataToSend.append('picture', formData.picture);
 			} else if (typeof formData.picture === 'string') {
 				formDataToSend.append('picture', formData.picture);
 			}
-
-			// Agregar datos de relaciones con información adicional
-			if (selectedSubAccounts.length > 0) {
-				const subAccountsData = selectedSubAccounts.map(account => ({
-					subAccountId: account._id,
-					status: 'activo', // Estado por defecto de la relación
-					role: account.role, // Incluimos el rol para referencia
-				}));
-				formDataToSend.append('subAccounts', JSON.stringify(subAccountsData));
-			}
+			formDataToSend.append('data', JSON.stringify(data));
 
 			await onSave(formDataToSend);
 			onClose();
@@ -701,16 +693,48 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 									<label className="block text-sm font-medium text-gray-700">
 										Logo del Sello
 									</label>
-									<div className="flex items-center gap-4">
-										<div className="w-32 h-32 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+									<div className="flex flex-col md:flex-row items-center gap-4">
+										<div className="w-32 h-32 border-2 border-gray-200 rounded-lg flex items-center justify-center overflow-hidden relative group">
 											{imagePreview ? (
-												<img
-													src={imagePreview}
-													alt="Preview"
-													className="w-full h-full object-cover"
-												/>
+												<>
+													<input
+														type="file"
+														ref={fileInputRef}
+														onChange={handleImageChange}
+														accept="image/*"
+														className="hidden"
+													/>
+													<button
+														type="button"
+														onClick={() => fileInputRef.current?.click()}
+														className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+													>
+														<Upload className="h-6 w-6 mb-1" />
+														<span className="text-sm">Cambiar imagen</span>
+													</button>
+													<img
+														src={imagePreview}
+														alt="Preview"
+														className="absolute w-full h-full object-cover"
+													/>
+												</>
 											) : (
 												<div className="text-center">
+													<input
+														type="file"
+														ref={fileInputRef}
+														onChange={handleImageChange}
+														accept="image/*"
+														className="hidden"
+													/>
+													<button
+														type="button"
+														onClick={() => fileInputRef.current?.click()}
+														className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+													>
+														<Upload className="h-6 w-6 mb-1" />
+														<span className="text-sm">Cambiar imagen</span>
+													</button>
 													<ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
 													<span className="mt-1 block text-xs text-gray-500">
 														Sin imagen
@@ -719,21 +743,27 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 											)}
 										</div>
 										<div>
-											<input
-												type="file"
-												ref={fileInputRef}
-												onChange={handleImageChange}
-												accept="image/*"
-												className="hidden"
-											/>
-											<button
-												type="button"
-												onClick={() => fileInputRef.current?.click()}
-												className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-dark"
-											>
-												<Upload className="h-4 w-4 mr-2" />
-												Cambiar imagen
-											</button>
+											<p className="text-xs text-gray-500">
+												<strong>Formato:</strong> JPG
+											</p>
+											<p className="text-xs text-gray-500">
+												<strong>Resolución:</strong> 3000 X 3000 px
+											</p>
+											<p className="text-xs text-gray-500">
+												<strong>Peso máximo:</strong> 4MB
+											</p>
+											<p className="text-xs text-gray-500">
+												<strong>Colores:</strong> RGB
+											</p>
+											<div className="bg-yellow-100 p-2 rounded-md">
+												<div className="flex items-center gap-2">
+													<AlertTriangle className="h-4 w-4 text-yellow-600" />
+													<p className="text-[9px] md:text-xs text-yellow-800">
+														No seguir estas indicaciones puede causar{' '}
+														<strong>error</strong> en la subida
+													</p>
+												</div>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -831,6 +861,7 @@ const UpdateSelloModal: React.FC<UpdateSelloModalProps> = ({
 												<input
 													type="password"
 													id="password"
+													placeholder="Dejar en blanco para mantener la contraseña actual"
 													name="password"
 													value={formData.password}
 													onChange={handleChange}

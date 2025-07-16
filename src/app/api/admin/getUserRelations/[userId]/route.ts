@@ -45,7 +45,7 @@ export async function GET(
 		const subAccountsRelations = await AccountRelationship.find({
 			mainAccountId: userId,
 		}).populate('subAccountId', 'name email role picture');
-	
+
 		// Formatear la respuesta
 		const mainAccount = mainAccountRelation
 			? {
@@ -73,10 +73,12 @@ export async function GET(
 				subAccounts,
 			},
 		});
-	} catch (error) {
-		console.error('Error in getUserRelations:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Error al obtener las relaciones' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}

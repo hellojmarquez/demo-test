@@ -249,7 +249,7 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 			const tracks = await fetch(`/api/admin/getAllTracks?all=true`);
 
 			const res = await tracks.json();
-			console.log('res tracks', res.data.tracks);
+
 			setTracks(res.data.tracks);
 		};
 		tracksRequest();
@@ -388,9 +388,9 @@ const UploadTrackToRelease: React.FC<UploadTrackToReleaseProps> = ({
 										<input
 											type="text"
 											value={asset.title}
-											onChange={e =>
-												handleAssetChange(asset.id, 'title', e.target.value)
-											}
+											onChange={e => {
+												handleAssetChange(asset.id, 'title', e.target.value);
+											}}
 											className={inputStyles}
 											placeholder="Ingresa el título"
 										/>

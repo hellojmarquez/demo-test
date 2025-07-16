@@ -24,6 +24,7 @@ import Pagination from '@/components/Pagination';
 import { Track } from '@/types/track';
 import SearchInput from '@/components/SearchInput';
 import SortSelect from '@/components/SortSelect';
+import toast from 'react-hot-toast';
 
 interface Release {
 	_id: string;
@@ -60,9 +61,8 @@ const Assets = () => {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('newest');
 	const [releases, setReleases] = useState<Release[]>([]);
-	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-	const { data, error, isLoading, mutate } = useSWR<TrackResponse>(
+	const { data, mutate } = useSWR<TrackResponse>(
 		`/api/admin/getAllTracks?page=${currentPage}${
 			searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
 		}&sort=${sortBy}`,
@@ -79,10 +79,15 @@ const Assets = () => {
 	];
 
 	useEffect(() => {
+		const controller = new AbortController();
+		const signal = controller.signal;
+
 		const fetchData = async () => {
 			try {
 				// Fetch releases
-				const releasesRes = await fetch('/api/admin/getAllReleases');
+				const releasesRes = await fetch('/api/admin/getAllReleases', {
+					signal,
+				});
 				if (!releasesRes.ok) {
 					if (releasesRes.status === 401) {
 						// Redirigir al login si no está autorizado
@@ -97,7 +102,7 @@ const Assets = () => {
 				}
 
 				// Fetch genres
-				const genresRes = await fetch('/api/admin/getAllGenres');
+				const genresRes = await fetch('/api/admin/getAllGenres', { signal });
 				if (!genresRes.ok) {
 					if (genresRes.status === 401) {
 						window.location.href = '/panel/login';
@@ -110,12 +115,19 @@ const Assets = () => {
 					setGenres(genresData.data);
 				}
 			} catch (error) {
-				console.error('Error fetching data:', error);
-				// Aquí podrías mostrar un mensaje de error al usuario
-				// setError('Error al cargar los datos');
+				if (error instanceof Error && error.name === 'AbortError') {
+					console.log('Fetch aborted');
+				} else {
+					console.error('Error fetching data:', error);
+					toast.error('Error al cargar los datos');
+				}
 			}
 		};
 		fetchData();
+
+		return () => {
+			controller.abort(); // Cancela las peticiones cuando el componente se desmonta
+		};
 	}, []);
 
 	const toggleExpand = (trackId: string | undefined) => {
@@ -144,9 +156,12 @@ const Assets = () => {
 		setIsDeleting(track._id);
 
 		try {
-			const response = await fetch(`/api/admin/deleteSingle/${track._id}`, {
-				method: 'DELETE',
-			});
+			const response = await fetch(
+				`/api/admin/deleteSingleInRelease/${track.external_id}`,
+				{
+					method: 'DELETE',
+				}
+			);
 
 			const data = await response.json();
 

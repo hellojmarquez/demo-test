@@ -9,8 +9,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { createLog } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-	console.log('create publisher received');
-
 	try {
 		const moveMusicAccessToken = req.cookies.get('accessToken')?.value;
 		const token = req.cookies.get('loginToken')?.value;
@@ -39,6 +37,20 @@ export async function POST(req: NextRequest) {
 
 		const body = await req.json();
 		let { name, email, order, author } = body;
+		await dbConnect();
+		const existingUser = await User.findOne({ email });
+		if (email) {
+			if (
+				existingUser &&
+				existingUser.email === email &&
+				existingUser.role === verifiedPayload.role
+			) {
+				return NextResponse.json(
+					{ error: 'El publisher con este email ya está registrado' },
+					{ status: 400 }
+				);
+			}
+		}
 		name = name.trim();
 		email = email.trim();
 
@@ -68,8 +80,7 @@ export async function POST(req: NextRequest) {
 		);
 
 		const publisherRes = await publisherReq.json();
-
-		if (!publisherRes.id) {
+		if (!publisherReq.ok) {
 			return NextResponse.json(
 				{
 					success: false,
@@ -80,7 +91,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Conectar a la base de datos local
-		await dbConnect();
+
 		const password = uuidv4();
 		const hashedPassword = await encryptPassword(password);
 		// Crear y guardar el publisher en la base de datos local
@@ -122,10 +133,12 @@ export async function POST(req: NextRequest) {
 				name,
 			},
 		});
-	} catch (error) {
-		console.error('Error creating publisher:', error);
+	} catch (error: any) {
 		return NextResponse.json(
-			{ success: false, error: 'Internal Server Error' },
+			{
+				error: error.message || 'Error interno del servidor',
+				stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+			},
 			{ status: 500 }
 		);
 	}
